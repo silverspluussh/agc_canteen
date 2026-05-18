@@ -1,0 +1,93 @@
+name: agc_canteen
+description: "An android pos canteen system to support the AGC canteen"
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.11.5
+
+dependencies:
+  adaptive_theme: ^3.7.2
+  connectivity_plus: ^7.1.1
+  crypto: ^3.0.6
+  dio: ^5.9.2
+  drift: 2.31.0
+  esc_pos_utils: ^1.1.0
+  ffi: ^2.2.0
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  flutter_dotenv: ^6.0.1
+  flutter_riverpod: ^3.3.1
+  flutter_secure_storage: ^10.2.0
+  get_it: ^9.2.1
+  intl: ^0.20.2
+  json_annotation: ^4.11.0
+  logger: ^2.7.0
+  mobile_scanner: ^7.2.0
+  open_file: ^3.5.11
+  package_info_plus: ^9.0.1
+  path: ^1.9.1
+  path_provider: ^2.1.5
+  riverpod_annotation: ^4.0.2
+  share_plus: ^12.0.2
+  shared_preferences: ^2.5.5
+  sqlite3_flutter_libs: ^0.5.24
+  uuid: ^4.5.3
+  flutter_svg: ^2.3.0
+  avatar_glow: ^3.0.1
+  device_info_plus: ^12.4.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  riverpod_generator: ^4.0.3
+  drift_dev: 2.31.0
+  build_runner: ^2.15.0
+  json_serializable: ^6.13.0
+  mocktail: ^1.0.5
+  flutter_launcher_icons: ^0.9.3
+
+flutter:
+  generate: true
+  uses-material-design: true
+  assets:
+    - .env
+    - assets/
+    - assets/illustrations/
+  fonts:
+    - family: SF Pro Display
+      fonts:
+        - asset: assets/sf-pro-display/SFPRODISPLAYTHINITALIC.OTF
+          weight: 100
+          style: italic
+        - asset: assets/sf-pro-display/SFPRODISPLAYULTRALIGHTITALIC.OTF
+          weight: 200
+          style: italic
+        - asset: assets/sf-pro-display/SFPRODISPLAYLIGHTITALIC.OTF
+          weight: 300
+          style: italic
+        - asset: assets/sf-pro-display/SFPRODISPLAYREGULAR.OTF
+          weight: 400
+        - asset: assets/sf-pro-display/SFPRODISPLAYMEDIUM.OTF
+          weight: 500
+        - asset: assets/sf-pro-display/SFPRODISPLAYSEMIBOLDITALIC.OTF
+          weight: 600
+          style: italic
+        - asset: assets/sf-pro-display/SFPRODISPLAYBOLD.OTF
+          weight: 700
+        - asset: assets/sf-pro-display/SFPRODISPLAYHEAVYITALIC.OTF
+          weight: 800
+          style: italic
+        - asset: assets/sf-pro-display/SFPRODISPLAYBLACKITALIC.OTF
+          weight: 900
+          style: italic
+
+flutter_icons:
+  android: true
+  image_path: "assets/app_logo.png"
+  adaptive_icon_background: "#ffffff"
+  adaptive_icon_foreground: "assets/app_logo.png"
+  

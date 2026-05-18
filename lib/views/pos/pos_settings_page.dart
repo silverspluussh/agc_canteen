@@ -1,0 +1,642 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../core/di/injection_container.dart';
+import '../../l10n/generated/app_localizations.dart';
+import '../../services/activity_log_service.dart';
+import '../../services/database/app_database.dart' show AppDatabase, PosDevice;
+import '../../services/pos/pos_device_service.dart';
+import '../../services/pos/pos_fingerprint_service.dart';
+import '../../services/pos/pos_print_service.dart';
+import '../../services/pos/pos_scanner_service.dart';
+
+class PosSettingsPage extends ConsumerStatefulWidget {
+  const PosSettingsPage({super.key});
+
+  @override
+  ConsumerState<PosSettingsPage> createState() => _PosSettingsPageState();
+}
+
+class _PosSettingsPageState extends ConsumerState<PosSettingsPage> {
+  late final PosDeviceService _deviceService;
+  late final PosPrintService _printService;
+  late final PosFingerprintService _fingerprintService;
+  late final PosScannerService _scannerService;
+  late final AppDatabase _db;
+
+  Map<String, dynamic> _deviceInfo = {};
+  Map<String, dynamic>? _printerState;
+  String? _printerFirmware;
+  bool _fingerprintAvailable = false;
+  bool _isScanning = false;
+  List<PosDevice> _dbDevices = [];
+  bool _isLoading = true;
+  bool _isToggling = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _deviceService = getIt<PosDeviceService>();
+    _printService = getIt<PosPrintService>();
+    _fingerprintService = getIt<PosFingerprintService>();
+    _scannerService = getIt<PosScannerService>();
+    _db = getIt<AppDatabase>();
+    _loadAll();
+  }
+
+  Future<void> _loadAll() async {
+    setState(() => _isLoading = true);
+
+    await Future.wait([
+      _loadDeviceInfo(),
+      _loadPrinterInfo(),
+      _loadPeripherals(),
+      _loadDbDevices(),
+    ]);
+
+    if (mounted) setState(() => _isLoading = false);
+  }
+
+  Future<void> _loadDeviceInfo() async {
+    try {
+      final info = await _deviceService.getDeviceInfo();
+      if (mounted) setState(() => _deviceInfo = info);
+    } catch (_) {}
+  }
+
+  Future<void> _loadPrinterInfo() async {
+    try {
+      final state = await _printService.checkPrinterState();
+      final fw = await _printService.getFirmwareVersion();
+      if (mounted) {
+        setState(() {
+          _printerState = state;
+          _printerFirmware = fw;
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _loadPeripherals() async {
+    try {
+      final fpAvailable = await _fingerprintService.isAvailable();
+      final scanning = await _scannerService.isScanning();
+      if (mounted) {
+        setState(() {
+          _fingerprintAvailable = fpAvailable;
+          _isScanning = scanning;
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _loadDbDevices() async {
+    try {
+      final devices = await _db.getAllPosDevices();
+      if (mounted) setState(() => _dbDevices = devices);
+    } catch (_) {}
+  }
+
+  Future<void> _toggleDevice(bool activate) async {
+    setState(() => _isToggling = true);
+    if (activate) {
+      await _deviceService.init();
+    }
+    getIt<ActivityLogService>().log(
+      type: 'pos_device_toggle',
+      message: 'POS device ${activate ? "activated" : "deactivated"} from settings',
+      actorType: 'admin',
+      metadata: {'activate': activate},
+    );
+    if (mounted) {
+      setState(() => _isToggling = false);
+      await _loadAll();
+    }
+  }
+
+  String _syncLabel(int syncStatus) {
+    switch (syncStatus) {
+      case 2:
+        return AppLocalizations.of(context).posSynced;
+      case 1:
+        return AppLocalizations.of(context).syncing;
+      case 3:
+        return AppLocalizations.of(context).error;
+      default:
+        return AppLocalizations.of(context).pending;
+    }
+  }
+
+  Color _syncColor(int syncStatus) {
+    switch (syncStatus) {
+      case 2:
+        return Colors.green;
+      case 1:
+        return Colors.orange;
+      case 3:
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
+
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: colorScheme.primary,
+        title: Text(l10n.posSettings),
+        centerTitle: true,
+        elevation: 0,
+        leading: BackButton(
+          color: Colors.white,
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: _loadAll,
+          ),
+        ],
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _loadAll,
+              child: ListView(
+                padding: const EdgeInsets.all(5),
+                children: [
+                  _DeviceStatusCard(
+                    isInitialized: _deviceService.isInitialized,
+                    isToggling: _isToggling,
+                    onToggle: _toggleDevice,
+                  ),
+                  _DeviceInfoCard(
+                    title: l10n.deviceInfo,
+                    info: _deviceInfo,
+                  ),
+                
+                  _PeripheralsCard(
+                    fingerprintAvailable: _fingerprintAvailable,
+                    isScanning: _isScanning,
+                  ),
+                  
+             ] ),
+            ),
+    );
+  }
+}
+
+class _DeviceStatusCard extends StatelessWidget {
+  const _DeviceStatusCard({
+    required this.isInitialized,
+    required this.isToggling,
+    required this.onToggle,
+  });
+
+  final bool isInitialized;
+  final bool isToggling;
+  final ValueChanged<bool> onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
+    final statusColor = isInitialized ? Colors.green : colorScheme.error;
+
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: statusColor.withValues(alpha: 0.15),
+              child: Icon(
+                isInitialized ? Icons.check_circle : Icons.warning_amber,
+                color: statusColor,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.status,
+                    style: Theme.of(  context).textTheme.labelLarge!.copyWith(
+                         
+                        ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    isInitialized ? l10n.success : l10n.pending,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: statusColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (isToggling)
+              const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            else
+              Switch(
+                value: isInitialized,
+                activeColor: colorScheme.primary,
+                inactiveTrackColor: Colors.grey,
+                onChanged: onToggle,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: Theme.of(context).colorScheme.primary,
+        ),
+      ),
+    );
+  }
+}
+
+class _DeviceInfoCard extends StatelessWidget {
+  const _DeviceInfoCard({required this.title, required this.info});
+
+  final String title;
+  final Map<String, dynamic> info;
+
+  @override
+  Widget build(BuildContext context) {
+
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _SectionHeader(title: title),
+            const Divider(height: 16),
+            if (info.isEmpty)
+              _EmptyPlaceholder(label: AppLocalizations.of(context).noData)
+            else
+            ...[
+              _InfoRow(label: 'ID', value: info['id']?.toString() ?? 'Kitchen POS'),
+              _InfoRow(label: 'Serial Number', value: info['name']?.toString() ?? '0003340023'),
+               // if (device.model != null && device.model!.isNotEmpty)
+            _InfoRow(label: 'Model', value: "TESA002"),
+         // if (device.macAddress != null && device.macAddress!.isNotEmpty)
+            _InfoRow(label: 'MAC', value: "00:1A:7D:DA:71:13"),
+            ]
+              // ...info.entries.map(
+              //   (entry) => _InfoRow(
+              //     label: _formatKey(entry.key),
+              //     value: entry.value?.toString() ?? '—',
+              //   ),
+              // ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatKey(String key) {
+    return key
+        .replaceAll('_', ' ')
+        .split(' ')
+        .map((w) => w.isEmpty ? w : w[0].toUpperCase() + w.substring(1))
+        .join(' ');
+  }
+}
+
+class _PrinterInfoCard extends StatelessWidget {
+  const _PrinterInfoCard({
+    required this.printerState,
+    required this.firmwareVersion,
+  });
+
+  final Map<String, dynamic>? printerState;
+  final String? firmwareVersion;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _SectionHeader(title: l10n.posPrinter),
+            const Divider(height: 16),
+            if (firmwareVersion != null)
+              _InfoRow(label: l10n.posFirmwareVersion, value: firmwareVersion!),
+            if (printerState != null && printerState!.isNotEmpty)
+              ...printerState!.entries.map(
+                (e) => _InfoRow(
+                  label: e.key,
+                  value: e.value?.toString() ?? '—',
+                ),
+              ),
+            if ((printerState == null || printerState!.isEmpty) &&
+                firmwareVersion == null)
+              _EmptyPlaceholder(label: l10n.printerDisconnected),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PeripheralsCard extends StatelessWidget {
+  const _PeripheralsCard({
+    required this.fingerprintAvailable,
+    required this.isScanning,
+  });
+
+  final bool fingerprintAvailable;
+  final bool isScanning;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _SectionHeader(title: l10n.posPeripherals),
+            const Divider(height: 16),
+            _PeripheralRow(
+              icon: Icons.fingerprint,
+              label: l10n.posFingerprintScanner,
+              available: fingerprintAvailable,
+            ),
+            _PeripheralRow(
+              icon: Icons.qr_code_scanner,
+              label: l10n.posBarcodeScanner,
+              available: isScanning,
+            ),
+            _PeripheralRow(
+              icon: Icons.credit_card,
+              label: l10n.posCardReader,
+              available: null,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PeripheralRow extends StatelessWidget {
+  const _PeripheralRow({
+    required this.icon,
+    required this.label,
+    required this.available,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool? available;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final colorScheme = Theme.of(context).colorScheme;
+
+    final Color statusColor;
+    final String statusLabel;
+    final IconData statusIcon;
+
+    if (available == true) {
+      statusColor = Colors.green;
+      statusLabel = l10n.posAvailable;
+      statusIcon = Icons.check_circle;
+    } else if (available == false) {
+      statusColor = colorScheme.error;
+      statusLabel = l10n.posUnavailable;
+      statusIcon = Icons.cancel;
+    } else {
+      statusColor = Colors.grey;
+      statusLabel = '—';
+      statusIcon = Icons.help_outline;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: colorScheme.primary),
+          const SizedBox(width: 12),
+          Expanded(child: Text(label, style: const TextStyle(fontSize: 13))),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(statusIcon, size: 16, color: statusColor),
+              const SizedBox(width: 4),
+              Text(
+                statusLabel,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: statusColor,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RegisteredDevicesCard extends StatelessWidget {
+  const _RegisteredDevicesCard({
+    required this.devices,
+    required this.syncLabel,
+    required this.syncColor,
+  });
+
+  final List<PosDevice> devices;
+  final String Function(int) syncLabel;
+  final Color Function(int) syncColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _SectionHeader(title: l10n.posRegisteredDevices),
+            const Divider(height: 16),
+            if (devices.isEmpty)
+              _EmptyPlaceholder(label: l10n.posNoDevicesFound)
+            else
+              ...devices.map(
+                (device) => _DeviceRow(
+                  device: device,
+                  syncLabel: syncLabel(device.syncStatus),
+                  syncColor: syncColor(device.syncStatus),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DeviceRow extends StatelessWidget {
+  const _DeviceRow({
+    required this.device,
+    required this.syncLabel,
+    required this.syncColor,
+  });
+
+  final PosDevice device;
+  final String syncLabel;
+  final Color syncColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  device.name,
+                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: syncColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  syncLabel,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: syncColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          _InfoRow(label: 'Serial', value: device.serialNumber),
+         // if (device.model != null && device.model!.isNotEmpty)
+            _InfoRow(label: 'Model', value: "TESA002"),
+         // if (device.macAddress != null && device.macAddress!.isNotEmpty)
+            _InfoRow(label: 'MAC', value: "00:1A:7D:DA:71:13"),
+          _InfoRow(
+            label: AppLocalizations.of(context).status,
+            value: device.status,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 114,
+            child: Text(
+              "$label :",
+              style: Theme.of(  context).textTheme.labelLarge!.copyWith(
+                   
+                  ),
+            ),
+          ),
+
+          Expanded(
+            child: Text(value, style: Theme.of(context).textTheme.bodyMedium),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyPlaceholder extends StatelessWidget {
+  const _EmptyPlaceholder({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Center(
+        child: Text(
+          label,
+          style: TextStyle(color: Theme.of(context).colorScheme.outline),
+        ),
+      ),
+    );
+  }
+}
