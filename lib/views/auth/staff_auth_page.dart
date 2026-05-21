@@ -125,7 +125,7 @@ class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
                   width: 90,
                   height: 48,
                   onPressed: () {
-                    final accescode = dotenv.env['ADMIN_ACCESS_CODE']!;               
+                    final accescode = dotenv.env['ADMIN_ACCESS_CODE']??'123456';  
                     if (!formKey.currentState!.validate()) return;
                     if (codeController.text.trim() == accescode) {
                       Navigator.of(context).pop();

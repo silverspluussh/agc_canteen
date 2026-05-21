@@ -639,7 +639,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ok => 'OK';
 
   @override
-  String get manualPosOrder => 'Manual POS order';
+  String get manualPosOrder => 'Manual POS Order';
 
   @override
   String get manualPosOrderSubtitle => 'Create single and group POS orders';

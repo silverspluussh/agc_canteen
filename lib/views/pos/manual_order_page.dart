@@ -236,7 +236,10 @@ class _SingleOrderTabState extends ConsumerState<_SingleOrderTab> {
                   ),
                 )
                 .toList(),
-            onChanged: (v) => setState(() => _mealType = v),
+            onChanged: (v) => setState(() {
+              _mealType = v;
+              _selectedMeal = null;
+            }),
             validator: (v) => v == null ? 'Required' : null,
           ),
           const SizedBox(height: 20),
@@ -267,18 +270,23 @@ class _SingleOrderTabState extends ConsumerState<_SingleOrderTab> {
           _sectionLabel('Meal'),
           const SizedBox(height: 8),
           meals.when(
-            data: (list) => DropdownButtonFormField<Meal>(
-              value: _selectedMeal,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'Select meal',
-              ),
-              items: list
-                  .map((m) => DropdownMenuItem(value: m, child: Text(m.name)))
-                  .toList(),
-              onChanged: (v) => setState(() => _selectedMeal = v),
-              validator: (v) => v == null ? 'Required' : null,
-            ),
+            data: (list) {
+              final available = list.where(
+                (m) => m.mealType == (_mealType ?? ''),
+              );
+              return DropdownButtonFormField<Meal>(
+                value: _selectedMeal,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: 'Select meal',
+                ),
+                items: available
+                    .map((m) => DropdownMenuItem(value: m, child: Text(m.name)))
+                    .toList(),
+                onChanged: (v) => setState(() => _selectedMeal = v),
+                validator: (v) => v == null ? 'Required' : null,
+              );
+            },
             loading: () => const LinearProgressIndicator(),
             error: (e, _) => Text('Failed to load meals: $e'),
           ),

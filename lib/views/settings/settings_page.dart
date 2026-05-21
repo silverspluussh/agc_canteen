@@ -374,16 +374,16 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
           // ── System ─────────────────────────────────────────────────────────
           _SectionHeader(label: l10n.system),
-          _SettingsTile(
-            icon: Icons.system_update_alt_rounded,
-            title: l10n.appUpdate,
-            subtitle: l10n.checkLatestVersion,
-            onTap: () {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text(l10n.latestVersion)));
-            },
-          ),
+          // _SettingsTile(
+          //   icon: Icons.system_update_alt_rounded,
+          //   title: l10n.appUpdate,
+          //   subtitle: l10n.checkLatestVersion,
+          //   onTap: () {
+          //     ScaffoldMessenger.of(
+          //       context,
+          //     ).showSnackBar(SnackBar(content: Text(l10n.latestVersion)));
+          //   },
+          // ),
           _SettingsTile(
             icon: Icons.info_outline_rounded,
             title: l10n.about,

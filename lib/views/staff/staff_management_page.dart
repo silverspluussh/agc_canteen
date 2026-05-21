@@ -2,10 +2,8 @@ import 'package:agc_canteen/views/widgets/app_buttons.widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../controllers/providers.dart';
-import '../../core/di/injection_container.dart';
 import '../../l10n/generated/app_localizations.dart';
-import '../../models/staff.model.dart';
-import '../../services/activity_log_service.dart';
+import '../../services/database/app_database.dart';
 
 class StaffManagementPage extends ConsumerStatefulWidget {
   const StaffManagementPage({super.key});
@@ -16,71 +14,8 @@ class StaffManagementPage extends ConsumerStatefulWidget {
 }
 
 class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
-  final List<_StaffWithFingerprint> _staffList = [
-    _StaffWithFingerprint(
-      staff: Staff(
-        id: 'staff_1',
-        firstName: 'Kwame',
-        lastName: 'Asante',
-        empId: '0276234567',
-        level: 'akosua@agc.com',
-        tier: 1,
-        createdAt: DateTime.now(),
-      ),
-      hasFingerprint: true,
-      fingerprintId: 'fp_001',
-    ),
-    _StaffWithFingerprint(
-      staff: Staff(
-        id: 'staff_2',
-        firstName: 'Ama',
-        lastName: 'Mensah',
-        empId: '0276234567',
-        level: 'akosua@agc.com',
-        tier: 1,
-        createdAt: DateTime.now(),
-      ),
-      hasFingerprint: false,
-    ),
-    _StaffWithFingerprint(
-      staff: Staff(
-        id: 'staff_3',
-        firstName: 'Yaw',
-        lastName: 'Boateng',
-        empId: '0276234567',
-        level: 'akosua@agc.com',
-        tier: 1,
-        createdAt: DateTime.now(),
-      ),
-      hasFingerprint: true,
-      fingerprintId: 'fp_002',
-    ),
-    _StaffWithFingerprint(
-      staff: Staff(
-        id: 'staff_4',
-        firstName: 'Akosua',
-        lastName: 'Darko',
-        empId: '0276234567',
-        level: 'akosua@agc.com',
-        tier: 1,
-        createdAt: DateTime.now(),
-      ),
-      hasFingerprint: false,
-    ),
-    _StaffWithFingerprint(
-      staff: Staff(
-        id: 'staff_5',
-        firstName: 'Kofi',
-        lastName: 'Agyeman',
-        empId: '0276234567',
-        level: 'akosua@agc.com',
-        tier: 1,
-        createdAt: DateTime.now(),
-      ),
-      hasFingerprint: true,
-      fingerprintId: 'fp_003',
-    ),
-  ];
+  List<_StaffWithFingerprint> _staffList = [];
+  bool _isLoading = true;
 
   final _searchCtrl = TextEditingController();
   String _query = '';
@@ -93,12 +28,40 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
     _searchCtrl.addListener(
       () => setState(() => _query = _searchCtrl.text.trim().toLowerCase()),
     );
+    _loadStaffData();
   }
 
   @override
   void dispose() {
     _searchCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadStaffData() async {
+    final db = ref.read(databaseProvider);
+    final staffList = await db.getAllStaff();
+    final allFingerprints = await db.getAllFingerprints();
+
+    final items = staffList.map((s) {
+      final staffFps = allFingerprints.where((f) => f.staffId == s.id).toList();
+      return _StaffWithFingerprint(
+        staff: s,
+        hasFingerprint: staffFps.isNotEmpty,
+        fingerprintId: staffFps.isNotEmpty ? staffFps.first.id : null,
+      );
+    }).toList();
+
+    if (mounted) {
+      setState(() {
+        _staffList = items;
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _refreshStaffData() async {
+    setState(() => _isLoading = true);
+    await _loadStaffData();
   }
 
   List<_StaffWithFingerprint> get _filtered => _staffList.where((s) {
@@ -209,11 +172,15 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
 
     return Scaffold(
       appBar: AppBar(
+        centerTitle: true,
+        leading: BackButton(color: Colors.white,),
         title: Text(l10n.staffManagement),
         backgroundColor: colorScheme.primary,
         foregroundColor: colorScheme.onPrimary,
       ),
-      body: Column(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -282,10 +249,12 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
               borderRadius: BorderRadius.circular(16),
             ),
             title: Row(
+              spacing: 15,
               children: [
                 Icon(Icons.fingerprint, color: colorScheme.primary),
-                const SizedBox(width: 8),
+                
                 Text(l10n.enrollFingerprint),
+                IconButton(onPressed: ()=> Navigator.pop(context), icon: Icon(Icons.close, color: Colors.red,))
               ],
             ),
             content: Column(
@@ -312,20 +281,20 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
                 ),
               ],
             ),
-            actionsAlignment: MainAxisAlignment.spaceBetween,
+            actionsAlignment: MainAxisAlignment.center,
             actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text(l10n.cancel),
-              ),
-              FilledButton.icon(
-                onPressed: () async {
-                  Navigator.pop(ctx);
-                  await _enrollFingerprint(entry, setDialogState);
-                },
-                icon: const Icon(Icons.fingerprint),
-                label: Text(l10n.enrollFingerprint),
-              ),
+              
+
+              PrimaryButton(
+             
+                
+                onPressed:  () async {
+                Navigator.pop(ctx);
+                await _enrollFingerprint(entry, setDialogState);
+              },
+              prefixChild: const Icon(Icons.fingerprint, color: Colors.white,),
+               label: Text(l10n.enrollFingerprint, style: TextStyle(color: Colors.white),),)
+             
             ],
           );
         },
@@ -348,32 +317,23 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
             onPressed: () => Navigator.pop(ctx),
             child: Text(l10n.cancel),
           ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
-            onPressed: () {
-              setState(() {
-                entry.hasFingerprint = false;
-                entry.fingerprintId = null;
-              });
-              getIt<ActivityLogService>().log(
-                type: 'fingerprint_deleted',
-                message:
-                    'Fingerprint deleted for staff: ${entry.staff.firstName} ${entry.staff.lastName}',
-                actorType: 'admin',
-                actorId: entry.staff.id,
-                actorName: '${entry.staff.firstName} ${entry.staff.lastName}',
-                sourceTable: 'fingerprints',
-                recordId: entry.fingerprintId,
-              );
+
+          DestructiveButton(
+            width: 120,
+            onPressed: () async {
               Navigator.pop(ctx);
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text(l10n.deleteFingerprint)));
-            },
-            child: Text(l10n.delete),
-          ),
+              if (entry.fingerprintId != null) {
+                final authService = ref.read(fingerprintAuthProvider);
+                await authService.deleteFingerprint(entry.fingerprintId!);
+              }
+              await _refreshStaffData();
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(l10n.deleteFingerprint)),
+                );
+              }
+            },label: Text(l10n.delete, style: TextStyle(color: Colors.white),),)
+         
         ],
       ),
     );
@@ -401,20 +361,7 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
       final fingerprintId = await authService.enroll(entry.staff.id);
 
       if (fingerprintId != null) {
-        setState(() {
-          entry.hasFingerprint = true;
-          entry.fingerprintId = fingerprintId;
-        });
-        getIt<ActivityLogService>().log(
-          type: 'fingerprint_enrolled',
-          message:
-              'Fingerprint enrolled for staff: ${entry.staff.firstName} ${entry.staff.lastName}',
-          actorType: 'admin',
-          actorId: entry.staff.id,
-          actorName: '${entry.staff.firstName} ${entry.staff.lastName}',
-          sourceTable: 'fingerprints',
-          recordId: fingerprintId,
-        );
+        await _refreshStaffData();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Fingerprint enrolled successfully')),
@@ -448,7 +395,7 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
 }
 
 class _StaffWithFingerprint {
-  final Staff staff;
+  final StaffData staff;
   bool hasFingerprint;
   String? fingerprintId;
 
@@ -508,13 +455,13 @@ class _StaffCard extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    Text(
-                      entry.staff.id,
-                      style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                        color: colorScheme.onPrimary,
-                      ),
-                    ),
-                    SizedBox(width: 12),
+                    // Text(
+                    //   entry.staff.id,
+                    //   style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                    //     color: colorScheme.onPrimary,
+                    //   ),
+                    // ),
+                    // SizedBox(width: 12),
                     Row(
                       children: [
                         Icon(

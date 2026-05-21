@@ -245,7 +245,7 @@
   "orderPlaced": "Order Placed",
   "receiptPrinted": "Receipt printed successfully.",
   "ok": "OK",
-  "manualPosOrder": "Manual POS order",
+  "manualPosOrder": "Manual POS Order",
   "manualPosOrderSubtitle": "Create single and group POS orders",
   "singleOrder": "Single Order",
   "groupOrder": "Group Order"

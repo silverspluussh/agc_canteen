@@ -1345,7 +1345,7 @@ abstract class AppLocalizations {
   /// No description provided for @manualPosOrder.
   ///
   /// In en, this message translates to:
-  /// **'Manual POS order'**
+  /// **'Manual POS Order'**
   String get manualPosOrder;
 
   /// No description provided for @manualPosOrderSubtitle.
