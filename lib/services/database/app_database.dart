@@ -18,18 +18,71 @@ part 'app_database.g.dart';
   PosDevices,
   Fingerprints,
   ActivityLogs,
+  GroupOrders,
+  GroupOrderItems,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        onUpgrade: (m, from, to) async {},
+        onUpgrade: (m, from, to) async {
+          if (from < 3) {
+            await m.createTable(activityLogs);
+          }
+          if (from < 4) {
+            await m.createTable(groupOrders);
+            await m.createTable(groupOrderItems);
+          }
+        },
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');
+          await customStatement(
+            'CREATE TABLE IF NOT EXISTS activity_logs ('
+            'id TEXT NOT NULL PRIMARY KEY, '
+            'type TEXT NOT NULL, '
+            'message TEXT NOT NULL, '
+            'actor_type TEXT, '
+            'actor_id TEXT, '
+            'actor_name TEXT, '
+            'source_table TEXT, '
+            'record_id TEXT, '
+            'metadata TEXT, '
+            'created_at TEXT NOT NULL'
+            ')',
+          );
+          await customStatement(
+            'CREATE TABLE IF NOT EXISTS group_orders ('
+            'id TEXT NOT NULL PRIMARY KEY, '
+            'order_code TEXT NOT NULL, '
+            'status TEXT NOT NULL, '
+            'order_type TEXT NOT NULL, '
+            'meal_type TEXT NOT NULL, '
+            'total REAL NOT NULL, '
+            'group_count INTEGER NOT NULL, '
+            'description TEXT, '
+            'created_at TEXT NOT NULL, '
+            'updated_at TEXT NOT NULL, '
+            'sync_status INTEGER NOT NULL DEFAULT 0, '
+            'sync_updated_at TEXT'
+            ')',
+          );
+          await customStatement(
+            'CREATE TABLE IF NOT EXISTS group_order_items ('
+            'id TEXT NOT NULL PRIMARY KEY, '
+            'price REAL NOT NULL, '
+            'qty INTEGER NOT NULL, '
+            'meal_id TEXT NOT NULL REFERENCES meals(id), '
+            'group_order_id TEXT NOT NULL REFERENCES group_orders(id), '
+            'created_at TEXT NOT NULL, '
+            'updated_at TEXT NOT NULL, '
+            'sync_status INTEGER NOT NULL DEFAULT 0, '
+            'sync_updated_at TEXT'
+            ')',
+          );
         },
       );
 
@@ -49,6 +102,8 @@ class AppDatabase extends _$AppDatabase {
       await delete(posDevices).go();
       await delete(fingerprints).go();
       await delete(activityLogs).go();
+      await delete(groupOrderItems).go();
+      await delete(groupOrders).go();
     });
   }
 
@@ -65,6 +120,8 @@ class AppDatabase extends _$AppDatabase {
       'overcharges': await _countUnsyncedOvercharges(),
       'pos_devices': await _countUnsyncedPosDevices(),
       'fingerprints': await _countUnsyncedFingerprints(),
+      'group_orders': await _countUnsyncedGroupOrders(),
+      'group_order_items': await _countUnsyncedGroupOrderItems(),
     };
   }
 
@@ -88,6 +145,10 @@ class AppDatabase extends _$AppDatabase {
       (await (select(overcharges)..where((t) => t.syncStatus.isNotValue(2))).get()).length;
   Future<int> _countUnsyncedPosDevices() async =>
       (await (select(posDevices)..where((t) => t.syncStatus.isNotValue(2))).get()).length;
+  Future<int> _countUnsyncedGroupOrders() async =>
+      (await (select(groupOrders)..where((t) => t.syncStatus.isNotValue(2))).get()).length;
+  Future<int> _countUnsyncedGroupOrderItems() async =>
+      (await (select(groupOrderItems)..where((t) => t.syncStatus.isNotValue(2))).get()).length;
 
   // ─── Sites ─────────────────────────────────────────────────
 
@@ -401,6 +462,66 @@ class AppDatabase extends _$AppDatabase {
   Future<void> markOrderItemFailed(String id) =>
       (update(orderItems)..where((t) => t.id.equals(id)))
           .write(OrderItemsCompanion(
+        syncStatus: const Value(3),
+        syncUpdatedAt: Value(DateTime.now().toIso8601String()),
+      ));
+
+  // ─── Group Orders ───────────────────────────────────────────
+
+  Future<void> insertGroupOrder(
+      GroupOrdersCompanion order, List<GroupOrderItemsCompanion> items) async {
+    await transaction(() async {
+      await into(groupOrders).insert(order);
+      for (final item in items) {
+        await into(groupOrderItems).insert(item);
+      }
+    });
+  }
+
+  Future<void> deleteGroupOrder(String id) async {
+    await transaction(() async {
+      await (delete(groupOrderItems)..where((t) => t.groupOrderId.equals(id))).go();
+      await (delete(groupOrders)..where((t) => t.id.equals(id))).go();
+    });
+  }
+
+  Future<List<GroupOrder>> getAllGroupOrders() => select(groupOrders).get();
+  Future<GroupOrder?> getGroupOrder(String id) =>
+      (select(groupOrders)..where((t) => t.id.equals(id))).getSingleOrNull();
+
+  Future<List<GroupOrderItem>> getGroupOrderItems(String groupOrderId) =>
+      (select(groupOrderItems)..where((t) => t.groupOrderId.equals(groupOrderId))).get();
+
+  Future<List<GroupOrder>> getUnsyncedGroupOrders() =>
+      (select(groupOrders)..where((t) => t.syncStatus.isNotValue(2))).get();
+
+  Future<List<GroupOrderItem>> getUnsyncedGroupOrderItems() =>
+      (select(groupOrderItems)..where((t) => t.syncStatus.isNotValue(2))).get();
+
+  Future<void> markGroupOrderSynced(String id) =>
+      (update(groupOrders)..where((t) => t.id.equals(id)))
+          .write(GroupOrdersCompanion(
+        syncStatus: const Value(2),
+        syncUpdatedAt: Value(DateTime.now().toIso8601String()),
+      ));
+
+  Future<void> markGroupOrderFailed(String id) =>
+      (update(groupOrders)..where((t) => t.id.equals(id)))
+          .write(GroupOrdersCompanion(
+        syncStatus: const Value(3),
+        syncUpdatedAt: Value(DateTime.now().toIso8601String()),
+      ));
+
+  Future<void> markGroupOrderItemSynced(String id) =>
+      (update(groupOrderItems)..where((t) => t.id.equals(id)))
+          .write(GroupOrderItemsCompanion(
+        syncStatus: const Value(2),
+        syncUpdatedAt: Value(DateTime.now().toIso8601String()),
+      ));
+
+  Future<void> markGroupOrderItemFailed(String id) =>
+      (update(groupOrderItems)..where((t) => t.id.equals(id)))
+          .write(GroupOrderItemsCompanion(
         syncStatus: const Value(3),
         syncUpdatedAt: Value(DateTime.now().toIso8601String()),
       ));

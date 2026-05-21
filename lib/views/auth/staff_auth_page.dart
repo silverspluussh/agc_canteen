@@ -1,5 +1,7 @@
+import 'package:agc_canteen/views/widgets/app_buttons.widget.dart';
 import 'package:avatar_glow/avatar_glow.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import '../../controllers/auth_controller.dart';
@@ -118,14 +120,14 @@ class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
                     style: const TextStyle(color: Colors.red),
                   ),
                 ),
-                TextButton(
-                  style: TextButton.styleFrom(
-                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                  ),
+                
+                PrimaryButton(
+                  width: 90,
+                  height: 48,
                   onPressed: () {
+                    final accescode = dotenv.env['ADMIN_ACCESS_CODE']!;               
                     if (!formKey.currentState!.validate()) return;
-                    if (codeController.text.trim() == '756183') {
+                    if (codeController.text.trim() == accescode) {
                       Navigator.of(context).pop();
                       getIt<ActivityLogService>().log(
                         type: 'admin_code_access',
@@ -137,12 +139,12 @@ class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
                       setDialogState(() => isWrong = true);
                       codeController.clear();
                     }
-                  },
-                  child: Text(
+                  },label: Text(
                     AppLocalizations.of(context).confirm,
                     style: const TextStyle(color: Colors.white),
-                  ),
-                ),
+                  ),)
+
+               
               ],
             );
           },

@@ -1,3 +1,4 @@
+import 'package:agc_canteen/views/widgets/app_buttons.widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../controllers/providers.dart';
@@ -17,54 +18,64 @@ class StaffManagementPage extends ConsumerStatefulWidget {
 class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
   final List<_StaffWithFingerprint> _staffList = [
     _StaffWithFingerprint(
-      staff: const Staff(
+      staff: Staff(
         id: 'staff_1',
         firstName: 'Kwame',
         lastName: 'Asante',
-        phone: '0244123456',
-        email: 'kwame@agc.com',
+        empId: '0276234567',
+        level: 'akosua@agc.com',
+        tier: 1,
+        createdAt: DateTime.now(),
       ),
       hasFingerprint: true,
       fingerprintId: 'fp_001',
     ),
     _StaffWithFingerprint(
-      staff: const Staff(
+      staff: Staff(
         id: 'staff_2',
         firstName: 'Ama',
         lastName: 'Mensah',
-        phone: '0244987654',
-        email: 'ama@agc.com',
+        empId: '0276234567',
+        level: 'akosua@agc.com',
+        tier: 1,
+        createdAt: DateTime.now(),
       ),
       hasFingerprint: false,
     ),
     _StaffWithFingerprint(
-      staff: const Staff(
+      staff: Staff(
         id: 'staff_3',
         firstName: 'Yaw',
         lastName: 'Boateng',
-        phone: '0208123456',
-        email: 'yaw@agc.com',
+        empId: '0276234567',
+        level: 'akosua@agc.com',
+        tier: 1,
+        createdAt: DateTime.now(),
       ),
       hasFingerprint: true,
       fingerprintId: 'fp_002',
     ),
     _StaffWithFingerprint(
-      staff: const Staff(
+      staff: Staff(
         id: 'staff_4',
         firstName: 'Akosua',
         lastName: 'Darko',
-        phone: '0276234567',
-        email: 'akosua@agc.com',
+        empId: '0276234567',
+        level: 'akosua@agc.com',
+        tier: 1,
+        createdAt: DateTime.now(),
       ),
       hasFingerprint: false,
     ),
     _StaffWithFingerprint(
-      staff: const Staff(
+      staff: Staff(
         id: 'staff_5',
         firstName: 'Kofi',
         lastName: 'Agyeman',
-        phone: '0501234567',
-        email: 'kofi@agc.com',
+        empId: '0276234567',
+        level: 'akosua@agc.com',
+        tier: 1,
+        createdAt: DateTime.now(),
       ),
       hasFingerprint: true,
       fingerprintId: 'fp_003',
@@ -91,15 +102,14 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
   }
 
   List<_StaffWithFingerprint> get _filtered => _staffList.where((s) {
-        final q = _query;
-        final name = '${s.staff.firstName} ${s.staff.lastName}'.toLowerCase();
-        final matchQ = q.isEmpty ||
-            name.contains(q) ||
-            s.staff.id.toLowerCase().contains(q);
-        final matchF =
-            _fingerprintFilter == null || s.hasFingerprint == _fingerprintFilter;
-        return matchQ && matchF;
-      }).toList();
+    final q = _query;
+    final name = '${s.staff.firstName} ${s.staff.lastName}'.toLowerCase();
+    final matchQ =
+        q.isEmpty || name.contains(q) || s.staff.id.toLowerCase().contains(q);
+    final matchF =
+        _fingerprintFilter == null || s.hasFingerprint == _fingerprintFilter;
+    return matchQ && matchF;
+  }).toList();
 
   void _showFilterModal() {
     bool? tempFilter = _fingerprintFilter;
@@ -172,14 +182,14 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
                     ],
                   ),
                   const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed: () {
-                        setState(() => _fingerprintFilter = tempFilter);
-                        Navigator.pop(context);
-                      },
-                      child: Text(l10n.applyFilters),
+                  PrimaryButton(
+                    onPressed: () {
+                      setState(() => _fingerprintFilter = tempFilter);
+                      Navigator.pop(context);
+                    },
+                    label: Text(
+                      l10n.applyFilters,
+                      style: TextStyle(color: Colors.white),
                     ),
                   ),
                 ],
@@ -329,9 +339,7 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(l10n.deleteFingerprint),
         content: Text(l10n.deleteFingerprintConfirm),
         actionsAlignment: MainAxisAlignment.spaceBetween,
@@ -351,7 +359,8 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
               });
               getIt<ActivityLogService>().log(
                 type: 'fingerprint_deleted',
-                message: 'Fingerprint deleted for staff: ${entry.staff.firstName} ${entry.staff.lastName}',
+                message:
+                    'Fingerprint deleted for staff: ${entry.staff.firstName} ${entry.staff.lastName}',
                 actorType: 'admin',
                 actorId: entry.staff.id,
                 actorName: '${entry.staff.firstName} ${entry.staff.lastName}',
@@ -359,9 +368,9 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
                 recordId: entry.fingerprintId,
               );
               Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(l10n.deleteFingerprint)),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text(l10n.deleteFingerprint)));
             },
             child: Text(l10n.delete),
           ),
@@ -383,9 +392,7 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
       if (!isAvailable) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Fingerprint scanner not available'),
-            ),
+            const SnackBar(content: Text('Fingerprint scanner not available')),
           );
         }
         return;
@@ -400,7 +407,8 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
         });
         getIt<ActivityLogService>().log(
           type: 'fingerprint_enrolled',
-          message: 'Fingerprint enrolled for staff: ${entry.staff.firstName} ${entry.staff.lastName}',
+          message:
+              'Fingerprint enrolled for staff: ${entry.staff.firstName} ${entry.staff.lastName}',
           actorType: 'admin',
           actorId: entry.staff.id,
           actorName: '${entry.staff.firstName} ${entry.staff.lastName}',
@@ -469,93 +477,93 @@ class _StaffCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final colorScheme = Theme.of(context).colorScheme;
 
-    return  Padding(
-        padding: const EdgeInsets.all(5),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 15,
-              backgroundColor: colorScheme.primaryContainer,
-              child: Text(
-                '${entry.staff.firstName[0]}${entry.staff.lastName[0]}',
-                style: TextStyle(
-                  color: colorScheme.primary,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                  
+    return Padding(
+      padding: const EdgeInsets.all(5),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 15,
+            backgroundColor: colorScheme.primaryContainer,
+            child: Text(
+              '${entry.staff.firstName[0]}${entry.staff.lastName[0]}',
+              style: TextStyle(
+                color: colorScheme.primary,
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${entry.staff.firstName} ${entry.staff.lastName}',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelLarge!.copyWith(fontWeight: FontWeight.w600),
                 ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${entry.staff.firstName} ${entry.staff.lastName}',
-                    style: Theme.of(  context).textTheme.labelLarge!.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
-                  const SizedBox(height: 2),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      Text(
-                        entry.staff.id,
-                        style: Theme.of(  context).textTheme.bodyMedium!.copyWith(
-                              color: colorScheme.onPrimary,
-                            ),
+                const SizedBox(height: 2),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    Text(
+                      entry.staff.id,
+                      style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                        color: colorScheme.onPrimary,
                       ),
-                      SizedBox(width: 12),
-                      Row(
-                    children: [
-                      Icon(
-                        entry.hasFingerprint
-                            ? Icons.check_circle
-                            : Icons.cancel,
-                        size: 15,
-                        color: entry.hasFingerprint
-                            ? Colors.green
-                            : Colors.red.shade300,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        entry.hasFingerprint
-                            ? l10n.fingerprintRegistered
-                            : l10n.noFingerprintRegistered,
-                        style: TextStyle(
-                          fontSize: 12,
+                    ),
+                    SizedBox(width: 12),
+                    Row(
+                      children: [
+                        Icon(
+                          entry.hasFingerprint
+                              ? Icons.check_circle
+                              : Icons.cancel,
+                          size: 15,
                           color: entry.hasFingerprint
-                              ? Colors.green.shade700
-                              : Colors.red.shade400,
+                              ? Colors.green
+                              : Colors.red.shade300,
                         ),
-                      ),
-                    ],
-                  ),
-                    ],
-                  ),
-                  
-                ],
-              ),
+                        const SizedBox(width: 6),
+                        Text(
+                          entry.hasFingerprint
+                              ? l10n.fingerprintRegistered
+                              : l10n.noFingerprintRegistered,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: entry.hasFingerprint
+                                ? Colors.green.shade700
+                                : Colors.red.shade400,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
             ),
-          
-          SizedBox(width: 10,),
-            if (entry.hasFingerprint)
-              IconButton(
-                icon: const Icon(Icons.delete_outline),
-                color: colorScheme.error,
-                tooltip: l10n.deleteFingerprint,
-                onPressed: isEnrolling ? null : onDeleteFingerprint,
-              ),
-            IconButton.filled(
-              icon: Icon(entry.hasFingerprint ? Icons.fingerprint : Icons.add,color: Colors.white,),
-              tooltip: l10n.addFingerprint,
-              onPressed: isEnrolling ? null : onAddFingerprint,
+          ),
+
+          SizedBox(width: 10),
+          if (entry.hasFingerprint)
+            IconButton(
+              icon: const Icon(Icons.delete_outline),
+              color: colorScheme.error,
+              tooltip: l10n.deleteFingerprint,
+              onPressed: isEnrolling ? null : onDeleteFingerprint,
             ),
-          ],
-        ),
-      
+          IconButton.filled(
+            icon: Icon(
+              entry.hasFingerprint ? Icons.fingerprint : Icons.add,
+              color: Colors.white,
+            ),
+            tooltip: l10n.addFingerprint,
+            onPressed: isEnrolling ? null : onAddFingerprint,
+          ),
+        ],
+      ),
     );
   }
 }

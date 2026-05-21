@@ -9,6 +9,7 @@ import '../../services/activity_log_service.dart';
 import '../../services/database/app_database.dart';
 import '../../services/database/database_service.dart';
 import '../../services/meal_service.dart';
+import '../../services/order_service.dart';
 import '../../services/pos/pos_card_service.dart';
 import '../../services/pos/pos_device_service.dart';
 import '../../services/pos/pos_fingerprint_service.dart';
@@ -62,6 +63,10 @@ Future<void> setupServiceLocator() async {
   getIt.registerLazySingleton<MealService>(() => MealService(
         networkAPI: getIt<NetworkAPI>(),
         db: getIt<AppDatabase>(),
+      ));
+
+  getIt.registerLazySingleton<OrderService>(() => OrderService(
+        networkAPI: getIt<NetworkAPI>(),
       ));
 
   getIt.registerLazySingleton<Connectivity>(() => Connectivity());

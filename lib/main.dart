@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:developer';
-
 import 'package:adaptive_theme/adaptive_theme.dart';
+import 'package:agc_canteen/services/database/database_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
@@ -16,42 +16,45 @@ import 'views/settings/settings_page.dart';
 import 'views/staff/staff_management_page.dart';
 import 'views/settings/sync_page.dart';
 import 'views/pos/pos_settings_page.dart';
+import 'views/pos/manual_order_page.dart';
+import 'controllers/mock_providers.dart';
+import 'services/mock/mock_services.dart';
 
 final localeProvider = StateProvider<Locale>((ref) {
   return const Locale('en');
 });
 
 void main() async => runZoneGuarded(() async {
-    WidgetsFlutterBinding.ensureInitialized();
+  WidgetsFlutterBinding.ensureInitialized();
+  final startupResults = await Future.wait([
+    dotenv.load(),
+    AdaptiveTheme.getThemeMode(),
+    SharedPreferences.getInstance(),
+  ]);
 
-    final startupResults = await Future.wait([
-      dotenv.load(),
-      AdaptiveTheme.getThemeMode(),
-      SharedPreferences.getInstance(),
-    ]);
+  final savedThemeMode = startupResults[1] as AdaptiveThemeMode?;
+  final prefs = startupResults[2] as SharedPreferences;
+  final savedLang = prefs.getString('app_language') ?? 'en';
+  final savedLocale = Locale(savedLang);
 
-    final savedThemeMode = startupResults[1] as AdaptiveThemeMode?;
-    final prefs = startupResults[2] as SharedPreferences;
-    final savedLang = prefs.getString('app_language') ?? 'en';
-    final savedLocale = Locale(savedLang);
+  await setupServiceLocator();
+  await seedMockData(DatabaseService.instance.db);
 
-    await setupServiceLocator();
-
-    runApp(
-      ProviderScope(
-        overrides: [localeProvider.overrideWith((ref) => savedLocale)],
-        child: MyApp(savedThemeMode: savedThemeMode),
-      ),
-    );
-  });
+  runApp(
+    ProviderScope(
+      overrides: [
+        localeProvider.overrideWith((ref) => savedLocale),
+        ...mockFingerprintOverrides,
+      ],
+      child: MyApp(savedThemeMode: savedThemeMode),
+    ),
+  );
+});
 
 void runZoneGuarded(void Function() body) {
-  runZonedGuarded(
-    body,
-    (error, stack) {
-      log("Unhandled error: $error", stackTrace: stack);
-    },
-  );
+  runZonedGuarded(body, (error, stack) {
+    log("Unhandled error: $error", stackTrace: stack);
+  });
 }
 
 class MyApp extends ConsumerWidget {
@@ -108,6 +111,9 @@ Route<dynamic>? _onGenerateRoute(RouteSettings settings) {
     case '/pos':
       page = const PosSettingsPage();
       break;
+    case '/create-manual-order':
+      page = const ManualOrderPage();
+      break;
     default:
       return null;
   }
@@ -122,9 +128,10 @@ Route<dynamic>? _onGenerateRoute(RouteSettings settings) {
           end: Offset.zero,
         ).chain(CurveTween(curve: Curves.easeOutCubic)).animate(animation),
         child: FadeTransition(
-          opacity: Tween<double>(begin: 0, end: 1)
-              .chain(CurveTween(curve: Curves.easeOut))
-              .animate(animation),
+          opacity: Tween<double>(
+            begin: 0,
+            end: 1,
+          ).chain(CurveTween(curve: Curves.easeOut)).animate(animation),
           child: child,
         ),
       );

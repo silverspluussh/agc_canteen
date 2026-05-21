@@ -208,3 +208,36 @@ class ActivityLogs extends Table {
   @override
   Set<Column> get primaryKey => {id};
 }
+
+class GroupOrders extends Table {
+  TextColumn get id => text()();
+  TextColumn get orderCode => text()();
+  TextColumn get status => text()();
+  TextColumn get orderType => text()();
+  TextColumn get mealType => text()();
+  RealColumn get total => real()();
+  IntColumn get groupCount => integer()();
+  TextColumn get description => text().nullable()();
+  TextColumn get createdAt => text()();
+  TextColumn get updatedAt => text()();
+  IntColumn get syncStatus => integer().withDefault(const Constant(0))();
+  TextColumn get syncUpdatedAt => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class GroupOrderItems extends Table {
+  TextColumn get id => text()();
+  RealColumn get price => real()();
+  IntColumn get qty => integer()();
+  TextColumn get mealId => text().references(Meals, #id)();
+  TextColumn get groupOrderId => text().references(GroupOrders, #id)();
+  TextColumn get createdAt => text()();
+  TextColumn get updatedAt => text()();
+  IntColumn get syncStatus => integer().withDefault(const Constant(0))();
+  TextColumn get syncUpdatedAt => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}

@@ -7926,6 +7926,1295 @@ class ActivityLogsCompanion extends UpdateCompanion<ActivityLog> {
   }
 }
 
+class $GroupOrdersTable extends GroupOrders
+    with TableInfo<$GroupOrdersTable, GroupOrder> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $GroupOrdersTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _orderCodeMeta = const VerificationMeta(
+    'orderCode',
+  );
+  @override
+  late final GeneratedColumn<String> orderCode = GeneratedColumn<String>(
+    'order_code',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _orderTypeMeta = const VerificationMeta(
+    'orderType',
+  );
+  @override
+  late final GeneratedColumn<String> orderType = GeneratedColumn<String>(
+    'order_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _mealTypeMeta = const VerificationMeta(
+    'mealType',
+  );
+  @override
+  late final GeneratedColumn<String> mealType = GeneratedColumn<String>(
+    'meal_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _totalMeta = const VerificationMeta('total');
+  @override
+  late final GeneratedColumn<double> total = GeneratedColumn<double>(
+    'total',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _groupCountMeta = const VerificationMeta(
+    'groupCount',
+  );
+  @override
+  late final GeneratedColumn<int> groupCount = GeneratedColumn<int>(
+    'group_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<String> createdAt = GeneratedColumn<String>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<String> updatedAt = GeneratedColumn<String>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _syncStatusMeta = const VerificationMeta(
+    'syncStatus',
+  );
+  @override
+  late final GeneratedColumn<int> syncStatus = GeneratedColumn<int>(
+    'sync_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _syncUpdatedAtMeta = const VerificationMeta(
+    'syncUpdatedAt',
+  );
+  @override
+  late final GeneratedColumn<String> syncUpdatedAt = GeneratedColumn<String>(
+    'sync_updated_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    orderCode,
+    status,
+    orderType,
+    mealType,
+    total,
+    groupCount,
+    description,
+    createdAt,
+    updatedAt,
+    syncStatus,
+    syncUpdatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'group_orders';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<GroupOrder> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('order_code')) {
+      context.handle(
+        _orderCodeMeta,
+        orderCode.isAcceptableOrUnknown(data['order_code']!, _orderCodeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_orderCodeMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_statusMeta);
+    }
+    if (data.containsKey('order_type')) {
+      context.handle(
+        _orderTypeMeta,
+        orderType.isAcceptableOrUnknown(data['order_type']!, _orderTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_orderTypeMeta);
+    }
+    if (data.containsKey('meal_type')) {
+      context.handle(
+        _mealTypeMeta,
+        mealType.isAcceptableOrUnknown(data['meal_type']!, _mealTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_mealTypeMeta);
+    }
+    if (data.containsKey('total')) {
+      context.handle(
+        _totalMeta,
+        total.isAcceptableOrUnknown(data['total']!, _totalMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_totalMeta);
+    }
+    if (data.containsKey('group_count')) {
+      context.handle(
+        _groupCountMeta,
+        groupCount.isAcceptableOrUnknown(data['group_count']!, _groupCountMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_groupCountMeta);
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('sync_status')) {
+      context.handle(
+        _syncStatusMeta,
+        syncStatus.isAcceptableOrUnknown(data['sync_status']!, _syncStatusMeta),
+      );
+    }
+    if (data.containsKey('sync_updated_at')) {
+      context.handle(
+        _syncUpdatedAtMeta,
+        syncUpdatedAt.isAcceptableOrUnknown(
+          data['sync_updated_at']!,
+          _syncUpdatedAtMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  GroupOrder map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return GroupOrder(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      orderCode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}order_code'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      orderType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}order_type'],
+      )!,
+      mealType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}meal_type'],
+      )!,
+      total: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}total'],
+      )!,
+      groupCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}group_count'],
+      )!,
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      syncStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sync_status'],
+      )!,
+      syncUpdatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_updated_at'],
+      ),
+    );
+  }
+
+  @override
+  $GroupOrdersTable createAlias(String alias) {
+    return $GroupOrdersTable(attachedDatabase, alias);
+  }
+}
+
+class GroupOrder extends DataClass implements Insertable<GroupOrder> {
+  final String id;
+  final String orderCode;
+  final String status;
+  final String orderType;
+  final String mealType;
+  final double total;
+  final int groupCount;
+  final String? description;
+  final String createdAt;
+  final String updatedAt;
+  final int syncStatus;
+  final String? syncUpdatedAt;
+  const GroupOrder({
+    required this.id,
+    required this.orderCode,
+    required this.status,
+    required this.orderType,
+    required this.mealType,
+    required this.total,
+    required this.groupCount,
+    this.description,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.syncStatus,
+    this.syncUpdatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['order_code'] = Variable<String>(orderCode);
+    map['status'] = Variable<String>(status);
+    map['order_type'] = Variable<String>(orderType);
+    map['meal_type'] = Variable<String>(mealType);
+    map['total'] = Variable<double>(total);
+    map['group_count'] = Variable<int>(groupCount);
+    if (!nullToAbsent || description != null) {
+      map['description'] = Variable<String>(description);
+    }
+    map['created_at'] = Variable<String>(createdAt);
+    map['updated_at'] = Variable<String>(updatedAt);
+    map['sync_status'] = Variable<int>(syncStatus);
+    if (!nullToAbsent || syncUpdatedAt != null) {
+      map['sync_updated_at'] = Variable<String>(syncUpdatedAt);
+    }
+    return map;
+  }
+
+  GroupOrdersCompanion toCompanion(bool nullToAbsent) {
+    return GroupOrdersCompanion(
+      id: Value(id),
+      orderCode: Value(orderCode),
+      status: Value(status),
+      orderType: Value(orderType),
+      mealType: Value(mealType),
+      total: Value(total),
+      groupCount: Value(groupCount),
+      description: description == null && nullToAbsent
+          ? const Value.absent()
+          : Value(description),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      syncStatus: Value(syncStatus),
+      syncUpdatedAt: syncUpdatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncUpdatedAt),
+    );
+  }
+
+  factory GroupOrder.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return GroupOrder(
+      id: serializer.fromJson<String>(json['id']),
+      orderCode: serializer.fromJson<String>(json['orderCode']),
+      status: serializer.fromJson<String>(json['status']),
+      orderType: serializer.fromJson<String>(json['orderType']),
+      mealType: serializer.fromJson<String>(json['mealType']),
+      total: serializer.fromJson<double>(json['total']),
+      groupCount: serializer.fromJson<int>(json['groupCount']),
+      description: serializer.fromJson<String?>(json['description']),
+      createdAt: serializer.fromJson<String>(json['createdAt']),
+      updatedAt: serializer.fromJson<String>(json['updatedAt']),
+      syncStatus: serializer.fromJson<int>(json['syncStatus']),
+      syncUpdatedAt: serializer.fromJson<String?>(json['syncUpdatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'orderCode': serializer.toJson<String>(orderCode),
+      'status': serializer.toJson<String>(status),
+      'orderType': serializer.toJson<String>(orderType),
+      'mealType': serializer.toJson<String>(mealType),
+      'total': serializer.toJson<double>(total),
+      'groupCount': serializer.toJson<int>(groupCount),
+      'description': serializer.toJson<String?>(description),
+      'createdAt': serializer.toJson<String>(createdAt),
+      'updatedAt': serializer.toJson<String>(updatedAt),
+      'syncStatus': serializer.toJson<int>(syncStatus),
+      'syncUpdatedAt': serializer.toJson<String?>(syncUpdatedAt),
+    };
+  }
+
+  GroupOrder copyWith({
+    String? id,
+    String? orderCode,
+    String? status,
+    String? orderType,
+    String? mealType,
+    double? total,
+    int? groupCount,
+    Value<String?> description = const Value.absent(),
+    String? createdAt,
+    String? updatedAt,
+    int? syncStatus,
+    Value<String?> syncUpdatedAt = const Value.absent(),
+  }) => GroupOrder(
+    id: id ?? this.id,
+    orderCode: orderCode ?? this.orderCode,
+    status: status ?? this.status,
+    orderType: orderType ?? this.orderType,
+    mealType: mealType ?? this.mealType,
+    total: total ?? this.total,
+    groupCount: groupCount ?? this.groupCount,
+    description: description.present ? description.value : this.description,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    syncStatus: syncStatus ?? this.syncStatus,
+    syncUpdatedAt: syncUpdatedAt.present
+        ? syncUpdatedAt.value
+        : this.syncUpdatedAt,
+  );
+  GroupOrder copyWithCompanion(GroupOrdersCompanion data) {
+    return GroupOrder(
+      id: data.id.present ? data.id.value : this.id,
+      orderCode: data.orderCode.present ? data.orderCode.value : this.orderCode,
+      status: data.status.present ? data.status.value : this.status,
+      orderType: data.orderType.present ? data.orderType.value : this.orderType,
+      mealType: data.mealType.present ? data.mealType.value : this.mealType,
+      total: data.total.present ? data.total.value : this.total,
+      groupCount: data.groupCount.present
+          ? data.groupCount.value
+          : this.groupCount,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      syncStatus: data.syncStatus.present
+          ? data.syncStatus.value
+          : this.syncStatus,
+      syncUpdatedAt: data.syncUpdatedAt.present
+          ? data.syncUpdatedAt.value
+          : this.syncUpdatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GroupOrder(')
+          ..write('id: $id, ')
+          ..write('orderCode: $orderCode, ')
+          ..write('status: $status, ')
+          ..write('orderType: $orderType, ')
+          ..write('mealType: $mealType, ')
+          ..write('total: $total, ')
+          ..write('groupCount: $groupCount, ')
+          ..write('description: $description, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('syncUpdatedAt: $syncUpdatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    orderCode,
+    status,
+    orderType,
+    mealType,
+    total,
+    groupCount,
+    description,
+    createdAt,
+    updatedAt,
+    syncStatus,
+    syncUpdatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is GroupOrder &&
+          other.id == this.id &&
+          other.orderCode == this.orderCode &&
+          other.status == this.status &&
+          other.orderType == this.orderType &&
+          other.mealType == this.mealType &&
+          other.total == this.total &&
+          other.groupCount == this.groupCount &&
+          other.description == this.description &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.syncStatus == this.syncStatus &&
+          other.syncUpdatedAt == this.syncUpdatedAt);
+}
+
+class GroupOrdersCompanion extends UpdateCompanion<GroupOrder> {
+  final Value<String> id;
+  final Value<String> orderCode;
+  final Value<String> status;
+  final Value<String> orderType;
+  final Value<String> mealType;
+  final Value<double> total;
+  final Value<int> groupCount;
+  final Value<String?> description;
+  final Value<String> createdAt;
+  final Value<String> updatedAt;
+  final Value<int> syncStatus;
+  final Value<String?> syncUpdatedAt;
+  final Value<int> rowid;
+  const GroupOrdersCompanion({
+    this.id = const Value.absent(),
+    this.orderCode = const Value.absent(),
+    this.status = const Value.absent(),
+    this.orderType = const Value.absent(),
+    this.mealType = const Value.absent(),
+    this.total = const Value.absent(),
+    this.groupCount = const Value.absent(),
+    this.description = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.syncUpdatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  GroupOrdersCompanion.insert({
+    required String id,
+    required String orderCode,
+    required String status,
+    required String orderType,
+    required String mealType,
+    required double total,
+    required int groupCount,
+    this.description = const Value.absent(),
+    required String createdAt,
+    required String updatedAt,
+    this.syncStatus = const Value.absent(),
+    this.syncUpdatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       orderCode = Value(orderCode),
+       status = Value(status),
+       orderType = Value(orderType),
+       mealType = Value(mealType),
+       total = Value(total),
+       groupCount = Value(groupCount),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<GroupOrder> custom({
+    Expression<String>? id,
+    Expression<String>? orderCode,
+    Expression<String>? status,
+    Expression<String>? orderType,
+    Expression<String>? mealType,
+    Expression<double>? total,
+    Expression<int>? groupCount,
+    Expression<String>? description,
+    Expression<String>? createdAt,
+    Expression<String>? updatedAt,
+    Expression<int>? syncStatus,
+    Expression<String>? syncUpdatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (orderCode != null) 'order_code': orderCode,
+      if (status != null) 'status': status,
+      if (orderType != null) 'order_type': orderType,
+      if (mealType != null) 'meal_type': mealType,
+      if (total != null) 'total': total,
+      if (groupCount != null) 'group_count': groupCount,
+      if (description != null) 'description': description,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (syncStatus != null) 'sync_status': syncStatus,
+      if (syncUpdatedAt != null) 'sync_updated_at': syncUpdatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  GroupOrdersCompanion copyWith({
+    Value<String>? id,
+    Value<String>? orderCode,
+    Value<String>? status,
+    Value<String>? orderType,
+    Value<String>? mealType,
+    Value<double>? total,
+    Value<int>? groupCount,
+    Value<String?>? description,
+    Value<String>? createdAt,
+    Value<String>? updatedAt,
+    Value<int>? syncStatus,
+    Value<String?>? syncUpdatedAt,
+    Value<int>? rowid,
+  }) {
+    return GroupOrdersCompanion(
+      id: id ?? this.id,
+      orderCode: orderCode ?? this.orderCode,
+      status: status ?? this.status,
+      orderType: orderType ?? this.orderType,
+      mealType: mealType ?? this.mealType,
+      total: total ?? this.total,
+      groupCount: groupCount ?? this.groupCount,
+      description: description ?? this.description,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      syncStatus: syncStatus ?? this.syncStatus,
+      syncUpdatedAt: syncUpdatedAt ?? this.syncUpdatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (orderCode.present) {
+      map['order_code'] = Variable<String>(orderCode.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (orderType.present) {
+      map['order_type'] = Variable<String>(orderType.value);
+    }
+    if (mealType.present) {
+      map['meal_type'] = Variable<String>(mealType.value);
+    }
+    if (total.present) {
+      map['total'] = Variable<double>(total.value);
+    }
+    if (groupCount.present) {
+      map['group_count'] = Variable<int>(groupCount.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<String>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<String>(updatedAt.value);
+    }
+    if (syncStatus.present) {
+      map['sync_status'] = Variable<int>(syncStatus.value);
+    }
+    if (syncUpdatedAt.present) {
+      map['sync_updated_at'] = Variable<String>(syncUpdatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GroupOrdersCompanion(')
+          ..write('id: $id, ')
+          ..write('orderCode: $orderCode, ')
+          ..write('status: $status, ')
+          ..write('orderType: $orderType, ')
+          ..write('mealType: $mealType, ')
+          ..write('total: $total, ')
+          ..write('groupCount: $groupCount, ')
+          ..write('description: $description, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('syncUpdatedAt: $syncUpdatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $GroupOrderItemsTable extends GroupOrderItems
+    with TableInfo<$GroupOrderItemsTable, GroupOrderItem> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $GroupOrderItemsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _priceMeta = const VerificationMeta('price');
+  @override
+  late final GeneratedColumn<double> price = GeneratedColumn<double>(
+    'price',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _qtyMeta = const VerificationMeta('qty');
+  @override
+  late final GeneratedColumn<int> qty = GeneratedColumn<int>(
+    'qty',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _mealIdMeta = const VerificationMeta('mealId');
+  @override
+  late final GeneratedColumn<String> mealId = GeneratedColumn<String>(
+    'meal_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES meals (id)',
+    ),
+  );
+  static const VerificationMeta _groupOrderIdMeta = const VerificationMeta(
+    'groupOrderId',
+  );
+  @override
+  late final GeneratedColumn<String> groupOrderId = GeneratedColumn<String>(
+    'group_order_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES group_orders (id)',
+    ),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<String> createdAt = GeneratedColumn<String>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<String> updatedAt = GeneratedColumn<String>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _syncStatusMeta = const VerificationMeta(
+    'syncStatus',
+  );
+  @override
+  late final GeneratedColumn<int> syncStatus = GeneratedColumn<int>(
+    'sync_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _syncUpdatedAtMeta = const VerificationMeta(
+    'syncUpdatedAt',
+  );
+  @override
+  late final GeneratedColumn<String> syncUpdatedAt = GeneratedColumn<String>(
+    'sync_updated_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    price,
+    qty,
+    mealId,
+    groupOrderId,
+    createdAt,
+    updatedAt,
+    syncStatus,
+    syncUpdatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'group_order_items';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<GroupOrderItem> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('price')) {
+      context.handle(
+        _priceMeta,
+        price.isAcceptableOrUnknown(data['price']!, _priceMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_priceMeta);
+    }
+    if (data.containsKey('qty')) {
+      context.handle(
+        _qtyMeta,
+        qty.isAcceptableOrUnknown(data['qty']!, _qtyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_qtyMeta);
+    }
+    if (data.containsKey('meal_id')) {
+      context.handle(
+        _mealIdMeta,
+        mealId.isAcceptableOrUnknown(data['meal_id']!, _mealIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_mealIdMeta);
+    }
+    if (data.containsKey('group_order_id')) {
+      context.handle(
+        _groupOrderIdMeta,
+        groupOrderId.isAcceptableOrUnknown(
+          data['group_order_id']!,
+          _groupOrderIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_groupOrderIdMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('sync_status')) {
+      context.handle(
+        _syncStatusMeta,
+        syncStatus.isAcceptableOrUnknown(data['sync_status']!, _syncStatusMeta),
+      );
+    }
+    if (data.containsKey('sync_updated_at')) {
+      context.handle(
+        _syncUpdatedAtMeta,
+        syncUpdatedAt.isAcceptableOrUnknown(
+          data['sync_updated_at']!,
+          _syncUpdatedAtMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  GroupOrderItem map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return GroupOrderItem(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      price: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}price'],
+      )!,
+      qty: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}qty'],
+      )!,
+      mealId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}meal_id'],
+      )!,
+      groupOrderId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}group_order_id'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      syncStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sync_status'],
+      )!,
+      syncUpdatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_updated_at'],
+      ),
+    );
+  }
+
+  @override
+  $GroupOrderItemsTable createAlias(String alias) {
+    return $GroupOrderItemsTable(attachedDatabase, alias);
+  }
+}
+
+class GroupOrderItem extends DataClass implements Insertable<GroupOrderItem> {
+  final String id;
+  final double price;
+  final int qty;
+  final String mealId;
+  final String groupOrderId;
+  final String createdAt;
+  final String updatedAt;
+  final int syncStatus;
+  final String? syncUpdatedAt;
+  const GroupOrderItem({
+    required this.id,
+    required this.price,
+    required this.qty,
+    required this.mealId,
+    required this.groupOrderId,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.syncStatus,
+    this.syncUpdatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['price'] = Variable<double>(price);
+    map['qty'] = Variable<int>(qty);
+    map['meal_id'] = Variable<String>(mealId);
+    map['group_order_id'] = Variable<String>(groupOrderId);
+    map['created_at'] = Variable<String>(createdAt);
+    map['updated_at'] = Variable<String>(updatedAt);
+    map['sync_status'] = Variable<int>(syncStatus);
+    if (!nullToAbsent || syncUpdatedAt != null) {
+      map['sync_updated_at'] = Variable<String>(syncUpdatedAt);
+    }
+    return map;
+  }
+
+  GroupOrderItemsCompanion toCompanion(bool nullToAbsent) {
+    return GroupOrderItemsCompanion(
+      id: Value(id),
+      price: Value(price),
+      qty: Value(qty),
+      mealId: Value(mealId),
+      groupOrderId: Value(groupOrderId),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      syncStatus: Value(syncStatus),
+      syncUpdatedAt: syncUpdatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncUpdatedAt),
+    );
+  }
+
+  factory GroupOrderItem.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return GroupOrderItem(
+      id: serializer.fromJson<String>(json['id']),
+      price: serializer.fromJson<double>(json['price']),
+      qty: serializer.fromJson<int>(json['qty']),
+      mealId: serializer.fromJson<String>(json['mealId']),
+      groupOrderId: serializer.fromJson<String>(json['groupOrderId']),
+      createdAt: serializer.fromJson<String>(json['createdAt']),
+      updatedAt: serializer.fromJson<String>(json['updatedAt']),
+      syncStatus: serializer.fromJson<int>(json['syncStatus']),
+      syncUpdatedAt: serializer.fromJson<String?>(json['syncUpdatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'price': serializer.toJson<double>(price),
+      'qty': serializer.toJson<int>(qty),
+      'mealId': serializer.toJson<String>(mealId),
+      'groupOrderId': serializer.toJson<String>(groupOrderId),
+      'createdAt': serializer.toJson<String>(createdAt),
+      'updatedAt': serializer.toJson<String>(updatedAt),
+      'syncStatus': serializer.toJson<int>(syncStatus),
+      'syncUpdatedAt': serializer.toJson<String?>(syncUpdatedAt),
+    };
+  }
+
+  GroupOrderItem copyWith({
+    String? id,
+    double? price,
+    int? qty,
+    String? mealId,
+    String? groupOrderId,
+    String? createdAt,
+    String? updatedAt,
+    int? syncStatus,
+    Value<String?> syncUpdatedAt = const Value.absent(),
+  }) => GroupOrderItem(
+    id: id ?? this.id,
+    price: price ?? this.price,
+    qty: qty ?? this.qty,
+    mealId: mealId ?? this.mealId,
+    groupOrderId: groupOrderId ?? this.groupOrderId,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    syncStatus: syncStatus ?? this.syncStatus,
+    syncUpdatedAt: syncUpdatedAt.present
+        ? syncUpdatedAt.value
+        : this.syncUpdatedAt,
+  );
+  GroupOrderItem copyWithCompanion(GroupOrderItemsCompanion data) {
+    return GroupOrderItem(
+      id: data.id.present ? data.id.value : this.id,
+      price: data.price.present ? data.price.value : this.price,
+      qty: data.qty.present ? data.qty.value : this.qty,
+      mealId: data.mealId.present ? data.mealId.value : this.mealId,
+      groupOrderId: data.groupOrderId.present
+          ? data.groupOrderId.value
+          : this.groupOrderId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      syncStatus: data.syncStatus.present
+          ? data.syncStatus.value
+          : this.syncStatus,
+      syncUpdatedAt: data.syncUpdatedAt.present
+          ? data.syncUpdatedAt.value
+          : this.syncUpdatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GroupOrderItem(')
+          ..write('id: $id, ')
+          ..write('price: $price, ')
+          ..write('qty: $qty, ')
+          ..write('mealId: $mealId, ')
+          ..write('groupOrderId: $groupOrderId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('syncUpdatedAt: $syncUpdatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    price,
+    qty,
+    mealId,
+    groupOrderId,
+    createdAt,
+    updatedAt,
+    syncStatus,
+    syncUpdatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is GroupOrderItem &&
+          other.id == this.id &&
+          other.price == this.price &&
+          other.qty == this.qty &&
+          other.mealId == this.mealId &&
+          other.groupOrderId == this.groupOrderId &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.syncStatus == this.syncStatus &&
+          other.syncUpdatedAt == this.syncUpdatedAt);
+}
+
+class GroupOrderItemsCompanion extends UpdateCompanion<GroupOrderItem> {
+  final Value<String> id;
+  final Value<double> price;
+  final Value<int> qty;
+  final Value<String> mealId;
+  final Value<String> groupOrderId;
+  final Value<String> createdAt;
+  final Value<String> updatedAt;
+  final Value<int> syncStatus;
+  final Value<String?> syncUpdatedAt;
+  final Value<int> rowid;
+  const GroupOrderItemsCompanion({
+    this.id = const Value.absent(),
+    this.price = const Value.absent(),
+    this.qty = const Value.absent(),
+    this.mealId = const Value.absent(),
+    this.groupOrderId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.syncUpdatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  GroupOrderItemsCompanion.insert({
+    required String id,
+    required double price,
+    required int qty,
+    required String mealId,
+    required String groupOrderId,
+    required String createdAt,
+    required String updatedAt,
+    this.syncStatus = const Value.absent(),
+    this.syncUpdatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       price = Value(price),
+       qty = Value(qty),
+       mealId = Value(mealId),
+       groupOrderId = Value(groupOrderId),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<GroupOrderItem> custom({
+    Expression<String>? id,
+    Expression<double>? price,
+    Expression<int>? qty,
+    Expression<String>? mealId,
+    Expression<String>? groupOrderId,
+    Expression<String>? createdAt,
+    Expression<String>? updatedAt,
+    Expression<int>? syncStatus,
+    Expression<String>? syncUpdatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (price != null) 'price': price,
+      if (qty != null) 'qty': qty,
+      if (mealId != null) 'meal_id': mealId,
+      if (groupOrderId != null) 'group_order_id': groupOrderId,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (syncStatus != null) 'sync_status': syncStatus,
+      if (syncUpdatedAt != null) 'sync_updated_at': syncUpdatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  GroupOrderItemsCompanion copyWith({
+    Value<String>? id,
+    Value<double>? price,
+    Value<int>? qty,
+    Value<String>? mealId,
+    Value<String>? groupOrderId,
+    Value<String>? createdAt,
+    Value<String>? updatedAt,
+    Value<int>? syncStatus,
+    Value<String?>? syncUpdatedAt,
+    Value<int>? rowid,
+  }) {
+    return GroupOrderItemsCompanion(
+      id: id ?? this.id,
+      price: price ?? this.price,
+      qty: qty ?? this.qty,
+      mealId: mealId ?? this.mealId,
+      groupOrderId: groupOrderId ?? this.groupOrderId,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      syncStatus: syncStatus ?? this.syncStatus,
+      syncUpdatedAt: syncUpdatedAt ?? this.syncUpdatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (price.present) {
+      map['price'] = Variable<double>(price.value);
+    }
+    if (qty.present) {
+      map['qty'] = Variable<int>(qty.value);
+    }
+    if (mealId.present) {
+      map['meal_id'] = Variable<String>(mealId.value);
+    }
+    if (groupOrderId.present) {
+      map['group_order_id'] = Variable<String>(groupOrderId.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<String>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<String>(updatedAt.value);
+    }
+    if (syncStatus.present) {
+      map['sync_status'] = Variable<int>(syncStatus.value);
+    }
+    if (syncUpdatedAt.present) {
+      map['sync_updated_at'] = Variable<String>(syncUpdatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GroupOrderItemsCompanion(')
+          ..write('id: $id, ')
+          ..write('price: $price, ')
+          ..write('qty: $qty, ')
+          ..write('mealId: $mealId, ')
+          ..write('groupOrderId: $groupOrderId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('syncUpdatedAt: $syncUpdatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -7943,6 +9232,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $PosDevicesTable posDevices = $PosDevicesTable(this);
   late final $FingerprintsTable fingerprints = $FingerprintsTable(this);
   late final $ActivityLogsTable activityLogs = $ActivityLogsTable(this);
+  late final $GroupOrdersTable groupOrders = $GroupOrdersTable(this);
+  late final $GroupOrderItemsTable groupOrderItems = $GroupOrderItemsTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -7962,6 +9255,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     posDevices,
     fingerprints,
     activityLogs,
+    groupOrders,
+    groupOrderItems,
   ];
 }
 
@@ -9433,6 +10728,26 @@ final class $$MealsTableReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<$GroupOrderItemsTable, List<GroupOrderItem>>
+  _groupOrderItemsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.groupOrderItems,
+    aliasName: $_aliasNameGenerator(db.meals.id, db.groupOrderItems.mealId),
+  );
+
+  $$GroupOrderItemsTableProcessedTableManager get groupOrderItemsRefs {
+    final manager = $$GroupOrderItemsTableTableManager(
+      $_db,
+      $_db.groupOrderItems,
+    ).filter((f) => f.mealId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _groupOrderItemsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$MealsTableFilterComposer extends Composer<_$AppDatabase, $MealsTable> {
@@ -9587,6 +10902,31 @@ class $$MealsTableFilterComposer extends Composer<_$AppDatabase, $MealsTable> {
           }) => $$OverchargesTableFilterComposer(
             $db: $db,
             $table: $db.overcharges,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> groupOrderItemsRefs(
+    Expression<bool> Function($$GroupOrderItemsTableFilterComposer f) f,
+  ) {
+    final $$GroupOrderItemsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.groupOrderItems,
+      getReferencedColumn: (t) => t.mealId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$GroupOrderItemsTableFilterComposer(
+            $db: $db,
+            $table: $db.groupOrderItems,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -9828,6 +11168,31 @@ class $$MealsTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> groupOrderItemsRefs<T extends Object>(
+    Expression<T> Function($$GroupOrderItemsTableAnnotationComposer a) f,
+  ) {
+    final $$GroupOrderItemsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.groupOrderItems,
+      getReferencedColumn: (t) => t.mealId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$GroupOrderItemsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.groupOrderItems,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$MealsTableTableManager
@@ -9848,6 +11213,7 @@ class $$MealsTableTableManager
             bool mealKitchensRefs,
             bool orderItemsRefs,
             bool overchargesRefs,
+            bool groupOrderItemsRefs,
           })
         > {
   $$MealsTableTableManager(_$AppDatabase db, $MealsTable table)
@@ -9933,6 +11299,7 @@ class $$MealsTableTableManager
                 mealKitchensRefs = false,
                 orderItemsRefs = false,
                 overchargesRefs = false,
+                groupOrderItemsRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -9940,6 +11307,7 @@ class $$MealsTableTableManager
                     if (mealKitchensRefs) db.mealKitchens,
                     if (orderItemsRefs) db.orderItems,
                     if (overchargesRefs) db.overcharges,
+                    if (groupOrderItemsRefs) db.groupOrderItems,
                   ],
                   addJoins:
                       <
@@ -10034,6 +11402,27 @@ class $$MealsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (groupOrderItemsRefs)
+                        await $_getPrefetchedData<
+                          Meal,
+                          $MealsTable,
+                          GroupOrderItem
+                        >(
+                          currentTable: table,
+                          referencedTable: $$MealsTableReferences
+                              ._groupOrderItemsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$MealsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).groupOrderItemsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.mealId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -10059,6 +11448,7 @@ typedef $$MealsTableProcessedTableManager =
         bool mealKitchensRefs,
         bool orderItemsRefs,
         bool overchargesRefs,
+        bool groupOrderItemsRefs,
       })
     >;
 typedef $$MealKitchensTableCreateCompanionBuilder =
@@ -14300,6 +15690,957 @@ typedef $$ActivityLogsTableProcessedTableManager =
       ActivityLog,
       PrefetchHooks Function()
     >;
+typedef $$GroupOrdersTableCreateCompanionBuilder =
+    GroupOrdersCompanion Function({
+      required String id,
+      required String orderCode,
+      required String status,
+      required String orderType,
+      required String mealType,
+      required double total,
+      required int groupCount,
+      Value<String?> description,
+      required String createdAt,
+      required String updatedAt,
+      Value<int> syncStatus,
+      Value<String?> syncUpdatedAt,
+      Value<int> rowid,
+    });
+typedef $$GroupOrdersTableUpdateCompanionBuilder =
+    GroupOrdersCompanion Function({
+      Value<String> id,
+      Value<String> orderCode,
+      Value<String> status,
+      Value<String> orderType,
+      Value<String> mealType,
+      Value<double> total,
+      Value<int> groupCount,
+      Value<String?> description,
+      Value<String> createdAt,
+      Value<String> updatedAt,
+      Value<int> syncStatus,
+      Value<String?> syncUpdatedAt,
+      Value<int> rowid,
+    });
+
+final class $$GroupOrdersTableReferences
+    extends BaseReferences<_$AppDatabase, $GroupOrdersTable, GroupOrder> {
+  $$GroupOrdersTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$GroupOrderItemsTable, List<GroupOrderItem>>
+  _groupOrderItemsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.groupOrderItems,
+    aliasName: $_aliasNameGenerator(
+      db.groupOrders.id,
+      db.groupOrderItems.groupOrderId,
+    ),
+  );
+
+  $$GroupOrderItemsTableProcessedTableManager get groupOrderItemsRefs {
+    final manager = $$GroupOrderItemsTableTableManager(
+      $_db,
+      $_db.groupOrderItems,
+    ).filter((f) => f.groupOrderId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _groupOrderItemsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$GroupOrdersTableFilterComposer
+    extends Composer<_$AppDatabase, $GroupOrdersTable> {
+  $$GroupOrdersTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get orderCode => $composableBuilder(
+    column: $table.orderCode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get orderType => $composableBuilder(
+    column: $table.orderType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get mealType => $composableBuilder(
+    column: $table.mealType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get total => $composableBuilder(
+    column: $table.total,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get groupCount => $composableBuilder(
+    column: $table.groupCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get syncUpdatedAt => $composableBuilder(
+    column: $table.syncUpdatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> groupOrderItemsRefs(
+    Expression<bool> Function($$GroupOrderItemsTableFilterComposer f) f,
+  ) {
+    final $$GroupOrderItemsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.groupOrderItems,
+      getReferencedColumn: (t) => t.groupOrderId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$GroupOrderItemsTableFilterComposer(
+            $db: $db,
+            $table: $db.groupOrderItems,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$GroupOrdersTableOrderingComposer
+    extends Composer<_$AppDatabase, $GroupOrdersTable> {
+  $$GroupOrdersTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get orderCode => $composableBuilder(
+    column: $table.orderCode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get orderType => $composableBuilder(
+    column: $table.orderType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get mealType => $composableBuilder(
+    column: $table.mealType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get total => $composableBuilder(
+    column: $table.total,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get groupCount => $composableBuilder(
+    column: $table.groupCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get syncUpdatedAt => $composableBuilder(
+    column: $table.syncUpdatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$GroupOrdersTableAnnotationComposer
+    extends Composer<_$AppDatabase, $GroupOrdersTable> {
+  $$GroupOrdersTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get orderCode =>
+      $composableBuilder(column: $table.orderCode, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get orderType =>
+      $composableBuilder(column: $table.orderType, builder: (column) => column);
+
+  GeneratedColumn<String> get mealType =>
+      $composableBuilder(column: $table.mealType, builder: (column) => column);
+
+  GeneratedColumn<double> get total =>
+      $composableBuilder(column: $table.total, builder: (column) => column);
+
+  GeneratedColumn<int> get groupCount => $composableBuilder(
+    column: $table.groupCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<String> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get syncUpdatedAt => $composableBuilder(
+    column: $table.syncUpdatedAt,
+    builder: (column) => column,
+  );
+
+  Expression<T> groupOrderItemsRefs<T extends Object>(
+    Expression<T> Function($$GroupOrderItemsTableAnnotationComposer a) f,
+  ) {
+    final $$GroupOrderItemsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.groupOrderItems,
+      getReferencedColumn: (t) => t.groupOrderId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$GroupOrderItemsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.groupOrderItems,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$GroupOrdersTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $GroupOrdersTable,
+          GroupOrder,
+          $$GroupOrdersTableFilterComposer,
+          $$GroupOrdersTableOrderingComposer,
+          $$GroupOrdersTableAnnotationComposer,
+          $$GroupOrdersTableCreateCompanionBuilder,
+          $$GroupOrdersTableUpdateCompanionBuilder,
+          (GroupOrder, $$GroupOrdersTableReferences),
+          GroupOrder,
+          PrefetchHooks Function({bool groupOrderItemsRefs})
+        > {
+  $$GroupOrdersTableTableManager(_$AppDatabase db, $GroupOrdersTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$GroupOrdersTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$GroupOrdersTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$GroupOrdersTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> orderCode = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<String> orderType = const Value.absent(),
+                Value<String> mealType = const Value.absent(),
+                Value<double> total = const Value.absent(),
+                Value<int> groupCount = const Value.absent(),
+                Value<String?> description = const Value.absent(),
+                Value<String> createdAt = const Value.absent(),
+                Value<String> updatedAt = const Value.absent(),
+                Value<int> syncStatus = const Value.absent(),
+                Value<String?> syncUpdatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => GroupOrdersCompanion(
+                id: id,
+                orderCode: orderCode,
+                status: status,
+                orderType: orderType,
+                mealType: mealType,
+                total: total,
+                groupCount: groupCount,
+                description: description,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                syncStatus: syncStatus,
+                syncUpdatedAt: syncUpdatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String orderCode,
+                required String status,
+                required String orderType,
+                required String mealType,
+                required double total,
+                required int groupCount,
+                Value<String?> description = const Value.absent(),
+                required String createdAt,
+                required String updatedAt,
+                Value<int> syncStatus = const Value.absent(),
+                Value<String?> syncUpdatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => GroupOrdersCompanion.insert(
+                id: id,
+                orderCode: orderCode,
+                status: status,
+                orderType: orderType,
+                mealType: mealType,
+                total: total,
+                groupCount: groupCount,
+                description: description,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                syncStatus: syncStatus,
+                syncUpdatedAt: syncUpdatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$GroupOrdersTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({groupOrderItemsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [
+                if (groupOrderItemsRefs) db.groupOrderItems,
+              ],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (groupOrderItemsRefs)
+                    await $_getPrefetchedData<
+                      GroupOrder,
+                      $GroupOrdersTable,
+                      GroupOrderItem
+                    >(
+                      currentTable: table,
+                      referencedTable: $$GroupOrdersTableReferences
+                          ._groupOrderItemsRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$GroupOrdersTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).groupOrderItemsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where(
+                            (e) => e.groupOrderId == item.id,
+                          ),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$GroupOrdersTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $GroupOrdersTable,
+      GroupOrder,
+      $$GroupOrdersTableFilterComposer,
+      $$GroupOrdersTableOrderingComposer,
+      $$GroupOrdersTableAnnotationComposer,
+      $$GroupOrdersTableCreateCompanionBuilder,
+      $$GroupOrdersTableUpdateCompanionBuilder,
+      (GroupOrder, $$GroupOrdersTableReferences),
+      GroupOrder,
+      PrefetchHooks Function({bool groupOrderItemsRefs})
+    >;
+typedef $$GroupOrderItemsTableCreateCompanionBuilder =
+    GroupOrderItemsCompanion Function({
+      required String id,
+      required double price,
+      required int qty,
+      required String mealId,
+      required String groupOrderId,
+      required String createdAt,
+      required String updatedAt,
+      Value<int> syncStatus,
+      Value<String?> syncUpdatedAt,
+      Value<int> rowid,
+    });
+typedef $$GroupOrderItemsTableUpdateCompanionBuilder =
+    GroupOrderItemsCompanion Function({
+      Value<String> id,
+      Value<double> price,
+      Value<int> qty,
+      Value<String> mealId,
+      Value<String> groupOrderId,
+      Value<String> createdAt,
+      Value<String> updatedAt,
+      Value<int> syncStatus,
+      Value<String?> syncUpdatedAt,
+      Value<int> rowid,
+    });
+
+final class $$GroupOrderItemsTableReferences
+    extends
+        BaseReferences<_$AppDatabase, $GroupOrderItemsTable, GroupOrderItem> {
+  $$GroupOrderItemsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $MealsTable _mealIdTable(_$AppDatabase db) => db.meals.createAlias(
+    $_aliasNameGenerator(db.groupOrderItems.mealId, db.meals.id),
+  );
+
+  $$MealsTableProcessedTableManager get mealId {
+    final $_column = $_itemColumn<String>('meal_id')!;
+
+    final manager = $$MealsTableTableManager(
+      $_db,
+      $_db.meals,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_mealIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $GroupOrdersTable _groupOrderIdTable(_$AppDatabase db) =>
+      db.groupOrders.createAlias(
+        $_aliasNameGenerator(
+          db.groupOrderItems.groupOrderId,
+          db.groupOrders.id,
+        ),
+      );
+
+  $$GroupOrdersTableProcessedTableManager get groupOrderId {
+    final $_column = $_itemColumn<String>('group_order_id')!;
+
+    final manager = $$GroupOrdersTableTableManager(
+      $_db,
+      $_db.groupOrders,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_groupOrderIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$GroupOrderItemsTableFilterComposer
+    extends Composer<_$AppDatabase, $GroupOrderItemsTable> {
+  $$GroupOrderItemsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get price => $composableBuilder(
+    column: $table.price,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get qty => $composableBuilder(
+    column: $table.qty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get syncUpdatedAt => $composableBuilder(
+    column: $table.syncUpdatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$MealsTableFilterComposer get mealId {
+    final $$MealsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.mealId,
+      referencedTable: $db.meals,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MealsTableFilterComposer(
+            $db: $db,
+            $table: $db.meals,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$GroupOrdersTableFilterComposer get groupOrderId {
+    final $$GroupOrdersTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.groupOrderId,
+      referencedTable: $db.groupOrders,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$GroupOrdersTableFilterComposer(
+            $db: $db,
+            $table: $db.groupOrders,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$GroupOrderItemsTableOrderingComposer
+    extends Composer<_$AppDatabase, $GroupOrderItemsTable> {
+  $$GroupOrderItemsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get price => $composableBuilder(
+    column: $table.price,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get qty => $composableBuilder(
+    column: $table.qty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get syncUpdatedAt => $composableBuilder(
+    column: $table.syncUpdatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$MealsTableOrderingComposer get mealId {
+    final $$MealsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.mealId,
+      referencedTable: $db.meals,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MealsTableOrderingComposer(
+            $db: $db,
+            $table: $db.meals,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$GroupOrdersTableOrderingComposer get groupOrderId {
+    final $$GroupOrdersTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.groupOrderId,
+      referencedTable: $db.groupOrders,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$GroupOrdersTableOrderingComposer(
+            $db: $db,
+            $table: $db.groupOrders,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$GroupOrderItemsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $GroupOrderItemsTable> {
+  $$GroupOrderItemsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<double> get price =>
+      $composableBuilder(column: $table.price, builder: (column) => column);
+
+  GeneratedColumn<int> get qty =>
+      $composableBuilder(column: $table.qty, builder: (column) => column);
+
+  GeneratedColumn<String> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<String> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get syncUpdatedAt => $composableBuilder(
+    column: $table.syncUpdatedAt,
+    builder: (column) => column,
+  );
+
+  $$MealsTableAnnotationComposer get mealId {
+    final $$MealsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.mealId,
+      referencedTable: $db.meals,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MealsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.meals,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$GroupOrdersTableAnnotationComposer get groupOrderId {
+    final $$GroupOrdersTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.groupOrderId,
+      referencedTable: $db.groupOrders,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$GroupOrdersTableAnnotationComposer(
+            $db: $db,
+            $table: $db.groupOrders,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$GroupOrderItemsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $GroupOrderItemsTable,
+          GroupOrderItem,
+          $$GroupOrderItemsTableFilterComposer,
+          $$GroupOrderItemsTableOrderingComposer,
+          $$GroupOrderItemsTableAnnotationComposer,
+          $$GroupOrderItemsTableCreateCompanionBuilder,
+          $$GroupOrderItemsTableUpdateCompanionBuilder,
+          (GroupOrderItem, $$GroupOrderItemsTableReferences),
+          GroupOrderItem,
+          PrefetchHooks Function({bool mealId, bool groupOrderId})
+        > {
+  $$GroupOrderItemsTableTableManager(
+    _$AppDatabase db,
+    $GroupOrderItemsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$GroupOrderItemsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$GroupOrderItemsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$GroupOrderItemsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<double> price = const Value.absent(),
+                Value<int> qty = const Value.absent(),
+                Value<String> mealId = const Value.absent(),
+                Value<String> groupOrderId = const Value.absent(),
+                Value<String> createdAt = const Value.absent(),
+                Value<String> updatedAt = const Value.absent(),
+                Value<int> syncStatus = const Value.absent(),
+                Value<String?> syncUpdatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => GroupOrderItemsCompanion(
+                id: id,
+                price: price,
+                qty: qty,
+                mealId: mealId,
+                groupOrderId: groupOrderId,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                syncStatus: syncStatus,
+                syncUpdatedAt: syncUpdatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required double price,
+                required int qty,
+                required String mealId,
+                required String groupOrderId,
+                required String createdAt,
+                required String updatedAt,
+                Value<int> syncStatus = const Value.absent(),
+                Value<String?> syncUpdatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => GroupOrderItemsCompanion.insert(
+                id: id,
+                price: price,
+                qty: qty,
+                mealId: mealId,
+                groupOrderId: groupOrderId,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                syncStatus: syncStatus,
+                syncUpdatedAt: syncUpdatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$GroupOrderItemsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({mealId = false, groupOrderId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (mealId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.mealId,
+                                referencedTable:
+                                    $$GroupOrderItemsTableReferences
+                                        ._mealIdTable(db),
+                                referencedColumn:
+                                    $$GroupOrderItemsTableReferences
+                                        ._mealIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+                    if (groupOrderId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.groupOrderId,
+                                referencedTable:
+                                    $$GroupOrderItemsTableReferences
+                                        ._groupOrderIdTable(db),
+                                referencedColumn:
+                                    $$GroupOrderItemsTableReferences
+                                        ._groupOrderIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$GroupOrderItemsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $GroupOrderItemsTable,
+      GroupOrderItem,
+      $$GroupOrderItemsTableFilterComposer,
+      $$GroupOrderItemsTableOrderingComposer,
+      $$GroupOrderItemsTableAnnotationComposer,
+      $$GroupOrderItemsTableCreateCompanionBuilder,
+      $$GroupOrderItemsTableUpdateCompanionBuilder,
+      (GroupOrderItem, $$GroupOrderItemsTableReferences),
+      GroupOrderItem,
+      PrefetchHooks Function({bool mealId, bool groupOrderId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -14332,4 +16673,8 @@ class $AppDatabaseManager {
       $$FingerprintsTableTableManager(_db, _db.fingerprints);
   $$ActivityLogsTableTableManager get activityLogs =>
       $$ActivityLogsTableTableManager(_db, _db.activityLogs);
+  $$GroupOrdersTableTableManager get groupOrders =>
+      $$GroupOrdersTableTableManager(_db, _db.groupOrders);
+  $$GroupOrderItemsTableTableManager get groupOrderItems =>
+      $$GroupOrderItemsTableTableManager(_db, _db.groupOrderItems);
 }

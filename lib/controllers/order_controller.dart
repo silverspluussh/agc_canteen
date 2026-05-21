@@ -100,7 +100,7 @@ class OrderController extends Notifier<OrderState> {
   }
 
   Future<void> completeOrder(String staffId, String staffName,
-      {String? description}) async {
+      {String? description, String orderType = 'dine_in'}) async {
     if (state.isEmpty) return;
 
     state = state.copyWith(step: OrderStep.processing, error: null);
@@ -112,11 +112,21 @@ class OrderController extends Notifier<OrderState> {
       final orderCode = _generateOrderCode();
       final orderItemId = const Uuid().v4();
 
+      final nowDateTime = DateTime.now();
+      final todayPrefix =
+          '${nowDateTime.year}-${_pad(nowDateTime.month)}-${_pad(nowDateTime.day)}';
+
+      final isOvercharge = await _isDuplicateMealTypeToday(
+        staffId: staffId,
+        mealType: meal.mealType,
+        todayPrefix: todayPrefix,
+      );
+
       final order = OrdersCompanion(
         id: Value(orderId),
         orderCode: Value(orderCode),
         status: const Value('completed'),
-        orderType: const Value('pos'),
+        orderType: Value(orderType),
         mealType: Value(meal.mealType),
         total: Value(meal.price),
         groupCount: const Value(1),
@@ -142,6 +152,26 @@ class OrderController extends Notifier<OrderState> {
 
       await _db.insertOrder(order, [orderItem]);
 
+      if (isOvercharge) {
+        _recordOvercharge(
+          orderCode: orderCode,
+          meal: meal,
+          staffId: staffId,
+        );
+      }
+
+      await _printReceipt(
+        orderCode: orderCode,
+        mealName: meal.name,
+        price: meal.price,
+        staffName: staffName,
+        description: description,
+      );
+
+      state = state.copyWith(
+        step: OrderStep.completed,
+        lastOrderCode: orderCode,
+      );
       getIt<ActivityLogService>().log(
         type: 'order_placed',
         message: 'Order placed: $orderCode — ${meal.name}',
@@ -159,13 +189,6 @@ class OrderController extends Notifier<OrderState> {
           'order_type': 'pos',
         },
       );
-
-      await _printReceipt(orderCode, description ?? meal.name, meal.price, staffName);
-
-      state = state.copyWith(
-        step: OrderStep.completed,
-        lastOrderCode: orderCode,
-      );
       ref.read(authProvider.notifier).completeOrder();
 
     } catch (e) {
@@ -176,60 +199,139 @@ class OrderController extends Notifier<OrderState> {
     }
   }
 
+  Future<bool> _isDuplicateMealTypeToday({
+    required String staffId,
+    required String mealType,
+    required String todayPrefix,
+  }) async {
+    final existing = await (_db.select(_db.orders)
+          ..where((o) =>
+              o.orderedById.equals(staffId) &
+              o.mealType.equals(mealType) &
+              o.createdAt.like('$todayPrefix%'))
+          ..limit(1))
+        .get();
+    return existing.isNotEmpty;
+  }
+
+  void _recordOvercharge({
+    required String orderCode,
+    required Meal meal,
+    required String staffId,
+  }) async {
+    try {
+      final now = DateTime.now().toIso8601String();
+      final overchargeId = const Uuid().v4();
+      await _db.insertOvercharge(
+        OverchargesCompanion(
+          id: Value(overchargeId),
+          mealType: Value(meal.mealType),
+          orderCode: Value(orderCode),
+          price: Value(meal.price),
+          staffId: Value(staffId),
+          mealId: Value(meal.id),
+          createdAt: Value(now),
+          updatedAt: Value(now),
+          syncStatus: const Value(0),
+          syncUpdatedAt: Value(now),
+        ),
+      );
+      getIt<ActivityLogService>().log(
+        type: 'overcharge_recorded',
+        message: 'Overcharge: $orderCode — ${meal.name} (${meal.mealType})',
+        actorType: 'staff',
+        actorId: staffId,
+        sourceTable: 'overcharges',
+        recordId: overchargeId,
+        metadata: {
+          'order_code': orderCode,
+          'meal_name': meal.name,
+          'meal_type': meal.mealType,
+          'price': meal.price,
+        },
+      );
+    } catch (e) {
+      getIt<ActivityLogService>().log(
+        type: 'overcharge_failed',
+        message: 'Failed to record overcharge $orderCode: $e',
+        sourceTable: 'overcharges',
+        metadata: {'order_code': orderCode, 'error': e.toString()},
+      );
+    }
+  }
+
   void reset() {
     state = const OrderState();
   }
 
   String _generateOrderCode() {
-    final now = DateTime.now();
-    final day = '${now.year}${_pad(now.month)}${_pad(now.day)}';
-    final time = '${_pad(now.hour)}${_pad(now.minute)}${_pad(now.second)}';
-    return 'POS-$day-$time';
+    final suffix = (1000 + (DateTime.now().millisecondsSinceEpoch % 9000)).toString();
+    return 'AGC$suffix';
   }
 
   String _pad(int n) => n.toString().padLeft(2, '0');
 
-  Future<void> _printReceipt(
-    String orderCode,
-    String mealName,
-    double price,
-    String staffName,
-  ) async {
+  Future<void> _printReceipt({
+    required String orderCode,
+    required String mealName,
+    required double price,
+    required String staffName,
+    String? description,
+  }) async {
     try {
-      final bytes = await _buildReceipt(orderCode, mealName, price, staffName);
+      final bytes = await _buildReceipt(
+        orderCode: orderCode,
+        mealName: mealName,
+        price: price,
+        staffName: staffName,
+        description: description,
+      );
       await _printer.printRawBytes(bytes);
     } catch (_) {}
   }
 
-  Future<Uint8List> _buildReceipt(
-    String orderCode,
-    String mealName,
-    double price,
-    String staffName,
-  ) async {
+  Future<Uint8List> _buildReceipt({
+    required String orderCode,
+    required String mealName,
+    required double price,
+    required String staffName,
+    String? description,
+  }) async {
     final now = DateTime.now();
     final date = '${now.year}-${_pad(now.month)}-${_pad(now.day)} '
         '${_pad(now.hour)}:${_pad(now.minute)}';
 
-    final buffer = StringBuffer();
-    buffer.writeln('====================');
-    buffer.writeln('    AGC CANTEEN');
-    buffer.writeln('====================');
-    buffer.writeln('Order: $orderCode');
-    buffer.writeln('Time:  $date');
-    buffer.writeln('Staff: $staffName');
-    buffer.writeln('--------------------');
-    buffer.writeln('1x  $mealName');
-    buffer.writeln('     \$${price.toStringAsFixed(2)}');
-    buffer.writeln('--------------------');
-    buffer.writeln('TOTAL: \$${price.toStringAsFixed(2)}');
-    buffer.writeln('====================');
-    buffer.writeln('     THANK YOU!');
-    buffer.writeln('');
-    buffer.writeln('');
-    buffer.writeln('');
+    final b = BytesBuilder();
 
-    return Uint8List.fromList(buffer.toString().codeUnits);
+    void ln(String s) => b.add('$s\n'.codeUnits);
+    void boldOn() => b.add(const [0x1B, 0x45, 0x01]);
+    void boldOff() => b.add(const [0x1B, 0x45, 0x00]);
+
+    ln('====================');
+    ln('    AGC CANTEEN');
+    ln('====================');
+    boldOn();
+    ln('Order: $orderCode');
+    boldOff();
+    ln('Time:  $date');
+    ln('Staff: $staffName');
+    ln('--------------------');
+    ln('1x  $mealName');
+    if (description != null && description.isNotEmpty) {
+      ln('Description: $description');
+    }
+   // ln('     \$${price.toStringAsFixed(2)}');
+   // ln('--------------------');
+    // boldOn();
+    // ln('TOTAL: \$${price.toStringAsFixed(2)}');
+    boldOff();
+    ln('====================');
+    ln('     THANK YOU!');
+    // ln('');
+    // ln('');
+    ln('');
+
+    return Uint8List.fromList(b.toBytes());
   }
 }
 

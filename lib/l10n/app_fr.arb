@@ -244,5 +244,9 @@
   "placing": "En cours...",
   "orderPlaced": "Commande passée",
   "receiptPrinted": "Reçu imprimé avec succès.",
-  "ok": "OK"
+  "ok": "OK",
+  "manualPosOrder": "Commande POS manuelle",
+  "manualPosOrderSubtitle": "Créer des commandes POS individuelles et groupées",
+  "singleOrder": "Commande individuelle",
+  "groupOrder": "Commande groupée"
 }

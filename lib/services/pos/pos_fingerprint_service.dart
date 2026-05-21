@@ -30,8 +30,10 @@ class FingerprintResult {
 }
 
 class PosFingerprintService {
-  static const _methodChannel = MethodChannel('com.silverware.agc_canteen/fingerprint');
-  static const _eventChannel = EventChannel('com.silverware.agc_canteen/fingerprint_events');
+  static const _methodChannel =
+      MethodChannel('com.silverware.agc_canteen/fingerprint');
+  static const _eventChannel =
+      EventChannel('com.silverware.agc_canteen/fingerprint_events');
 
   Stream<FingerprintResult> get captureStream {
     return _eventChannel.receiveBroadcastStream().map((event) {
@@ -47,9 +49,12 @@ class PosFingerprintService {
     }
   }
 
-  Future<FingerprintResult?> capture() async {
+  Future<FingerprintResult?> capture({int templateIndex = 0}) async {
     try {
-      final result = await _methodChannel.invokeMethod<Map<dynamic, dynamic>>('capture');
+      final result = await _methodChannel.invokeMethod<Map<dynamic, dynamic>>(
+          'capture', {
+        'templateIndex': templateIndex,
+      });
       if (result == null) return null;
       return FingerprintResult.fromMap(Map<String, dynamic>.from(result));
     } on PlatformException {
@@ -57,19 +62,26 @@ class PosFingerprintService {
     }
   }
 
-  Future<int?> verify(String templateBase64) async {
+  Future<int?> verify(
+    String templateBase64, {
+    int templateIndex = 0,
+  }) async {
     try {
       return await _methodChannel.invokeMethod<int>('verify', {
         'template': templateBase64,
+        'templateIndex': templateIndex,
       });
     } on PlatformException {
       return null;
     }
   }
 
-  Future<FingerprintResult?> enroll() async {
+  Future<FingerprintResult?> enroll({int templateIndex = 0}) async {
     try {
-      final result = await _methodChannel.invokeMethod<Map<dynamic, dynamic>>('enroll');
+      final result = await _methodChannel.invokeMethod<Map<dynamic, dynamic>>(
+          'enroll', {
+        'templateIndex': templateIndex,
+      });
       if (result == null) return null;
       return FingerprintResult.fromMap(Map<String, dynamic>.from(result));
     } on PlatformException {
@@ -90,6 +102,17 @@ class PosFingerprintService {
       return await _methodChannel.invokeMethod<bool>('isAvailable') ?? false;
     } on PlatformException {
       return false;
+    }
+  }
+
+  Future<List<String>> getTemplateTypes() async {
+    try {
+      final result =
+          await _methodChannel.invokeMethod<List<dynamic>>('getTemplateTypes');
+      if (result == null) return [];
+      return result.cast<String>();
+    } on PlatformException {
+      return [];
     }
   }
 }

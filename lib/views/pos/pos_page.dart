@@ -1,6 +1,10 @@
+import 'dart:developer';
+
 import 'package:agc_canteen/l10n/generated/app_localizations.dart';
 import 'package:agc_canteen/main.dart';
 import 'package:agc_canteen/views/settings/settings_page.dart';
+import 'package:agc_canteen/views/widgets/app_buttons.widget.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../controllers/auth_controller.dart';
@@ -41,6 +45,7 @@ class _PosPageState extends ConsumerState<PosPage> {
       child: PopScope(
         canPop: false,
         child: Scaffold(
+          backgroundColor: Theme.of(context).colorScheme.surface,
           appBar: _buildAppBar(staff),
           body: mealsAsync.when(
             data: (meals) => _buildBody(meals, orderState),
@@ -73,10 +78,14 @@ class _PosPageState extends ConsumerState<PosPage> {
           Padding(
             padding: const EdgeInsets.only(right: 4),
             child: Chip(
-              avatar: const Icon(Icons.person, size: 18),
+               shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              avatar: const Icon(Icons.person, size: 15, color: Colors.white),
               label: Text(
                 '${staff.firstName} ${staff.lastName}',
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(color: Colors.white,fontSize: 12),
               ),
             ),
           ),
@@ -175,9 +184,13 @@ class _PosPageState extends ConsumerState<PosPage> {
                     ref.read(localeProvider.notifier).state = Locale(selected);
                     getIt<ActivityLogService>().log(
                       type: 'language_changed',
-                      message: 'Language changed from POS: $current → $selected',
+                      message:
+                          'Language changed from POS: $current → $selected',
                       actorType: 'staff',
-                      metadata: {'old_language': current, 'new_language': selected},
+                      metadata: {
+                        'old_language': current,
+                        'new_language': selected,
+                      },
                     );
                     if (ctx.mounted) Navigator.of(ctx).pop();
                   },
@@ -352,19 +365,19 @@ class _PosPageState extends ConsumerState<PosPage> {
             ),
           ),
           const SizedBox(width: 12),
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(minimumSize: const Size(120, 48)),
+          PrimaryButton(
+            height: 50,
+            width: 120,
             onPressed: orderState.step == OrderStep.processing
                 ? null
-                : () => _showConfirmation(orderState),
-            icon: orderState.step == OrderStep.processing
+                : () => _showConfirmation(orderState),prefixChild: orderState.step == OrderStep.processing
                 ? const SizedBox(
                     width: 16,
                     height: 16,
                     child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.check, color: Colors.white),
-            label: Text(
+                  
+          ): null,
+                  label: Text(
               orderState.step == OrderStep.processing
                   ? AppLocalizations.of(context).placing
                   : AppLocalizations.of(context).confirm,
@@ -373,7 +386,9 @@ class _PosPageState extends ConsumerState<PosPage> {
                 fontWeight: FontWeight.w600,
               ),
             ),
-          ),
+                  
+                  )
+          
         ],
       ),
     );
@@ -397,26 +412,29 @@ class _PosPageState extends ConsumerState<PosPage> {
             onPressed: () => Navigator.pop(context),
             child: Text(AppLocalizations.of(context).noContinue),
           ),
-          TextButton(
-            style: TextButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
-              foregroundColor: Theme.of(context).colorScheme.onError,
-            ),
-            onPressed: () {
+
+          DestructiveButton(
+            width: 110,
+            onPressed:  () {
               Navigator.pop(context);
               ref.read(orderProvider.notifier).reset();
               final staff = ref.read(authProvider).staff;
               getIt<ActivityLogService>().log(
                 type: 'staff_exit_pos',
-                message: 'Staff exited POS: ${staff?.firstName ?? ''} ${staff?.lastName ?? ''}',
+                message:
+                    'Staff exited POS: ${staff?.firstName ?? ''} ${staff?.lastName ?? ''}',
                 actorType: 'staff',
                 actorId: staff?.staffId,
-                actorName: staff != null ? '${staff.firstName} ${staff.lastName}' : null,
+                actorName: staff != null
+                    ? '${staff.firstName} ${staff.lastName}'
+                    : null,
               );
               ref.read(authProvider.notifier).reset();
+              
             },
-            child: Text(AppLocalizations.of(context).yesSignOut),
-          ),
+            label: Text(AppLocalizations.of(context).yesSignOut, style: const TextStyle(color: Colors.white)),
+            )
+         
         ],
       ),
     );
@@ -429,19 +447,18 @@ class _PosPageState extends ConsumerState<PosPage> {
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
-       
         child: _ConfirmOrderSheet(
           meal: meal,
           onChangeMeal: () => ref.read(orderProvider.notifier).changeMeal(),
-          onPlaceOrder: (description) {
-            _placeOrder(description: description);
+          onPlaceOrder: (desc, orderType) {
+            _placeOrder(description: desc, orderType: orderType);
           },
         ),
       ),
     );
   }
 
-  void _placeOrder({String? description}) {
+  void _placeOrder({String? description, String orderType = 'dine_in'}) {
     final staff = ref.read(authProvider).staff;
     if (staff == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -455,10 +472,24 @@ class _PosPageState extends ConsumerState<PosPage> {
 
     ref
         .read(orderProvider.notifier)
-        .completeOrder(staff.staffId, '${staff.firstName} ${staff.lastName}',
-            description: description);
-  }
+        .completeOrder(
+          staff.staffId,
+          '${staff.firstName} ${staff.lastName}',
+          description: description,
+          orderType: orderType,
+        );
 
+    final meal = ref.read(orderProvider).selectedMeal;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(meal != null
+            ? '${meal.name} — ${AppLocalizations.of(context).orderPlaced}'
+            : AppLocalizations.of(context).orderPlaced),
+        backgroundColor: Colors.green,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
 }
 
 Widget _summaryRow(String label, String value, {bool bold = false}) {
@@ -486,7 +517,7 @@ Widget _summaryRow(String label, String value, {bool bold = false}) {
 class _ConfirmOrderSheet extends StatefulWidget {
   final Meal meal;
   final VoidCallback onChangeMeal;
-  final void Function(String?) onPlaceOrder;
+  final void Function(String? description, String orderType) onPlaceOrder;
 
   const _ConfirmOrderSheet({
     required this.meal,
@@ -500,11 +531,27 @@ class _ConfirmOrderSheet extends StatefulWidget {
 
 class _ConfirmOrderSheetState extends State<_ConfirmOrderSheet> {
   final _descriptionController = TextEditingController();
+  String _orderType = 'dine_in';
+  String? _descriptionError;
+
+  bool get _isLaCarte => widget.meal.mealType == 'la_carte';
 
   @override
   void dispose() {
     _descriptionController.dispose();
     super.dispose();
+  }
+
+  void _handlePlaceOrder() {
+    final desc = _descriptionController.text.trim();
+
+    if (_isLaCarte && desc.isEmpty) {
+      setState(() => _descriptionError = 'Description is required for A la carte');
+      return;
+    }
+
+    Navigator.pop(context);
+    widget.onPlaceOrder(desc.isEmpty ? null : desc, _orderType);
   }
 
   @override
@@ -526,17 +573,36 @@ class _ConfirmOrderSheetState extends State<_ConfirmOrderSheet> {
             AppLocalizations.of(context).mealType,
             widget.meal.mealType,
           ),
-         
+
           const SizedBox(height: 15),
           TextField(
             controller: _descriptionController,
             minLines: 2,
             maxLines: null,
             decoration: InputDecoration(
-              labelText: AppLocalizations.of(context).description,
+              labelText: _isLaCarte
+                  ? '${AppLocalizations.of(context).description} *'
+                  : AppLocalizations.of(context).description,
               border: const OutlineInputBorder(),
-              hintText: AppLocalizations.of(context).description,
+              hintText: _isLaCarte
+                  ? 'Describe what you want to order'
+                  : AppLocalizations.of(context).description,
+              errorText: _descriptionError,
             ),
+            onChanged: (_) {
+              if (_descriptionError != null) {
+                setState(() => _descriptionError = null);
+              }
+            },
+          ),
+          const SizedBox(height: 16),
+          SegmentedButton<String>(
+            segments: const [
+              ButtonSegment(value: 'dine_in', label: Text('Dine-in'), icon: Icon(Icons.table_restaurant)),
+              ButtonSegment(value: 'takeout', label: Text('Takeout'), icon: Icon(Icons.takeout_dining)),
+            ],
+            selected: {_orderType},
+            onSelectionChanged: (v) => setState(() => _orderType = v.first),
           ),
           const SizedBox(height: 16),
           Row(
@@ -551,19 +617,8 @@ class _ConfirmOrderSheetState extends State<_ConfirmOrderSheet> {
                 ),
               ),
               const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    final desc = _descriptionController.text.trim();
-                    widget.onPlaceOrder(desc.isEmpty ? null : desc);
-                  },
-                  child: Text(
-                    AppLocalizations.of(context).placeOrder,
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                ),
-              ),
+              Expanded(child: PrimaryButton(onPressed: _handlePlaceOrder, label: Text(AppLocalizations.of(context).placeOrder, style: const TextStyle(color: Colors.white)))),
+            
             ],
           ),
           const SizedBox(height: 8),
@@ -586,6 +641,7 @@ class _MealCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+   
     return Card(
       elevation: isSelected ? 4 : 1,
       shadowColor: Theme.of(context).colorScheme.primary,
@@ -603,34 +659,61 @@ class _MealCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: const EdgeInsets.all(15),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
+          padding: const EdgeInsets.all(8),
+          child: Stack(
+            alignment: AlignmentGeometry.center,
             children: [
-                            const Spacer(),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Align(
+                  //   alignment: Alignment.center,
+                  //   child: Image.network(meal.photoUrl!, height: 50, fit: BoxFit.cover)),
+                  CachedNetworkImage(
+                    imageUrl: meal.photoUrl??"",
+                    height: 90,
+                    imageBuilder: (context, imageProvider) =>
+                        Image(image: imageProvider, height: 80),
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) => const SizedBox(
+                      height: 50,
+                      child: Center(
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                    errorWidget: (context, url, error) => Image.asset("assets/app_logo.png", height: 80, width: 80),
+                  ),
+                  const SizedBox(height: 10),
 
-
-              Center(
-                child: Text(
-                  meal.name,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                ),
+                  Text(
+                    meal.name,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                  ),
+                ],
               ),
-              const Spacer(),
 
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  meal.mealType,
-                  style: const TextStyle(fontSize: 12, color: Colors.white),
+              Positioned(
+                top: 0,
+                left: 5,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    meal.mealType,
+                    style: const TextStyle(fontSize: 12),
+                  ),
                 ),
               ),
             ],

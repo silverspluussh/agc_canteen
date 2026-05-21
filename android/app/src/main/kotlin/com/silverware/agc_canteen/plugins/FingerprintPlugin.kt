@@ -14,7 +14,6 @@ import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import java.io.ByteArrayOutputStream
-import java.lang.reflect.Method
 
 class FingerprintPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, EventChannel.StreamHandler {
     private lateinit var methodChannel: MethodChannel
@@ -38,7 +37,7 @@ class FingerprintPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, EventC
     override fun onDetachedFromEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
         methodChannel.setMethodCallHandler(null)
         eventChannel.setStreamHandler(null)
-        invokeCancel()
+        cancelFingerprint()
         fingerSDK = null
         appContext = null
     }
@@ -54,23 +53,34 @@ class FingerprintPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, EventC
     override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: MethodChannel.Result) {
         when (call.method) {
             "init" -> initFingerprint(result)
-            "capture" -> capture(result)
+            "capture" -> {
+                val templateIndex = call.argument<Int>("templateIndex") ?: 0
+                capture(templateIndex, result)
+            }
             "verify" -> {
                 val template = call.argument<String>("template")
-                if (template != null) verifyFingerprint(template, result)
+                val templateIndex = call.argument<Int>("templateIndex") ?: 0
+                if (template != null) verifyFingerprint(templateIndex, template, result)
                 else result.error("INVALID_ARG", "Template is required", null)
             }
-            "enroll" -> enroll(result)
+            "enroll" -> {
+                val templateIndex = call.argument<Int>("templateIndex") ?: 0
+                enroll(templateIndex, result)
+            }
             "cancel" -> {
-                invokeCancel()
+                cancelFingerprint()
                 result.success(true)
             }
             "isAvailable" -> result.success(isSdkReady)
+            "getTemplateTypes" -> {
+                val types = getTemplateTypeNames()
+                result.success(types)
+            }
             else -> result.notImplemented()
         }
     }
 
-    private fun invokeCancel() {
+    private fun cancelFingerprint() {
         val sdk = fingerSDK ?: return
         try {
             val method = FingerSDK::class.java.getDeclaredMethod("cancel").apply {
@@ -78,6 +88,19 @@ class FingerprintPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, EventC
             }
             method.invoke(sdk)
         } catch (_: Exception) {}
+    }
+
+    private fun getTemplateTypeNames(): List<String> {
+        return try {
+            FingerSDK.TEMPLEATES.getTempleatesList().map { it.name }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    private fun getTemplateAtIndex(index: Int): FingerSDK.TEMPLEATES {
+        val list = FingerSDK.TEMPLEATES.getTempleatesList()
+        return if (index in list.indices) list[index] else list[0]
     }
 
     private fun initFingerprint(@NonNull result: MethodChannel.Result) {
@@ -88,9 +111,9 @@ class FingerprintPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, EventC
             }
             fingerSDK = FingerSDK(context, object : OnSdkInitListener {
                 override fun initResult(code: Int, msg: String?) {
-                    isSdkReady = code == 0
+                    isSdkReady = code == FingerSDK.RESULT_OK
                     Log.d("FingerprintPlugin", "SDK init: code=$code msg=$msg")
-                    if (code == 0) {
+                    if (isSdkReady) {
                         result.success(true)
                     } else {
                         result.error("FINGER_INIT_ERROR", "SDK init failed: $msg", null)
@@ -102,21 +125,22 @@ class FingerprintPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, EventC
         }
     }
 
-    private fun capture(@NonNull result: MethodChannel.Result) {
+    private fun capture(templateIndex: Int, @NonNull result: MethodChannel.Result) {
         if (fingerSDK == null || !isSdkReady) {
             result.error("FINGER_NOT_INIT", "Fingerprint SDK not initialized", null)
             return
         }
 
         try {
-            invokeCapture(object : OnCaptureBytesListener {
+            val templateType = getTemplateAtIndex(templateIndex)
+            fingerSDK!!.captureBytes(templateType, object : OnCaptureBytesListener {
                 override fun capture(
                     code: Int,
                     data: ByteArray?,
                     bitmap: Bitmap?,
                     template: ByteArray?
                 ) {
-                    if (code == 0 && data != null && template != null) {
+                    if (code == FingerSDK.RESULT_OK && data != null && template != null) {
                         currentTemplate = template
 
                         val imageBytes = bitmap?.let {
@@ -148,23 +172,11 @@ class FingerprintPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, EventC
         }
     }
 
-    private fun invokeCapture(listener: OnCaptureBytesListener) {
-        val sdk = fingerSDK ?: return
-        try {
-            val method = FingerSDK::class.java.getDeclaredMethod("capture", OnCaptureBytesListener::class.java)
-            method.isAccessible = true
-            method.invoke(sdk, listener)
-        } catch (e: Exception) {
-            try {
-                val method = FingerSDK::class.java.getMethod("capture", OnCaptureBytesListener::class.java)
-                method.invoke(sdk, listener)
-            } catch (e2: Exception) {
-                throw RuntimeException("Failed to invoke capture: ${e2.message}")
-            }
-        }
-    }
-
-    private fun verifyFingerprint(templateBase64: String, @NonNull result: MethodChannel.Result) {
+    private fun verifyFingerprint(
+        templateIndex: Int,
+        templateBase64: String,
+        @NonNull result: MethodChannel.Result
+    ) {
         if (fingerSDK == null || !isSdkReady) {
             result.error("FINGER_NOT_INIT", "Fingerprint SDK not initialized", null)
             return
@@ -176,34 +188,20 @@ class FingerprintPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, EventC
         }
 
         try {
+            val templateType = getTemplateAtIndex(templateIndex)
             val storedTemplate = Base64.decode(templateBase64, Base64.NO_WRAP)
-            val score = invokeCompareTemplate(currentTemplate!!, storedTemplate)
-            result.success(score ?: -1)
+            val score = fingerSDK!!.compareTemplateBytes(
+                templateType,
+                currentTemplate!!,
+                storedTemplate
+            )
+            result.success(score)
         } catch (e: Exception) {
             result.error("FINGER_VERIFY_ERROR", e.message, null)
         }
     }
 
-    private fun invokeCompareTemplate(current: ByteArray, stored: ByteArray): Any? {
-        val sdk = fingerSDK ?: return null
-        return try {
-            val method = FingerSDK::class.java.getDeclaredMethod(
-                "compareTemplateBytes", ByteArray::class.java, ByteArray::class.java
-            ).apply { isAccessible = true }
-            method.invoke(sdk, current, stored)
-        } catch (e: Exception) {
-            try {
-                val method = FingerSDK::class.java.getMethod(
-                    "compareTemplateBytes", ByteArray::class.java, ByteArray::class.java
-                )
-                method.invoke(sdk, current, stored)
-            } catch (e2: Exception) {
-                -1
-            }
-        }
-    }
-
-    private fun enroll(@NonNull result: MethodChannel.Result) {
-        capture(result)
+    private fun enroll(templateIndex: Int, @NonNull result: MethodChannel.Result) {
+        capture(templateIndex, result)
     }
 }

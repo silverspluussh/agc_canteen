@@ -29,20 +29,24 @@ class _AuthGateState extends ConsumerState<AuthGate> {
     final adminState = ref.watch(adminAuthProvider);
     final staffState = ref.watch(authProvider);
 
+    ref.listen(authProvider, (prev, next) {
+      if (next.isCompleted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) ref.read(authProvider.notifier).reset();
+        });
+      }
+    });
+
     if (adminState.isChecking) {
       return _buildSplash(context);
     }
 
     if (adminState.isAuthenticated) {
-      if (staffState.isCompleted) {
-        ref.read(authProvider.notifier).reset();
-      }
       if (staffState.isAuthenticated) {
-        return const PosPage();
+        return const StaffAuthPage();
       }
-       return const StaffAuthPage();
+      return const StaffAuthPage();
     }
-
 
     return const AdminLoginPage();
   }

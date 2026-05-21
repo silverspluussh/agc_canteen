@@ -58,6 +58,10 @@ class ScannerPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, EventChann
                     result.success(true)
                 }
                 "isScanning" -> result.success(isScanning)
+                "sendHeartbeat" -> {
+                    sendHeartbeat()
+                    result.success(true)
+                }
                 else -> result.notImplemented()
             }
         } catch (e: Exception) {
@@ -135,5 +139,15 @@ class ScannerPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, EventChann
     private fun triggerScanner(trigger: Boolean) {
         commonApi.setGpioDir(GPIO_TRIGGER, 1)
         commonApi.setGpioOut(GPIO_TRIGGER, if (trigger) 1 else 0)
+    }
+
+    private fun sendHeartbeat() {
+        val heartCmd = byteArrayOf(
+            0x7E, 0x00, 0x0A, 0x01, 0x00, 0x00, 0x00, 0x30, 0x1A
+        )
+        commonApi.writeCom(comFd, heartCmd, heartCmd.size)
+        try {
+            Thread.sleep(200)
+        } catch (_: Exception) {}
     }
 }

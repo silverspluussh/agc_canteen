@@ -642,4 +642,17 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get ok => 'OK';
+
+  @override
+  String get manualPosOrder => 'Commande POS manuelle';
+
+  @override
+  String get manualPosOrderSubtitle =>
+      'Créer des commandes POS individuelles et groupées';
+
+  @override
+  String get singleOrder => 'Commande individuelle';
+
+  @override
+  String get groupOrder => 'Commande groupée';
 }

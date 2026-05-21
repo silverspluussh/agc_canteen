@@ -89,8 +89,9 @@ class AuthController extends Notifier<AuthState> {
     }
   }
 
-  /// Called after an order is completed — de-authenticates the current staff.
-  void completeOrder() {
+  /// Called after an order is completed — de-authenticates the current staff
+  /// after a brief delay so the user can see the success feedback.
+  Future<void> completeOrder() async {
     if (state.isAuthenticated) {
       final staff = state.staff;
       getIt<ActivityLogService>().log(
@@ -100,6 +101,7 @@ class AuthController extends Notifier<AuthState> {
         actorId: staff?.staffId,
         actorName: staff != null ? '${staff.firstName} ${staff.lastName}' : null,
       );
+      await Future.delayed(const Duration(seconds: 3));
       state = const AuthState(step: AuthStep.completed);
     }
   }

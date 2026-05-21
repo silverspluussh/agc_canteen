@@ -3,7 +3,17 @@ import 'package:flutter/services.dart';
 class PosCardService {
   static const _channel = MethodChannel('com.silverware.agc_canteen/card');
 
-  // IS0 7816 IC Smart Card APDU
+  // ─── IC Smart Card (ISO 7816) ────────────────────────────
+
+  Future<Uint8List?> icReset() async {
+    try {
+      final result = await _channel.invokeMethod<List<dynamic>>('icReset');
+      if (result == null || result.isEmpty) return null;
+      return Uint8List.fromList(List<int>.from(result));
+    } on PlatformException {
+      return null;
+    }
+  }
 
   Future<Uint8List?> icApdu(Uint8List apdu) async {
     try {
@@ -17,7 +27,17 @@ class PosCardService {
     }
   }
 
-  // PSAM Secure Access Module
+  Future<int> icWrite(Uint8List apdu) async {
+    try {
+      return await _channel.invokeMethod<int>('icWrite', {
+        'apdu': apdu.toList(),
+      }) ?? 0;
+    } on PlatformException {
+      return 0;
+    }
+  }
+
+  // ─── PSAM Secure Access Module ────────────────────────────
 
   Future<Uint8List?> psamReset({int slot = 1}) async {
     try {
@@ -56,7 +76,7 @@ class PosCardService {
     }
   }
 
-  // Magnetic Swipe Card
+  // ─── Magnetic Swipe Card ──────────────────────────────────
 
   Future<Uint8List?> swipeCard() async {
     try {

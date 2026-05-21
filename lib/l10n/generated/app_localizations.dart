@@ -1341,6 +1341,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'OK'**
   String get ok;
+
+  /// No description provided for @manualPosOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Manual POS order'**
+  String get manualPosOrder;
+
+  /// No description provided for @manualPosOrderSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create single and group POS orders'**
+  String get manualPosOrderSubtitle;
+
+  /// No description provided for @singleOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Single Order'**
+  String get singleOrder;
+
+  /// No description provided for @groupOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Group Order'**
+  String get groupOrder;
 }
 
 class _AppLocalizationsDelegate

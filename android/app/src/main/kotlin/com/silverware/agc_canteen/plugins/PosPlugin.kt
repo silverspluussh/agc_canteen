@@ -27,7 +27,7 @@ class PosPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
         when (call.method) {
             "init" -> initPos(result)
             "getDeviceInfo" -> getDeviceInfo(result)
-            "isInit" -> result.success(isInitialized)
+            "isInit" -> result.success(HFPos.getInstance().isInit)
             else -> result.notImplemented()
         }
     }
@@ -39,9 +39,10 @@ class PosPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                 return
             }
             HFPos.getInstance().init(context)
-            isInitialized = true
-            result.success(true)
+            isInitialized = HFPos.getInstance().isInit
+            result.success(isInitialized)
         } catch (e: Exception) {
+            isInitialized = false
             result.error("POS_INIT_ERROR", e.message, null)
         }
     }

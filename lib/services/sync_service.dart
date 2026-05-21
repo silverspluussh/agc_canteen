@@ -113,6 +113,8 @@ class SyncService {
       'users',
       'orders',
       'order_items',
+      'group_orders',
+      'group_order_items',
       'overcharges',
       'pos_devices',
       'fingerprints',
@@ -146,6 +148,80 @@ class SyncService {
         message: 'Sync failed: $e',
         metadata: {'errors': [e.toString()]},
       );
+    }
+
+    return SyncResult(pushed: pushed, pulled: pulled, errors: errors);
+  }
+
+  Future<SyncResult> syncSingleOrders() async {
+    final pushed = <String, int>{};
+    final pulled = <String, int>{};
+    final errors = <String>[];
+
+    if (!await isOnline) {
+      return SyncResult(
+        pushed: pushed, pulled: pulled,
+        errors: ['No internet connection'],
+      );
+    }
+
+    final baseUrl = await this.baseUrl;
+    if (baseUrl == null) {
+      return SyncResult(
+        pushed: pushed, pulled: pulled,
+        errors: ['Sync URL not configured'],
+      );
+    }
+
+    if (!_dio.options.baseUrl.startsWith(baseUrl)) {
+      _dio.options.baseUrl = baseUrl;
+    }
+
+    try {
+      pushed['orders'] = await _pushTable('orders');
+      pushed['order_items'] = await _pushTable('order_items');
+      pulled['orders'] = await _pullTable('orders');
+      pulled['order_items'] = await _pullTable('order_items');
+      await _saveLastSync();
+    } catch (e) {
+      errors.add(e.toString());
+    }
+
+    return SyncResult(pushed: pushed, pulled: pulled, errors: errors);
+  }
+
+  Future<SyncResult> syncGroupOrders() async {
+    final pushed = <String, int>{};
+    final pulled = <String, int>{};
+    final errors = <String>[];
+
+    if (!await isOnline) {
+      return SyncResult(
+        pushed: pushed, pulled: pulled,
+        errors: ['No internet connection'],
+      );
+    }
+
+    final baseUrl = await this.baseUrl;
+    if (baseUrl == null) {
+      return SyncResult(
+        pushed: pushed, pulled: pulled,
+        errors: ['Sync URL not configured'],
+      );
+    }
+
+    if (!_dio.options.baseUrl.startsWith(baseUrl)) {
+      _dio.options.baseUrl = baseUrl;
+    }
+
+    try {
+      pushed['group_orders'] = await _pushTable('group_orders');
+      pushed['group_order_items'] = await _pushTable('group_order_items');
+      pulled['group_orders'] = await _pullTable('group_orders');
+      pulled['group_order_items'] = await _pullTable('group_order_items');
+      await _saveLastSync();
+    } catch (e) {
+      errors.add(e.toString());
     }
 
     return SyncResult(pushed: pushed, pulled: pulled, errors: errors);
@@ -229,6 +305,10 @@ class SyncService {
         return (await _db.getUnsyncedPosDevices()).map(_rowToMap).toList();
       case 'fingerprints':
         return (await _db.getUnsyncedFingerprints()).map(_rowToMap).toList();
+      case 'group_orders':
+        return (await _db.getUnsyncedGroupOrders()).map(_rowToMap).toList();
+      case 'group_order_items':
+        return (await _db.getUnsyncedGroupOrderItems()).map(_rowToMap).toList();
       default:
         return [];
     }
@@ -258,6 +338,10 @@ class SyncService {
         await _db.markPosDeviceSynced(id);
       case 'fingerprints':
         await _db.markFingerprintSynced(id);
+      case 'group_orders':
+        await _db.markGroupOrderSynced(id);
+      case 'group_order_items':
+        await _db.markGroupOrderItemSynced(id);
     }
   }
 
@@ -285,6 +369,10 @@ class SyncService {
         await _db.markPosDeviceFailed(id);
       case 'fingerprints':
         await _db.markFingerprintFailed(id);
+      case 'group_orders':
+        await _db.markGroupOrderFailed(id);
+      case 'group_order_items':
+        await _db.markGroupOrderItemFailed(id);
     }
   }
 

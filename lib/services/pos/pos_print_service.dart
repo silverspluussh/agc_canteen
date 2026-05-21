@@ -6,9 +6,10 @@ class PosPrintService {
   Future<bool> printRawBytes(Uint8List bytes) async {
     try {
       return await _channel.invokeMethod<bool>(
-        'printRawBytes',
-        {'bytes': bytes.toList()},
-      ) ?? false;
+            'printRawBytes',
+            {'bytes': bytes.toList()},
+          ) ??
+          false;
     } on PlatformException {
       return false;
     }
@@ -32,8 +33,20 @@ class PosPrintService {
 
   Future<Map<String, dynamic>?> checkPrinterState() async {
     try {
-      final result = await _channel.invokeMethod<Map<dynamic, dynamic>>('checkPrinterState');
+      final result =
+          await _channel.invokeMethod<Map<dynamic, dynamic>>('checkPrinterState');
       return result != null ? Map<String, dynamic>.from(result) : null;
+    } on PlatformException {
+      return null;
+    }
+  }
+
+  Future<Uint8List?> checkPaper() async {
+    try {
+      final result =
+          await _channel.invokeMethod<List<dynamic>>('checkPaper');
+      if (result == null || result.isEmpty) return null;
+      return Uint8List.fromList(List<int>.from(result));
     } on PlatformException {
       return null;
     }

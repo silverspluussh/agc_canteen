@@ -11,7 +11,7 @@ class FingerprintAuthService {
   final PosFingerprintService _fingerprint;
   final Logger _logger;
 
-  static const int matchThreshold = 60;
+  static const int matchThreshold = 80;
 
   FingerprintAuthService({
     required AppDatabase db,

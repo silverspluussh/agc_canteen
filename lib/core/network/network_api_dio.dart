@@ -93,6 +93,9 @@ class NetworkAPI {
         case 201:
           final data = response.data;
           return builder(data);
+        case 302:
+            throw InvalidCredentials(response.data["message"]);
+
         case 400:
           throw InvalidCredentials(response.data["message"]);
         case 401:
@@ -111,6 +114,7 @@ class NetworkAPI {
           );
         case 409:
           throw InvalidCredentials(response.data["message"]);
+        
         default:
           throw LoginAttemptFailed(response.data["message"]);
       }

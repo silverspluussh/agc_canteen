@@ -10,7 +10,9 @@
 .history
 .svn/
 .swiftpm/
+Makefile
 migrate_working_dir/
+PdaX1-1/
 
 # IntelliJ related
 *.iml
@@ -32,6 +34,7 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
+.env
 
 # Symbolication related
 app.*.symbols
@@ -43,3 +46,4 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+color-themes.md

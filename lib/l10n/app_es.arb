@@ -244,5 +244,9 @@
   "placing": "Colocando...",
   "orderPlaced": "Pedido realizado",
   "receiptPrinted": "Recibo impreso con éxito.",
-  "ok": "Aceptar"
+  "ok": "Aceptar",
+  "manualPosOrder": "Pedido POS manual",
+  "manualPosOrderSubtitle": "Crear pedidos POS individuales y grupales",
+  "singleOrder": "Pedido individual",
+  "groupOrder": "Pedido grupal"
 }

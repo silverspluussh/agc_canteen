@@ -640,4 +640,17 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get ok => 'Aceptar';
+
+  @override
+  String get manualPosOrder => 'Pedido POS manual';
+
+  @override
+  String get manualPosOrderSubtitle =>
+      'Crear pedidos POS individuales y grupales';
+
+  @override
+  String get singleOrder => 'Pedido individual';
+
+  @override
+  String get groupOrder => 'Pedido grupal';
 }

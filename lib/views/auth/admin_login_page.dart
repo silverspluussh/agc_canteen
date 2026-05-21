@@ -1,3 +1,4 @@
+import 'package:agc_canteen/views/widgets/app_buttons.widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../controllers/admin_auth_controller.dart';
@@ -137,25 +138,27 @@ class _AdminLoginPageState extends ConsumerState<AdminLoginPage> {
                         ),
                       ),
                     const SizedBox(height: 8),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: ElevatedButton(
-                        onPressed: state.isLoading ? null : _submit,
-                        child: state.isLoading
+                    PrimaryButton(onPressed:state.isLoading? null:  _submit,
+                    
+                    
+                     label:    state.isLoading
                             ? const SizedBox(
                                 width: 20,
                                 height: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
+                                  color: Colors.white,
                                 ),
                               )
                             : Text(
                                 AppLocalizations.of(context).signIn,
                                 style: const TextStyle(color: Colors.white),
-                              ),
-                      ),
-                    ),
+                              ),),
+                   
+                   
+                   SizedBox(height: 20,),
+                   
+                    
                     const SizedBox(height: 8),
                     if (state.hasError)
                       TextButton(

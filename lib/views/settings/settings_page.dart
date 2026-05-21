@@ -1,4 +1,5 @@
 import 'package:adaptive_theme/adaptive_theme.dart';
+import 'package:agc_canteen/views/widgets/app_buttons.widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -86,26 +87,29 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   onPressed: () => Navigator.of(ctx).pop(),
                   child: Text(AppLocalizations.of(context).cancel),
                 ),
-                TextButton(
-                  style: TextButton.styleFrom(
-                    backgroundColor: Colors.lightGreen,
-                  ),
+
+                PrimaryButton(
+                  width: 110,
+                  
                   onPressed: () async {
                     await prefs.setString('app_language', selected);
                     ref.read(localeProvider.notifier).state = Locale(selected);
                     getIt<ActivityLogService>().log(
                       type: 'language_changed',
-                      message: 'Language changed from settings: $current → $selected',
+                      message:
+                          'Language changed from settings: $current → $selected',
                       actorType: 'admin',
-                      metadata: {'old_language': current, 'new_language': selected},
+                      metadata: {
+                        'old_language': current,
+                        'new_language': selected,
+                      },
                     );
                     if (ctx.mounted) Navigator.of(ctx).pop();
-                  },
-                  child: const Text(
+                  },label: const Text(
                     'Apply',
                     style: TextStyle(color: Colors.white),
-                  ),
-                ),
+                  ),)
+               
               ],
             );
           },
@@ -169,27 +173,30 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   onPressed: () => Navigator.of(ctx).pop(),
                   child: Text(AppLocalizations.of(context).cancel),
                 ),
-                TextButton(
-                  style: TextButton.styleFrom(
-                    backgroundColor: Colors.lightGreen,
-                  ),
+
+                PrimaryButton(
+                  width: 110,
                   onPressed: () {
                     AdaptiveTheme.of(context).setThemeMode(selected);
                     getIt<ActivityLogService>().log(
                       type: 'theme_changed',
                       message: 'Theme changed: $current → $selected',
                       actorType: 'admin',
-                      metadata: {'old_theme': current.name, 'new_theme': selected.name},
+                      metadata: {
+                        'old_theme': current.name,
+                        'new_theme': selected.name,
+                      },
                     );
                     Navigator.of(ctx).pop();
                   },
-                  child: Text(
+                  label: Text(
                     AppLocalizations.of(
                       context,
                     ).applyFilters, // Using applyFilters as a generic apply
                     style: const TextStyle(color: Colors.white),
                   ),
-                ),
+                  )
+
               ],
             );
           },
@@ -305,40 +312,49 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         children: [
           // ── Account ────────────────────────────────────────────────────────
           _SectionHeader(label: l10n.account),
-          _SettingsTile(
-            icon: Icons.account_circle_outlined,
-            title: l10n.adminAccountInfo,
-            subtitle: _adminEmail ?? l10n.loading,
-            onTap: _showAdminInfoDialog,
-          ),
+          // _SettingsTile(
+          //   icon: Icons.account_circle_outlined,
+          //   title: l10n.adminAccountInfo,
+          //   subtitle: _adminEmail ?? l10n.loading,
+          //   onTap: _showAdminInfoDialog,
+          // ),
           //staff managment
           _SettingsTile(
             icon: Icons.group_outlined,
-            title: l10n.staffManagement, // "Staff Management" 
-            subtitle: l10n.manageStaffSubtitle,// "Register and remove fingerprints for staff access"
+            title: l10n.staffManagement, // "Staff Management"
+            subtitle: l10n
+                .manageStaffSubtitle, // "Register and remove fingerprints for staff access"
             onTap: () => Navigator.of(context).pushNamed('/staff'),
           ),
           //POS managment
           _SettingsTile(
             icon: Icons.device_hub_outlined,
             title: l10n.posSettings, // "POS Settings"
-            subtitle: l10n.managePosSubtitle,// "Manage POS devices and configurations"
+            subtitle: l10n
+                .managePosSubtitle, // "Manage POS devices and configurations"
             onTap: () => Navigator.of(context).pushNamed('/pos'),
           ),
 
           // ── Data ───────────────────────────────────────────────────────────
           _SectionHeader(label: l10n.data),
           _SettingsTile(
+            icon: Icons.fastfood_rounded,
+            title: l10n.manualPosOrder,
+            subtitle: l10n.manualPosOrderSubtitle,
+            onTap: () =>
+                Navigator.of(context).pushNamed('/create-manual-order'),
+          ),
+          _SettingsTile(
+            icon: Icons.bar_chart_rounded,
+            title: l10n.orders,
+            subtitle: l10n.viewReportsSubtitle,
+            onTap: () => Navigator.of(context).pushNamed('/reports'),
+          ),
+          _SettingsTile(
             icon: Icons.sync_rounded,
             title: AppLocalizations.of(context).syncData,
             subtitle: l10n.pushPullSubtitle,
             onTap: () => Navigator.of(context).pushNamed('/sync'),
-          ),
-          _SettingsTile(
-            icon: Icons.bar_chart_rounded,
-            title: l10n.reports,
-            subtitle: l10n.viewReportsSubtitle,
-            onTap: () => Navigator.of(context).pushNamed('/reports'),
           ),
 
           // ── Preferences ────────────────────────────────────────────────────
@@ -451,13 +467,15 @@ class _SettingsTile extends StatelessWidget {
     return ListTile(
       leading: CircleAvatar(
         backgroundColor: colorScheme.primaryContainer,
-        child: Icon(icon, color: colorScheme.primary, size: 20),
+        child: Icon(icon, color: colorScheme.primary, size: 15),
       ),
       title: Text(
         title,
-        style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+        style: Theme.of(
+          context,
+        ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w500),
       ),
-      subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
+      subtitle: Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
       trailing: const Icon(Icons.chevron_right, size: 15),
       onTap: onTap,
     );
