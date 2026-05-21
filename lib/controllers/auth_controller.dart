@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/di/injection_container.dart';
 import '../services/activity_log_service.dart';
 import '../services/auth/pos_auth_service.dart';
+import '../services/remote_data_sync_service.dart';
 import 'providers.dart';
 
 enum AuthStep { unauthenticated, authenticating, authenticated, completed, error }
@@ -68,6 +71,9 @@ class AuthController extends Notifier<AuthState> {
         step: AuthStep.authenticated,
         staff: result,
       );
+
+      unawaited(getIt<RemoteDataSyncService>().syncAll());
+
       getIt<ActivityLogService>().log(
         type: 'staff_auth_success',
         message: 'Staff authenticated: ${result.firstName} ${result.lastName}',

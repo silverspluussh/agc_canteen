@@ -35,6 +35,7 @@ PdaX1-1/
 /build/
 /coverage/
 .env
+commit.sh
 
 # Symbolication related
 app.*.symbols
