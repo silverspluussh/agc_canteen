@@ -163,8 +163,14 @@ abstract class AppLocalizations {
   /// No description provided for @biometricLogin.
   ///
   /// In en, this message translates to:
-  /// **'Login with fingerprint'**
+  /// **'Scan finger'**
   String get biometricLogin;
+
+  /// No description provided for @changeLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Change app language'**
+  String get changeLanguage;
 
   /// No description provided for @pos.
   ///
@@ -471,12 +477,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Language'**
   String get language;
-
-  /// No description provided for @changeLanguage.
-  ///
-  /// In en, this message translates to:
-  /// **'Change app language'**
-  String get changeLanguage;
 
   /// No description provided for @theme.
   ///

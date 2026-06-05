@@ -39,7 +39,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get placeFinger => 'Placez votre doigt';
 
   @override
-  String get biometricLogin => 'Connexion par empreinte';
+  String get biometricLogin => 'Scanner le doigt';
+
+  @override
+  String get changeLanguage => 'Changer la langue de l\'application';
 
   @override
   String get pos => 'Caisse';
@@ -193,9 +196,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get language => 'Langue';
-
-  @override
-  String get changeLanguage => 'Changer la langue de l\'application';
 
   @override
   String get theme => 'Thème';

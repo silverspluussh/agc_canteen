@@ -214,21 +214,27 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
           Expanded(
             child: items.isEmpty
                 ? _EmptyView(Icons.group_outlined, l10n.noResults)
-                : ListView.separated(
-                    padding: const EdgeInsets.all(10),
-                    itemCount: items.length,
-                    separatorBuilder: (_, _) => const Divider(height: 10),
-                    itemBuilder: (context, index) {
-                      final entry = items[index];
-                      return _StaffCard(
-                        entry: entry,
-                        onAddFingerprint: () => _showEnrollmentDialog(entry),
-                        onDeleteFingerprint: () =>
-                            _showDeleteConfirmation(entry),
-                        isEnrolling: _isEnrolling,
-                      );
-                    },
-                  ),
+                : RefreshIndicator(
+                  onRefresh: () async {
+                   _loadStaffData();
+               
+                  },
+                  child: ListView.separated(
+                      padding: const EdgeInsets.all(10),
+                      itemCount: items.length,
+                      separatorBuilder: (_, _) => const Divider(height: 10),
+                      itemBuilder: (context, index) {
+                        final entry = items[index];
+                        return _StaffCard(
+                          entry: entry,
+                          onAddFingerprint: () => _showEnrollmentDialog(entry),
+                          onDeleteFingerprint: () =>
+                              _showDeleteConfirmation(entry),
+                          isEnrolling: _isEnrolling,
+                        );
+                      },
+                    ),
+                ),
           ),
         ],
       ),

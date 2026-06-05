@@ -12,7 +12,8 @@
   "welcomeBack": "Bon retour",
   "enterPin": "Entrez votre code PIN",
   "placeFinger": "Placez votre doigt",
-  "biometricLogin": "Connexion par empreinte",
+  "biometricLogin": "Scanner le doigt",
+  "changeLanguage": "Changer la langue",
 
   "@_NAVIGATION": {},
   "pos": "Caisse",

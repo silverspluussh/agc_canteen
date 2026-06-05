@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:typed_data';
 import 'package:agc_canteen/views/widgets/app_buttons.widget.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/material.dart';
@@ -10,6 +12,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../controllers/providers.dart';
 import '../../services/activity_log_service.dart';
 import '../../services/database/app_database.dart';
+import '../../services/pos/pos_print_service.dart';
 
 const _mealTypes = [
   'breakfast',
@@ -20,6 +23,72 @@ const _mealTypes = [
   'beverage',
   'la_carte',
 ];
+
+Future<void> _printManualReceipt({
+  required String orderCode,
+  required String mealName,
+  required double price,
+  required String staffName,
+  required String orderType,
+  String? description,
+}) async {
+  try {
+    final printer = getIt<PosPrintService>();
+    final now = DateTime.now();
+    final pad = (int n) => n.toString().padLeft(2, '0');
+    final date = '${now.year}-${pad(now.month)}-${pad(now.day)} '
+        '${pad(now.hour)}:${pad(now.minute)}';
+
+    final orderTypeLabel = orderType == 'takeout' ? 'Takeout' : 'Dine-in';
+
+    final b = BytesBuilder();
+
+    void ln(String s) => b.add('$s\n'.codeUnits);
+    void boldOn() => b.add(const [0x1B, 0x45, 0x01]);
+    void boldOff() => b.add(const [0x1B, 0x45, 0x00]);
+    void centerOn() => b.add(const [0x1B, 0x61, 0x01]);
+    void centerOff() => b.add(const [0x1B, 0x61, 0x00]);
+    void doubleOn() => b.add(const [0x1D, 0x21, 0x11]);
+    void doubleOff() => b.add(const [0x1D, 0x21, 0x00]);
+
+    centerOn();
+    ln('====================');
+    ln('    AGC CANTEEN');
+    ln('  [Manual Order]');
+    ln('====================');
+    centerOn();
+    boldOn();
+    doubleOn();
+    ln(orderCode);
+    doubleOff();
+    boldOff();
+    // centerOff();
+    ln('Time:  $date');
+    ln('Staff: $staffName');
+    ln('Type:  $orderTypeLabel');
+    ln('--------------------');
+    boldOn();
+    ln(mealName);
+    boldOff();
+    if (description != null && description.isNotEmpty) {
+      ln('Description: $description');
+    }
+    // ln('     \$${price.toStringAsFixed(2)}');
+    ln('--------------------');
+    boldOn();
+    ln('TOTAL: \$${price.toStringAsFixed(2)}');
+    boldOff();
+    ln('====================');
+    ln('     THANK YOU!');
+    ln('');
+
+    final bytes = Uint8List.fromList(b.toBytes());
+    final printed = await printer.printRawBytes(bytes);
+    if (printed) {
+      await printer.cutPaper();
+    }
+  } catch (_) {}
+}
 
 class ManualOrderPage extends StatelessWidget {
   const ManualOrderPage({super.key});
@@ -142,6 +211,15 @@ class _SingleOrderTabState extends ConsumerState<_SingleOrderTab> {
       );
 
       await db.insertOrder(order, [orderItem]);
+
+      unawaited(_printManualReceipt(
+        orderCode: orderCode,
+        mealName: _selectedMeal!.name,
+        orderType: _orderType,
+        price: _selectedMeal!.price,
+        staffName: _selectedStaff!.firstName,
+        description: desc.isEmpty ? _selectedMeal!.name : desc,
+      ));
 
       getIt<ActivityLogService>().log(
         type: 'order_placed',
@@ -521,6 +599,16 @@ class _GroupOrderTabState extends ConsumerState<_GroupOrderTab> {
           .toList();
 
       await db.insertGroupOrder(order, items);
+
+      final mealName = '${_mealsQtySum}x ${_selectedMeals.map((m) => '${m.meal.name}(${m.quantity})').join(', ')}';
+      unawaited(_printManualReceipt(
+        orderCode: orderCode,
+        mealName: mealName.length > 40 ? '${mealName.substring(0, 40)}...' : mealName,
+        price: totalPrice,
+        staffName: 'Manual Group',
+        description: desc.isEmpty ? 'Group order' : desc,
+        orderType: _orderType,
+      ));
 
       getIt<ActivityLogService>().log(
         type: 'group_order_placed',

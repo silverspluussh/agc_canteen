@@ -1,6 +1,7 @@
 
 import 'package:agc_canteen/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class PrimaryButton extends StatelessWidget {
   const PrimaryButton({super.key,
@@ -14,7 +15,7 @@ class PrimaryButton extends StatelessWidget {
   });
   final double? width ;
   final double? height ;
-  final  Function()? onPressed ;
+  final  void Function()? onPressed ;
   final Widget? label;
   final Widget? prefixChild;
   final Color? color;
@@ -24,7 +25,7 @@ class PrimaryButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
             width: width ?? double.infinity,
-      height: height?? 45,
+      height: height?? 55,
       decoration: BoxDecoration(
         color: color ?? Theme.of(context).colorScheme.primary,
         borderRadius: BorderRadius.circular(30),
@@ -39,7 +40,12 @@ class PrimaryButton extends StatelessWidget {
         ]
       ),
       child: MaterialButton(
-              onPressed: onPressed,
+              onPressed: onPressed != null
+                  ? () {
+                      HapticFeedback.lightImpact();
+                      onPressed!();
+                    }
+                  : null,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -72,7 +78,7 @@ class DestructiveButton extends StatelessWidget {
   });
   final double? width ;
   final double height = 48;
-  final Function() onPressed ;
+  final void Function() onPressed ;
   final Widget? label;
   final Widget? prefixChild;
   final Color? color;
@@ -89,7 +95,10 @@ class DestructiveButton extends StatelessWidget {
        
       ),
       child: MaterialButton(
-              onPressed: onPressed,
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                onPressed();
+              },
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -119,7 +128,7 @@ class OutlineButton extends StatelessWidget {
   });
   final double? width = double.infinity;
   final double height = 48;
-  final Function() onPressed ;
+  final void Function() onPressed ;
   final Widget? label;
   final Widget? prefixChild;
   final Color? color;
@@ -137,7 +146,10 @@ class OutlineButton extends StatelessWidget {
        
       ),
       child: MaterialButton(
-              onPressed: onPressed,
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                onPressed();
+              },
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,

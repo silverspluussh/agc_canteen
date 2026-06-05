@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:developer' as dev;
 import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart';
@@ -63,7 +65,11 @@ class OrderController extends Notifier<OrderState> {
       actorType: 'staff',
       sourceTable: 'meals',
       recordId: meal.id,
-      metadata: {'meal_name': meal.name, 'meal_type': meal.mealType, 'price': meal.price},
+      metadata: {
+        'meal_name': meal.name,
+        'meal_type': meal.mealType,
+        'price': meal.price,
+      },
     );
   }
 
@@ -99,8 +105,12 @@ class OrderController extends Notifier<OrderState> {
     state = state.copyWith(step: OrderStep.browsing, error: null);
   }
 
-  Future<void> completeOrder(String staffId, String staffName,
-      {String? description, String orderType = 'dine_in'}) async {
+  Future<void> completeOrder(
+    String staffId,
+    String staffName, {
+    String? description,
+    String orderType = 'dine_in',
+  }) async {
     if (state.isEmpty) return;
 
     state = state.copyWith(step: OrderStep.processing, error: null);
@@ -153,11 +163,7 @@ class OrderController extends Notifier<OrderState> {
       await _db.insertOrder(order, [orderItem]);
 
       if (isOvercharge) {
-        _recordOvercharge(
-          orderCode: orderCode,
-          meal: meal,
-          staffId: staffId,
-        );
+        _recordOvercharge(orderCode: orderCode, meal: meal, staffId: staffId);
       }
 
       await _printReceipt(
@@ -166,12 +172,20 @@ class OrderController extends Notifier<OrderState> {
         price: meal.price,
         staffName: staffName,
         description: description,
+        orderType: orderType,
       );
 
       state = state.copyWith(
         step: OrderStep.completed,
         lastOrderCode: orderCode,
       );
+
+      Future.delayed(const Duration(seconds: 1), () {
+        if (state.step == OrderStep.completed) {
+          reset();
+        }
+      });
+
       getIt<ActivityLogService>().log(
         type: 'order_placed',
         message: 'Order placed: $orderCode — ${meal.name}',
@@ -190,7 +204,6 @@ class OrderController extends Notifier<OrderState> {
         },
       );
       ref.read(authProvider.notifier).completeOrder();
-
     } catch (e) {
       state = state.copyWith(
         step: OrderStep.browsing,
@@ -204,13 +217,16 @@ class OrderController extends Notifier<OrderState> {
     required String mealType,
     required String todayPrefix,
   }) async {
-    final existing = await (_db.select(_db.orders)
-          ..where((o) =>
-              o.orderedById.equals(staffId) &
-              o.mealType.equals(mealType) &
-              o.createdAt.like('$todayPrefix%'))
-          ..limit(1))
-        .get();
+    final existing =
+        await (_db.select(_db.orders)
+              ..where(
+                (o) =>
+                    o.orderedById.equals(staffId) &
+                    o.mealType.equals(mealType) &
+                    o.createdAt.like('$todayPrefix%'),
+              )
+              ..limit(1))
+            .get();
     return existing.isNotEmpty;
   }
 
@@ -265,7 +281,8 @@ class OrderController extends Notifier<OrderState> {
   }
 
   String _generateOrderCode() {
-    final suffix = (1000 + (DateTime.now().millisecondsSinceEpoch % 9000)).toString();
+    final suffix = (1000 + (DateTime.now().millisecondsSinceEpoch % 9000))
+        .toString();
     return 'AGC$suffix';
   }
 
@@ -276,6 +293,7 @@ class OrderController extends Notifier<OrderState> {
     required String mealName,
     required double price,
     required String staffName,
+    required String orderType,
     String? description,
   }) async {
     try {
@@ -285,9 +303,25 @@ class OrderController extends Notifier<OrderState> {
         price: price,
         staffName: staffName,
         description: description,
+        orderType: orderType,
       );
-      await _printer.printRawBytes(bytes);
-    } catch (_) {}
+      final printed = await _printer.printRawBytes(bytes);
+      dev.log(
+        '[OrderController] printRawBytes result: $printed',
+        name: 'POS_AUTH',
+      );
+      if (printed) {
+        await _printer.cutPaper();
+        dev.log('[OrderController] Receipt cut', name: 'POS_AUTH');
+      }
+    } catch (e, st) {
+      dev.log(
+        '[OrderController] Print FAILED: $e',
+        name: 'POS_AUTH',
+        error: e,
+        stackTrace: st,
+      );
+    }
   }
 
   Future<Uint8List> _buildReceipt({
@@ -295,35 +329,52 @@ class OrderController extends Notifier<OrderState> {
     required String mealName,
     required double price,
     required String staffName,
+    required String orderType,
     String? description,
   }) async {
     final now = DateTime.now();
-    final date = '${now.year}-${_pad(now.month)}-${_pad(now.day)} '
+    final date =
+        '${now.year}-${_pad(now.month)}-${_pad(now.day)} '
         '${_pad(now.hour)}:${_pad(now.minute)}';
+
+    final orderTypeLabel = orderType == 'takeout' ? 'Takeout' : 'Dine-in';
 
     final b = BytesBuilder();
 
     void ln(String s) => b.add('$s\n'.codeUnits);
     void boldOn() => b.add(const [0x1B, 0x45, 0x01]);
     void boldOff() => b.add(const [0x1B, 0x45, 0x00]);
-
+    void centerOn() => b.add(const [0x1B, 0x61, 0x01]);
+    void centerOff() => b.add(const [0x1B, 0x61, 0x00]);
+    void doubleOn() => b.add(const [0x1D, 0x21, 0x11]);
+    void doubleOff() => b.add(const [0x1D, 0x21, 0x00]);
+    centerOn();
     ln('====================');
     ln('    AGC CANTEEN');
-    ln('====================');
+    ln('===================='); 
+    ln('');
+    centerOn();
     boldOn();
-    ln('Order: $orderCode');
+    doubleOn();
+    ln(orderCode);
+    doubleOff();
     boldOff();
+    // centerOff();
+    ln('');
     ln('Time:  $date');
     ln('Staff: $staffName');
+    ln('Type:  $orderTypeLabel');
     ln('--------------------');
-    ln('1x  $mealName');
+    boldOn();
+    ln(mealName);
+    boldOff();
     if (description != null && description.isNotEmpty) {
       ln('Description: $description');
     }
-   // ln('     \$${price.toStringAsFixed(2)}');
-   // ln('--------------------');
-    // boldOn();
-    // ln('TOTAL: \$${price.toStringAsFixed(2)}');
+    // ln('     \$${price.toStringAsFixed(2)}');
+    ln('--------------------');
+    boldOn();
+    ln('TOTAL: \$${price.toStringAsFixed(2)}');
     boldOff();
     ln('====================');
     ln('     THANK YOU!');
@@ -335,5 +386,6 @@ class OrderController extends Notifier<OrderState> {
   }
 }
 
-final orderProvider =
-    NotifierProvider<OrderController, OrderState>(OrderController.new);
+final orderProvider = NotifierProvider<OrderController, OrderState>(
+  OrderController.new,
+);

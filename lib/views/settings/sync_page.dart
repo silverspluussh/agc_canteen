@@ -1,3 +1,4 @@
+import 'package:agc_canteen/core/theme/app_colors.dart';
 import 'package:agc_canteen/views/widgets/app_buttons.widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -199,61 +200,69 @@ class _SyncPageState extends ConsumerState<SyncPage> {
         leading: const BackButton(color: Colors.white),
         centerTitle: true,
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _SyncStatCard(
-            icon: Icons.receipt_long,
-            label: 'Single Orders',
-            count: _unsyncedOrders,
-            syncing: _syncingOrders,
-            onSync: _unsyncedOrders > 0 ? _syncOrders : null,
-            onView: _unsyncedOrders > 0 ? () => _viewUnsynced(true) : null,
-          ),
-          const SizedBox(height: 12),
-          _SyncStatCard(
-            icon: Icons.group_work,
-            label: 'Group Orders',
-            count: _unsyncedGroupOrders,
-            syncing: _syncingGroupOrders,
-            onSync: _unsyncedGroupOrders > 0 ? _syncGroupOrders : null,
-            onView: _unsyncedGroupOrders > 0 ? () => _viewUnsynced(false) : null,
-          ),
-          const SizedBox(height: 24),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.history, size: 18, color: cs.primary),
-                      const SizedBox(width: 8),
-                      const Text('Last Sync', style: TextStyle(fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(lastSyncStr, style: const TextStyle(fontSize: 14)),
-                ],
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await _loadCounts();
+          await _loadLastSync();
+        },
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            _SyncStatCard(
+              icon: Icons.receipt_long,
+              label: 'Single Orders',
+              count: _unsyncedOrders,
+              syncing: _syncingOrders,
+              onSync: _unsyncedOrders > 0 ? _syncOrders : null,
+              onView: _unsyncedOrders > 0 ? () => _viewUnsynced(true) : null,
+            ),
+            const SizedBox(height: 12),
+            _SyncStatCard(
+              icon: Icons.group_work,
+              label: 'Group Orders',
+              count: _unsyncedGroupOrders,
+              syncing: _syncingGroupOrders,
+              onSync: _unsyncedGroupOrders > 0 ? _syncGroupOrders : null,
+              onView: _unsyncedGroupOrders > 0 ? () => _viewUnsynced(false) : null,
+            ),
+            const SizedBox(height: 24),
+            Card(
+              color: cs.primary.withOpacity(0.1),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.history, size: 18, color: cs.primary),
+                        const SizedBox(width: 8),
+                        const Text('Last Sync', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(lastSyncStr, style: const TextStyle(fontSize: 14)),
+                  ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 24),
-          PrimaryButton(onPressed:() async {
-                setState(() {});
-                final result = await _syncService.syncAll();
-                if (mounted) {
-                  _showResultSnackBar(result, 'All data');
-                  await _loadCounts();
-                  await _loadLastSync();
-                }
-                
-              }, label: Text(l10n.syncNow, style: const TextStyle(color: Colors.white)),
-              prefixChild: const Icon(Icons.sync, color: Colors.white),
-               )
-       
-        ],
+            const SizedBox(height: 24),
+            PrimaryButton(onPressed:() async {
+                  setState(() {});
+                  final result = await _syncService.syncAll();
+                  if (mounted) {
+                    _showResultSnackBar(result, 'All data');
+                    await _loadCounts();
+                    await _loadLastSync();
+                  }
+                  
+                }, label: Text(l10n.syncNow, style: const TextStyle(color: Colors.white)),
+                prefixChild: const Icon(Icons.sync, color: Colors.white),
+                 )
+         
+          ],
+        ),
       ),
     );
   }
@@ -278,9 +287,12 @@ class _SyncStatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
 
     return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: BorderSide(color: count > 0 ? Colors.orange : Colors.green, width: 1.5),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -320,12 +332,16 @@ class _SyncStatCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 if (onView != null)
-                  IconButton(
-                    onPressed: onView,
-                    icon: const Icon(Icons.visibility_outlined, size: 20),
-                    tooltip: 'View unsynced',
+                SizedBox(width: 100,
+                  child: OutlineButton(
+                    label: Text('View', style: TextStyle(fontSize: 13, color: AppColors.gold500)),
+                     onPressed:onView!,
+                     prefixChild: const Icon(Icons.visibility, size: 16, color: AppColors.gold500),
+                     
                   ),
-                const SizedBox(width: 4),
+                )
+                 ,
+                const SizedBox(width: 20),
                 
                 PrimaryButton(onPressed: syncing ? null : onSync,
                 width:80 ,

@@ -89,7 +89,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 ),
 
                 PrimaryButton(
-                  width: 110,
+                  width: 130,
                   
                   onPressed: () async {
                     await prefs.setString('app_language', selected);
@@ -175,7 +175,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 ),
 
                 PrimaryButton(
-                  width: 110,
+                  width: 130,
                   onPressed: () {
                     AdaptiveTheme.of(context).setThemeMode(selected);
                     getIt<ActivityLogService>().log(
@@ -438,7 +438,7 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
       child: Text(
         label.toUpperCase(),
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+        style: Theme.of(context).textTheme.labelLarge?.copyWith(
           color: Theme.of(context).colorScheme.primary,
           fontWeight: FontWeight.bold,
           letterSpacing: 1.2,
@@ -473,9 +473,9 @@ class _SettingsTile extends StatelessWidget {
         title,
         style: Theme.of(
           context,
-        ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w500),
+        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500),
       ),
-      subtitle: Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+      subtitle: Text(subtitle, style: Theme.of(context).textTheme.titleSmall),
       trailing: const Icon(Icons.chevron_right, size: 15),
       onTap: onTap,
     );

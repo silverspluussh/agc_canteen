@@ -1,9 +1,13 @@
+import 'dart:developer' as dev;
+import 'package:agc_canteen/main.dart';
+import 'package:agc_canteen/views/settings/settings_page.dart';
 import 'package:agc_canteen/views/widgets/app_buttons.widget.dart';
 import 'package:avatar_glow/avatar_glow.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../controllers/auth_controller.dart';
 import '../../core/di/injection_container.dart';
 import '../../l10n/generated/app_localizations.dart';
@@ -17,15 +21,9 @@ class StaffAuthPage extends ConsumerStatefulWidget {
 }
 
 class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _startAuth();
-    });
-  }
-
   Future<void> _startAuth() async {
+    dev.log('[StaffAuthPage] Scan button tapped — starting fingerprint auth',
+        name: 'POS_AUTH');
     await ref.read(authProvider.notifier).authenticate();
   }
 
@@ -41,6 +39,7 @@ class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
         return StatefulBuilder(
           builder: (ctx, setDialogState) {
             return AlertDialog(
+              constraints: const BoxConstraints(minWidth: 400),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
@@ -65,7 +64,10 @@ class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(AppLocalizations.of(context).enterAdminPin),
+                    Text(AppLocalizations.of(context).enterAdminPin
+                    
+                    , style: Theme.of(context).textTheme.titleMedium,
+                    ),
                     const SizedBox(height: 20),
                     TextFormField(
                       controller: codeController,
@@ -117,12 +119,12 @@ class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
                   onPressed: () => Navigator.of(ctx).pop(),
                   child: Text(
                     AppLocalizations.of(context).cancel,
-                    style: const TextStyle(color: Colors.red),
+                    style: const TextStyle(color: Colors.red,fontSize: 18),
                   ),
                 ),
                 
                 PrimaryButton(
-                  width: 90,
+                  width: 120,
                   height: 48,
                   onPressed: () {
                     final accescode = dotenv.env['ADMIN_ACCESS_CODE']??'123456';  
@@ -141,7 +143,7 @@ class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
                     }
                   },label: Text(
                     AppLocalizations.of(context).confirm,
-                    style: const TextStyle(color: Colors.white),
+                    style: const TextStyle(color: Colors.white,fontSize: 18),
                   ),)
 
                
@@ -160,6 +162,32 @@ class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
     return PopScope(
       canPop: false,
       child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          centerTitle: true,
+          title: OutlineButton(
+            
+                  onPressed: _showLanguageDialog,
+                  prefixChild: const Icon(Icons.translate),
+                  label: Text(AppLocalizations.of(context).changeLanguage,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontSize: 15,
+                      )),
+                  
+          ),
+          actions: [
+             IconButton(
+                        onPressed: _showAdminCodeDialog,
+                        icon: Icon(
+                          Icons.settings,
+                          size: 30,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+          ],
+        ),
+
         body: SafeArea(
           child: Stack(
             children: [
@@ -171,11 +199,15 @@ class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
                     children: [
                       Text(
                         AppLocalizations.of(context).staffSignIn,
-                        style: Theme.of(context).textTheme.headlineSmall!
-                            .copyWith(fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.headlineMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
                       ),
-                      const SizedBox(height: 2),
-                      Text(AppLocalizations.of(context).placeFinger),
+                      // const SizedBox(height: 2),
+                      // Text(AppLocalizations.of(context).placeFinger
+                      // , textAlign: TextAlign.center
+                      // , style: Theme.of(context).textTheme.titleLarge
+                      // ),
                       Spacer(),
                       AvatarGlow(
                         glowColor: Theme.of(context).colorScheme.primary,
@@ -188,10 +220,29 @@ class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
                       ),
                       Spacer(),
 
+                      if (state.isUnauthenticated &&
+                          !state.isAuthenticating &&
+                          !state.hasError) ...[
+                        const SizedBox(height: 20),
+                        PrimaryButton(
+                          width: 280,
+                          height: 56,
+                          onPressed: _startAuth,
+                          prefixChild: const Icon(Icons.fingerprint,
+                              color: Colors.white, size: 28),
+                          label: Text(
+                            AppLocalizations.of(context).biometricLogin,
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 18),
+                          ),
+                        ),
+                      ],
                       if (state.isAuthenticating) ...[
-                        const CircularProgressIndicator(),
+                        const LinearProgressIndicator(),
                         const SizedBox(height: 16),
-                        Text(AppLocalizations.of(context).scanning),
+                        Text(AppLocalizations.of(context).scanning,
+                        style: Theme.of(context).textTheme.titleMedium,
+                        ),
                       ],
                       if (state.isAuthenticated && state.staff != null) ...[
                         const Icon(
@@ -245,21 +296,91 @@ class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
                 ),
               ),
 
-              Positioned(
-                top: 0,
-                right: 20,
-                child: IconButton(
-                  onPressed: _showAdminCodeDialog,
-                  icon: Icon(
-                    Icons.settings,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-              ),
+              
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _showLanguageDialog() async {
+    const languages = [
+      Lang('English', 'en'),
+      Lang('French', 'fr'),
+      Lang('Spanish', 'es'),
+    ];
+
+    final prefs = await SharedPreferences.getInstance();
+    final current = prefs.getString('app_language') ?? 'en';
+
+    if (!mounted) return;
+    String selected = current;
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setD) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: Row(
+                children: [
+                  const Icon(Icons.translate),
+                  const SizedBox(width: 8),
+                  Text(AppLocalizations.of(context).language),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: languages.map((lang) {
+                  return RadioListTile<String>(
+                    value: lang.code,
+                    groupValue: selected,
+                    title: Text(lang.label),
+                    onChanged: (v) => setD(() => selected = v!),
+                    contentPadding: EdgeInsets.zero,
+                  );
+                }).toList(),
+              ),
+              actionsAlignment: MainAxisAlignment.spaceBetween,
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: Text(AppLocalizations.of(context).cancel),
+                ),
+                TextButton(
+                  style: TextButton.styleFrom(
+                    backgroundColor: Colors.lightGreen,
+                  ),
+                  onPressed: () async {
+                    await prefs.setString('app_language', selected);
+                    ref.read(localeProvider.notifier).state = Locale(selected);
+                    getIt<ActivityLogService>().log(
+                      type: 'language_changed',
+                      message:
+                          'Language changed from POS: $current → $selected',
+                      actorType: 'staff',
+                      metadata: {
+                        'old_language': current,
+                        'new_language': selected,
+                      },
+                    );
+                    if (ctx.mounted) Navigator.of(ctx).pop();
+                  },
+                  child: Text(
+                    AppLocalizations.of(context).save,
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }

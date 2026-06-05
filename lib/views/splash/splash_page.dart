@@ -24,11 +24,16 @@ class _SplashPageState extends ConsumerState<SplashPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Image.asset('assets/app_logo.png', width: 120),
+            Image.asset('assets/app_logo.png', width: 200, height: 200),
             const SizedBox(height: 24),
-            const CircularProgressIndicator(),
+            const CircularProgressIndicator(
+              constraints: BoxConstraints(
+                minWidth: 50,
+                minHeight: 50,
+              ),
+            ),
             const SizedBox(height: 16),
-            const Text('Loading...'),
+            const Text('Loading...', style: TextStyle(fontSize: 20)),
           ],
         ),
       ),

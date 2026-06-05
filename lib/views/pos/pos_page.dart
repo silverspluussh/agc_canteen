@@ -1,10 +1,11 @@
-import 'dart:developer';
+import 'dart:async';
 
 import 'package:agc_canteen/l10n/generated/app_localizations.dart';
 import 'package:agc_canteen/main.dart';
+import 'package:agc_canteen/views/pos/confirm_order_page.dart';
 import 'package:agc_canteen/views/settings/settings_page.dart';
 import 'package:agc_canteen/views/widgets/app_buttons.widget.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:agc_canteen/views/widgets/meal_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../controllers/auth_controller.dart';
@@ -26,9 +27,11 @@ class PosPage extends ConsumerStatefulWidget {
 class _PosPageState extends ConsumerState<PosPage> {
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
+  Timer? _debounceTimer;
 
   @override
   void dispose() {
+    _debounceTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -46,85 +49,40 @@ class _PosPageState extends ConsumerState<PosPage> {
         canPop: false,
         child: Scaffold(
           backgroundColor: Theme.of(context).colorScheme.surface,
-          appBar: _buildAppBar(staff),
+          appBar: _PosAppBar(
+            staff: staff,
+            onCancel: _showCancelOrderDialog,
+            onLanguage: _showLanguageDialog,
+          ),
           body: mealsAsync.when(
             data: (meals) => _buildBody(meals, orderState),
-            loading: () => const Center(child: CircularProgressIndicator()),
+            loading: () => Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text("Loading meals, please wait...",
+                style: Theme.of(context).textTheme.bodyLarge,
+                ),
+                  SizedBox(height: 20),
+                CircularProgressIndicator(
+                  constraints: const BoxConstraints(
+                    maxHeight: 35,
+                    maxWidth: 35,
+                  ),
+                ),
+              ],
+            ),
             error: (e, _) => Center(
               child: Text(
                 AppLocalizations.of(context).failedToLoadMeals(e.toString()),
               ),
             ),
           ),
-          bottomNavigationBar: _buildBottomBar(orderState),
+          bottomNavigationBar: orderState.isEmpty
+              ? null
+              : _buildBottomBar(orderState),
         ),
       ),
-    );
-  }
-
-  PreferredSizeWidget _buildAppBar(StaffAuthResult? staff) {
-    return AppBar(
-      title: Text(
-        AppLocalizations.of(context).appTitle,
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-          color: Theme.of(context).colorScheme.primary,
-        ),
-      ),
-      surfaceTintColor: Colors.transparent,
-      centerTitle: false,
-      actions: [
-        if (staff != null) ...[
-          Padding(
-            padding: const EdgeInsets.only(right: 4),
-            child: Chip(
-               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15),
-              ),
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              avatar: const Icon(Icons.person, size: 15, color: Colors.white),
-              label: Text(
-                '${staff.firstName} ${staff.lastName}',
-                style: TextStyle(color: Colors.white,fontSize: 12),
-              ),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.exit_to_app, color: Colors.redAccent),
-            tooltip: AppLocalizations.of(context).cancelOrderAndExit,
-            onPressed: () => _showCancelOrderDialog(),
-          ),
-          const SizedBox(width: 8),
-        ],
-        if (staff == null) ...[
-          Padding(
-            padding: const EdgeInsets.only(right: 4),
-            child: Chip(
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15),
-              ),
-              avatar: Icon(Icons.person, size: 15, color: Colors.white),
-              label: Text(
-                'Test Staff 1',
-                style: TextStyle(color: Colors.white, fontSize: 12),
-              ),
-            ),
-          ),
-          IconButton(
-            onPressed: _showLanguageDialog,
-            icon: Icon(Icons.language),
-            tooltip: AppLocalizations.of(context).language,
-          ),
-
-          IconButton(
-            icon: const Icon(Icons.exit_to_app, color: Colors.redAccent),
-            tooltip: AppLocalizations.of(context).cancelOrderAndExit,
-            onPressed: () => _showCancelOrderDialog(),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ],
     );
   }
 
@@ -222,63 +180,55 @@ class _PosPageState extends ConsumerState<PosPage> {
       children: [
         Padding(
           padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              Text(
-                AppLocalizations.of(context).selectMeal,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: SizedBox(
-                  height: 40,
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: (val) {
-                      setState(() {
-                        _searchQuery = val;
-                      });
-                    },
-                    decoration: InputDecoration(
-                      hintText: AppLocalizations.of(context).searchByNameOrType,
-                      hintStyle: const TextStyle(fontSize: 14),
-                      prefixIcon: const Icon(Icons.search, size: 18),
-                      suffixIcon: _searchQuery.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.clear, size: 18),
-                              onPressed: () {
-                                _searchController.clear();
-                                setState(() {
-                                  _searchQuery = '';
-                                });
-                              },
-                            )
-                          : null,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                      filled: true,
-                      fillColor: Theme.of(
-                        context,
-                      ).colorScheme.surfaceContainerHighest,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(20),
-                        borderSide: BorderSide.none,
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(20),
-                        borderSide: BorderSide.none,
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(20),
-                        borderSide: BorderSide(
-                          color: Theme.of(context).colorScheme.primary,
-                          width: 1.5,
-                        ),
-                      ),
-                    ),
+          child: SizedBox(
+            height: 40,
+            child: TextField(
+              controller: _searchController,
+              onChanged: (_) {
+                _debounceTimer?.cancel();
+                _debounceTimer = Timer(const Duration(milliseconds: 200), () {
+                  setState(() {
+                    _searchQuery = _searchController.text;
+                  });
+                });
+              },
+              decoration: InputDecoration(
+                hintText: AppLocalizations.of(context).searchByNameOrType,
+                hintStyle: const TextStyle(fontSize: 14),
+                prefixIcon: const Icon(Icons.search, size: 18),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() {
+                            _searchQuery = '';
+                          });
+                        },
+                      )
+                    : null,
+                contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                filled: true,
+                fillColor: Theme.of(
+                  context,
+                ).colorScheme.surfaceContainerHighest,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide: BorderSide(
+                    color: Theme.of(context).colorScheme.primary,
+                    width: 1.5,
                   ),
                 ),
               ),
-            ],
+            ),
           ),
         ),
         Expanded(
@@ -303,26 +253,30 @@ class _PosPageState extends ConsumerState<PosPage> {
                     ],
                   ),
                 )
-              : GridView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 10,
-                    crossAxisSpacing: 10,
-                    childAspectRatio: 1.2,
+              : RefreshIndicator(
+                  onRefresh: () => ref.refresh(mealsProvider.future),
+                  child: GridView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          mainAxisSpacing: 10,
+                          crossAxisSpacing: 10,
+                          childAspectRatio: 1.2,
+                        ),
+                    itemCount: filteredMeals.length,
+                    itemBuilder: (context, index) {
+                      final meal = filteredMeals[index];
+                      final isSelected = meal.id == selectedId;
+                      return MealCard(
+                        meal: meal,
+                        isSelected: isSelected,
+                        onTap: () {
+                          ref.read(orderProvider.notifier).selectMeal(meal);
+                        },
+                      );
+                    },
                   ),
-                  itemCount: filteredMeals.length,
-                  itemBuilder: (context, index) {
-                    final meal = filteredMeals[index];
-                    final isSelected = meal.id == selectedId;
-                    return _MealCard(
-                      meal: meal,
-                      isSelected: isSelected,
-                      onTap: () {
-                        ref.read(orderProvider.notifier).selectMeal(meal);
-                      },
-                    );
-                  },
                 ),
         ),
         if (orderState.error != null)
@@ -353,7 +307,7 @@ class _PosPageState extends ConsumerState<PosPage> {
 
     return BottomAppBar(
       color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.5),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
       child: Row(
         children: [
           Expanded(
@@ -364,31 +318,30 @@ class _PosPageState extends ConsumerState<PosPage> {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           PrimaryButton(
             height: 50,
-            width: 120,
+            width: 140,
             onPressed: orderState.step == OrderStep.processing
                 ? null
-                : () => _showConfirmation(orderState),prefixChild: orderState.step == OrderStep.processing
+                : () => _showConfirmation(orderState),
+            prefixChild: orderState.step == OrderStep.processing
                 ? const SizedBox(
                     width: 16,
                     height: 16,
                     child: CircularProgressIndicator(strokeWidth: 2),
-                  
-          ): null,
-                  label: Text(
+                  )
+                : null,
+            label: Text(
               orderState.step == OrderStep.processing
                   ? AppLocalizations.of(context).placing
-                  : AppLocalizations.of(context).confirm,
+                  : AppLocalizations.of(context).confirmOrder,
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w600,
               ),
             ),
-                  
-                  )
-          
+          ),
         ],
       ),
     );
@@ -397,6 +350,7 @@ class _PosPageState extends ConsumerState<PosPage> {
   void _showCancelOrderDialog() {
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) => AlertDialog(
         title: Row(
           children: [
@@ -405,17 +359,24 @@ class _PosPageState extends ConsumerState<PosPage> {
             Text(AppLocalizations.of(context).cancelOrder),
           ],
         ),
-        content: Text(AppLocalizations.of(context).cancelOrderConfirm),
+        content: Text(AppLocalizations.of(context).cancelOrderConfirm
+        ,
+        style : Theme.of(context).textTheme.bodyLarge
+        
+        ),
         actionsAlignment: MainAxisAlignment.spaceBetween,
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(AppLocalizations.of(context).noContinue),
+            child: Text(AppLocalizations.of(context).noContinue
+            ,
+            style: Theme.of(context).textTheme.labelLarge
+            ),
           ),
 
           DestructiveButton(
             width: 110,
-            onPressed:  () {
+            onPressed: () {
               Navigator.pop(context);
               ref.read(orderProvider.notifier).reset();
               final staff = ref.read(authProvider).staff;
@@ -430,11 +391,12 @@ class _PosPageState extends ConsumerState<PosPage> {
                     : null,
               );
               ref.read(authProvider.notifier).reset();
-              
             },
-            label: Text(AppLocalizations.of(context).yesSignOut, style: const TextStyle(color: Colors.white)),
-            )
-         
+            label: Text(
+              AppLocalizations.of(context).yesSignOut,
+              style: Theme.of(context).textTheme.labelLarge!.copyWith(color: Colors.white) ,
+            ), 
+          ),
         ],
       ),
     );
@@ -446,8 +408,12 @@ class _PosPageState extends ConsumerState<PosPage> {
 
     showDialog(
       context: context,
-      builder: (ctx) => Dialog(
-        child: _ConfirmOrderSheet(
+      fullscreenDialog: true,
+      useSafeArea: false,
+      barrierDismissible: false,
+      barrierLabel: AppLocalizations.of(context).confirmOrder,
+      builder: (ctx) => Dialog.fullscreen(
+        child: ConfirmOrderSheet(
           meal: meal,
           onChangeMeal: () => ref.read(orderProvider.notifier).changeMeal(),
           onPlaceOrder: (desc, orderType) {
@@ -482,9 +448,11 @@ class _PosPageState extends ConsumerState<PosPage> {
     final meal = ref.read(orderProvider).selectedMeal;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(meal != null
-            ? '${meal.name} — ${AppLocalizations.of(context).orderPlaced}'
-            : AppLocalizations.of(context).orderPlaced),
+        content: Text(
+          meal != null
+              ? '${meal.name} — ${AppLocalizations.of(context).orderPlaced}'
+              : AppLocalizations.of(context).orderPlaced,
+        ),
         backgroundColor: Colors.green,
         duration: const Duration(seconds: 2),
       ),
@@ -492,234 +460,65 @@ class _PosPageState extends ConsumerState<PosPage> {
   }
 }
 
-Widget _summaryRow(String label, String value, {bool bold = false}) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 4),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
-        ),
-        Text(
-          value,
-          style: TextStyle(
-            fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
-            fontSize: bold ? 18 : 14,
-          ),
-        ),
-      ],
-    ),
-  );
-}
+class _PosAppBar extends StatelessWidget implements PreferredSizeWidget {
+  final StaffAuthResult? staff;
+  final VoidCallback onCancel;
+  final VoidCallback onLanguage;
 
-class _ConfirmOrderSheet extends StatefulWidget {
-  final Meal meal;
-  final VoidCallback onChangeMeal;
-  final void Function(String? description, String orderType) onPlaceOrder;
-
-  const _ConfirmOrderSheet({
-    required this.meal,
-    required this.onChangeMeal,
-    required this.onPlaceOrder,
+  const _PosAppBar({
+    this.staff,
+    required this.onCancel,
+    required this.onLanguage,
   });
 
   @override
-  State<_ConfirmOrderSheet> createState() => _ConfirmOrderSheetState();
-}
-
-class _ConfirmOrderSheetState extends State<_ConfirmOrderSheet> {
-  final _descriptionController = TextEditingController();
-  String _orderType = 'dine_in';
-  String? _descriptionError;
-
-  bool get _isLaCarte => widget.meal.mealType == 'la_carte';
-
-  @override
-  void dispose() {
-    _descriptionController.dispose();
-    super.dispose();
-  }
-
-  void _handlePlaceOrder() {
-    final desc = _descriptionController.text.trim();
-
-    if (_isLaCarte && desc.isEmpty) {
-      setState(() => _descriptionError = 'Description is required for A la carte');
-      return;
-    }
-
-    Navigator.pop(context);
-    widget.onPlaceOrder(desc.isEmpty ? null : desc, _orderType);
-  }
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            AppLocalizations.of(context).confirmOrder,
-            style: Theme.of(context).textTheme.titleLarge,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 20),
-          _summaryRow(AppLocalizations.of(context).meal, widget.meal.name),
-          _summaryRow(
-            AppLocalizations.of(context).mealType,
-            widget.meal.mealType,
-          ),
-
-          const SizedBox(height: 15),
-          TextField(
-            controller: _descriptionController,
-            minLines: 2,
-            maxLines: null,
-            decoration: InputDecoration(
-              labelText: _isLaCarte
-                  ? '${AppLocalizations.of(context).description} *'
-                  : AppLocalizations.of(context).description,
-              border: const OutlineInputBorder(),
-              hintText: _isLaCarte
-                  ? 'Describe what you want to order'
-                  : AppLocalizations.of(context).description,
-              errorText: _descriptionError,
+    return AppBar(
+      title: Text(
+        AppLocalizations.of(context).appTitle,
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: Theme.of(context).colorScheme.primary,
+        ),
+      ),
+      surfaceTintColor: Colors.transparent,
+      centerTitle: false,
+      actions: [
+        if (staff != null) ...[
+          Padding(
+            padding: const EdgeInsets.only(right: 4),
+            child: Chip(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              avatar: const Icon(Icons.person, size: 15, color: Colors.white),
+              label: Text(
+                '${staff!.firstName} ${staff!.lastName}',
+                style: TextStyle(color: Colors.white, fontSize: 12),
+              ),
             ),
-            onChanged: (_) {
-              if (_descriptionError != null) {
-                setState(() => _descriptionError = null);
-              }
-            },
           ),
-          const SizedBox(height: 16),
-          SegmentedButton<String>(
-            segments: const [
-              ButtonSegment(value: 'dine_in', label: Text('Dine-in'), icon: Icon(Icons.table_restaurant)),
-              ButtonSegment(value: 'takeout', label: Text('Takeout'), icon: Icon(Icons.takeout_dining)),
-            ],
-            selected: {_orderType},
-            onSelectionChanged: (v) => setState(() => _orderType = v.first),
+          InkWell(
+            onTap: onCancel,
+            child: Chip(
+              color: const WidgetStatePropertyAll(Colors.red),
+              backgroundColor: Colors.red,
+              label: Text("Cancel", style: TextStyle(color: Colors.white)),
+            ),
           ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    widget.onChangeMeal();
-                  },
-                  child: Text(AppLocalizations.of(context).changeMeal),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(child: PrimaryButton(onPressed: _handlePlaceOrder, label: Text(AppLocalizations.of(context).placeOrder, style: const TextStyle(color: Colors.white)))),
-            
-            ],
-          ),
-          const SizedBox(height: 8),
+          // IconButton(
+          //   onPressed: onLanguage,
+          //   icon: const Icon(Icons.language),
+          //   tooltip: AppLocalizations.of(context).language,
+          // ),
+          const SizedBox(width: 8),
         ],
-      ),
-    );
-  }
-}
-
-class _MealCard extends StatelessWidget {
-  final Meal meal;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _MealCard({
-    required this.meal,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-   
-    return Card(
-      elevation: isSelected ? 4 : 1,
-      shadowColor: Theme.of(context).colorScheme.primary,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: isSelected
-              ? Theme.of(context).colorScheme.primary
-              : Colors.transparent,
-          width: 2,
-        ),
-      ),
-      color: Theme.of(context).colorScheme.surface,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(8),
-          child: Stack(
-            alignment: AlignmentGeometry.center,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Align(
-                  //   alignment: Alignment.center,
-                  //   child: Image.network(meal.photoUrl!, height: 50, fit: BoxFit.cover)),
-                  CachedNetworkImage(
-                    imageUrl: meal.photoUrl??"",
-                    height: 90,
-                    imageBuilder: (context, imageProvider) =>
-                        Image(image: imageProvider, height: 80),
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => const SizedBox(
-                      height: 50,
-                      child: Center(
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    ),
-                    errorWidget: (context, url, error) => Image.asset("assets/app_logo.png", height: 80, width: 80),
-                  ),
-                  const SizedBox(height: 10),
-
-                  Text(
-                    meal.name,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-
-              Positioned(
-                top: 0,
-                left: 5,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.primary.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    meal.mealType,
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+       
+      ],
     );
   }
 }

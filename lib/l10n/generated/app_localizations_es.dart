@@ -39,7 +39,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get placeFinger => 'Coloque su dedo';
 
   @override
-  String get biometricLogin => 'Ingresar con huella';
+  String get biometricLogin => 'Escanear huella';
+
+  @override
+  String get changeLanguage => 'Cambiar el idioma de la aplicación';
 
   @override
   String get pos => 'Caja';
@@ -193,9 +196,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get language => 'Idioma';
-
-  @override
-  String get changeLanguage => 'Cambiar el idioma de la aplicación';
 
   @override
   String get theme => 'Tema';

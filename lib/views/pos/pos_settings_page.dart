@@ -1,3 +1,4 @@
+import 'package:agc_canteen/controllers/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -97,6 +98,30 @@ class _PosSettingsPageState extends ConsumerState<PosSettingsPage> {
     } catch (_) {}
   }
 
+  Future<void> _initFingerprint() async {
+    try {
+      await _fingerprintService.init();
+      if (mounted) {
+        await _loadPeripherals();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Fingerprint initialized'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Fingerprint init failed'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _toggleDevice(bool activate) async {
     setState(() => _isToggling = true);
     if (activate) {
@@ -104,7 +129,8 @@ class _PosSettingsPageState extends ConsumerState<PosSettingsPage> {
     }
     getIt<ActivityLogService>().log(
       type: 'pos_device_toggle',
-      message: 'POS device ${activate ? "activated" : "deactivated"} from settings',
+      message:
+          'POS device ${activate ? "activated" : "deactivated"} from settings',
       actorType: 'admin',
       metadata: {'activate': activate},
     );
@@ -163,30 +189,61 @@ class _PosSettingsPageState extends ConsumerState<PosSettingsPage> {
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _loadAll,
-              child: ListView(
-                padding: const EdgeInsets.all(5),
-                children: [
-                  _DeviceStatusCard(
-                    isInitialized: _deviceService.isInitialized,
-                    isToggling: _isToggling,
-                    onToggle: _toggleDevice,
-                  ),
-                  _DeviceInfoCard(
-                    title: l10n.deviceInfo,
-                    info: _deviceInfo,
-                  ),
-                
-                  _PeripheralsCard(
-                    fingerprintAvailable: _fingerprintAvailable,
-                    isScanning: _isScanning,
-                  ),
-                  
-             ] ),
-            ),
+      body: ref
+          .watch(deviceInfoProvider)
+          .when(
+            data: (deviceInfo) {
+              return RefreshIndicator(
+                onRefresh: _loadAll,
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 15),
+                  children: [
+                    SizedBox(height: 15),
+                    _DeviceStatusCard(
+                      isInitialized: deviceInfo.isPhysicalDevice,
+                      isToggling: _isToggling,
+                      onToggle: _toggleDevice,
+                    ),
+                    _InfoRow(
+                      label: "Device Name:",
+                      value: deviceInfo.deviceName,
+                    ),
+                    _InfoRow(label: "Model:", value: deviceInfo.model ?? '—'),
+                    _InfoRow(
+                      label: "MAC Address:",
+                      value: deviceInfo.macAddress ?? '—',
+                    ),
+                    Divider(),
+                    _InfoRow(label: "Device Name:", value: deviceInfo.appName),
+                    _InfoRow(
+                      label: "Package Name:",
+                      value: deviceInfo.packageName ?? '—',
+                    ),
+                    _InfoRow(
+                      label: "Version:",
+                      value: deviceInfo.version ?? '—',
+                    ),
+                    const SizedBox(height: 30),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        
+                        onPressed: _initFingerprint,
+                        icon: const Icon(Icons.fingerprint),
+                        label: const Text('Initialize Fingerprint Scanner'),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+            error: (error, stk) {
+              return Text('Error: $error');
+            },
+            loading: () {
+              return const Center(child: CircularProgressIndicator());
+            },
+          ),
     );
   }
 }
@@ -228,9 +285,7 @@ class _DeviceStatusCard extends StatelessWidget {
                 children: [
                   Text(
                     l10n.status,
-                    style: Theme.of(  context).textTheme.labelLarge!.copyWith(
-                         
-                        ),
+                    style: Theme.of(context).textTheme.labelLarge!.copyWith(),
                   ),
                   const SizedBox(height: 2),
                   Text(
@@ -263,7 +318,6 @@ class _DeviceStatusCard extends StatelessWidget {
   }
 }
 
-
 class _SectionHeader extends StatelessWidget {
   const _SectionHeader({required this.title});
 
@@ -293,6 +347,7 @@ class _DeviceInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
 
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -304,34 +359,19 @@ class _DeviceInfoCard extends StatelessWidget {
             _SectionHeader(title: title),
             const Divider(height: 16),
             if (info.isEmpty)
-              _EmptyPlaceholder(label: AppLocalizations.of(context).noData)
-            else
-            ...[
-              _InfoRow(label: 'ID', value: info['id']?.toString() ?? 'Kitchen POS'),
-              _InfoRow(label: 'Serial Number', value: info['name']?.toString() ?? '0003340023'),
-               // if (device.model != null && device.model!.isNotEmpty)
-            _InfoRow(label: 'Model', value: "TESA002"),
-         // if (device.macAddress != null && device.macAddress!.isNotEmpty)
-            _InfoRow(label: 'MAC', value: "00:1A:7D:DA:71:13"),
-            ]
-              // ...info.entries.map(
-              //   (entry) => _InfoRow(
-              //     label: _formatKey(entry.key),
-              //     value: entry.value?.toString() ?? '—',
-              //   ),
-              // ),
+              _EmptyPlaceholder(label: l10n.noData)
+            else ...[
+              _InfoRow(label: 'Model', value: info['model']?.toString() ?? '—'),
+              if (info['isInit'] != null)
+                _InfoRow(
+                  label: l10n.status,
+                  value: (info['isInit'] == true) ? l10n.success : l10n.pending,
+                ),
+            ],
           ],
         ),
       ),
     );
-  }
-
-  String _formatKey(String key) {
-    return key
-        .replaceAll('_', ' ')
-        .split(' ')
-        .map((w) => w.isEmpty ? w : w[0].toUpperCase() + w.substring(1))
-        .join(' ');
   }
 }
 
@@ -361,10 +401,8 @@ class _PrinterInfoCard extends StatelessWidget {
               _InfoRow(label: l10n.posFirmwareVersion, value: firmwareVersion!),
             if (printerState != null && printerState!.isNotEmpty)
               ...printerState!.entries.map(
-                (e) => _InfoRow(
-                  label: e.key,
-                  value: e.value?.toString() ?? '—',
-                ),
+                (e) =>
+                    _InfoRow(label: e.key, value: e.value?.toString() ?? '—'),
               ),
             if ((printerState == null || printerState!.isEmpty) &&
                 firmwareVersion == null)
@@ -402,16 +440,6 @@ class _PeripheralsCard extends StatelessWidget {
               icon: Icons.fingerprint,
               label: l10n.posFingerprintScanner,
               available: fingerprintAvailable,
-            ),
-            _PeripheralRow(
-              icon: Icons.qr_code_scanner,
-              label: l10n.posBarcodeScanner,
-              available: isScanning,
-            ),
-            _PeripheralRow(
-              icon: Icons.credit_card,
-              label: l10n.posCardReader,
-              available: null,
             ),
           ],
         ),
@@ -553,7 +581,10 @@ class _DeviceRow extends StatelessWidget {
               Expanded(
                 child: Text(
                   device.name,
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
                 ),
               ),
               Container(
@@ -575,10 +606,10 @@ class _DeviceRow extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           _InfoRow(label: 'Serial', value: device.serialNumber),
-         // if (device.model != null && device.model!.isNotEmpty)
-            _InfoRow(label: 'Model', value: "TESA002"),
-         // if (device.macAddress != null && device.macAddress!.isNotEmpty)
-            _InfoRow(label: 'MAC', value: "00:1A:7D:DA:71:13"),
+          if (device.model != null && device.model!.isNotEmpty)
+            _InfoRow(label: 'Model', value: device.model!),
+          if (device.macAddress != null && device.macAddress!.isNotEmpty)
+            _InfoRow(label: 'MAC', value: device.macAddress!),
           _InfoRow(
             label: AppLocalizations.of(context).status,
             value: device.status,
@@ -597,19 +628,16 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 114,
+            width: 150,
             child: Text(
               "$label :",
-              style: Theme.of(  context).textTheme.labelLarge!.copyWith(
-                   
-                  ),
+              style: Theme.of(context).textTheme.labelLarge!.copyWith(),
             ),
           ),
 

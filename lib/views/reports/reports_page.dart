@@ -437,13 +437,19 @@ class _OrdersTabState extends ConsumerState<_OrdersTab>
                       Icons.receipt_long_outlined,
                       AppLocalizations.of(context).noOrders,
                     )
-                  : ListView.separated(
-                      padding: const EdgeInsets.only(bottom: 24),
-                      itemCount: items.length,
-                      separatorBuilder: (_, __) =>
-                          const Divider(height: 1, indent: 16, endIndent: 16),
-                      itemBuilder: (_, i) => _OrderTile(order: items[i]),
-                    ),
+                  : RefreshIndicator(
+                    onRefresh: () async {
+                      ref.invalidate(_reportOrdersProvider);
+                      
+                    },
+                    child: ListView.separated(
+                        padding: const EdgeInsets.only(bottom: 24),
+                        itemCount: items.length,
+                        separatorBuilder: (_, __) =>
+                            const Divider(height: 1, indent: 16, endIndent: 16),
+                        itemBuilder: (_, i) => _OrderTile(order: items[i]),
+                      ),
+                  ),
             ),
           ],
         );

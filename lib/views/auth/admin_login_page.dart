@@ -39,18 +39,17 @@ class _AdminLoginPageState extends ConsumerState<AdminLoginPage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Image.asset('assets/app_logo.png', width: 120),
-                    const SizedBox(height: 32),
+                    Image.asset('assets/app_logo.png', width: 200),
+                    const SizedBox(height: 20),
                     Text(
                       AppLocalizations.of(context).appTitle,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: Theme.of(context).textTheme.headlineLarge
+                          ?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       AppLocalizations.of(context).signInSubtitle,
-                      style: Theme.of(context).textTheme.titleMedium,
+                      style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(height: 24),
                     TextFormField(
@@ -61,10 +60,44 @@ class _AdminLoginPageState extends ConsumerState<AdminLoginPage> {
                         AutofillHints.email,
                         AutofillHints.username,
                       ],
+
+                      style: Theme.of(context).textTheme.titleLarge,
                       decoration: InputDecoration(
+                        border: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white
+                                : Colors.black,
+                            width: 1.5,
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white
+                                : Colors.black,
+                            width: 1.5,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Theme.of(context).colorScheme.primary,
+                            width: 1.5,
+                          ),
+                        ),
+                        labelStyle: Theme.of(context).textTheme.titleLarge,
+                        errorStyle: Theme.of(context).textTheme.bodyMedium!
+                            .copyWith(
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 15,
+                        ),
                         labelText: AppLocalizations.of(context).email,
                         prefixIcon: const Icon(Icons.email_outlined),
-                        border: const OutlineInputBorder(),
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
@@ -73,16 +106,50 @@ class _AdminLoginPageState extends ConsumerState<AdminLoginPage> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
                     TextFormField(
                       controller: _passwordController,
                       obscureText: _obscurePassword,
                       textInputAction: TextInputAction.done,
                       autofillHints: const [AutofillHints.password],
+                      style: Theme.of(context).textTheme.titleLarge,
+
                       decoration: InputDecoration(
+                        labelStyle: Theme.of(context).textTheme.titleLarge,
+                        errorStyle: Theme.of(context).textTheme.bodyMedium!
+                            .copyWith(
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 15,
+                        ),
                         labelText: AppLocalizations.of(context).password,
                         prefixIcon: const Icon(Icons.lock_outlined),
-                        border: const OutlineInputBorder(),
+                        border: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white
+                                : Colors.black,
+                            width: 1.5,
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white
+                                : Colors.black,
+                            width: 1.5,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Theme.of(context).colorScheme.primary,
+                            width: 1.5,
+                          ),
+                        ),
                         suffixIcon: IconButton(
                           icon: Icon(
                             _obscurePassword
@@ -137,29 +204,31 @@ class _AdminLoginPageState extends ConsumerState<AdminLoginPage> {
                           ],
                         ),
                       ),
-                    const SizedBox(height: 8),
-                    PrimaryButton(onPressed:state.isLoading? null:  _submit,
-                    
-                    
-                     label:    state.isLoading
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : Text(
-                                AppLocalizations.of(context).signIn,
-                                style: const TextStyle(color: Colors.white),
-                              ),),
-                   
-                   
-                   SizedBox(height: 20,),
-                   
-                    
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 18),
+                    PrimaryButton(
+                      onPressed: state.isLoading ? null : _submit,
+
+                      label: state.isLoading
+                          ? const SizedBox(
+                              width: 30,
+                              height: 30,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Text(
+                              AppLocalizations.of(context).signIn,
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                            ),
+                    ),
+
+                    SizedBox(height: 20),
+
                     if (state.hasError)
                       TextButton(
                         onPressed: () {
@@ -179,6 +248,7 @@ class _AdminLoginPageState extends ConsumerState<AdminLoginPage> {
 
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
+    FocusScope.of(context).unfocus();
     ref
         .read(adminAuthProvider.notifier)
         .login(_emailController.text.trim(), _passwordController.text);

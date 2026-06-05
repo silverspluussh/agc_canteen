@@ -12,7 +12,8 @@
   "welcomeBack": "Bienvenido de nuevo",
   "enterPin": "Ingrese su PIN",
   "placeFinger": "Coloque su dedo",
-  "biometricLogin": "Ingresar con huella",
+  "biometricLogin": "Escanear huella",
+  "changeLanguage": "Cambiar idioma",
 
   "@_NAVIGATION": {},
   "pos": "Caja",

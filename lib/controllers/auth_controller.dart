@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as dev;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/di/injection_container.dart';
@@ -44,6 +45,8 @@ class AuthController extends Notifier<AuthState> {
   AuthState build() => const AuthState();
 
   Future<void> authenticate() async {
+    dev.log('[AuthController] authenticate() called — setting state to authenticating',
+        name: 'POS_AUTH');
     state = state.copyWith(
       step: AuthStep.authenticating,
       error: null,
@@ -51,9 +54,17 @@ class AuthController extends Notifier<AuthState> {
 
     try {
       final posAuth = ref.read(posAuthProvider);
+
+      dev.log('[AuthController] Calling posAuth.authenticateWithFingerprint()',
+          name: 'POS_AUTH');
       final result = await posAuth.authenticateWithFingerprint();
 
+      dev.log('[AuthController] authenticateWithFingerprint returned: '
+          'result=${result != null ? "staffId=${result.staffId}, name=${result.firstName} ${result.lastName}" : "null (no match)"}',
+          name: 'POS_AUTH');
+
       if (result == null) {
+        dev.log('[AuthController] No match — setting error state', name: 'POS_AUTH');
         getIt<ActivityLogService>().log(
           type: 'staff_auth_failure',
           message: 'Staff fingerprint authentication failed: no match',
@@ -67,6 +78,8 @@ class AuthController extends Notifier<AuthState> {
         return;
       }
 
+      dev.log('[AuthController] Auth SUCCESS — setting authenticated state',
+          name: 'POS_AUTH');
       state = state.copyWith(
         step: AuthStep.authenticated,
         staff: result,
@@ -81,7 +94,8 @@ class AuthController extends Notifier<AuthState> {
         actorId: result.staffId,
         actorName: '${result.firstName} ${result.lastName}',
       );
-    } catch (e) {
+    } catch (e, st) {
+      dev.log('[AuthController] Auth EXCEPTION: $e', name: 'POS_AUTH', error: e, stackTrace: st);
       getIt<ActivityLogService>().log(
         type: 'staff_auth_failure',
         message: 'Staff authentication error: $e',

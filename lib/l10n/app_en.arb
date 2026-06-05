@@ -12,7 +12,8 @@
   "welcomeBack": "Welcome back",
   "enterPin": "Enter your PIN",
   "placeFinger": "Place your finger",
-  "biometricLogin": "Login with fingerprint",
+  "biometricLogin": "Scan finger",
+  "changeLanguage": "Change Language",
 
   "@_NAVIGATION": {},
   "pos": "POS",

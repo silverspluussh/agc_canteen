@@ -7,6 +7,8 @@ import '../services/pos/pos_fingerprint_service.dart';
 import '../services/pos/pos_scanner_service.dart';
 import '../services/pos/pos_print_service.dart';
 import '../services/pos/pos_device_service.dart';
+import '../services/device_info_service.dart';
+import '../models/device_info.model.dart';
 import '../services/auth/fingerprint_auth_service.dart';
 import '../services/auth/pos_auth_service.dart';
 
@@ -70,4 +72,13 @@ final posAuthProvider = Provider<PosAuthService>((ref) {
   final db = ref.watch(databaseProvider);
   final fingerprint = ref.watch(fingerprintAuthProvider);
   return PosAuthService(db: db, fingerprintAuth: fingerprint);
+});
+
+final deviceInfoServiceProvider = Provider<DeviceInfoService>((ref) {
+  return DeviceInfoService();
+});
+
+final deviceInfoProvider = FutureProvider<DeviceInfo>((ref) async {
+  final service = ref.watch(deviceInfoServiceProvider);
+  return service.gatherDeviceInfo();
 });

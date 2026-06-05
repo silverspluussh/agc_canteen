@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as dev;
 import 'package:flutter/services.dart';
 
 class FingerprintResult {
@@ -43,21 +44,33 @@ class PosFingerprintService {
 
   Future<bool> init() async {
     try {
-      return await _methodChannel.invokeMethod<bool>('init') ?? false;
-    } on PlatformException {
-      return false;
+      dev.log('[PosFingerprint] Calling native method channel: init()',
+          name: 'POS_AUTH');
+      final result = await _methodChannel.invokeMethod<bool>('init') ?? false;
+      dev.log('[PosFingerprint] init() returned: $result', name: 'POS_AUTH');
+      return result;
+    } on PlatformException catch (e) {
+      dev.log('[PosFingerprint] init() PlatformException: ${e.code} — ${e.message}',
+          name: 'POS_AUTH');
+      rethrow;
     }
   }
 
   Future<FingerprintResult?> capture({int templateIndex = 0}) async {
     try {
+      dev.log('[PosFingerprint] Calling native method channel: capture(templateIndex=$templateIndex) — waiting for finger...',
+          name: 'POS_AUTH');
       final result = await _methodChannel.invokeMethod<Map<dynamic, dynamic>>(
           'capture', {
         'templateIndex': templateIndex,
       });
+      dev.log('[PosFingerprint] capture() returned: ${result != null ? "success=${result['success']}, template=${result['templateBase64'] != null}" : "null"}',
+          name: 'POS_AUTH');
       if (result == null) return null;
       return FingerprintResult.fromMap(Map<String, dynamic>.from(result));
-    } on PlatformException {
+    } on PlatformException catch (e) {
+      dev.log('[PosFingerprint] capture() PlatformException: $e',
+          name: 'POS_AUTH');
       return null;
     }
   }
@@ -67,11 +80,17 @@ class PosFingerprintService {
     int templateIndex = 0,
   }) async {
     try {
-      return await _methodChannel.invokeMethod<int>('verify', {
+      dev.log('[PosFingerprint] Calling native method channel: verify(templateLength=${templateBase64.length}, templateIndex=$templateIndex)',
+          name: 'POS_AUTH');
+      final result = await _methodChannel.invokeMethod<int>('verify', {
         'template': templateBase64,
         'templateIndex': templateIndex,
       });
-    } on PlatformException {
+      dev.log('[PosFingerprint] verify() returned: score=$result', name: 'POS_AUTH');
+      return result;
+    } on PlatformException catch (e) {
+      dev.log('[PosFingerprint] verify() PlatformException: $e',
+          name: 'POS_AUTH');
       return null;
     }
   }

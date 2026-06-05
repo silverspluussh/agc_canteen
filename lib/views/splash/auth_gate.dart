@@ -1,9 +1,13 @@
+import 'dart:developer' as dev;
 import 'package:agc_canteen/views/auth/staff_auth_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../controllers/admin_auth_controller.dart';
 import '../../controllers/auth_controller.dart';
+import '../../controllers/providers.dart';
+import '../../core/di/injection_container.dart';
+import '../../services/pos/pos_device_service.dart';
 import '../auth/admin_login_page.dart';
 import '../pos/pos_page.dart';
 
@@ -21,7 +25,47 @@ class _AuthGateState extends ConsumerState<AuthGate> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(adminAuthProvider.notifier).tryAutoLogin();
+      _initFingerprint();
+      _initPosDevice();
     });
+  }
+
+  Future<void> _initFingerprint() async {
+    dev.log('[AuthGate] Initializing fingerprint SDK on app start...',
+        name: 'POS_AUTH');
+    try {
+      final posAuth = ref.read(posAuthProvider);
+      final ok = await posAuth.init();
+      if (ok) {
+        dev.log('[AuthGate] Fingerprint SDK initialized successfully at startup',
+            name: 'POS_AUTH');
+      } else {
+        dev.log('[AuthGate] Fingerprint SDK init returned false at startup',
+            name: 'POS_AUTH');
+      }
+    } catch (e, st) {
+      dev.log('[AuthGate] Fingerprint SDK init FAILED at startup: $e',
+          name: 'POS_AUTH', error: e, stackTrace: st);
+    }
+  }
+
+  Future<void> _initPosDevice() async {
+    dev.log('[AuthGate] Initializing POS device SDK on app start...',
+        name: 'POS_AUTH');
+    try {
+      final deviceService = getIt<PosDeviceService>();
+      final ok = await deviceService.init();
+      if (ok) {
+        dev.log('[AuthGate] POS device SDK initialized successfully at startup',
+            name: 'POS_AUTH');
+      } else {
+        dev.log('[AuthGate] POS device SDK init returned false at startup',
+            name: 'POS_AUTH');
+      }
+    } catch (e, st) {
+      dev.log('[AuthGate] POS device SDK init FAILED at startup: $e',
+          name: 'POS_AUTH', error: e, stackTrace: st);
+    }
   }
 
   @override
@@ -43,7 +87,7 @@ class _AuthGateState extends ConsumerState<AuthGate> {
 
     if (adminState.isAuthenticated) {
       if (staffState.isAuthenticated) {
-        return const StaffAuthPage();
+        return const PosPage();
       }
       return const StaffAuthPage();
     }

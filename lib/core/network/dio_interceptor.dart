@@ -21,6 +21,8 @@ class AuthInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
     switch (err.response?.statusCode) {
+          case 302:
+        throw InvalidCredentials("Invalid credentials provided");
       case 400:
         throw InvalidCredentials(err.response?.data["message"]);
       case 401:
@@ -33,6 +35,7 @@ class AuthInterceptor extends Interceptor {
         throw NotAllowedException('Request method not allowed');
       case 408:
         throw TimeoutException("Request timed out, please try again.");
+
       default:
         handler.next(err);
     }

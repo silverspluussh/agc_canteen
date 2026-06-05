@@ -30,6 +30,10 @@ class NetworkAPI {
         case 201:
           final data = response.data;
           return builder(data["data"]);
+        case 300:
+        case 301:
+        case 302:
+          throw InvalidCredentials("Invalid credentials provided");
         case 400:
           throw InvalidCredentials(response.data["message"]);
         case 401:
@@ -85,7 +89,7 @@ class NetworkAPI {
         queryParameters: queryParameters,
         data: data,
       );
-      log(  'POST $path response: ${response.statusCode} - ${response.data}');
+      log("Response status: ${response}");
       switch (response.statusCode) {
         case 200:
           final data = response.data;
@@ -93,9 +97,11 @@ class NetworkAPI {
         case 201:
           final data = response.data;
           return builder(data);
-        case 302:
-            throw InvalidCredentials(response.data["message"]);
 
+        case 300:
+        case 301:
+        case 302:
+          throw InvalidCredentials("Invalid credentials provided");
         case 400:
           throw InvalidCredentials(response.data["message"]);
         case 401:
@@ -114,7 +120,7 @@ class NetworkAPI {
           );
         case 409:
           throw InvalidCredentials(response.data["message"]);
-        
+
         default:
           throw LoginAttemptFailed(response.data["message"]);
       }
@@ -156,9 +162,15 @@ class NetworkAPI {
       );
 
       switch (response.statusCode) {
+        case 201:
         case 200:
           final data = response.data;
           return builder(data);
+        case 300:
+        case 301:
+        case 302:
+          throw InvalidCredentials("Invalid credentials provided");
+
         case 400:
           throw InvalidCredentials(response.data["message"]);
         case 401:

@@ -1,3 +1,4 @@
+import 'dart:developer' as dev;
 import '../database/app_database.dart';
 import 'fingerprint_auth_service.dart';
 
@@ -23,20 +24,36 @@ class PosAuthService {
   })  : _db = db,
         _fingerprintAuth = fingerprintAuth;
 
-  Future<void> init() async {
-    await _fingerprintAuth.init();
+  Future<bool> init() async {
+    dev.log('[PosAuthService] Initializing fingerprint auth service...',
+        name: 'POS_AUTH');
+    final ok = await _fingerprintAuth.init();
+    dev.log('[PosAuthService] Fingerprint auth init result: $ok', name: 'POS_AUTH');
+    return ok;
   }
 
   Future<bool> get isFingerprintAvailable => _fingerprintAuth.isAvailable;
 
 
   Future<StaffAuthResult?> authenticateWithFingerprint() async {
+    dev.log('[PosAuthService] authenticateWithFingerprint() — calling fingerprintAuth.authenticate()',
+        name: 'POS_AUTH');
     final staffId = await _fingerprintAuth.authenticate();
+    dev.log('[PosAuthService] fingerprintAuth.authenticate() returned: staffId=$staffId',
+        name: 'POS_AUTH');
     if (staffId == null) return null;
 
+    dev.log('[PosAuthService] Looking up staff in DB: staffId=$staffId',
+        name: 'POS_AUTH');
     final staff = await _db.getStaff(staffId);
-    if (staff == null) return null;
+    if (staff == null) {
+      dev.log('[PosAuthService] Staff NOT found in DB for staffId=$staffId',
+          name: 'POS_AUTH');
+      return null;
+    }
 
+    dev.log('[PosAuthService] Staff found: ${staff.firstName} ${staff.lastName} (id=${staff.id})',
+        name: 'POS_AUTH');
     return StaffAuthResult(
       staffId: staff.id,
       firstName: staff.firstName,
