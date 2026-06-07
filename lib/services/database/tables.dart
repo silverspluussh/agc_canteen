@@ -179,20 +179,6 @@ class PosDevices extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-class Fingerprints extends Table {
-  TextColumn get id => text()();
-  TextColumn get staffId => text().references(Staff, #id)();
-  TextColumn get dataBase64 => text()();
-  BoolColumn get isActive => boolean().withDefault(const Constant(true))();
-  TextColumn get createdAt => text()();
-  TextColumn get updatedAt => text()();
-  IntColumn get syncStatus => integer().withDefault(const Constant(0))();
-  TextColumn get syncUpdatedAt => text().nullable()();
-
-  @override
-  Set<Column> get primaryKey => {id};
-}
-
 class ActivityLogs extends Table {
   TextColumn get id => text()();
   TextColumn get type => text()();

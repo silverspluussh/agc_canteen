@@ -40,8 +40,7 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
   Future<void> _loadStaffData() async {
     final db = ref.read(databaseProvider);
     final staffList = await db.getAllStaff();
-    final allFingerprints = await db.getAllFingerprints();
-
+    final allFingerprints = await db.getActiveBioData();
 
     final items = staffList.map((s) {
       final staffFps = allFingerprints.where((f) => f.staffId == s.id).toList();
@@ -174,7 +173,7 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        leading: BackButton(color: Colors.white,),
+        leading: BackButton(color: Colors.white),
         title: Text(l10n.staffManagement),
         backgroundColor: colorScheme.primary,
         foregroundColor: colorScheme.onPrimary,
@@ -182,63 +181,64 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : Column(
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: _SearchBar(
-                  controller: _searchCtrl,
-                  hint: l10n.searchOrderHint,
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(right: 12.0, top: 12.0),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: IconButton(
-                    icon: Icon(Icons.tune, color: colorScheme.primary),
-                    onPressed: _showFilterModal,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          if (items.isNotEmpty)
-            _SummaryStrip(
-              '${items.length} ${l10n.staffManagement}',
-              '${_staffList.where((s) => s.hasFingerprint).length} ${l10n.fingerprintRegistered}',
-            ),
-          Expanded(
-            child: items.isEmpty
-                ? _EmptyView(Icons.group_outlined, l10n.noResults)
-                : RefreshIndicator(
-                  onRefresh: () async {
-                   _loadStaffData();
-               
-                  },
-                  child: ListView.separated(
-                      padding: const EdgeInsets.all(10),
-                      itemCount: items.length,
-                      separatorBuilder: (_, _) => const Divider(height: 10),
-                      itemBuilder: (context, index) {
-                        final entry = items[index];
-                        return _StaffCard(
-                          entry: entry,
-                          onAddFingerprint: () => _showEnrollmentDialog(entry),
-                          onDeleteFingerprint: () =>
-                              _showDeleteConfirmation(entry),
-                          isEnrolling: _isEnrolling,
-                        );
-                      },
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: _SearchBar(
+                        controller: _searchCtrl,
+                        hint: l10n.searchOrderHint,
+                      ),
                     ),
+                    Padding(
+                      padding: const EdgeInsets.only(right: 12.0, top: 12.0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: colorScheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: IconButton(
+                          icon: Icon(Icons.tune, color: colorScheme.primary),
+                          onPressed: _showFilterModal,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-          ),
-        ],
-      ),
+                if (items.isNotEmpty)
+                  _SummaryStrip(
+                    '${items.length} ${l10n.staffManagement}',
+                    '${_staffList.where((s) => s.hasFingerprint).length} ${l10n.fingerprintRegistered}',
+                  ),
+                Expanded(
+                  child: items.isEmpty
+                      ? _EmptyView(Icons.group_outlined, l10n.noResults)
+                      : RefreshIndicator(
+                          onRefresh: () async {
+                            _loadStaffData();
+                          },
+                          child: ListView.separated(
+                            padding: const EdgeInsets.all(10),
+                            itemCount: items.length,
+                            separatorBuilder: (_, _) =>
+                                const Divider(height: 10),
+                            itemBuilder: (context, index) {
+                              final entry = items[index];
+                              return _StaffCard(
+                                entry: entry,
+                                onAddFingerprint: () =>
+                                    _showEnrollmentDialog(entry),
+                                onDeleteFingerprint: () =>
+                                    _showDeleteConfirmation(entry),
+                                isEnrolling: _isEnrolling,
+                              );
+                            },
+                          ),
+                        ),
+                ),
+              ],
+            ),
     );
   }
 
@@ -259,9 +259,12 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
               spacing: 15,
               children: [
                 Icon(Icons.fingerprint, color: colorScheme.primary),
-                
+
                 Text(l10n.enrollFingerprint),
-                IconButton(onPressed: ()=> Navigator.pop(context), icon: Icon(Icons.close, color: Colors.red,))
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: Icon(Icons.close, color: Colors.red),
+                ),
               ],
             ),
             content: Column(
@@ -290,18 +293,17 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
             ),
             actionsAlignment: MainAxisAlignment.center,
             actions: [
-              
-
               PrimaryButton(
-             
-                
-                onPressed:  () async {
-                Navigator.pop(ctx);
-                await _enrollFingerprint(entry, setDialogState);
-              },
-              prefixChild: const Icon(Icons.fingerprint, color: Colors.white,),
-               label: Text(l10n.enrollFingerprint, style: TextStyle(color: Colors.white),),)
-             
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  await _enrollFingerprint(entry, setDialogState);
+                },
+                prefixChild: const Icon(Icons.fingerprint, color: Colors.white),
+                label: Text(
+                  l10n.enrollFingerprint,
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
             ],
           );
         },
@@ -335,12 +337,13 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
               }
               await _refreshStaffData();
               if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l10n.deleteFingerprint)),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text(l10n.deleteFingerprint)));
               }
-            },label: Text(l10n.delete, style: TextStyle(color: Colors.white),),)
-         
+            },
+            label: Text(l10n.delete, style: TextStyle(color: Colors.white)),
+          ),
         ],
       ),
     );
@@ -404,7 +407,7 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
 class _StaffWithFingerprint {
   final StaffData staff;
   bool hasFingerprint;
-  String? fingerprintId;
+  int? fingerprintId;
 
   _StaffWithFingerprint({
     required this.staff,
@@ -610,17 +613,12 @@ class _EmptyView extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            size: 56,
-            color: Theme.of(context).colorScheme.primary,
-          ),
+          Icon(icon, size: 56, color: Theme.of(context).colorScheme.primary),
           const SizedBox(height: 12),
           Text(
             label,
             style: TextStyle(color: Theme.of(context).colorScheme.primary),
           ),
-         
         ],
       ),
     );

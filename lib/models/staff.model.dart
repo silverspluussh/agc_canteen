@@ -163,4 +163,15 @@ class BioData {
       'isActive': isActive,
     };
   }
+
+  Map<String, dynamic> toMapLocal() {
+    return {
+      'id': id,
+      'finger': finger,
+      'data': data,
+      'staffId': staffId,
+      'isActive': isActive,
+      'sync_status': 0,
+    };
+  }
 }

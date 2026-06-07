@@ -17,7 +17,6 @@ part 'app_database.g.dart';
     OrderItems,
     Overcharges,
     PosDevices,
-    Fingerprints,
     ActivityLogs,
     GroupOrders,
     GroupOrderItems,
@@ -54,7 +53,6 @@ class AppDatabase extends _$AppDatabase {
       await delete(orderItems).go();
       await delete(overcharges).go();
       await delete(posDevices).go();
-      await delete(fingerprints).go();
       await delete(bioDataEntries).go();
       await delete(activityLogs).go();
       await delete(groupOrderItems).go();
@@ -74,7 +72,6 @@ class AppDatabase extends _$AppDatabase {
       'order_items': await _countUnsyncedOrderItems(),
       'overcharges': await _countUnsyncedOvercharges(),
       'pos_devices': await _countUnsyncedPosDevices(),
-      'fingerprints': await _countUnsyncedFingerprints(),
       'bio_data': await _countUnsyncedBioData(),
       'group_orders': await _countUnsyncedGroupOrders(),
       'group_order_items': await _countUnsyncedGroupOrderItems(),
@@ -614,52 +611,6 @@ class AppDatabase extends _$AppDatabase {
         ),
       );
 
-  // ─── Fingerprints ──────────────────────────────────
-
-  Future<void> insertFingerprint(
-    FingerprintsCompanion tpl, {
-    InsertMode mode = InsertMode.insert,
-  }) => into(fingerprints).insert(tpl, mode: mode);
-
-  Future<void> updateFingerprint(String id, FingerprintsCompanion tpl) =>
-      (update(fingerprints)..where((t) => t.id.equals(id))).write(tpl);
-
-  Future<void> deleteFingerprint(String id) =>
-      (delete(fingerprints)..where((t) => t.id.equals(id))).go();
-
-  Future<List<Fingerprint>> getAllFingerprints() => select(fingerprints).get();
-
-  Future<List<Fingerprint>> getFingerprintsByStaff(String staffId) =>
-      (select(fingerprints)..where((t) => t.staffId.equals(staffId))).get();
-
-  Future<List<Fingerprint>> getActiveFingerprints() =>
-      (select(fingerprints)..where((t) => t.isActive.equals(true))).get();
-
-  Future<Fingerprint?> getFingerprint(String id) =>
-      (select(fingerprints)..where((t) => t.id.equals(id))).getSingleOrNull();
-
-  Future<List<Fingerprint>> getUnsyncedFingerprints() =>
-      (select(fingerprints)..where((t) => t.syncStatus.isNotValue(2))).get();
-
-  Future<void> markFingerprintSynced(String id) =>
-      (update(fingerprints)..where((t) => t.id.equals(id))).write(
-        FingerprintsCompanion(
-          syncStatus: const Value(2),
-          syncUpdatedAt: Value(DateTime.now().toIso8601String()),
-        ),
-      );
-
-  Future<void> markFingerprintFailed(String id) =>
-      (update(fingerprints)..where((t) => t.id.equals(id))).write(
-        FingerprintsCompanion(
-          syncStatus: const Value(3),
-          syncUpdatedAt: Value(DateTime.now().toIso8601String()),
-        ),
-      );
-
-  Future<int> _countUnsyncedFingerprints() async => (await (select(
-    fingerprints,
-  )..where((t) => t.syncStatus.isNotValue(2))).get()).length;
 
   Future<int> _countUnsyncedBioData() async => (await (select(
     bioDataEntries,
@@ -692,6 +643,10 @@ class AppDatabase extends _$AppDatabase {
   Future<List<BioDataEntry>> getActiveBioDataByStaff(String staffId) => (select(
     bioDataEntries,
   )..where((t) => t.staffId.equals(staffId) & t.isActive.equals(true))).get();
+
+  Future<List<BioDataEntry>> getActiveBioData() => (select(
+    bioDataEntries,
+  )..where((t) => t.isActive.equals(true))).get();
 
   Future<List<BioDataEntry>> getUnsyncedBioData() =>
       (select(bioDataEntries)..where((t) => t.syncStatus.isNotValue(2))).get();

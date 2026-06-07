@@ -6,6 +6,35 @@ class BioDataService {
 
   BioDataService({required this.networkAPI});
 
+  Future<List<BioData>> getAllBioDatas() async {
+    return await networkAPI.getData<List<BioData>>(
+      'hr/bio-data',
+      builder: (data) {
+        if (data is List) {
+          return data
+              .map((e) => BioData.fromMap(e as Map<String, dynamic>))
+              .toList();
+        }
+        return [];
+      },
+    );
+  }
+
+  Future<List<BioData>> getBioDatasByStaffId(String staffId) async {
+    return await networkAPI.getData<List<BioData>>(
+      'hr/bio-data',
+      queryParameters: {"staffId": staffId},
+      builder: (data) {
+        if (data is List) {
+          return data
+              .map((e) => BioData.fromMap(e as Map<String, dynamic>))
+              .toList();
+        }
+        return [];
+      },
+    );
+  }
+
   Future<List<BioData>> createBioData(
     String staffId,
     List<BioData> bioDatas,
@@ -39,8 +68,9 @@ class BioDataService {
     };
 
     return await networkAPI.putData<BioData>(
-      'hr/bio-data/update/${bioData.id}',
+      'hr/bio-data/update',
       data: payload,
+      queryParameters: {"id": bioData.id},
       builder: (data) {
         return BioData.fromMap(data as Map<String, dynamic>);
       },

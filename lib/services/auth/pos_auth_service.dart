@@ -78,17 +78,17 @@ class PosAuthService {
   }
 
   /// Enroll a new fingerprint for a staff member.
-  Future<String?> enrollFingerprint(String staffId) async {
+  Future<int?> enrollFingerprint(String staffId) async {
     return _fingerprintAuth.enroll(staffId);
   }
 
   /// Get all enrolled fingerprint IDs for a staff member.
-  Future<List<String>> getFingerprintsForStaff(String staffId) async {
+  Future<List<int>> getFingerprintsForStaff(String staffId) async {
     return _fingerprintAuth.getFingerprintsForStaff(staffId);
   }
 
   /// Remove a fingerprint from a staff member.
-  Future<void> deleteFingerprint(String fingerprintId) async {
+  Future<void> deleteFingerprint(int fingerprintId) async {
     await _fingerprintAuth.deleteFingerprint(fingerprintId);
   }
 }

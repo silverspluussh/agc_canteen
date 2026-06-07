@@ -117,7 +117,6 @@ class SyncService {
       'group_order_items',
       'overcharges',
       'pos_devices',
-      'fingerprints',
     ];
 
     try {
@@ -303,8 +302,6 @@ class SyncService {
         return (await _db.getUnsyncedOvercharges()).map(_rowToMap).toList();
       case 'pos_devices':
         return (await _db.getUnsyncedPosDevices()).map(_rowToMap).toList();
-      case 'fingerprints':
-        return (await _db.getUnsyncedFingerprints()).map(_rowToMap).toList();
       case 'group_orders':
         return (await _db.getUnsyncedGroupOrders()).map(_rowToMap).toList();
       case 'group_order_items':
@@ -336,8 +333,6 @@ class SyncService {
         await _db.markOverchargeSynced(id);
       case 'pos_devices':
         await _db.markPosDeviceSynced(id);
-      case 'fingerprints':
-        await _db.markFingerprintSynced(id);
       case 'group_orders':
         await _db.markGroupOrderSynced(id);
       case 'group_order_items':
@@ -367,8 +362,6 @@ class SyncService {
         await _db.markOverchargeFailed(id);
       case 'pos_devices':
         await _db.markPosDeviceFailed(id);
-      case 'fingerprints':
-        await _db.markFingerprintFailed(id);
       case 'group_orders':
         await _db.markGroupOrderFailed(id);
       case 'group_order_items':
@@ -537,20 +530,6 @@ class SyncService {
             model: Value.absentIfNull(data['model'] as String?),
             status: Value(data['status'] as String),
             macAddress: Value.absentIfNull(data['mac_address'] as String?),
-            createdAt: Value(data['created_at'] as String),
-            updatedAt: Value(data['updated_at'] as String),
-            syncStatus: const Value(2),
-            syncUpdatedAt: Value(now),
-          ),
-          mode: InsertMode.insertOrReplace,
-        );
-      case 'fingerprints':
-        await _db.insertFingerprint(
-          FingerprintsCompanion(
-            id: Value(data['id'] as String),
-            staffId: Value(data['staff_id'] as String),
-            dataBase64: Value(data['template_base64'] as String),
-            isActive: Value((data['is_active'] as bool?) ?? true),
             createdAt: Value(data['created_at'] as String),
             updatedAt: Value(data['updated_at'] as String),
             syncStatus: const Value(2),

@@ -30,6 +30,7 @@ class RemoteDataSyncService {
        _logger = logger ?? Logger() {
     _jobs.add(_SyncJob(name: 'staff', execute: _syncStaff));
     _jobs.add(_SyncJob(name: 'meals', execute: _syncMeals));
+    _jobs.add(_SyncJob(name: 'bioData', execute: _syncBioData));
   }
 
   void registerSyncJob(String name, _SyncTask execute) {
@@ -155,6 +156,81 @@ class RemoteDataSyncService {
     } catch (e, stack) {
       _logger.e(
         'RemoteDataSyncService: failed to upsert staff: $e',
+        stackTrace: stack,
+      );
+    }
+  }
+
+  // ─── Bio-Data Sync ────────────────────────────────────────────
+
+  Future<bool> _syncBioData() async {
+    try {
+      _logger.i('RemoteDataSyncService: fetching remote bio-data...');
+      final responseData = await _networkAPI.getData(
+        '/hr/bio-data',
+        builder: (data) => data,
+      );
+
+      List<dynamic>? bioDataList;
+      if (responseData is List) {
+        bioDataList = responseData;
+      } else if (responseData is Map && responseData['data'] is List) {
+        bioDataList = responseData['data'] as List<dynamic>;
+      }
+
+      if (bioDataList == null || bioDataList.isEmpty) {
+        _logger.w('RemoteDataSyncService: no remote bio-data available');
+        return false;
+      }
+
+      _logger.i(
+        'RemoteDataSyncService: received ${bioDataList.length} remote bio-data records, upserting...',
+      );
+
+      await _db.transaction(() async {
+        for (final item in bioDataList!) {
+          if (item is Map<String, dynamic>) {
+            await _upsertBioData(item);
+          }
+        }
+      });
+
+      _logger.i('RemoteDataSyncService: bio-data sync completed');
+      return true;
+    } catch (e) {
+      _logger.w(
+        'RemoteDataSyncService: bio-data fetch failed ($e), keeping local data',
+      );
+      return false;
+    }
+  }
+
+  Future<void> _upsertBioData(Map<String, dynamic> bioDataMap) async {
+    try {
+      final id = bioDataMap['id'];
+      if (id == null) return;
+
+      final intId = id is int ? id : int.tryParse(id.toString()) ?? 0;
+      if (intId == 0) return;
+
+      final now = DateTime.now().toIso8601String();
+
+      final companion = BioDataEntriesCompanion(
+        id: Value(intId),
+        staffId: Value(bioDataMap['staffId']?.toString() ?? ''),
+        finger: Value(bioDataMap['finger']?.toString() ?? ''),
+        dataBase64: Value(bioDataMap['data']?.toString() ?? ''),
+        isActive: Value(bioDataMap['isActive'] as bool? ?? true),
+        createdAt: Value(bioDataMap['createdAt']?.toString() ?? now),
+        updatedAt: Value(bioDataMap['updatedAt']?.toString() ?? now),
+        syncStatus: const Value(2),
+        syncUpdatedAt: Value(now),
+      );
+
+      await _db.upsertBioData(companion);
+    } catch (e, stack) {
+      _logger.e(
+        'RemoteDataSyncService: failed to upsert bio-data: $e',
         stackTrace: stack,
       );
     }

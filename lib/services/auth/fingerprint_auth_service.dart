@@ -39,20 +39,21 @@ class FingerprintAuthService {
   Future<bool> get isAvailable => _fingerprint.isAvailable();
 
   
-  Future<String?> enroll(String staffId) async {
+  Future<int?> enroll(String staffId) async {
     final result = await _fingerprint.capture();
     if (result == null || !result.success || result.templateBase64 == null) {
       _logger.w('Fingerprint enrollment capture failed');
       return null;
     }
 
-    final fingerprintId = const Uuid().v4();
+    final fingerprintId = DateTime.now().millisecondsSinceEpoch;
     final now = DateTime.now().toIso8601String();
 
-    await _db.insertFingerprint(
-      FingerprintsCompanion(
+    await _db.insertBioData(
+      BioDataEntriesCompanion(
         id: Value(fingerprintId),
         staffId: Value(staffId),
+        finger: const Value('index'), // default finger
         dataBase64: Value(result.templateBase64!),
         isActive: const Value(true),
         createdAt: Value(now),
@@ -62,19 +63,18 @@ class FingerprintAuthService {
       ),
     );
 
-    _logger.i('Fingerprint enrolled: fingerprintId=$fingerprintId staffId=$staffId');
+    _logger.i('Fingerprint enrolled: id=$fingerprintId staffId=$staffId');
     getIt<ActivityLogService>().log(
       type: 'fingerprint_enrolled',
       message: 'Fingerprint enrolled for staff: $staffId',
       actorType: 'staff',
       actorId: staffId,
-      sourceTable: 'fingerprints',
-      recordId: fingerprintId,
+      sourceTable: 'bio_data_entries',
+      recordId: fingerprintId.toString(),
     );
     return fingerprintId;
   }
 
-  
   Future<String?> authenticate() async {
     dev.log('[FingerprintAuth] Starting fingerprint capture via hardware...',
         name: 'POS_AUTH');
@@ -90,19 +90,19 @@ class FingerprintAuthService {
     dev.log('[FingerprintAuth] Capture SUCCESS — templateBase64 length=${result.templateBase64!.length}',
         name: 'POS_AUTH');
 
-    final fingerprints = await _db.getActiveFingerprints();
+    final fingerprints = await _db.getActiveBioData();
 
     dev.log('[FingerprintAuth] Got ${fingerprints.length} active fingerprint(s) from DB',
         name: 'POS_AUTH');
 
     if (fingerprints.isEmpty) {
-      dev.log('[FingerprintAuth] No fingerprints stored in local DB — no match possible',
-          name: 'POS_AUTH');
+        dev.log('[FingerprintAuth] No fingerprints stored in local DB — no match possible',
+            name: 'POS_AUTH');
       _logger.w('No fingerprints stored locally');
       return null;
     }
 
-    Fingerprint? bestMatch;
+    BioDataEntry? bestMatch;
     int bestScore = -1;
 
     for (final tpl in fingerprints) {
@@ -132,27 +132,27 @@ class FingerprintAuthService {
   }
 
   /// Get all stored template IDs for a staff member.
-  Future<List<String>> getFingerprintsForStaff(String staffId) async {
-    final fingerprints = await _db.getFingerprintsByStaff(staffId);
+  Future<List<int>> getFingerprintsForStaff(String staffId) async {
+    final fingerprints = await _db.getActiveBioDataByStaff(staffId);
     return fingerprints.map((t) => t.id).toList();
   }
 
   /// Delete a stored fingerprint .
-  Future<void> deleteFingerprint(String fingerprintId) async {
-    await _db.deleteFingerprint(fingerprintId);
+  Future<void> deleteFingerprint(int fingerprintId) async {
+    await _db.deleteBioData(fingerprintId);
     getIt<ActivityLogService>().log(
       type: 'fingerprint_deleted',
       message: 'Fingerprint deleted: $fingerprintId',
-      sourceTable: 'fingerprints',
-      recordId: fingerprintId,
+      sourceTable: 'bio_data_entries',
+      recordId: fingerprintId.toString(),
     );
   }
 
-  Future<void> deactivateFingerprint(String fingerprintId) async {
+  Future<void> deactivateFingerprint(int fingerprintId) async {
     final now = DateTime.now().toIso8601String();
-    await _db.updateFingerprint(
+    await _db.updateBioData(
       fingerprintId,
-      FingerprintsCompanion(
+      BioDataEntriesCompanion(
         isActive: const Value(false),
         updatedAt: Value(now),
         syncStatus: const Value(0),
@@ -162,20 +162,20 @@ class FingerprintAuthService {
     getIt<ActivityLogService>().log(
       type: 'fingerprint_deactivated',
       message: 'Fingerprint deactivated: $fingerprintId',
-      sourceTable: 'fingerprints',
-      recordId: fingerprintId,
+      sourceTable: 'bio_data_entries',
+      recordId: fingerprintId.toString(),
     );
   }
 
   /// Count unsynced fingerprints.
   Future<int> getUnsyncedCount() async {
-    final unsynced = await _db.getUnsyncedFingerprints();
+    final unsynced = await _db.getUnsyncedBioData();
     return unsynced.length;
   }
 
   /// Count total active fingerprints stored locally.
   Future<int> getStoredFingerprintCount() async {
-    final fingerprints = await _db.getActiveFingerprints();
+    final fingerprints = await _db.getActiveBioData();
     return fingerprints.length;
   }
 }

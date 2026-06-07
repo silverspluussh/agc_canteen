@@ -7,7 +7,7 @@ enum EnrollmentStep { idle, capturing, captured, storing, enrolled, error }
 class EnrollmentState {
   final EnrollmentStep step;
   final String? staffId;
-  final String? fingerprintId;
+  final int? fingerprintId;
   final FingerprintResult? captureResult;
   final String? error;
 
@@ -22,7 +22,7 @@ class EnrollmentState {
   EnrollmentState copyWith({
     EnrollmentStep? step,
     String? staffId,
-    String? fingerprintId,
+    int? fingerprintId,
     FingerprintResult? captureResult,
     String? error,
   }) {
