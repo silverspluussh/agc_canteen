@@ -42,6 +42,7 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
     final staffList = await db.getAllStaff();
     final allFingerprints = await db.getAllFingerprints();
 
+
     final items = staffList.map((s) {
       final staffFps = allFingerprints.where((f) => f.staffId == s.id).toList();
       return _StaffWithFingerprint(
@@ -612,13 +613,14 @@ class _EmptyView extends StatelessWidget {
           Icon(
             icon,
             size: 56,
-            color: Theme.of(context).colorScheme.outline.withAlpha(102),
+            color: Theme.of(context).colorScheme.primary,
           ),
           const SizedBox(height: 12),
           Text(
             label,
-            style: TextStyle(color: Theme.of(context).colorScheme.outline),
+            style: TextStyle(color: Theme.of(context).colorScheme.primary),
           ),
+         
         ],
       ),
     );

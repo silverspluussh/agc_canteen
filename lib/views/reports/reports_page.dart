@@ -725,9 +725,9 @@ class _EmptyView extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 64, color: Colors.grey.shade400),
+          Icon(icon, size: 64),
           const SizedBox(height: 16),
-          Text(label, style: TextStyle(color: Colors.grey.shade500)),
+          Text(label, style: Theme.of(context).textTheme.bodyMedium),
         ],
       ),
     );

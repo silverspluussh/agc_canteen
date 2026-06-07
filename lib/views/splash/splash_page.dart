@@ -26,11 +26,9 @@ class _SplashPageState extends ConsumerState<SplashPage> {
           children: [
             Image.asset('assets/app_logo.png', width: 200, height: 200),
             const SizedBox(height: 24),
-            const CircularProgressIndicator(
-              constraints: BoxConstraints(
-                minWidth: 50,
-                minHeight: 50,
-              ),
+            const LinearProgressIndicator(
+              minHeight: 5,
+            
             ),
             const SizedBox(height: 16),
             const Text('Loading...', style: TextStyle(fontSize: 20)),
