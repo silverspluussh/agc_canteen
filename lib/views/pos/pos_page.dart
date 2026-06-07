@@ -56,21 +56,21 @@ class _PosPageState extends ConsumerState<PosPage> {
           ),
           body: mealsAsync.when(
             data: (meals) => _buildBody(meals, orderState),
-            loading: () => Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Text("Loading meals, please wait...",
-                style: Theme.of(context).textTheme.bodyLarge,
-                ),
-                  SizedBox(height: 20),
-                CircularProgressIndicator(
-                  constraints: const BoxConstraints(
-                    maxHeight: 35,
-                    maxWidth: 35,
+            loading: () => SizedBox(
+              height: MediaQuery.of(context).size.height,
+              width: MediaQuery.of(context).size.width,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    "Loading meals, please wait...",
+                    style: Theme.of(context).textTheme.bodyLarge,
                   ),
-                ),
-              ],
+                  SizedBox(height: 20),
+                  LinearProgressIndicator(),
+                ],
+              ),
             ),
             error: (e, _) => Center(
               child: Text(
@@ -359,18 +359,17 @@ class _PosPageState extends ConsumerState<PosPage> {
             Text(AppLocalizations.of(context).cancelOrder),
           ],
         ),
-        content: Text(AppLocalizations.of(context).cancelOrderConfirm
-        ,
-        style : Theme.of(context).textTheme.bodyLarge
-        
+        content: Text(
+          AppLocalizations.of(context).cancelOrderConfirm,
+          style: Theme.of(context).textTheme.bodyLarge,
         ),
         actionsAlignment: MainAxisAlignment.spaceBetween,
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(AppLocalizations.of(context).noContinue
-            ,
-            style: Theme.of(context).textTheme.labelLarge
+            child: Text(
+              AppLocalizations.of(context).noContinue,
+              style: Theme.of(context).textTheme.labelLarge,
             ),
           ),
 
@@ -394,8 +393,10 @@ class _PosPageState extends ConsumerState<PosPage> {
             },
             label: Text(
               AppLocalizations.of(context).yesSignOut,
-              style: Theme.of(context).textTheme.labelLarge!.copyWith(color: Colors.white) ,
-            ), 
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge!.copyWith(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -517,7 +518,6 @@ class _PosAppBar extends StatelessWidget implements PreferredSizeWidget {
           // ),
           const SizedBox(width: 8),
         ],
-       
       ],
     );
   }

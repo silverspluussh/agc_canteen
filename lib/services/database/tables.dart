@@ -241,3 +241,21 @@ class GroupOrderItems extends Table {
   @override
   Set<Column> get primaryKey => {id};
 }
+
+class BioDataEntries extends Table {
+  /// Remote API integer ID.
+  IntColumn get id => integer()();
+  TextColumn get staffId => text().references(Staff, #id)();
+  /// Which finger this template belongs to (e.g. 'left_thumb', 'right_index').
+  TextColumn get finger => text()();
+  /// Raw biometric template stored as a Base64 string.
+  TextColumn get dataBase64 => text()();
+  BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+  TextColumn get createdAt => text()();
+  TextColumn get updatedAt => text()();
+  IntColumn get syncStatus => integer().withDefault(const Constant(0))();
+  TextColumn get syncUpdatedAt => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}

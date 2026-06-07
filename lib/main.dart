@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:developer';
 import 'package:adaptive_theme/adaptive_theme.dart';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
@@ -17,7 +16,6 @@ import 'views/staff/staff_management_page.dart';
 import 'views/settings/sync_page.dart';
 import 'views/pos/pos_settings_page.dart';
 import 'views/pos/manual_order_page.dart';
-
 
 final localeProvider = StateProvider<Locale>((ref) {
   return const Locale('en');
@@ -35,13 +33,11 @@ void main() async => runZoneGuarded(() async {
   final prefs = startupResults[2] as SharedPreferences;
   final savedLang = prefs.getString('app_language') ?? 'en';
   final savedLocale = Locale(savedLang);
-  
+
   await setupServiceLocator();
   runApp(
     ProviderScope(
-      overrides: [
-        localeProvider.overrideWith((ref) => savedLocale),
-      ],
+      overrides: [localeProvider.overrideWith((ref) => savedLocale)],
       child: MyApp(savedThemeMode: savedThemeMode),
     ),
   );

@@ -8,7 +8,13 @@ import '../services/auth/pos_auth_service.dart';
 import '../services/remote_data_sync_service.dart';
 import 'providers.dart';
 
-enum AuthStep { unauthenticated, authenticating, authenticated, completed, error }
+enum AuthStep {
+  unauthenticated,
+  authenticating,
+  authenticated,
+  completed,
+  error,
+}
 
 class AuthState {
   final AuthStep step;
@@ -21,11 +27,7 @@ class AuthState {
     this.error,
   });
 
-  AuthState copyWith({
-    AuthStep? step,
-    StaffAuthResult? staff,
-    String? error,
-  }) {
+  AuthState copyWith({AuthStep? step, StaffAuthResult? staff, String? error}) {
     return AuthState(
       step: step ?? this.step,
       staff: staff ?? this.staff,
@@ -45,26 +47,32 @@ class AuthController extends Notifier<AuthState> {
   AuthState build() => const AuthState();
 
   Future<void> authenticate() async {
-    dev.log('[AuthController] authenticate() called — setting state to authenticating',
-        name: 'POS_AUTH');
-    state = state.copyWith(
-      step: AuthStep.authenticating,
-      error: null,
+    dev.log(
+      '[AuthController] authenticate() called — setting state to authenticating',
+      name: 'POS_AUTH',
     );
+    state = state.copyWith(step: AuthStep.authenticating, error: null);
 
     try {
       final posAuth = ref.read(posAuthProvider);
 
-      dev.log('[AuthController] Calling posAuth.authenticateWithFingerprint()',
-          name: 'POS_AUTH');
+      dev.log(
+        '[AuthController] Calling posAuth.authenticateWithFingerprint()',
+        name: 'POS_AUTH',
+      );
       final result = await posAuth.authenticateWithFingerprint();
 
-      dev.log('[AuthController] authenticateWithFingerprint returned: '
-          'result=${result != null ? "staffId=${result.staffId}, name=${result.firstName} ${result.lastName}" : "null (no match)"}',
-          name: 'POS_AUTH');
+      dev.log(
+        '[AuthController] authenticateWithFingerprint returned: '
+        'result=${result != null ? "staffId=${result.staffId}, name=${result.firstName} ${result.lastName}" : "null (no match)"}',
+        name: 'POS_AUTH',
+      );
 
       if (result == null) {
-        dev.log('[AuthController] No match — setting error state', name: 'POS_AUTH');
+        dev.log(
+          '[AuthController] No match — setting error state',
+          name: 'POS_AUTH',
+        );
         getIt<ActivityLogService>().log(
           type: 'staff_auth_failure',
           message: 'Staff fingerprint authentication failed: no match',
@@ -78,14 +86,13 @@ class AuthController extends Notifier<AuthState> {
         return;
       }
 
-      dev.log('[AuthController] Auth SUCCESS — setting authenticated state',
-          name: 'POS_AUTH');
-      state = state.copyWith(
-        step: AuthStep.authenticated,
-        staff: result,
+      dev.log(
+        '[AuthController] Auth SUCCESS — setting authenticated state',
+        name: 'POS_AUTH',
       );
+      state = state.copyWith(step: AuthStep.authenticated, staff: result);
 
-      unawaited(getIt<RemoteDataSyncService>().syncAll());
+      //   unawaited(getIt<RemoteDataSyncService>().syncAll());
 
       getIt<ActivityLogService>().log(
         type: 'staff_auth_success',
@@ -95,17 +102,19 @@ class AuthController extends Notifier<AuthState> {
         actorName: '${result.firstName} ${result.lastName}',
       );
     } catch (e, st) {
-      dev.log('[AuthController] Auth EXCEPTION: $e', name: 'POS_AUTH', error: e, stackTrace: st);
+      dev.log(
+        '[AuthController] Auth EXCEPTION: $e',
+        name: 'POS_AUTH',
+        error: e,
+        stackTrace: st,
+      );
       getIt<ActivityLogService>().log(
         type: 'staff_auth_failure',
         message: 'Staff authentication error: $e',
         actorType: 'staff',
         metadata: {'reason': 'exception', 'error': e.toString()},
       );
-      state = state.copyWith(
-        step: AuthStep.error,
-        error: e.toString(),
-      );
+      state = state.copyWith(step: AuthStep.error, error: e.toString());
     }
   }
 
@@ -116,10 +125,13 @@ class AuthController extends Notifier<AuthState> {
       final staff = state.staff;
       getIt<ActivityLogService>().log(
         type: 'staff_sign_out',
-        message: 'Staff completed order and signed out: ${staff?.firstName ?? ""} ${staff?.lastName ?? ""}',
+        message:
+            'Staff completed order and signed out: ${staff?.firstName ?? ""} ${staff?.lastName ?? ""}',
         actorType: 'staff',
         actorId: staff?.staffId,
-        actorName: staff != null ? '${staff.firstName} ${staff.lastName}' : null,
+        actorName: staff != null
+            ? '${staff.firstName} ${staff.lastName}'
+            : null,
       );
       await Future.delayed(const Duration(seconds: 3));
       state = const AuthState(step: AuthStep.completed);
@@ -131,20 +143,20 @@ class AuthController extends Notifier<AuthState> {
       final staff = state.staff;
       getIt<ActivityLogService>().log(
         type: 'staff_sign_out',
-        message: 'Staff session reset: ${staff?.firstName ?? ""} ${staff?.lastName ?? ""}',
+        message:
+            'Staff session reset: ${staff?.firstName ?? ""} ${staff?.lastName ?? ""}',
         actorType: 'staff',
         actorId: staff?.staffId,
-        actorName: staff != null ? '${staff.firstName} ${staff.lastName}' : null,
+        actorName: staff != null
+            ? '${staff.firstName} ${staff.lastName}'
+            : null,
       );
     }
     state = const AuthState();
   }
 
   void clearError() {
-    state = state.copyWith(
-      step: AuthStep.unauthenticated,
-      error: null,
-    );
+    state = state.copyWith(step: AuthStep.unauthenticated, error: null);
   }
 }
 

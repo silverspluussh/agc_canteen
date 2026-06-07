@@ -9,6 +9,7 @@ class Staff {
   final String lastName;
   final int tier;
   final String level;
+  final List<BioData>? bioData;
   final String? staffType;
   final int? totalDependant;
   final int? noOfDependantAssigned;
@@ -25,12 +26,13 @@ class Staff {
     required this.lastName,
     required this.tier,
     required this.level,
-     this.staffType,
-     this.totalDependant,
-     this.noOfDependantAssigned,
-     this.department,
-     this.kitchens,
-     this.dependants,
+    this.staffType,
+    this.bioData,
+    this.totalDependant,
+    this.noOfDependantAssigned,
+    this.department,
+    this.kitchens,
+    this.dependants,
     required this.createdAt,
     this.updatedAt,
   });
@@ -45,6 +47,9 @@ class Staff {
       level: map['level'] as String,
       staffType: map['staff_type'] as String?,
       totalDependant: map['total_dependant'] as int?,
+      bioData: (map['bioData'] as List<dynamic>)
+          .map((item) => BioData.fromMap(item as Map<String, dynamic>))
+          .toList(),
       noOfDependantAssigned: map['no_of_dependant_assigned'] as int?,
       department: Department.fromMap(map['department'] as Map<String, dynamic>),
       kitchens: (map['kitchens'] as List<dynamic>)
@@ -72,6 +77,7 @@ class Staff {
       'total_dependant': totalDependant,
       'no_of_dependant_assigned': noOfDependantAssigned,
       'department': department?.toMap(),
+      'bioData': bioData?.map((item) => item.toMap()).toList(),
       'kitchens': kitchens?.map((item) => item.toMap()).toList(),
       'dependants': dependants?.map((item) => item.toMap()).toList(),
       'created_at': createdAt.toIso8601String(),
@@ -90,6 +96,7 @@ class Staff {
     int? totalDependant,
     int? noOfDependantAssigned,
     Department? department,
+    List<BioData>? bioData,
     List<Kitchen>? kitchens,
     List<Dependant>? dependants,
     DateTime? createdAt,
@@ -103,13 +110,57 @@ class Staff {
       tier: tier ?? this.tier,
       level: level ?? this.level,
       staffType: staffType ?? this.staffType,
+      bioData: bioData ?? this.bioData,
       totalDependant: totalDependant ?? this.totalDependant,
-      noOfDependantAssigned: noOfDependantAssigned ?? this.noOfDependantAssigned,
+      noOfDependantAssigned:
+          noOfDependantAssigned ?? this.noOfDependantAssigned,
       department: department ?? this.department,
       kitchens: kitchens ?? this.kitchens,
       dependants: dependants ?? this.dependants,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
+  }
+}
+
+class BioData {
+  int id;
+  String finger;
+  String data;
+  String staffId;
+  bool isActive;
+  DateTime createdAt;
+  DateTime updatedAt;
+
+  BioData({
+    required this.id,
+    required this.finger,
+    required this.data,
+    required this.staffId,
+    required this.isActive,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  factory BioData.fromMap(Map<String, dynamic> map) {
+    return BioData(
+      id: map['id'] as int,
+      finger: map['finger'] as String,
+      data: map['data'] as String,
+      staffId: map['staffId'] as String,
+      isActive: map['isActive'] as bool,
+      createdAt: DateTime.parse(map['createdAt']),
+      updatedAt: DateTime.parse(map['updatedAt']),
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'finger': finger,
+      'data': data,
+      'staffId': staffId,
+      'isActive': isActive,
+    };
   }
 }

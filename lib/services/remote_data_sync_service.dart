@@ -25,9 +25,9 @@ class RemoteDataSyncService {
     required NetworkAPI networkAPI,
     required AppDatabase db,
     Logger? logger,
-  })  : _networkAPI = networkAPI,
-        _db = db,
-        _logger = logger ?? Logger() {
+  }) : _networkAPI = networkAPI,
+       _db = db,
+       _logger = logger ?? Logger() {
     _jobs.add(_SyncJob(name: 'staff', execute: _syncStaff));
     _jobs.add(_SyncJob(name: 'meals', execute: _syncMeals));
   }
@@ -57,7 +57,9 @@ class RemoteDataSyncService {
     for (final job in _jobs) {
       try {
         final updated = await job.execute();
-        _logger.i('RemoteDataSyncService: ${job.name} sync ${updated ? "updated" : "skipped (no remote data)"}');
+        _logger.i(
+          'RemoteDataSyncService: ${job.name} sync ${updated ? "updated" : "skipped (no remote data)"}',
+        );
       } catch (e, _) {
         _logger.w('RemoteDataSyncService: ${job.name} sync failed ($e)');
       }
@@ -72,10 +74,7 @@ class RemoteDataSyncService {
       _logger.i('RemoteDataSyncService: fetching remote staff...');
       final responseData = await _networkAPI.getData(
         '/hr/staffs',
-        queryParameters: {
-          'limit': '500',
-          'offset': '0',
-        },
+        queryParameters: {'limit': '500', 'offset': '0'},
         builder: (data) => data,
       );
 
@@ -93,12 +92,15 @@ class RemoteDataSyncService {
         return false;
       }
 
-      _logger.i('RemoteDataSyncService: received ${staffList.length} remote staff records, upserting...');
+      _logger.i(
+        'RemoteDataSyncService: received ${staffList.length} remote staff records, upserting...',
+      );
 
       await _db.transaction(() async {
-
-        if(staffList?.isEmpty ?? true) {
-          _logger.w('RemoteDataSyncService: staff list is empty, skipping staff sync');
+        if (staffList?.isEmpty ?? true) {
+          _logger.w(
+            'RemoteDataSyncService: staff list is empty, skipping staff sync',
+          );
           return;
         }
         for (final item in staffList!) {
@@ -111,13 +113,16 @@ class RemoteDataSyncService {
       _logger.i('RemoteDataSyncService: staff sync completed');
       return true;
     } catch (e) {
-      _logger.w('RemoteDataSyncService: staff fetch failed ($e), keeping local data');
+      _logger.w(
+        'RemoteDataSyncService: staff fetch failed ($e), keeping local data',
+      );
       return false;
     }
   }
 
   Future<void> _upsertStaffData(Map<String, dynamic> staffMap) async {
     try {
+      _logger.i('RemoteDataSyncService: upserting staff data: $staffMap');
       final staffId = staffMap['id']?.toString() ?? '';
       if (staffId.isEmpty) return;
 
@@ -126,8 +131,16 @@ class RemoteDataSyncService {
 
       final companion = StaffCompanion(
         id: Value(staffId),
-        firstName: Value(staffMap['first_name'] as String? ?? staffMap['firstName'] as String? ?? ''),
-        lastName: Value(staffMap['last_name'] as String? ?? staffMap['lastName'] as String? ?? ''),
+        firstName: Value(
+          staffMap['first_name'] as String? ??
+              staffMap['firstName'] as String? ??
+              '',
+        ),
+        lastName: Value(
+          staffMap['last_name'] as String? ??
+              staffMap['lastName'] as String? ??
+              '',
+        ),
         phone: Value.absentIfNull(staffMap['phone'] as String?),
         email: Value.absentIfNull(staffMap['email'] as String?),
         syncStatus: const Value(2),
@@ -140,7 +153,10 @@ class RemoteDataSyncService {
         await _db.insertStaff(companion, mode: InsertMode.insertOrReplace);
       }
     } catch (e, stack) {
-      _logger.e('RemoteDataSyncService: failed to upsert staff: $e', stackTrace: stack);
+      _logger.e(
+        'RemoteDataSyncService: failed to upsert staff: $e',
+        stackTrace: stack,
+      );
     }
   }
 
@@ -182,7 +198,9 @@ class RemoteDataSyncService {
         return false;
       }
 
-      _logger.i('RemoteDataSyncService: received ${menuTypesList.length} remote menu types, upserting...');
+      _logger.i(
+        'RemoteDataSyncService: received ${menuTypesList.length} remote menu types, upserting...',
+      );
 
       for (final item in menuTypesList) {
         if (item is Map<String, dynamic>) {
@@ -193,7 +211,9 @@ class RemoteDataSyncService {
       _logger.i('RemoteDataSyncService: menu types sync completed');
       return true;
     } catch (e) {
-      _logger.w('RemoteDataSyncService: menu types fetch failed ($e), keeping local data');
+      _logger.w(
+        'RemoteDataSyncService: menu types fetch failed ($e), keeping local data',
+      );
       return false;
     }
   }
@@ -208,14 +228,25 @@ class RemoteDataSyncService {
         name: Value(menuTypeMap['name'] as String? ?? 'Menu Type'),
         remarks: Value.absentIfNull(menuTypeMap['remarks'] as String?),
         status: Value(menuTypeMap['status'] as String? ?? 'active'),
-        createdAt: Value(menuTypeMap['created_at'] as String? ?? menuTypeMap['createdAt'] as String? ?? DateTime.now().toIso8601String()),
-        updatedAt: Value(menuTypeMap['updated_at'] as String? ?? menuTypeMap['updatedAt'] as String? ?? DateTime.now().toIso8601String()),
+        createdAt: Value(
+          menuTypeMap['created_at'] as String? ??
+              menuTypeMap['createdAt'] as String? ??
+              DateTime.now().toIso8601String(),
+        ),
+        updatedAt: Value(
+          menuTypeMap['updated_at'] as String? ??
+              menuTypeMap['updatedAt'] as String? ??
+              DateTime.now().toIso8601String(),
+        ),
         syncStatus: const Value(2),
       );
 
       await _db.insertMenuType(companion, mode: InsertMode.insertOrReplace);
     } catch (e, stack) {
-      _logger.e('RemoteDataSyncService: failed to upsert menu type: $e', stackTrace: stack);
+      _logger.e(
+        'RemoteDataSyncService: failed to upsert menu type: $e',
+        stackTrace: stack,
+      );
     }
   }
 
@@ -249,7 +280,9 @@ class RemoteDataSyncService {
         return false;
       }
 
-      _logger.i('RemoteDataSyncService: received ${mealsList.length} remote meals, upserting...');
+      _logger.i(
+        'RemoteDataSyncService: received ${mealsList.length} remote meals, upserting...',
+      );
 
       for (final item in mealsList) {
         if (item is Map<String, dynamic>) {
@@ -260,7 +293,9 @@ class RemoteDataSyncService {
       _logger.i('RemoteDataSyncService: meals sync completed');
       return true;
     } catch (e) {
-      _logger.w('RemoteDataSyncService: meals fetch failed ($e), keeping local data');
+      _logger.w(
+        'RemoteDataSyncService: meals fetch failed ($e), keeping local data',
+      );
       return false;
     }
   }
@@ -281,8 +316,16 @@ class RemoteDataSyncService {
             name: Value(menuTypeMap['name'] as String? ?? 'Menu'),
             remarks: Value.absentIfNull(menuTypeMap['remarks'] as String?),
             status: Value(menuTypeMap['status'] as String? ?? 'active'),
-            createdAt: Value(menuTypeMap['created_at'] as String? ?? menuTypeMap['createdAt'] as String? ?? DateTime.now().toIso8601String()),
-            updatedAt: Value(menuTypeMap['updated_at'] as String? ?? menuTypeMap['updatedAt'] as String? ?? DateTime.now().toIso8601String()),
+            createdAt: Value(
+              menuTypeMap['created_at'] as String? ??
+                  menuTypeMap['createdAt'] as String? ??
+                  DateTime.now().toIso8601String(),
+            ),
+            updatedAt: Value(
+              menuTypeMap['updated_at'] as String? ??
+                  menuTypeMap['updatedAt'] as String? ??
+                  DateTime.now().toIso8601String(),
+            ),
             syncStatus: const Value(2),
           ),
           mode: InsertMode.insertOrReplace,
@@ -316,7 +359,13 @@ class RemoteDataSyncService {
             kitchenIds.add(kitchenId);
             final existingKitchen = await _db.getKitchen(kitchenId);
             if (existingKitchen == null) {
-              final minTier = int.tryParse(k['minTierRequired']?.toString() ?? k['min_tier_required']?.toString() ?? '1') ?? 1;
+              final minTier =
+                  int.tryParse(
+                    k['minTierRequired']?.toString() ??
+                        k['min_tier_required']?.toString() ??
+                        '1',
+                  ) ??
+                  1;
               await _db.insertKitchen(
                 KitchensCompanion(
                   id: Value(kitchenId),
@@ -324,8 +373,16 @@ class RemoteDataSyncService {
                   minTierRequired: Value(minTier),
                   status: Value(k['status'] as String? ?? 'active'),
                   companyId: const Value(defaultSiteId),
-                  createdAt: Value(k['created_at'] as String? ?? k['createdAt'] as String? ?? DateTime.now().toIso8601String()),
-                  updatedAt: Value(k['updated_at'] as String? ?? k['updatedAt'] as String? ?? DateTime.now().toIso8601String()),
+                  createdAt: Value(
+                    k['created_at'] as String? ??
+                        k['createdAt'] as String? ??
+                        DateTime.now().toIso8601String(),
+                  ),
+                  updatedAt: Value(
+                    k['updated_at'] as String? ??
+                        k['updatedAt'] as String? ??
+                        DateTime.now().toIso8601String(),
+                  ),
                   syncStatus: const Value(2),
                 ),
                 mode: InsertMode.insertOrReplace,
@@ -342,13 +399,27 @@ class RemoteDataSyncService {
         id: Value(mealId),
         name: Value(mealMap['name'] as String? ?? 'Meal'),
         status: Value(mealMap['status'] as String? ?? 'available'),
-        mealType: Value(mealMap['mealType'] as String? ?? mealMap['meal_type'] as String? ?? 'breakfast'),
+        mealType: Value(
+          mealMap['mealType'] as String? ??
+              mealMap['meal_type'] as String? ??
+              'breakfast',
+        ),
         remarks: Value.absentIfNull(mealMap['remarks'] as String?),
         price: Value(priceNum.toDouble()),
-        photoUrl: Value.absentIfNull(mealMap['photoUrl'] as String? ?? mealMap['photo_url'] as String?),
+        photoUrl: Value.absentIfNull(
+          mealMap['photoUrl'] as String? ?? mealMap['photo_url'] as String?,
+        ),
         menuTypeId: Value(menuTypeId),
-        createdAt: Value(mealMap['created_at'] as String? ?? mealMap['createdAt'] as String? ?? DateTime.now().toIso8601String()),
-        updatedAt: Value(mealMap['updated_at'] as String? ?? mealMap['updatedAt'] as String? ?? DateTime.now().toIso8601String()),
+        createdAt: Value(
+          mealMap['created_at'] as String? ??
+              mealMap['createdAt'] as String? ??
+              DateTime.now().toIso8601String(),
+        ),
+        updatedAt: Value(
+          mealMap['updated_at'] as String? ??
+              mealMap['updatedAt'] as String? ??
+              DateTime.now().toIso8601String(),
+        ),
         syncStatus: const Value(2),
       );
 
@@ -358,7 +429,10 @@ class RemoteDataSyncService {
         await _db.insertMeal(mealCompanion, kitchenIds);
       }
     } catch (e, stack) {
-      _logger.e('RemoteDataSyncService: failed to upsert meal: $e', stackTrace: stack);
+      _logger.e(
+        'RemoteDataSyncService: failed to upsert meal: $e',
+        stackTrace: stack,
+      );
     }
   }
 }

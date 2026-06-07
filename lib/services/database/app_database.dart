@@ -3,88 +3,42 @@ import 'tables.dart';
 
 part 'app_database.g.dart';
 
-@DriftDatabase(tables: [
-  Sites,
-  Kitchens,
-  MenuTypes,
-  Meals,
-  MealKitchens,
-  Staff,
-  Users,
-  UserKitchens,
-  Orders,
-  OrderItems,
-  Overcharges,
-  PosDevices,
-  Fingerprints,
-  ActivityLogs,
-  GroupOrders,
-  GroupOrderItems,
-])
+@DriftDatabase(
+  tables: [
+    Sites,
+    Kitchens,
+    MenuTypes,
+    Meals,
+    MealKitchens,
+    Staff,
+    Users,
+    UserKitchens,
+    Orders,
+    OrderItems,
+    Overcharges,
+    PosDevices,
+    Fingerprints,
+    ActivityLogs,
+    GroupOrders,
+    GroupOrderItems,
+    BioDataEntries,
+  ],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        onUpgrade: (m, from, to) async {
-          if (from < 3) {
-            await m.createTable(activityLogs);
-          }
-          if (from < 4) {
-            await m.createTable(groupOrders);
-            await m.createTable(groupOrderItems);
-          }
-        },
-        beforeOpen: (details) async {
-          await customStatement('PRAGMA foreign_keys = ON');
-          await customStatement(
-            'CREATE TABLE IF NOT EXISTS activity_logs ('
-            'id TEXT NOT NULL PRIMARY KEY, '
-            'type TEXT NOT NULL, '
-            'message TEXT NOT NULL, '
-            'actor_type TEXT, '
-            'actor_id TEXT, '
-            'actor_name TEXT, '
-            'source_table TEXT, '
-            'record_id TEXT, '
-            'metadata TEXT, '
-            'created_at TEXT NOT NULL'
-            ')',
-          );
-          await customStatement(
-            'CREATE TABLE IF NOT EXISTS group_orders ('
-            'id TEXT NOT NULL PRIMARY KEY, '
-            'order_code TEXT NOT NULL, '
-            'status TEXT NOT NULL, '
-            'order_type TEXT NOT NULL, '
-            'meal_type TEXT NOT NULL, '
-            'total REAL NOT NULL, '
-            'group_count INTEGER NOT NULL, '
-            'description TEXT, '
-            'created_at TEXT NOT NULL, '
-            'updated_at TEXT NOT NULL, '
-            'sync_status INTEGER NOT NULL DEFAULT 0, '
-            'sync_updated_at TEXT'
-            ')',
-          );
-          await customStatement(
-            'CREATE TABLE IF NOT EXISTS group_order_items ('
-            'id TEXT NOT NULL PRIMARY KEY, '
-            'price REAL NOT NULL, '
-            'qty INTEGER NOT NULL, '
-            'meal_id TEXT NOT NULL REFERENCES meals(id), '
-            'group_order_id TEXT NOT NULL REFERENCES group_orders(id), '
-            'created_at TEXT NOT NULL, '
-            'updated_at TEXT NOT NULL, '
-            'sync_status INTEGER NOT NULL DEFAULT 0, '
-            'sync_updated_at TEXT'
-            ')',
-          );
-        },
-      );
+    onUpgrade: (m, from, to) async {
+      await m.createAll();
+    },
+    beforeOpen: (details) async {
+      await customStatement('PRAGMA foreign_keys = ON');
+    },
+  );
 
   Future<void> clearAll() async {
     await transaction(() async {
@@ -101,6 +55,7 @@ class AppDatabase extends _$AppDatabase {
       await delete(overcharges).go();
       await delete(posDevices).go();
       await delete(fingerprints).go();
+      await delete(bioDataEntries).go();
       await delete(activityLogs).go();
       await delete(groupOrderItems).go();
       await delete(groupOrders).go();
@@ -120,41 +75,55 @@ class AppDatabase extends _$AppDatabase {
       'overcharges': await _countUnsyncedOvercharges(),
       'pos_devices': await _countUnsyncedPosDevices(),
       'fingerprints': await _countUnsyncedFingerprints(),
+      'bio_data': await _countUnsyncedBioData(),
       'group_orders': await _countUnsyncedGroupOrders(),
       'group_order_items': await _countUnsyncedGroupOrderItems(),
     };
   }
 
-  Future<int> _countUnsyncedSites() async =>
-      (await (select(sites)..where((t) => t.syncStatus.isNotValue(2))).get()).length;
-  Future<int> _countUnsyncedKitchens() async =>
-      (await (select(kitchens)..where((t) => t.syncStatus.isNotValue(2))).get()).length;
-  Future<int> _countUnsyncedMenuTypes() async =>
-      (await (select(menuTypes)..where((t) => t.syncStatus.isNotValue(2))).get()).length;
-  Future<int> _countUnsyncedMeals() async =>
-      (await (select(meals)..where((t) => t.syncStatus.isNotValue(2))).get()).length;
-  Future<int> _countUnsyncedStaff() async =>
-      (await (select(staff)..where((t) => t.syncStatus.isNotValue(2))).get()).length;
-  Future<int> _countUnsyncedUsers() async =>
-      (await (select(users)..where((t) => t.syncStatus.isNotValue(2))).get()).length;
-  Future<int> _countUnsyncedOrders() async =>
-      (await (select(orders)..where((t) => t.syncStatus.isNotValue(2))).get()).length;
-  Future<int> _countUnsyncedOrderItems() async =>
-      (await (select(orderItems)..where((t) => t.syncStatus.isNotValue(2))).get()).length;
-  Future<int> _countUnsyncedOvercharges() async =>
-      (await (select(overcharges)..where((t) => t.syncStatus.isNotValue(2))).get()).length;
-  Future<int> _countUnsyncedPosDevices() async =>
-      (await (select(posDevices)..where((t) => t.syncStatus.isNotValue(2))).get()).length;
-  Future<int> _countUnsyncedGroupOrders() async =>
-      (await (select(groupOrders)..where((t) => t.syncStatus.isNotValue(2))).get()).length;
-  Future<int> _countUnsyncedGroupOrderItems() async =>
-      (await (select(groupOrderItems)..where((t) => t.syncStatus.isNotValue(2))).get()).length;
+  Future<int> _countUnsyncedSites() async => (await (select(
+    sites,
+  )..where((t) => t.syncStatus.isNotValue(2))).get()).length;
+  Future<int> _countUnsyncedKitchens() async => (await (select(
+    kitchens,
+  )..where((t) => t.syncStatus.isNotValue(2))).get()).length;
+  Future<int> _countUnsyncedMenuTypes() async => (await (select(
+    menuTypes,
+  )..where((t) => t.syncStatus.isNotValue(2))).get()).length;
+  Future<int> _countUnsyncedMeals() async => (await (select(
+    meals,
+  )..where((t) => t.syncStatus.isNotValue(2))).get()).length;
+  Future<int> _countUnsyncedStaff() async => (await (select(
+    staff,
+  )..where((t) => t.syncStatus.isNotValue(2))).get()).length;
+  Future<int> _countUnsyncedUsers() async => (await (select(
+    users,
+  )..where((t) => t.syncStatus.isNotValue(2))).get()).length;
+  Future<int> _countUnsyncedOrders() async => (await (select(
+    orders,
+  )..where((t) => t.syncStatus.isNotValue(2))).get()).length;
+  Future<int> _countUnsyncedOrderItems() async => (await (select(
+    orderItems,
+  )..where((t) => t.syncStatus.isNotValue(2))).get()).length;
+  Future<int> _countUnsyncedOvercharges() async => (await (select(
+    overcharges,
+  )..where((t) => t.syncStatus.isNotValue(2))).get()).length;
+  Future<int> _countUnsyncedPosDevices() async => (await (select(
+    posDevices,
+  )..where((t) => t.syncStatus.isNotValue(2))).get()).length;
+  Future<int> _countUnsyncedGroupOrders() async => (await (select(
+    groupOrders,
+  )..where((t) => t.syncStatus.isNotValue(2))).get()).length;
+  Future<int> _countUnsyncedGroupOrderItems() async => (await (select(
+    groupOrderItems,
+  )..where((t) => t.syncStatus.isNotValue(2))).get()).length;
 
   // ─── Sites ─────────────────────────────────────────────────
 
-  Future<void> insertSite(SitesCompanion site,
-          {InsertMode mode = InsertMode.insert}) =>
-      into(sites).insert(site, mode: mode);
+  Future<void> insertSite(
+    SitesCompanion site, {
+    InsertMode mode = InsertMode.insert,
+  }) => into(sites).insert(site, mode: mode);
 
   Future<void> updateSite(String id, SitesCompanion site) =>
       (update(sites)..where((t) => t.id.equals(id))).write(site);
@@ -170,22 +139,27 @@ class AppDatabase extends _$AppDatabase {
       (select(sites)..where((t) => t.syncStatus.isNotValue(2))).get();
 
   Future<void> markSiteSynced(String id) =>
-      (update(sites)..where((t) => t.id.equals(id))).write(SitesCompanion(
-        syncStatus: const Value(2),
-        syncUpdatedAt: Value(DateTime.now().toIso8601String()),
-      ));
+      (update(sites)..where((t) => t.id.equals(id))).write(
+        SitesCompanion(
+          syncStatus: const Value(2),
+          syncUpdatedAt: Value(DateTime.now().toIso8601String()),
+        ),
+      );
 
   Future<void> markSiteFailed(String id) =>
-      (update(sites)..where((t) => t.id.equals(id))).write(SitesCompanion(
-        syncStatus: const Value(3),
-        syncUpdatedAt: Value(DateTime.now().toIso8601String()),
-      ));
+      (update(sites)..where((t) => t.id.equals(id))).write(
+        SitesCompanion(
+          syncStatus: const Value(3),
+          syncUpdatedAt: Value(DateTime.now().toIso8601String()),
+        ),
+      );
 
   // ─── Kitchens ──────────────────────────────────────────────
 
-  Future<void> insertKitchen(KitchensCompanion kitchen,
-          {InsertMode mode = InsertMode.insert}) =>
-      into(kitchens).insert(kitchen, mode: mode);
+  Future<void> insertKitchen(
+    KitchensCompanion kitchen, {
+    InsertMode mode = InsertMode.insert,
+  }) => into(kitchens).insert(kitchen, mode: mode);
 
   Future<void> updateKitchen(String id, KitchensCompanion kitchen) =>
       (update(kitchens)..where((t) => t.id.equals(id))).write(kitchen);
@@ -204,24 +178,27 @@ class AppDatabase extends _$AppDatabase {
       (select(kitchens)..where((t) => t.syncStatus.isNotValue(2))).get();
 
   Future<void> markKitchenSynced(String id) =>
-      (update(kitchens)..where((t) => t.id.equals(id)))
-          .write(KitchensCompanion(
-        syncStatus: const Value(2),
-        syncUpdatedAt: Value(DateTime.now().toIso8601String()),
-      ));
+      (update(kitchens)..where((t) => t.id.equals(id))).write(
+        KitchensCompanion(
+          syncStatus: const Value(2),
+          syncUpdatedAt: Value(DateTime.now().toIso8601String()),
+        ),
+      );
 
   Future<void> markKitchenFailed(String id) =>
-      (update(kitchens)..where((t) => t.id.equals(id)))
-          .write(KitchensCompanion(
-        syncStatus: const Value(3),
-        syncUpdatedAt: Value(DateTime.now().toIso8601String()),
-      ));
+      (update(kitchens)..where((t) => t.id.equals(id))).write(
+        KitchensCompanion(
+          syncStatus: const Value(3),
+          syncUpdatedAt: Value(DateTime.now().toIso8601String()),
+        ),
+      );
 
   // ─── MenuTypes ─────────────────────────────────────────────
 
-  Future<void> insertMenuType(MenuTypesCompanion menuType,
-          {InsertMode mode = InsertMode.insert}) =>
-      into(menuTypes).insert(menuType, mode: mode);
+  Future<void> insertMenuType(
+    MenuTypesCompanion menuType, {
+    InsertMode mode = InsertMode.insert,
+  }) => into(menuTypes).insert(menuType, mode: mode);
 
   Future<void> updateMenuType(String id, MenuTypesCompanion menuType) =>
       (update(menuTypes)..where((t) => t.id.equals(id))).write(menuType);
@@ -237,18 +214,20 @@ class AppDatabase extends _$AppDatabase {
       (select(menuTypes)..where((t) => t.syncStatus.isNotValue(2))).get();
 
   Future<void> markMenuTypeSynced(String id) =>
-      (update(menuTypes)..where((t) => t.id.equals(id)))
-          .write(MenuTypesCompanion(
-        syncStatus: const Value(2),
-        syncUpdatedAt: Value(DateTime.now().toIso8601String()),
-      ));
+      (update(menuTypes)..where((t) => t.id.equals(id))).write(
+        MenuTypesCompanion(
+          syncStatus: const Value(2),
+          syncUpdatedAt: Value(DateTime.now().toIso8601String()),
+        ),
+      );
 
   Future<void> markMenuTypeFailed(String id) =>
-      (update(menuTypes)..where((t) => t.id.equals(id)))
-          .write(MenuTypesCompanion(
-        syncStatus: const Value(3),
-        syncUpdatedAt: Value(DateTime.now().toIso8601String()),
-      ));
+      (update(menuTypes)..where((t) => t.id.equals(id))).write(
+        MenuTypesCompanion(
+          syncStatus: const Value(3),
+          syncUpdatedAt: Value(DateTime.now().toIso8601String()),
+        ),
+      );
 
   // ─── Meals ─────────────────────────────────────────────────
 
@@ -258,7 +237,9 @@ class AppDatabase extends _$AppDatabase {
       for (final kid in kitchenIds) {
         await into(mealKitchens).insert(
           MealKitchensCompanion(
-              mealId: Value(meal.id.value), kitchenId: Value(kid)),
+            mealId: Value(meal.id.value),
+            kitchenId: Value(kid),
+          ),
         );
       }
     });
@@ -298,22 +279,27 @@ class AppDatabase extends _$AppDatabase {
       (select(meals)..where((t) => t.syncStatus.isNotValue(2))).get();
 
   Future<void> markMealSynced(String id) =>
-      (update(meals)..where((t) => t.id.equals(id))).write(MealsCompanion(
-        syncStatus: const Value(2),
-        syncUpdatedAt: Value(DateTime.now().toIso8601String()),
-      ));
+      (update(meals)..where((t) => t.id.equals(id))).write(
+        MealsCompanion(
+          syncStatus: const Value(2),
+          syncUpdatedAt: Value(DateTime.now().toIso8601String()),
+        ),
+      );
 
   Future<void> markMealFailed(String id) =>
-      (update(meals)..where((t) => t.id.equals(id))).write(MealsCompanion(
-        syncStatus: const Value(3),
-        syncUpdatedAt: Value(DateTime.now().toIso8601String()),
-      ));
+      (update(meals)..where((t) => t.id.equals(id))).write(
+        MealsCompanion(
+          syncStatus: const Value(3),
+          syncUpdatedAt: Value(DateTime.now().toIso8601String()),
+        ),
+      );
 
   // ─── Staff ─────────────────────────────────────────────────
 
-  Future<void> insertStaff(StaffCompanion staff,
-          {InsertMode mode = InsertMode.insert}) =>
-      into(this.staff).insert(staff, mode: mode);
+  Future<void> insertStaff(
+    StaffCompanion staff, {
+    InsertMode mode = InsertMode.insert,
+  }) => into(this.staff).insert(staff, mode: mode);
 
   Future<void> updateStaff(String id, StaffCompanion staff) =>
       (update(this.staff)..where((t) => t.id.equals(id))).write(staff);
@@ -329,16 +315,20 @@ class AppDatabase extends _$AppDatabase {
       (select(staff)..where((t) => t.syncStatus.isNotValue(2))).get();
 
   Future<void> markStaffSynced(String id) =>
-      (update(staff)..where((t) => t.id.equals(id))).write(StaffCompanion(
-        syncStatus: const Value(2),
-        syncUpdatedAt: Value(DateTime.now().toIso8601String()),
-      ));
+      (update(staff)..where((t) => t.id.equals(id))).write(
+        StaffCompanion(
+          syncStatus: const Value(2),
+          syncUpdatedAt: Value(DateTime.now().toIso8601String()),
+        ),
+      );
 
   Future<void> markStaffFailed(String id) =>
-      (update(staff)..where((t) => t.id.equals(id))).write(StaffCompanion(
-        syncStatus: const Value(3),
-        syncUpdatedAt: Value(DateTime.now().toIso8601String()),
-      ));
+      (update(staff)..where((t) => t.id.equals(id))).write(
+        StaffCompanion(
+          syncStatus: const Value(3),
+          syncUpdatedAt: Value(DateTime.now().toIso8601String()),
+        ),
+      );
 
   // ─── Users ─────────────────────────────────────────────────
 
@@ -348,7 +338,9 @@ class AppDatabase extends _$AppDatabase {
       for (final kid in kitchenIds) {
         await into(userKitchens).insert(
           UserKitchensCompanion(
-              userId: Value(user.id.value), kitchenId: Value(kid)),
+            userId: Value(user.id.value),
+            kitchenId: Value(kid),
+          ),
         );
       }
     });
@@ -385,21 +377,27 @@ class AppDatabase extends _$AppDatabase {
       (select(users)..where((t) => t.syncStatus.isNotValue(2))).get();
 
   Future<void> markUserSynced(String id) =>
-      (update(users)..where((t) => t.id.equals(id))).write(UsersCompanion(
-        syncStatus: const Value(2),
-        syncUpdatedAt: Value(DateTime.now().toIso8601String()),
-      ));
+      (update(users)..where((t) => t.id.equals(id))).write(
+        UsersCompanion(
+          syncStatus: const Value(2),
+          syncUpdatedAt: Value(DateTime.now().toIso8601String()),
+        ),
+      );
 
   Future<void> markUserFailed(String id) =>
-      (update(users)..where((t) => t.id.equals(id))).write(UsersCompanion(
-        syncStatus: const Value(3),
-        syncUpdatedAt: Value(DateTime.now().toIso8601String()),
-      ));
+      (update(users)..where((t) => t.id.equals(id))).write(
+        UsersCompanion(
+          syncStatus: const Value(3),
+          syncUpdatedAt: Value(DateTime.now().toIso8601String()),
+        ),
+      );
 
   // ─── Orders ────────────────────────────────────────────────
 
   Future<void> insertOrder(
-      OrdersCompanion order, List<OrderItemsCompanion> items) async {
+    OrdersCompanion order,
+    List<OrderItemsCompanion> items,
+  ) async {
     await transaction(() async {
       await into(orders).insert(order);
       for (final item in items) {
@@ -409,7 +407,9 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<void> updateOrder(
-      OrdersCompanion order, List<OrderItemsCompanion> items) async {
+    OrdersCompanion order,
+    List<OrderItemsCompanion> items,
+  ) async {
     final id = order.id.value;
     await transaction(() async {
       await (update(orders)..where((t) => t.id.equals(id))).write(order);
@@ -441,35 +441,43 @@ class AppDatabase extends _$AppDatabase {
       (select(orderItems)..where((t) => t.syncStatus.isNotValue(2))).get();
 
   Future<void> markOrderSynced(String id) =>
-      (update(orders)..where((t) => t.id.equals(id))).write(OrdersCompanion(
-        syncStatus: const Value(2),
-        syncUpdatedAt: Value(DateTime.now().toIso8601String()),
-      ));
+      (update(orders)..where((t) => t.id.equals(id))).write(
+        OrdersCompanion(
+          syncStatus: const Value(2),
+          syncUpdatedAt: Value(DateTime.now().toIso8601String()),
+        ),
+      );
 
   Future<void> markOrderFailed(String id) =>
-      (update(orders)..where((t) => t.id.equals(id))).write(OrdersCompanion(
-        syncStatus: const Value(3),
-        syncUpdatedAt: Value(DateTime.now().toIso8601String()),
-      ));
+      (update(orders)..where((t) => t.id.equals(id))).write(
+        OrdersCompanion(
+          syncStatus: const Value(3),
+          syncUpdatedAt: Value(DateTime.now().toIso8601String()),
+        ),
+      );
 
   Future<void> markOrderItemSynced(String id) =>
-      (update(orderItems)..where((t) => t.id.equals(id)))
-          .write(OrderItemsCompanion(
-        syncStatus: const Value(2),
-        syncUpdatedAt: Value(DateTime.now().toIso8601String()),
-      ));
+      (update(orderItems)..where((t) => t.id.equals(id))).write(
+        OrderItemsCompanion(
+          syncStatus: const Value(2),
+          syncUpdatedAt: Value(DateTime.now().toIso8601String()),
+        ),
+      );
 
   Future<void> markOrderItemFailed(String id) =>
-      (update(orderItems)..where((t) => t.id.equals(id)))
-          .write(OrderItemsCompanion(
-        syncStatus: const Value(3),
-        syncUpdatedAt: Value(DateTime.now().toIso8601String()),
-      ));
+      (update(orderItems)..where((t) => t.id.equals(id))).write(
+        OrderItemsCompanion(
+          syncStatus: const Value(3),
+          syncUpdatedAt: Value(DateTime.now().toIso8601String()),
+        ),
+      );
 
   // ─── Group Orders ───────────────────────────────────────────
 
   Future<void> insertGroupOrder(
-      GroupOrdersCompanion order, List<GroupOrderItemsCompanion> items) async {
+    GroupOrdersCompanion order,
+    List<GroupOrderItemsCompanion> items,
+  ) async {
     await transaction(() async {
       await into(groupOrders).insert(order);
       for (final item in items) {
@@ -480,7 +488,9 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> deleteGroupOrder(String id) async {
     await transaction(() async {
-      await (delete(groupOrderItems)..where((t) => t.groupOrderId.equals(id))).go();
+      await (delete(
+        groupOrderItems,
+      )..where((t) => t.groupOrderId.equals(id))).go();
       await (delete(groupOrders)..where((t) => t.id.equals(id))).go();
     });
   }
@@ -490,7 +500,9 @@ class AppDatabase extends _$AppDatabase {
       (select(groupOrders)..where((t) => t.id.equals(id))).getSingleOrNull();
 
   Future<List<GroupOrderItem>> getGroupOrderItems(String groupOrderId) =>
-      (select(groupOrderItems)..where((t) => t.groupOrderId.equals(groupOrderId))).get();
+      (select(
+        groupOrderItems,
+      )..where((t) => t.groupOrderId.equals(groupOrderId))).get();
 
   Future<List<GroupOrder>> getUnsyncedGroupOrders() =>
       (select(groupOrders)..where((t) => t.syncStatus.isNotValue(2))).get();
@@ -499,38 +511,43 @@ class AppDatabase extends _$AppDatabase {
       (select(groupOrderItems)..where((t) => t.syncStatus.isNotValue(2))).get();
 
   Future<void> markGroupOrderSynced(String id) =>
-      (update(groupOrders)..where((t) => t.id.equals(id)))
-          .write(GroupOrdersCompanion(
-        syncStatus: const Value(2),
-        syncUpdatedAt: Value(DateTime.now().toIso8601String()),
-      ));
+      (update(groupOrders)..where((t) => t.id.equals(id))).write(
+        GroupOrdersCompanion(
+          syncStatus: const Value(2),
+          syncUpdatedAt: Value(DateTime.now().toIso8601String()),
+        ),
+      );
 
   Future<void> markGroupOrderFailed(String id) =>
-      (update(groupOrders)..where((t) => t.id.equals(id)))
-          .write(GroupOrdersCompanion(
-        syncStatus: const Value(3),
-        syncUpdatedAt: Value(DateTime.now().toIso8601String()),
-      ));
+      (update(groupOrders)..where((t) => t.id.equals(id))).write(
+        GroupOrdersCompanion(
+          syncStatus: const Value(3),
+          syncUpdatedAt: Value(DateTime.now().toIso8601String()),
+        ),
+      );
 
   Future<void> markGroupOrderItemSynced(String id) =>
-      (update(groupOrderItems)..where((t) => t.id.equals(id)))
-          .write(GroupOrderItemsCompanion(
-        syncStatus: const Value(2),
-        syncUpdatedAt: Value(DateTime.now().toIso8601String()),
-      ));
+      (update(groupOrderItems)..where((t) => t.id.equals(id))).write(
+        GroupOrderItemsCompanion(
+          syncStatus: const Value(2),
+          syncUpdatedAt: Value(DateTime.now().toIso8601String()),
+        ),
+      );
 
   Future<void> markGroupOrderItemFailed(String id) =>
-      (update(groupOrderItems)..where((t) => t.id.equals(id)))
-          .write(GroupOrderItemsCompanion(
-        syncStatus: const Value(3),
-        syncUpdatedAt: Value(DateTime.now().toIso8601String()),
-      ));
+      (update(groupOrderItems)..where((t) => t.id.equals(id))).write(
+        GroupOrderItemsCompanion(
+          syncStatus: const Value(3),
+          syncUpdatedAt: Value(DateTime.now().toIso8601String()),
+        ),
+      );
 
   // ─── Overcharges ───────────────────────────────────────────
 
-  Future<void> insertOvercharge(OverchargesCompanion overcharge,
-          {InsertMode mode = InsertMode.insert}) =>
-      into(overcharges).insert(overcharge, mode: mode);
+  Future<void> insertOvercharge(
+    OverchargesCompanion overcharge, {
+    InsertMode mode = InsertMode.insert,
+  }) => into(overcharges).insert(overcharge, mode: mode);
 
   Future<void> updateOvercharge(String id, OverchargesCompanion overcharge) =>
       (update(overcharges)..where((t) => t.id.equals(id))).write(overcharge);
@@ -546,24 +563,27 @@ class AppDatabase extends _$AppDatabase {
       (select(overcharges)..where((t) => t.syncStatus.isNotValue(2))).get();
 
   Future<void> markOverchargeSynced(String id) =>
-      (update(overcharges)..where((t) => t.id.equals(id)))
-          .write(OverchargesCompanion(
-        syncStatus: const Value(2),
-        syncUpdatedAt: Value(DateTime.now().toIso8601String()),
-      ));
+      (update(overcharges)..where((t) => t.id.equals(id))).write(
+        OverchargesCompanion(
+          syncStatus: const Value(2),
+          syncUpdatedAt: Value(DateTime.now().toIso8601String()),
+        ),
+      );
 
   Future<void> markOverchargeFailed(String id) =>
-      (update(overcharges)..where((t) => t.id.equals(id)))
-          .write(OverchargesCompanion(
-        syncStatus: const Value(3),
-        syncUpdatedAt: Value(DateTime.now().toIso8601String()),
-      ));
+      (update(overcharges)..where((t) => t.id.equals(id))).write(
+        OverchargesCompanion(
+          syncStatus: const Value(3),
+          syncUpdatedAt: Value(DateTime.now().toIso8601String()),
+        ),
+      );
 
   // ─── PosDevices ────────────────────────────────────────────
 
-  Future<void> insertPosDevice(PosDevicesCompanion device,
-          {InsertMode mode = InsertMode.insert}) =>
-      into(posDevices).insert(device, mode: mode);
+  Future<void> insertPosDevice(
+    PosDevicesCompanion device, {
+    InsertMode mode = InsertMode.insert,
+  }) => into(posDevices).insert(device, mode: mode);
 
   Future<void> updatePosDevice(String id, PosDevicesCompanion device) =>
       (update(posDevices)..where((t) => t.id.equals(id))).write(device);
@@ -579,77 +599,128 @@ class AppDatabase extends _$AppDatabase {
       (select(posDevices)..where((t) => t.syncStatus.isNotValue(2))).get();
 
   Future<void> markPosDeviceSynced(String id) =>
-      (update(posDevices)..where((t) => t.id.equals(id)))
-          .write(PosDevicesCompanion(
-        syncStatus: const Value(2),
-        syncUpdatedAt: Value(DateTime.now().toIso8601String()),
-      ));
+      (update(posDevices)..where((t) => t.id.equals(id))).write(
+        PosDevicesCompanion(
+          syncStatus: const Value(2),
+          syncUpdatedAt: Value(DateTime.now().toIso8601String()),
+        ),
+      );
 
   Future<void> markPosDeviceFailed(String id) =>
-      (update(posDevices)..where((t) => t.id.equals(id)))
-          .write(PosDevicesCompanion(
-        syncStatus: const Value(3),
-        syncUpdatedAt: Value(DateTime.now().toIso8601String()),
-      ));
+      (update(posDevices)..where((t) => t.id.equals(id))).write(
+        PosDevicesCompanion(
+          syncStatus: const Value(3),
+          syncUpdatedAt: Value(DateTime.now().toIso8601String()),
+        ),
+      );
 
   // ─── Fingerprints ──────────────────────────────────
 
-  Future<void> insertFingerprint(FingerprintsCompanion tpl,
-          {InsertMode mode = InsertMode.insert}) =>
-      into(fingerprints).insert(tpl, mode: mode);
+  Future<void> insertFingerprint(
+    FingerprintsCompanion tpl, {
+    InsertMode mode = InsertMode.insert,
+  }) => into(fingerprints).insert(tpl, mode: mode);
 
-  Future<void> updateFingerprint(
-          String id, FingerprintsCompanion tpl) =>
+  Future<void> updateFingerprint(String id, FingerprintsCompanion tpl) =>
       (update(fingerprints)..where((t) => t.id.equals(id))).write(tpl);
 
   Future<void> deleteFingerprint(String id) =>
       (delete(fingerprints)..where((t) => t.id.equals(id))).go();
 
-  Future<List<Fingerprint>> getAllFingerprints() =>
-      select(fingerprints).get();
+  Future<List<Fingerprint>> getAllFingerprints() => select(fingerprints).get();
 
   Future<List<Fingerprint>> getFingerprintsByStaff(String staffId) =>
-      (select(fingerprints)..where((t) => t.staffId.equals(staffId)))
-          .get();
+      (select(fingerprints)..where((t) => t.staffId.equals(staffId))).get();
 
   Future<List<Fingerprint>> getActiveFingerprints() =>
-      (select(fingerprints)..where((t) => t.isActive.equals(true)))
-          .get();
+      (select(fingerprints)..where((t) => t.isActive.equals(true))).get();
 
   Future<Fingerprint?> getFingerprint(String id) =>
-      (select(fingerprints)..where((t) => t.id.equals(id)))
-          .getSingleOrNull();
+      (select(fingerprints)..where((t) => t.id.equals(id))).getSingleOrNull();
 
   Future<List<Fingerprint>> getUnsyncedFingerprints() =>
-      (select(fingerprints)
-            ..where((t) => t.syncStatus.isNotValue(2)))
-          .get();
+      (select(fingerprints)..where((t) => t.syncStatus.isNotValue(2))).get();
 
   Future<void> markFingerprintSynced(String id) =>
-      (update(fingerprints)..where((t) => t.id.equals(id)))
-          .write(FingerprintsCompanion(
-        syncStatus: const Value(2),
-        syncUpdatedAt: Value(DateTime.now().toIso8601String()),
-      ));
+      (update(fingerprints)..where((t) => t.id.equals(id))).write(
+        FingerprintsCompanion(
+          syncStatus: const Value(2),
+          syncUpdatedAt: Value(DateTime.now().toIso8601String()),
+        ),
+      );
 
   Future<void> markFingerprintFailed(String id) =>
-      (update(fingerprints)..where((t) => t.id.equals(id)))
-          .write(FingerprintsCompanion(
-        syncStatus: const Value(3),
-        syncUpdatedAt: Value(DateTime.now().toIso8601String()),
-      ));
+      (update(fingerprints)..where((t) => t.id.equals(id))).write(
+        FingerprintsCompanion(
+          syncStatus: const Value(3),
+          syncUpdatedAt: Value(DateTime.now().toIso8601String()),
+        ),
+      );
 
-  Future<int> _countUnsyncedFingerprints() async =>
-      (await (select(fingerprints)
-                ..where((t) => t.syncStatus.isNotValue(2)))
-              .get())
-          .length;
+  Future<int> _countUnsyncedFingerprints() async => (await (select(
+    fingerprints,
+  )..where((t) => t.syncStatus.isNotValue(2))).get()).length;
+
+  Future<int> _countUnsyncedBioData() async => (await (select(
+    bioDataEntries,
+  )..where((t) => t.syncStatus.isNotValue(2))).get()).length;
+
+  // ─── BioDataEntries ────────────────────────────────
+
+  Future<void> insertBioData(
+    BioDataEntriesCompanion entry, {
+    InsertMode mode = InsertMode.insert,
+  }) => into(bioDataEntries).insert(entry, mode: mode);
+
+  Future<void> updateBioData(int id, BioDataEntriesCompanion entry) =>
+      (update(bioDataEntries)..where((t) => t.id.equals(id))).write(entry);
+
+  Future<void> deleteBioData(int id) =>
+      (delete(bioDataEntries)..where((t) => t.id.equals(id))).go();
+
+  Future<void> deleteBioDataByStaff(String staffId) =>
+      (delete(bioDataEntries)..where((t) => t.staffId.equals(staffId))).go();
+
+  Future<List<BioDataEntry>> getAllBioData() => select(bioDataEntries).get();
+
+  Future<BioDataEntry?> getBioData(int id) =>
+      (select(bioDataEntries)..where((t) => t.id.equals(id))).getSingleOrNull();
+
+  Future<List<BioDataEntry>> getBioDataByStaff(String staffId) =>
+      (select(bioDataEntries)..where((t) => t.staffId.equals(staffId))).get();
+
+  Future<List<BioDataEntry>> getActiveBioDataByStaff(String staffId) => (select(
+    bioDataEntries,
+  )..where((t) => t.staffId.equals(staffId) & t.isActive.equals(true))).get();
+
+  Future<List<BioDataEntry>> getUnsyncedBioData() =>
+      (select(bioDataEntries)..where((t) => t.syncStatus.isNotValue(2))).get();
+
+  Future<void> markBioDataSynced(int id) =>
+      (update(bioDataEntries)..where((t) => t.id.equals(id))).write(
+        BioDataEntriesCompanion(
+          syncStatus: const Value(2),
+          syncUpdatedAt: Value(DateTime.now().toIso8601String()),
+        ),
+      );
+
+  Future<void> markBioDataFailed(int id) =>
+      (update(bioDataEntries)..where((t) => t.id.equals(id))).write(
+        BioDataEntriesCompanion(
+          syncStatus: const Value(3),
+          syncUpdatedAt: Value(DateTime.now().toIso8601String()),
+        ),
+      );
+
+  Future<void> upsertBioData(BioDataEntriesCompanion entry) =>
+      into(bioDataEntries).insert(entry, mode: InsertMode.insertOrReplace);
 
   // ─── ActivityLogs ──────────────────────────────────
 
-  Future<void> insertActivityLog(ActivityLogsCompanion log,
-          {InsertMode mode = InsertMode.insert}) =>
-      into(activityLogs).insert(log, mode: mode);
+  Future<void> insertActivityLog(
+    ActivityLogsCompanion log, {
+    InsertMode mode = InsertMode.insert,
+  }) => into(activityLogs).insert(log, mode: mode);
 
   Future<void> deleteActivityLog(String id) =>
       (delete(activityLogs)..where((t) => t.id.equals(id))).go();
@@ -657,7 +728,8 @@ class AppDatabase extends _$AppDatabase {
   Future<void> clearActivityLogs() => delete(activityLogs).go();
 
   Future<List<ActivityLog>> getAllActivityLogs({int? limit, int? offset}) {
-    final query = select(activityLogs)..orderBy([(t) => OrderingTerm.desc(t.createdAt)]);
+    final query = select(activityLogs)
+      ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]);
     if (limit != null) query.limit(limit, offset: offset);
     return query.get();
   }
@@ -668,12 +740,16 @@ class AppDatabase extends _$AppDatabase {
             ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
           .get();
 
-  Future<List<ActivityLog>> getActivityLogsByActor(String actorType, String actorId) =>
+  Future<List<ActivityLog>> getActivityLogsByActor(
+    String actorType,
+    String actorId,
+  ) =>
       (select(activityLogs)
-            ..where((t) => t.actorType.equals(actorType) & t.actorId.equals(actorId))
+            ..where(
+              (t) => t.actorType.equals(actorType) & t.actorId.equals(actorId),
+            )
             ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
           .get();
 
-  Future<int> getActivityLogCount() =>
-      activityLogs.count().getSingle();
+  Future<int> getActivityLogCount() => activityLogs.count().getSingle();
 }

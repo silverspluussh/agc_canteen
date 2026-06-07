@@ -419,7 +419,7 @@
                                 "method": "POST",
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n    \"firstName\": \"Gertrude\",\n    \"lastName\": \"Greenholt\",\n    \"email\": \"Aric81@hotmail.com\",\n    \"phone\": \"(409) 448-7642\",\n    \"role\": \"caterer\",\n    \"actStartDate\": \"2025-12-17\",\n    \"actEndDate\": \"2026-09-26\",\n    \"assignedKitchenIds\": \"1,2\"\n}",
+                                    "raw": "{\n    \"firstName\": \"Clare\",\n    \"lastName\": \"Hilpert\",\n    \"email\": \"Trevor0@yahoo.com\",\n    \"phone\": \"(816) 457-8585\",\n    \"role\": \"hr\",\n    \"actStartDate\": \"2026-11-18\",\n    \"actEndDate\": \"2025-06-29\",\n    \"assignedKitchenIds\": \"\"\n}",
                                     "options": {
                                         "raw": {
                                             "language": "json"
@@ -1376,6 +1376,57 @@
                             }
                         },
                         {
+                            "name": "Create & Assign Kitchen",
+                            "description": "",
+                            "event": [],
+                            "auth": {},
+                            "request": {
+                                "auth": {},
+                                "method": "POST",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"name\": \"POS Terminal {{$number.int(min=1,max=100)}}\",\n    \"serialNumber\": \"{{$airline.flightNumber}}\",\n    \"macAddress\": \"{{$internet.mac}}\",\n    \"model\": \"{{$airline.aircraftType}}\",\n    \"status\": \"active\",\n    \"kitchenId\": 0\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/vnd.api+json",
+                                        "description": "",
+                                        "type": "string"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/vnd.api+json",
+                                        "description": "",
+                                        "type": "string"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "pos/profile/create-with-assignment",
+                                    "path": [
+                                        "pos",
+                                        "profile",
+                                        "create-with-assignment"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                }
+                            },
+                            "response": [],
+                            "protocolProfileBehavior": {
+                                "strictSSL": false,
+                                "followRedirects": true
+                            }
+                        },
+                        {
                             "name": "Fetch All",
                             "description": "",
                             "event": [],
@@ -1663,6 +1714,192 @@
                         }
                     ],
                     "auth": {}
+                },
+                {
+                    "name": "Bio Data",
+                    "description": "",
+                    "item": [
+                        {
+                            "name": "Create",
+                            "description": "",
+                            "event": [],
+                            "auth": {},
+                            "request": {
+                                "auth": {},
+                                "method": "POST",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"staffId\": 1,\n    \"bioDatas\": [\n        {\n            \"finger\": \"index\",\n            \"data\": \"123456789\"\n        },\n        {\n            \"finger\": \"thumb\",\n            \"data\": \"123456789\"\n        },\n        {\n            \"finger\": \"middle\",\n            \"data\": \"123456789\"\n        }\n    ]\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "description": "",
+                                        "type": "string"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "description": "",
+                                        "type": "string"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "hr/bio-data/create-bulk",
+                                    "path": [
+                                        "hr",
+                                        "bio-data",
+                                        "create-bulk"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                }
+                            },
+                            "response": [],
+                            "protocolProfileBehavior": {
+                                "strictSSL": false,
+                                "followRedirects": true
+                            }
+                        },
+                        {
+                            "name": "Update",
+                            "description": "",
+                            "event": [],
+                            "auth": {},
+                            "request": {
+                                "auth": {},
+                                "method": "PUT",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"id\": 0,\n    \"finger\": \"index\",\n    \"data\": \"123456789\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "description": "",
+                                        "type": "string"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "description": "",
+                                        "type": "string"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "hr/bio-data/update/:id",
+                                    "path": [
+                                        "hr",
+                                        "bio-data",
+                                        "update",
+                                        ":id"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": [
+                                        {
+                                            "key": "id",
+                                            "value": "0",
+                                            "description": "",
+                                            "type": "string"
+                                        }
+                                    ]
+                                }
+                            },
+                            "response": [],
+                            "protocolProfileBehavior": {
+                                "strictSSL": false,
+                                "followRedirects": true
+                            }
+                        },
+                        {
+                            "name": "Delete",
+                            "description": "",
+                            "event": [],
+                            "auth": {},
+                            "request": {
+                                "auth": {},
+                                "method": "DELETE",
+                                "body": {},
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "description": "",
+                                        "type": "string"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "description": "",
+                                        "type": "string"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "hr/bio-data/delete/:id",
+                                    "path": [
+                                        "hr",
+                                        "bio-data",
+                                        "delete",
+                                        ":id"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": [
+                                        {
+                                            "key": "id",
+                                            "value": "0",
+                                            "description": "",
+                                            "type": "string"
+                                        }
+                                    ]
+                                }
+                            },
+                            "response": [],
+                            "protocolProfileBehavior": {
+                                "strictSSL": false,
+                                "followRedirects": true
+                            }
+                        }
+                    ],
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [],
+                                "type": "text/javascript",
+                                "packages": {}
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [],
+                                "type": "text/javascript",
+                                "packages": {}
+                            }
+                        }
+                    ],
+                    "auth": {}
                 }
             ],
             "event": [
@@ -1769,7 +2006,7 @@
                                 "method": "POST",
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n    \"name\": \"Local\",\n    \"status\": \"active\",\n    \"remarks\": \"sit ipsum\"\n}",
+                                    "raw": "{\n    \"name\": \"Lunch\",\n    \"status\": \"active\",\n    \"remarks\": \"sit ipsum\"\n}",
                                     "options": {
                                         "raw": {
                                             "language": "json"
@@ -2056,7 +2293,7 @@
                                     "formdata": [
                                         {
                                             "key": "name",
-                                            "value": "Fish with Chicken",
+                                            "value": "Jollof with Chicken",
                                             "description": "name",
                                             "type": "text",
                                             "disabled": false
@@ -2069,8 +2306,8 @@
                                             "disabled": false
                                         },
                                         {
-                                            "key": "mealType",
-                                            "value": "lunch",
+                                            "key": "mealTypeId",
+                                            "value": "0",
                                             "description": "mealType: breakfast,lunch,dinner,midnight",
                                             "type": "text",
                                             "disabled": false
@@ -2083,13 +2320,13 @@
                                         },
                                         {
                                             "key": "photoUrl",
-                                            "value": "file:///Users/macbookpro/Downloads/glowscents-oud-woody-candle.webp",
+                                            "value": "file:///Users/macbookpro/Downloads/hq720.jpg",
                                             "type": "file",
                                             "disabled": false
                                         },
                                         {
                                             "key": "price",
-                                            "value": "20",
+                                            "value": "50",
                                             "type": "text",
                                             "disabled": false
                                         },
@@ -2101,7 +2338,7 @@
                                         },
                                         {
                                             "key": "kitchenId",
-                                            "value": "2",
+                                            "value": "1",
                                             "type": "text",
                                             "disabled": false
                                         }
@@ -2237,15 +2474,9 @@
                                             "type": "string"
                                         },
                                         {
-                                            "key": "mealType",
+                                            "key": "mealTypeId",
                                             "value": "",
                                             "description": "",
-                                            "type": "string"
-                                        },
-                                        {
-                                            "key": "menuType",
-                                            "value": "",
-                                            "description": "pass the name of the menu type",
                                             "type": "string"
                                         },
                                         {
@@ -2269,6 +2500,17 @@
                                         {
                                             "key": "offset",
                                             "value": "0",
+                                            "description": "",
+                                            "type": "string"
+                                        },
+                                        {
+                                            "key": "kitchenId",
+                                            "description": "A comma separated string of kitchenId",
+                                            "type": "string"
+                                        },
+                                        {
+                                            "key": "menuTypeId",
+                                            "value": "",
                                             "description": "",
                                             "type": "string"
                                         }
@@ -3002,7 +3244,7 @@
                                 "method": "POST",
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n    \"orderType\": \"dine_in\",\n    \"mealType\": \"lunch\",\n    \"total\": 40,\n    \"orderedBy\": 1,\n    \"isAlaCarte\": false,\n    \"description\": \"\",\n    \"items\": [\n        {\n            \"mealId\": 1,\n            \"unitPrice\": 20,\n            \"quantity\": 1\n        }\n    ]\n}",
+                                    "raw": "{\n    \"orderType\": \"dine_in\",\n    \"mealTypeId\": 1,\n    \"total\": 40,\n    \"orderedBy\": 1,\n    \"isAlaCarte\": false,\n    \"description\": \"this an alacarte food\",\n    \"items\": [\n        {\n            \"mealId\": 1,\n            \"unitPrice\": 20,\n            \"quantity\": 1\n        }\n    ],\n    \"posProfileId\": 1\n}",
                                     "options": {
                                         "raw": {
                                             "language": "json"
@@ -3053,7 +3295,7 @@
                                 "method": "POST",
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n    \"orderType\": \"dine_in\",\n    \"mealType\": \"lunch\",\n    \"total\": 40,\n    \"orderedBy\": 1,\n    \"groupCount\": 5,\n    \"items\": [\n        {\n            \"mealId\": 1,\n            \"unitPrice\": 20,\n            \"quantity\": 1\n        }\n    ]\n}",
+                                    "raw": "{\n    \"orderType\": \"dine_in\",\n    \"mealTypeId\": 0,\n    \"total\": 40,\n    \"orderedBy\": 1,\n    \"groupCount\": 5,\n    \"items\": [\n        {\n            \"mealId\": 1,\n            \"unitPrice\": 20,\n            \"quantity\": 1\n        }\n    ],\n    \"posProfileId\": 0\n}",
                                     "options": {
                                         "raw": {
                                             "language": "json"
@@ -3167,6 +3409,11 @@
                                             "key": "offset",
                                             "value": "0",
                                             "description": "",
+                                            "type": "string"
+                                        },
+                                        {
+                                            "key": "kitchenId",
+                                            "description": "A comma seperated string",
                                             "type": "string"
                                         }
                                     ],
@@ -3376,6 +3623,333 @@
                                     "host": [
                                         "{{baseUrl}}"
                                     ],
+                                    "query": [
+                                        {
+                                            "key": "catererId",
+                                            "value": "0",
+                                            "description": "",
+                                            "type": "string"
+                                        }
+                                    ],
+                                    "variable": []
+                                }
+                            },
+                            "response": [],
+                            "protocolProfileBehavior": {
+                                "strictSSL": false,
+                                "followRedirects": true
+                            }
+                        }
+                    ],
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [],
+                                "type": "text/javascript",
+                                "packages": {}
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [],
+                                "type": "text/javascript",
+                                "packages": {}
+                            }
+                        }
+                    ],
+                    "auth": {}
+                },
+                {
+                    "name": "Meal Type Service",
+                    "description": "",
+                    "item": [
+                        {
+                            "name": "Create",
+                            "description": "",
+                            "event": [],
+                            "auth": {},
+                            "request": {
+                                "auth": {},
+                                "method": "POST",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"name\": \"Breakfast\",\n    \"status\": \"active\",\n    \"beginTime\": \"06:00:00\",\n    \"endTime\": \"08:00:00\",\n    \"remarks\": \"sit ipsum\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "description": "",
+                                        "type": "string"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "description": "",
+                                        "type": "string"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "caterer/meal-type/create",
+                                    "path": [
+                                        "caterer",
+                                        "meal-type",
+                                        "create"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                }
+                            },
+                            "response": [],
+                            "protocolProfileBehavior": {
+                                "strictSSL": false,
+                                "followRedirects": true
+                            }
+                        },
+                        {
+                            "name": "Fetch All",
+                            "description": "",
+                            "event": [],
+                            "auth": {},
+                            "request": {
+                                "auth": {},
+                                "method": "GET",
+                                "body": {},
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "description": "",
+                                        "type": "string"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "description": "",
+                                        "type": "string"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "caterer/meal-types",
+                                    "path": [
+                                        "caterer",
+                                        "meal-types"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                }
+                            },
+                            "response": [],
+                            "protocolProfileBehavior": {
+                                "strictSSL": false,
+                                "followRedirects": true
+                            }
+                        },
+                        {
+                            "name": "Fetch By Id",
+                            "description": "",
+                            "event": [],
+                            "auth": {},
+                            "request": {
+                                "auth": {},
+                                "method": "GET",
+                                "body": {},
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "description": "",
+                                        "type": "string"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "description": "",
+                                        "type": "string"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "caterer/meal-type/:id",
+                                    "path": [
+                                        "caterer",
+                                        "meal-type",
+                                        ":id"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": [
+                                        {
+                                            "key": "id",
+                                            "value": "1",
+                                            "description": "",
+                                            "type": "string"
+                                        }
+                                    ]
+                                }
+                            },
+                            "response": [],
+                            "protocolProfileBehavior": {
+                                "strictSSL": false,
+                                "followRedirects": true
+                            }
+                        },
+                        {
+                            "name": "Update",
+                            "description": "",
+                            "event": [],
+                            "auth": {},
+                            "request": {
+                                "auth": {},
+                                "method": "PUT",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"name\": \"Breakfast\",\n    \"status\": \"active\",\n    \"beginTime\": \"06:00:00\",\n    \"endTime\": \"08:00:00\",\n    \"remarks\": \"sit ipsum\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "description": "",
+                                        "type": "string"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "description": "",
+                                        "type": "string"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "caterer/meal-type/update/:id",
+                                    "path": [
+                                        "caterer",
+                                        "meal-type",
+                                        "update",
+                                        ":id"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": [
+                                        {
+                                            "key": "id",
+                                            "value": "1",
+                                            "description": "",
+                                            "type": "string"
+                                        }
+                                    ]
+                                }
+                            },
+                            "response": [],
+                            "protocolProfileBehavior": {
+                                "strictSSL": false,
+                                "followRedirects": true
+                            }
+                        },
+                        {
+                            "name": "Delete",
+                            "description": "",
+                            "event": [],
+                            "auth": {},
+                            "request": {
+                                "auth": {},
+                                "method": "DELETE",
+                                "body": {},
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "description": "",
+                                        "type": "string"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "description": "",
+                                        "type": "string"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "caterer/meal-type/delete/:id",
+                                    "path": [
+                                        "caterer",
+                                        "meal-type",
+                                        "delete",
+                                        ":id"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": [
+                                        {
+                                            "key": "id",
+                                            "value": "6",
+                                            "description": "",
+                                            "type": "string"
+                                        }
+                                    ]
+                                }
+                            },
+                            "response": [],
+                            "protocolProfileBehavior": {
+                                "strictSSL": false,
+                                "followRedirects": true
+                            }
+                        },
+                        {
+                            "name": "Meal Durations",
+                            "description": "",
+                            "event": [],
+                            "auth": {},
+                            "request": {
+                                "auth": {},
+                                "method": "GET",
+                                "body": {},
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "description": "",
+                                        "type": "string"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "description": "",
+                                        "type": "string"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "caterer/meal-types-durations",
+                                    "path": [
+                                        "caterer",
+                                        "meal-types-durations"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
                                     "query": [],
                                     "variable": []
                                 }
@@ -3437,25 +4011,16 @@
                     "description": "",
                     "item": [
                         {
-                            "name": "Login",
+                            "name": "Connect",
                             "description": "",
-                            "event": [
-                                {
-                                    "listen": "test",
-                                    "script": {
-                                        "exec": [],
-                                        "type": "text/javascript",
-                                        "packages": {}
-                                    }
-                                }
-                            ],
+                            "event": [],
                             "auth": {},
                             "request": {
                                 "auth": {},
                                 "method": "POST",
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n    \"serialNumber\": \"32:c6:c4:f3:26:8cF\",\n    \"kitchenId\": 1\n}",
+                                    "raw": "{\n    \"empId\": \"EMP-2026-003\",\n    \"fingerprint\": \"123456789\"\n}",
                                     "options": {
                                         "raw": {
                                             "language": "json"
@@ -3477,11 +4042,11 @@
                                     }
                                 ],
                                 "url": {
-                                    "raw": "pos/auth/login",
+                                    "raw": "pos/auth/connect",
                                     "path": [
                                         "pos",
                                         "auth",
-                                        "login"
+                                        "connect"
                                     ],
                                     "host": [
                                         "{{baseUrl}}"
@@ -3775,7 +4340,7 @@
                                 "method": "POST",
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n    \"orderType\": \"dine_in\",\n    \"mealType\": \"dinner\",\n    \"total\": 40,\n    \"orderedBy\": 1,\n    \"description\": \"\",\n    \"isAlaCarte\": false,\n    \"items\": [\n        {\n            \"mealId\": 1,\n            \"unitPrice\": 20,\n            \"quantity\": 1\n        }\n    ]\n}",
+                                    "raw": "{\n    \"orderType\": \"dine_in\",\n    \"mealTypeId\": 0,\n    \"total\": 40,\n    \"orderedBy\": 1,\n    \"description\": \"\",\n    \"isAlaCarte\": false,\n    \"items\": [\n        {\n            \"mealId\": 1,\n            \"unitPrice\": 20,\n            \"quantity\": 1\n        }\n    ],\n    \"posProfileId\": 0\n}",
                                     "options": {
                                         "raw": {
                                             "language": "json"
@@ -3826,7 +4391,7 @@
                                 "method": "POST",
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n    \"orderType\": \"takeouts\",\n    \"mealType\": \"breakfast\",\n    \"total\": 222,\n    \"orderedBy\": 1,\n    \"items\": [\n        {\n            \"mealId\": 1,\n            \"unitPrice\": 20,\n            \"quantity\": 11\n        }\n    ]\n}",
+                                    "raw": "{\n    \"orderType\": \"takeouts\",\n    \"mealTypeId\": 0,\n    \"total\": 222,\n    \"orderedBy\": 1,\n    \"items\": [\n        {\n            \"mealId\": 1,\n            \"unitPrice\": 20,\n            \"quantity\": 11\n        }\n    ],\n    \"posProfileId\": 0\n}",
                                     "options": {
                                         "raw": {
                                             "language": "json"
@@ -4594,7 +5159,7 @@
                                         "method": "GET",
                                         "body": {
                                             "mode": "raw",
-                                            "raw": "{\n    \"mealType\": \"breakfast\"\n}",
+                                            "raw": "{\n    \"mealTypeId\":1\n}",
                                             "options": {
                                                 "raw": {
                                                     "language": "json"

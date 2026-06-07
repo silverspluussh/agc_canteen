@@ -212,6 +212,72 @@ class NetworkAPI {
     }
   }
 
+  Future<T> putData<T>(
+    String path, {
+    required T Function(dynamic data) builder,
+    Map<String, dynamic>? queryParameters,
+    Options? opts,
+    dynamic data,
+  }) async {
+    try {
+      final response = await dioClient.put(
+        path,
+        options: opts,
+        queryParameters: queryParameters,
+        data: data,
+      );
+
+      switch (response.statusCode) {
+        case 201:
+        case 200:
+          final data = response.data;
+          return builder(data);
+        case 300:
+        case 301:
+        case 302:
+          throw InvalidCredentials("Invalid credentials provided");
+
+        case 400:
+          throw InvalidCredentials(response.data["message"]);
+        case 401:
+          throw InvalidApiKeyException(response.data["message"]);
+        case 403:
+          throw LoginAttemptFailed(response.data["message"]);
+        case 404:
+          throw NotFoundException(response.data["message"]);
+        case 405:
+          throw NotAllowedException(
+            'Request method not allowed. Please contact support.',
+          );
+        case 408:
+          throw TimeoutException(
+            'Request timed out. Please check your connection and try again.',
+          );
+        default:
+          throw InvalidApiKeyException(response.data["message"]);
+      }
+    } on SocketException catch (_) {
+      throw NoInternetConnectionException(
+        'No internet connection. Please check your connection and try again.',
+      );
+    } on DioException catch (e) {
+      switch (e.type) {
+        case DioExceptionType.connectionTimeout:
+        case DioExceptionType.sendTimeout:
+        case DioExceptionType.receiveTimeout:
+          throw TimeoutException(
+            'Request timed out. Please check your connection and try again.',
+          );
+        case DioExceptionType.connectionError:
+          throw NoInternetConnectionException(
+            'No internet connection. Please check your connection and try again.',
+          );
+        default:
+          throw Exception(e.message);
+      }
+    }
+  }
+
   Future<T> deleteData<T>(
     String path, {
     required T Function(dynamic data) builder,
