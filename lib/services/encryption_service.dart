@@ -3,41 +3,15 @@ import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:encrypt/encrypt.dart' as enc;
-
-import '../core/di/securestorage.dart';
-
-/// Key name stored in secure storage.
-const _kEncryptionKeyStorageKey = 'encryption_key';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class EncryptionService {
-  final SecureStorage _storage;
-
   enc.Key? _key;
 
-  EncryptionService({required SecureStorage storage}) : _storage = storage;
+  EncryptionService();
 
-  Future<void> init() async {
-    final raw = await _storage.storage.read(key: _kEncryptionKeyStorageKey);
-    if (raw == null || raw.isEmpty) {
-      throw StateError(
-        'EncryptionService: no encryption key found in secure storage '
-        '(key: "$_kEncryptionKeyStorageKey"). '
-        'Store one with SecureStorage before initialising this service.',
-      );
-    }
-    _key = _deriveKey(raw);
-  }
-
-  Future<void> storeKey(String keyValue) async {
-    await _storage.storage.write(
-      key: _kEncryptionKeyStorageKey,
-      value: keyValue,
-    );
-    _key = _deriveKey(keyValue);
-  }
-
-  String encrypt(String plainText) {
-    _assertReady();
+  Future<String> _encrypt(String plainText) async {
+    await _ensureReady();
     final iv = enc.IV.fromSecureRandom(16);
     final encrypter = enc.Encrypter(
       enc.AES(_key!, mode: enc.AESMode.cbc, padding: 'PKCS7'),
@@ -55,9 +29,8 @@ class EncryptionService {
     return base64.encode(combined);
   }
 
-  /// Decrypts a Base64 string produced by [encrypt].
-  String decrypt(String base64CipherText) {
-    _assertReady();
+  Future<String> _decrypt(String base64CipherText) async {
+    await _ensureReady();
     final combined = base64.decode(base64CipherText);
 
     final iv = enc.IV(Uint8List.fromList(combined.sublist(0, 16)));
@@ -69,19 +42,24 @@ class EncryptionService {
     return encrypter.decrypt(cipherBytes, iv: iv);
   }
 
+  Future<String> encrypt(String plainText) => _encrypt(plainText);
+
+  Future<String> decrypt(String base64CipherText) =>
+      _decrypt(base64CipherText);
+
   // ─── Private ─────────────────────────────────────────────────
 
-  /// Derives a 32-byte AES-256 key by hashing [raw] with SHA-256.
   enc.Key _deriveKey(String raw) {
     final hash = sha256.convert(utf8.encode(raw));
     return enc.Key(Uint8List.fromList(hash.bytes));
   }
 
-  void _assertReady() {
-    if (_key == null) {
-      throw StateError(
-        'EncryptionService not initialised. Call init() before encrypt/decrypt.',
-      );
+  Future<void> _ensureReady() async {
+    if (_key != null) return;
+    final secret = dotenv.env['SECREY_KEY'];
+    if (secret == null || secret.isEmpty) {
+      throw StateError('SECREY_KEY is not set in .env.');
     }
+    _key = _deriveKey(secret);
   }
 }

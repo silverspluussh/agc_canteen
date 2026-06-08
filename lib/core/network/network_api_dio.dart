@@ -89,7 +89,7 @@ class NetworkAPI {
         queryParameters: queryParameters,
         data: data,
       );
-      log("Response status: ${response}");
+    //  log("Response status: ${response}");
       switch (response.statusCode) {
         case 200:
           final data = response.data;
@@ -109,6 +109,7 @@ class NetworkAPI {
         case 403:
           throw LoginAttemptFailed(response.data["message"]);
         case 404:
+      
           throw NotFoundException(response.data["message"]);
         case 405:
           throw NotAllowedException(
@@ -129,6 +130,7 @@ class NetworkAPI {
         'No internet connection. Please check your connection and try again.',
       );
     } on DioException catch (e) {
+      log(e.toString());
       switch (e.type) {
         case DioExceptionType.connectionTimeout:
         case DioExceptionType.sendTimeout:

@@ -125,12 +125,12 @@ class Staff {
 
 class BioData {
   int id;
-  String finger;
+  Finger finger;
   String data;
   String staffId;
   bool isActive;
-  DateTime createdAt;
-  DateTime updatedAt;
+  DateTime? createdAt;
+  DateTime? updatedAt;
 
   BioData({
     required this.id,
@@ -138,14 +138,14 @@ class BioData {
     required this.data,
     required this.staffId,
     required this.isActive,
-    required this.createdAt,
-    required this.updatedAt,
+     this.createdAt,
+     this.updatedAt,
   });
 
   factory BioData.fromMap(Map<String, dynamic> map) {
     return BioData(
       id: map['id'] as int,
-      finger: map['finger'] as String,
+      finger: Finger.values.firstWhere((f) => f.name == map['finger']),
       data: map['data'] as String,
       staffId: map['staffId'] as String,
       isActive: map['isActive'] as bool,
@@ -154,10 +154,11 @@ class BioData {
     );
   }
 
+
   Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'finger': finger,
+      'finger': finger.name,
       'data': data,
       'staffId': staffId,
       'isActive': isActive,
@@ -167,11 +168,37 @@ class BioData {
   Map<String, dynamic> toMapLocal() {
     return {
       'id': id,
-      'finger': finger,
+      'finger': finger.name,
       'data': data,
       'staffId': staffId,
       'isActive': isActive,
       'sync_status': 0,
     };
+  }
+}
+
+
+enum Finger {
+  thumb,
+  indexFinger,
+  middle,
+  ring,
+  little,
+}
+
+extension FingerExtension on Finger {
+  String get name {
+    switch (this) {
+      case Finger.thumb:
+        return 'thumb';
+      case Finger.indexFinger:
+        return 'index';
+      case Finger.middle:
+        return 'middle';
+      case Finger.ring:
+        return 'ring';
+      case Finger.little:
+        return 'pinky';
+    }
   }
 }

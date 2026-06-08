@@ -142,6 +142,28 @@ class AdminAuthService {
     } 
   }
 
+  Future<String> fetchSecretKey() async {
+    try {
+      final responseData = await _networkAPI.getData(
+        '/auth/bio-data-key',
+        builder: (data) => data,
+      );
+      final secretKey = _extractToken(responseData, 'key');
+      _logger.i('Fetched secret key for biometric data successfully');
+      if (secretKey != null && secretKey.isNotEmpty) {
+         await _storage.writeBioSecret(secretKey);
+        return secretKey;
+      } else {
+        throw Exception('Secret key not found in response');
+      }
+    } catch (e) {
+      _logger.e('Failed to fetch secret key', error: e);
+      rethrow;
+    }
+  }
+  
+      
+  
   Future<AdminAuthResult> tryAutoLogin() async {
     try {
       final token = await _storage.readSecureData('access_token');

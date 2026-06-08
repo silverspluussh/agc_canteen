@@ -1,6 +1,10 @@
+import 'dart:async';
 import 'dart:developer' as dev;
+import 'dart:developer';
+import 'package:agc_canteen/models/staff.model.dart';
+// import 'package:agc_canteen/services/biodata_service.dart';
+import 'package:agc_canteen/services/encryption_service.dart';
 import 'package:drift/drift.dart';
-import 'package:uuid/uuid.dart';
 import 'package:logger/logger.dart';
 import '../database/app_database.dart';
 import '../pos/pos_fingerprint_service.dart';
@@ -10,6 +14,8 @@ import '../../core/di/injection_container.dart';
 class FingerprintAuthService {
   final AppDatabase _db;
   final PosFingerprintService _fingerprint;
+  // final BioDataService _bioDataService = getIt<BioDataService>();
+  final EncryptionService _encryptionService = getIt<EncryptionService>();
   final Logger _logger;
 
   static const int matchThreshold = 80;
@@ -39,7 +45,7 @@ class FingerprintAuthService {
   Future<bool> get isAvailable => _fingerprint.isAvailable();
 
   
-  Future<int?> enroll(String staffId) async {
+  Future<int?> enroll(String staffId, Finger finger) async {
     final result = await _fingerprint.capture();
     if (result == null || !result.success || result.templateBase64 == null) {
       _logger.w('Fingerprint enrollment capture failed');
@@ -48,13 +54,15 @@ class FingerprintAuthService {
 
     final fingerprintId = DateTime.now().millisecondsSinceEpoch;
     final now = DateTime.now().toIso8601String();
+    final encryptedData = await _encryptionService.encrypt(result.templateBase64!);
 
+    log(result.templateBase64!);
     await _db.insertBioData(
       BioDataEntriesCompanion(
         id: Value(fingerprintId),
         staffId: Value(staffId),
-        finger: const Value('index'), // default finger
-        dataBase64: Value(result.templateBase64!),
+        finger:  Value(finger.name),
+        dataBase64: Value(encryptedData),
         isActive: const Value(true),
         createdAt: Value(now),
         updatedAt: Value(now),
@@ -62,6 +70,16 @@ class FingerprintAuthService {
         syncUpdatedAt: const Value.absent(),
       ),
     );
+
+    // unawaited(
+    //   _bioDataService.createBioData(staffId,[ BioData(
+    //     id: fingerprintId,
+    //     staffId: staffId,
+    //     finger: finger,
+    //     data: encryptedData,
+    //     isActive: true,
+    //   )])
+    // );
 
     _logger.i('Fingerprint enrolled: id=$fingerprintId staffId=$staffId');
     getIt<ActivityLogService>().log(
@@ -108,7 +126,13 @@ class FingerprintAuthService {
     for (final tpl in fingerprints) {
       dev.log('[FingerprintAuth] Verifying against templateId=${tpl.id}, staffId=${tpl.staffId}',
           name: 'POS_AUTH');
-      final score = await _fingerprint.verify(tpl.dataBase64);
+      String templateData;
+      try {
+        templateData = await _encryptionService.decrypt(tpl.dataBase64);
+      } catch (_) {
+        templateData = tpl.dataBase64;
+      }
+      final score = await _fingerprint.verify(templateData);
       dev.log('[FingerprintAuth] Verify result: score=$score for staffId=${tpl.staffId}',
           name: 'POS_AUTH');
       if (score != null && score > bestScore) {

@@ -41,9 +41,7 @@ Future<void> setupServiceLocator() async {
   getIt.registerLazySingleton<PosDeviceService>(() => PosDeviceService());
   getIt.registerLazySingleton<DeviceInfoService>(() => DeviceInfoService());
   getIt.registerLazySingleton<SecureStorage>(() => SecureStorage());
-  getIt.registerLazySingleton<EncryptionService>(
-    () => EncryptionService(storage: getIt<SecureStorage>()),
-  );
+  getIt.registerLazySingleton<EncryptionService>(() => EncryptionService());
   getIt.registerLazySingleton<NetworkAPI>(() => NetworkAPI());
   getIt.registerLazySingleton<DioClient>(() => DioClient());
 

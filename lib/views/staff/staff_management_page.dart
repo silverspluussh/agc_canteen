@@ -1,3 +1,6 @@
+import 'dart:developer';
+
+import 'package:agc_canteen/models/staff.model.dart';
 import 'package:agc_canteen/views/widgets/app_buttons.widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,6 +24,7 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
   String _query = '';
   bool? _fingerprintFilter;
   bool _isEnrolling = false;
+  Finger? _selectedFinger;
 
   @override
   void initState() {
@@ -40,6 +44,7 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
   Future<void> _loadStaffData() async {
     final db = ref.read(databaseProvider);
     final staffList = await db.getAllStaff();
+    final bioData = await db.getAllBioData();
     final allFingerprints = await db.getActiveBioData();
 
     final items = staffList.map((s) {
@@ -245,6 +250,7 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
   void _showEnrollmentDialog(_StaffWithFingerprint entry) {
     final l10n = AppLocalizations.of(context);
     final colorScheme = Theme.of(context).colorScheme;
+    _selectedFinger = null;
 
     showDialog(
       context: context,
@@ -277,27 +283,62 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  l10n.placeFingerToEnroll,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 14),
-                ),
-                const SizedBox(height: 8),
-                Text(
                   '${entry.staff.firstName} ${entry.staff.lastName}',
                   style: const TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 16,
                   ),
                 ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Text('Finger:', style: const TextStyle(fontSize: 14)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: DropdownButtonFormField<Finger?>(
+                        hint: const Text(
+                          'Select finger',
+                          style: TextStyle(fontSize: 14),
+                        ),
+                        decoration: InputDecoration(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        items: Finger.values.map((finger) {
+                          return DropdownMenuItem(
+                            value: finger,
+                            child: Text(_fingerLabel(finger)),
+                          );
+                        }).toList(),
+                        onChanged: (finger) {
+                          setDialogState(() => _selectedFinger = finger);
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  l10n.placeFingerToEnroll,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 14),
+                ),
               ],
             ),
             actionsAlignment: MainAxisAlignment.center,
             actions: [
               PrimaryButton(
-                onPressed: () async {
-                  Navigator.pop(ctx);
-                  await _enrollFingerprint(entry, setDialogState);
-                },
+                onPressed: _selectedFinger == null
+                    ? null
+                    : () async {
+                        Navigator.pop(ctx);
+                        await _enrollFingerprint(entry, setDialogState);
+                      },
                 prefixChild: const Icon(Icons.fingerprint, color: Colors.white),
                 label: Text(
                   l10n.enrollFingerprint,
@@ -349,8 +390,24 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
     );
   }
 
+  String _fingerLabel(Finger finger) {
+    switch (finger) {
+      case Finger.thumb:
+        return 'Thumb';
+      case Finger.indexFinger:
+        return 'Index Finger';
+      case Finger.middle:
+        return 'Middle Finger';
+      case Finger.ring:
+        return 'Ring Finger';
+      case Finger.little:
+        return 'Pinky';
+    }
+  }
+
   Future<void> _enrollFingerprint(
     _StaffWithFingerprint entry,
+
     void Function(VoidCallback) setDialogState,
   ) async {
     setState(() => _isEnrolling = true);
@@ -368,7 +425,10 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
         return;
       }
 
-      final fingerprintId = await authService.enroll(entry.staff.id);
+      final fingerprintId = await authService.enroll(
+        entry.staff.id,
+        _selectedFinger!,
+      );
 
       if (fingerprintId != null) {
         await _refreshStaffData();
@@ -388,6 +448,7 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
         }
       }
     } catch (e) {
+      log(e.toString());
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

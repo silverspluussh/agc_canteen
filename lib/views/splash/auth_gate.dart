@@ -101,12 +101,14 @@ class _AuthGateState extends ConsumerState<AuthGate> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Image.asset('assets/app_logo.png', width: 120),
+                   Image.asset('assets/app_logo.png', width: 200, height: 200),
             const SizedBox(height: 24),
-            const CircularProgressIndicator(),
+            const LinearProgressIndicator(
+              minHeight: 5,
+            
+            ),
             const SizedBox(height: 16),
-            Text(AppLocalizations.of(context).startingApp),
-          ],
+            const Text('Loading...', style: TextStyle(fontSize: 20)),  ],
         ),
       ),
     );

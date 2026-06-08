@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 AndroidOptions _getAndroidOptions() => AndroidOptions();
 
 const String _expirationKey = 'token_expiration';
+const String _kEncryptionKeyStorageKey = 'encryption_key';
 
 IOSOptions _getIosOptions() => const IOSOptions();
 
@@ -14,6 +15,10 @@ class SecureStorage {
 
   Future writeSecureData(String key, String value) async {
     await storage.write(key: key, value: value);
+  }
+
+  Future writeBioSecret(String secret) async {
+    await storage.write(key: _kEncryptionKeyStorageKey, value: secret);
   }
 
   Future writeSecureToken(String value) async {

@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import '../core/network/network_api_dio.dart';
 import '../models/staff.model.dart';
 
@@ -11,6 +13,7 @@ class BioDataService {
       'hr/bio-data',
       builder: (data) {
         if (data is List) {
+          print(data.first);
           return data
               .map((e) => BioData.fromMap(e as Map<String, dynamic>))
               .toList();
@@ -35,27 +38,27 @@ class BioDataService {
     );
   }
 
-  Future<List<BioData>> createBioData(
+  Future<bool> createBioData(
     String staffId,
     List<BioData> bioDatas,
   ) async {
     final payload = {
       "staffId": int.tryParse(staffId) ?? staffId,
       "bioDatas": bioDatas
-          .map((b) => {"finger": b.finger, "data": b.data})
+          .map((b) => {"finger": b.finger.name, "data": b.data})
           .toList(),
     };
 
-    return await networkAPI.postData<List<BioData>>(
+    log(payload.toString());
+    return await networkAPI.postData<bool>(
       'hr/bio-data/create-bulk',
       data: payload,
       builder: (data) {
-        if (data is List) {
-          return data
-              .map((e) => BioData.fromMap(e as Map<String, dynamic>))
-              .toList();
+        if(data != null){
+          return true;
         }
-        return [];
+        return false;
+       
       },
     );
   }

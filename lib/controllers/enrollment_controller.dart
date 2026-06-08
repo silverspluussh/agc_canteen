@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/staff.model.dart';
 import '../services/pos/pos_fingerprint_service.dart';
 import 'providers.dart';
 
@@ -7,6 +8,7 @@ enum EnrollmentStep { idle, capturing, captured, storing, enrolled, error }
 class EnrollmentState {
   final EnrollmentStep step;
   final String? staffId;
+  final Finger? finger;
   final int? fingerprintId;
   final FingerprintResult? captureResult;
   final String? error;
@@ -14,6 +16,7 @@ class EnrollmentState {
   const EnrollmentState({
     this.step = EnrollmentStep.idle,
     this.staffId,
+    this.finger,
     this.fingerprintId,
     this.captureResult,
     this.error,
@@ -22,6 +25,7 @@ class EnrollmentState {
   EnrollmentState copyWith({
     EnrollmentStep? step,
     String? staffId,
+    Finger? finger,
     int? fingerprintId,
     FingerprintResult? captureResult,
     String? error,
@@ -29,6 +33,7 @@ class EnrollmentState {
     return EnrollmentState(
       step: step ?? this.step,
       staffId: staffId ?? this.staffId,
+      finger: finger ?? this.finger,
       fingerprintId: fingerprintId ?? this.fingerprintId,
       captureResult: captureResult ?? this.captureResult,
       error: error ?? this.error,
@@ -46,10 +51,11 @@ class EnrollmentController extends Notifier<EnrollmentState> {
   @override
   EnrollmentState build() => const EnrollmentState();
 
-  Future<void> startEnrollment(String staffId) async {
+  Future<void> startEnrollment(String staffId, Finger finger) async {
     state = state.copyWith(
       step: EnrollmentStep.capturing,
       staffId: staffId,
+      finger: finger,
       error: null,
     );
 
@@ -79,13 +85,13 @@ class EnrollmentController extends Notifier<EnrollmentState> {
 
   Future<void> confirmEnrollment() async {
     final staffId = state.staffId;
-    if (staffId == null || state.captureResult == null) return;
+    if (staffId == null || state.finger == null || state.captureResult == null) return;
 
     state = state.copyWith(step: EnrollmentStep.storing);
 
     try {
       final fingerprintAuth = ref.read(fingerprintAuthProvider);
-      final fpId = await fingerprintAuth.enroll(staffId);
+      final fpId = await fingerprintAuth.enroll(staffId, state.finger!);
 
       if (fpId == null) {
         state = state.copyWith(
@@ -109,8 +115,9 @@ class EnrollmentController extends Notifier<EnrollmentState> {
 
   void retry() {
     final staffId = state.staffId;
-    if (staffId != null) {
-      startEnrollment(staffId);
+    final finger = state.finger;
+    if (staffId != null && finger != null) {
+      startEnrollment(staffId, finger);
     } else {
       reset();
     }

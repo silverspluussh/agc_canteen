@@ -1,4 +1,6 @@
 import 'dart:developer' as dev;
+import 'package:agc_canteen/models/staff.model.dart';
+
 import '../database/app_database.dart';
 import 'fingerprint_auth_service.dart';
 
@@ -78,8 +80,8 @@ class PosAuthService {
   }
 
   /// Enroll a new fingerprint for a staff member.
-  Future<int?> enrollFingerprint(String staffId) async {
-    return _fingerprintAuth.enroll(staffId);
+  Future<int?> enrollFingerprint(String staffId,  Finger finger) async {
+    return _fingerprintAuth.enroll(staffId, finger);
   }
 
   /// Get all enrolled fingerprint IDs for a staff member.
