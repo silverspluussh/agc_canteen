@@ -51,11 +51,29 @@ class _FingerprintEnrollmentSheetState
   Future<void> _enroll() async {
     if (_selectedFinger == null) return;
 
+    final authService = ref.read(fingerprintAuthProvider);
+
+    final alreadyExists = await authService.hasFingerType(
+      widget.staff.id,
+      _selectedFinger!,
+    );
+    if (alreadyExists) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '${_fingerLabel(_selectedFinger!)} is already enrolled. Remove the existing one first.',
+            ),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      return;
+    }
+
     setState(() => _isScanning = true);
 
     try {
-      final authService = ref.read(fingerprintAuthProvider);
-
       final isAvailable = await authService.isAvailable;
       if (!isAvailable) {
         if (mounted) {

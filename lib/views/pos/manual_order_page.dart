@@ -349,9 +349,12 @@ class _SingleOrderTabState extends ConsumerState<_SingleOrderTab> {
           const SizedBox(height: 8),
           meals.when(
             data: (list) {
-              final available = list.where(
-                (m) => m.mealType == (_mealType ?? ''),
-              );
+              final available = (_mealType == null || _mealType!.isEmpty)
+                  ? list
+                  : list.where(
+                      (m) =>
+                          m.mealType.toLowerCase() == _mealType!.toLowerCase(),
+                    );
               return DropdownButtonFormField<Meal>(
                 value: _selectedMeal,
                 decoration: const InputDecoration(
@@ -753,9 +756,13 @@ class _GroupOrderTabState extends ConsumerState<_GroupOrderTab> {
                 flex: 3,
                 child: meals.when(
                   data: (list) {
-                    final available = list.where(
-                      (m) => m.mealType == (_mealType ?? ''),
-                    );
+                    final available = (_mealType == null || _mealType!.isEmpty)
+                        ? list
+                        : list.where(
+                            (m) =>
+                                m.mealType.toLowerCase() ==
+                                _mealType!.toLowerCase(),
+                          );
                     return DropdownButtonFormField<Meal>(
                       value: _pendingMeal,
                       decoration: const InputDecoration(

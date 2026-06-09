@@ -18,7 +18,7 @@ import '../../services/device_info_service.dart';
 import '../../services/pos/pos_fingerprint_service.dart';
 import '../../services/pos/pos_print_service.dart';
 import '../../services/pos/pos_scanner_service.dart';
-import '../../services/encryption_service.dart';
+// import '../../services/encryption_service.dart';
 import '../../services/sync_service.dart';
 import '../network/dio_client.dart';
 import '../network/network_api_dio.dart';
@@ -41,7 +41,7 @@ Future<void> setupServiceLocator() async {
   getIt.registerLazySingleton<PosDeviceService>(() => PosDeviceService());
   getIt.registerLazySingleton<DeviceInfoService>(() => DeviceInfoService());
   getIt.registerLazySingleton<SecureStorage>(() => SecureStorage());
-  getIt.registerLazySingleton<EncryptionService>(() => EncryptionService());
+  // getIt.registerLazySingleton<EncryptionService>(() => EncryptionService());
   getIt.registerLazySingleton<NetworkAPI>(() => NetworkAPI());
   getIt.registerLazySingleton<DioClient>(() => DioClient());
 

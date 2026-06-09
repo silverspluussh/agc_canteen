@@ -124,7 +124,7 @@ class RemoteDataSyncService {
 
   Future<void> _upsertStaffData(Map<String, dynamic> staffMap) async {
     try {
-      _logger.i('RemoteDataSyncService: upserting staff data: $staffMap');
+      // _logger.i('RemoteDataSyncService: upserting staff data: $staffMap');
       final staffId = staffMap['id']?.toString() ?? '';
       if (staffId.isEmpty) return;
 

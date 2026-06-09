@@ -309,7 +309,27 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         physics: const ClampingScrollPhysics(),
-        children: [
+        children: [ // ── Data ───────────────────────────────────────────────────────────
+          _SectionHeader(label: l10n.data),
+          _SettingsTile(
+            icon: Icons.fastfood_rounded,
+            title: l10n.manualPosOrder,
+            subtitle: l10n.manualPosOrderSubtitle,
+            onTap: () =>
+                Navigator.of(context).pushNamed('/create-manual-order'),
+          ),
+          _SettingsTile(
+            icon: Icons.bar_chart_rounded,
+            title: l10n.orders,
+            subtitle: l10n.viewReportsSubtitle,
+            onTap: () => Navigator.of(context).pushNamed('/reports'),
+          ),
+          _SettingsTile(
+            icon: Icons.sync_rounded,
+            title: AppLocalizations.of(context).syncData,
+            subtitle: l10n.pushPullSubtitle,
+            onTap: () => Navigator.of(context).pushNamed('/sync'),
+          ),
           // ── Account ────────────────────────────────────────────────────────
           _SectionHeader(label: l10n.account),
           // _SettingsTile(
@@ -335,27 +355,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             onTap: () => Navigator.of(context).pushNamed('/pos'),
           ),
 
-          // ── Data ───────────────────────────────────────────────────────────
-          _SectionHeader(label: l10n.data),
-          _SettingsTile(
-            icon: Icons.fastfood_rounded,
-            title: l10n.manualPosOrder,
-            subtitle: l10n.manualPosOrderSubtitle,
-            onTap: () =>
-                Navigator.of(context).pushNamed('/create-manual-order'),
-          ),
-          _SettingsTile(
-            icon: Icons.bar_chart_rounded,
-            title: l10n.orders,
-            subtitle: l10n.viewReportsSubtitle,
-            onTap: () => Navigator.of(context).pushNamed('/reports'),
-          ),
-          _SettingsTile(
-            icon: Icons.sync_rounded,
-            title: AppLocalizations.of(context).syncData,
-            subtitle: l10n.pushPullSubtitle,
-            onTap: () => Navigator.of(context).pushNamed('/sync'),
-          ),
+         
 
           // ── Preferences ────────────────────────────────────────────────────
           _SectionHeader(label: l10n.preferences),

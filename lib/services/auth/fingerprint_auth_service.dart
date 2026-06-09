@@ -15,7 +15,7 @@ class FingerprintAuthService {
   final AppDatabase _db;
   final PosFingerprintService _fingerprint;
    final BioDataService _bioDataService = getIt<BioDataService>();
-  final EncryptionService _encryptionService = getIt<EncryptionService>();
+  // final EncryptionService _encryptionService = getIt<EncryptionService>();
   final Logger _logger;
 
   static const int matchThreshold = 80;
@@ -56,6 +56,11 @@ class FingerprintAuthService {
   Future<bool> get isAvailable => _fingerprint.isAvailable();
 
   
+  Future<bool> hasFingerType(String staffId, Finger finger) async {
+    final fingerprints = await _db.getActiveBioDataByStaff(staffId);
+    return fingerprints.any((f) => f.finger == finger.name);
+  }
+
   Future<int?> enroll(String staffId, Finger finger) async {
     final result = await _fingerprint.capture();
     if (result == null || !result.success || result.templateBase64 == null) {
@@ -66,14 +71,14 @@ class FingerprintAuthService {
     final fingerprintId = DateTime.now().millisecondsSinceEpoch;
     final now = DateTime.now().toIso8601String();
     final base64data = result.templateBase64??"";
-    final encryptedData = await _encryptionService.encrypt(result.templateBase64!);
+    // final encryptedData = await _encryptionService.encrypt(result.templateBase64!);
 
     await _db.insertBioData(
       BioDataEntriesCompanion(
         id: Value(fingerprintId),
         staffId: Value(staffId),
         finger:  Value(finger.name),
-        dataBase64: Value(encryptedData),
+        dataBase64: Value(base64data),
         isActive: const Value(true),
         createdAt: Value(now),
         updatedAt: Value(now),
@@ -139,7 +144,9 @@ class FingerprintAuthService {
           name: 'POS_AUTH');
       String templateData;
       try {
-        templateData = await _encryptionService.decrypt(tpl.dataBase64);
+        // templateData = await _encryptionService.decrypt(tpl.dataBase64);
+              templateData = tpl.dataBase64;
+
       } catch (_) {
         templateData = tpl.dataBase64;
       }

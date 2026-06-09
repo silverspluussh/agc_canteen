@@ -153,7 +153,7 @@ class MealService {
         id: Value(mealId),
         name: Value(mealMap['name'] as String? ?? 'Meal'),
         status: Value(mealMap['status'] as String? ?? 'available'),
-        mealType: Value(mealMap['mealType'] as String? ?? 'breakfast'),
+        mealType: Value(mealMap['mealType']['name'] as String? ?? 'breakfast'),
         remarks: Value.absentIfNull(mealMap['remarks'] as String?),
         price: Value(priceNum.toDouble()),
         photoUrl: Value.absentIfNull(mealMap['photoUrl'] as String?),

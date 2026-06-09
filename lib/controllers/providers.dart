@@ -22,23 +22,7 @@ final mealServiceProvider = Provider<MealService>((ref) {
 
 final mealsProvider = FutureProvider<List<Meal>>((ref) async {
   final mealService = ref.watch(mealServiceProvider);
-  final dbMeals = await mealService.getMeals();
-
-  final laCarte = Meal(
-    id: 'meal_la_carte',
-    name: 'A la carte',
-    status: 'active',
-    mealType: 'la_carte',
-    remarks: 'Custom personalized meal selection',
-    price: 0.0,
-    photoUrl: null,
-    menuTypeId: 'menu_la_carte',
-    createdAt: DateTime.now().toIso8601String(),
-    updatedAt: DateTime.now().toIso8601String(),
-    syncStatus: 1,
-  );
-
-  return [laCarte, ...dbMeals];
+  return mealService.getMeals();
 });
 
 final staffListProvider = FutureProvider<List<StaffData>>((ref) async {
