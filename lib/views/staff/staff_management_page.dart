@@ -44,7 +44,6 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
   Future<void> _loadStaffData() async {
     final db = ref.read(databaseProvider);
     final staffList = await db.getAllStaff();
-    final bioData = await db.getAllBioData();
     final allFingerprints = await db.getActiveBioData();
 
     final items = staffList.map((s) {
@@ -52,7 +51,7 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
       return _StaffWithFingerprint(
         staff: s,
         hasFingerprint: staffFps.isNotEmpty,
-        fingerprintId: staffFps.isNotEmpty ? staffFps.first.id : null,
+        fingerprints: staffFps,
       );
     }).toList();
 
@@ -234,8 +233,8 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
                                 entry: entry,
                                 onAddFingerprint: () =>
                                     _showEnrollmentDialog(entry),
-                                onDeleteFingerprint: () =>
-                                    _showDeleteConfirmation(entry),
+                                onViewFingerprints: () =>
+                                    _showFingerprintsSheet(entry),
                                 isEnrolling: _isEnrolling,
                               );
                             },
@@ -245,6 +244,197 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
               ],
             ),
     );
+  }
+
+  void _showFingerprintsSheet(_StaffWithFingerprint entry) {
+    final l10n = AppLocalizations.of(context);
+    final colorScheme = Theme.of(context).colorScheme;
+    final fingerprints = entry.fingerprints;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.45,
+          minChildSize: 0.25,
+          maxChildSize: 0.75,
+          expand: false,
+          builder: (context, scrollController) {
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+              child: Column(
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '${entry.staff.firstName} ${entry.staff.lastName}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.fingerprint,
+                          size: 16, color: colorScheme.primary),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${fingerprints.length} fingerprint${fingerprints.length == 1 ? '' : 's'} stored',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: colorScheme.onSurface.withValues(alpha: 0.7),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  const Divider(),
+                  if (fingerprints.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 32),
+                      child: Center(child: Text('No fingerprints stored')),
+                    )
+                  else
+                    Expanded(
+                      child: ListView.separated(
+                        controller: scrollController,
+                        itemCount: fingerprints.length,
+                        separatorBuilder: (_, _) =>
+                            const Divider(height: 1),
+                        itemBuilder: (context, index) {
+                          final fp = fingerprints[index];
+                          return ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor:
+                                  colorScheme.primaryContainer,
+                              child: Icon(Icons.fingerprint,
+                                  color: colorScheme.primary),
+                            ),
+                            title: Text(_fingerLabelFromString(fp.finger)),
+                            subtitle: Text(
+                              'ID: ${fp.id}  •  ${_formatDate(fp.createdAt)}',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.delete_outline,
+                                  color: Colors.red),
+                              onPressed: () async {
+                                Navigator.pop(ctx);
+                                await _deleteSingleFingerprint(fp);
+                              },
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  const Divider(),
+                  const SizedBox(height: 8),
+                  PrimaryButton(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _showEnrollmentDialog(entry);
+                    },
+                    prefixChild: const Icon(Icons.add, color: Colors.white),
+                    label: const Text(
+                      'Add Fingerprint',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _deleteSingleFingerprint(BioDataEntry fp) async {
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(l10n.deleteFingerprint),
+        content: Text(
+          'Delete ${_fingerLabelFromString(fp.finger)} fingerprint (ID: ${fp.id})?',
+        ),
+        actionsAlignment: MainAxisAlignment.spaceBetween,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
+          DestructiveButton(
+            width: 120,
+            onPressed: () => Navigator.pop(ctx, true),
+            label:
+                Text(l10n.delete, style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    final authService = ref.read(fingerprintAuthProvider);
+    await authService.deleteFingerprint(fp.id);
+    await _refreshStaffData();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.deleteFingerprint)),
+      );
+    }
+  }
+
+  String _fingerLabelFromString(String finger) {
+    switch (finger) {
+      case 'thumb':
+        return 'Thumb';
+      case 'indexFinger':
+        return 'Index Finger';
+      case 'middle':
+        return 'Middle Finger';
+      case 'ring':
+        return 'Ring Finger';
+      case 'little':
+        return 'Pinky';
+      default:
+        return finger;
+    }
+  }
+
+  String _formatDate(String isoDate) {
+    try {
+      final dt = DateTime.parse(isoDate);
+      return '${dt.day}/${dt.month}/${dt.year}';
+    } catch (_) {
+      return isoDate;
+    }
   }
 
   void _showEnrollmentDialog(_StaffWithFingerprint entry) {
@@ -352,44 +542,6 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
     );
   }
 
-  void _showDeleteConfirmation(_StaffWithFingerprint entry) {
-    final l10n = AppLocalizations.of(context);
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(l10n.deleteFingerprint),
-        content: Text(l10n.deleteFingerprintConfirm),
-        actionsAlignment: MainAxisAlignment.spaceBetween,
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(l10n.cancel),
-          ),
-
-          DestructiveButton(
-            width: 120,
-            onPressed: () async {
-              Navigator.pop(ctx);
-              if (entry.fingerprintId != null) {
-                final authService = ref.read(fingerprintAuthProvider);
-                await authService.deleteFingerprint(entry.fingerprintId!);
-              }
-              await _refreshStaffData();
-              if (mounted) {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text(l10n.deleteFingerprint)));
-              }
-            },
-            label: Text(l10n.delete, style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
   String _fingerLabel(Finger finger) {
     switch (finger) {
       case Finger.thumb:
@@ -468,25 +620,25 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
 class _StaffWithFingerprint {
   final StaffData staff;
   bool hasFingerprint;
-  int? fingerprintId;
+  List<BioDataEntry> fingerprints;
 
   _StaffWithFingerprint({
     required this.staff,
     required this.hasFingerprint,
-    this.fingerprintId,
+    required this.fingerprints,
   });
 }
 
 class _StaffCard extends StatelessWidget {
   final _StaffWithFingerprint entry;
   final VoidCallback onAddFingerprint;
-  final VoidCallback onDeleteFingerprint;
+  final VoidCallback onViewFingerprints;
   final bool isEnrolling;
 
   const _StaffCard({
     required this.entry,
     required this.onAddFingerprint,
-    required this.onDeleteFingerprint,
+    required this.onViewFingerprints,
     required this.isEnrolling,
   });
 
@@ -570,15 +722,19 @@ class _StaffCard extends StatelessWidget {
               icon: const Icon(Icons.delete_outline),
               color: colorScheme.error,
               tooltip: l10n.deleteFingerprint,
-              onPressed: isEnrolling ? null : onDeleteFingerprint,
+              onPressed: isEnrolling ? null : onViewFingerprints,
             ),
           IconButton.filled(
             icon: Icon(
               entry.hasFingerprint ? Icons.fingerprint : Icons.add,
               color: Colors.white,
             ),
-            tooltip: l10n.addFingerprint,
-            onPressed: isEnrolling ? null : onAddFingerprint,
+            tooltip: entry.hasFingerprint
+                ? l10n.fingerprintRegistered
+                : l10n.addFingerprint,
+            onPressed: isEnrolling
+                ? null
+                : (entry.hasFingerprint ? onViewFingerprints : onAddFingerprint),
           ),
         ],
       ),

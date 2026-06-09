@@ -1,9 +1,12 @@
+import 'package:agc_canteen/core/network/network_api_dio.dart';
+import 'package:agc_canteen/models/pos_device.model.dart';
 import 'package:flutter/services.dart';
 import '../activity_log_service.dart';
 import '../../core/di/injection_container.dart';
 
 class PosDeviceService {
   static const _channel = MethodChannel('com.silverware.agc_canteen/pos');
+    final NetworkAPI networkAPI = NetworkAPI();
 
   bool _isInitialized = false;
 
@@ -48,4 +51,29 @@ class PosDeviceService {
       return false;
     }
   }
+
+  //remote api
+
+
+
+  //fetch
+   Future<List<PosDevice>> getAllBioDatas() async {
+    return await networkAPI.getData<List<PosDevice>>(
+      'hr/bio-data',
+      builder: (data) {
+        if (data is List) {
+          print(data.first);
+          return data
+              .map((e) => PosDevice.fromMap(e as Map<String, dynamic>))
+              .toList();
+        }
+        return [];
+      },
+    );
+  }
+
+
+
+
+  //update
 }

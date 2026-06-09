@@ -22,8 +22,10 @@ class StaffAuthPage extends ConsumerStatefulWidget {
 
 class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
   Future<void> _startAuth() async {
-    dev.log('[StaffAuthPage] Scan button tapped — starting fingerprint auth',
-        name: 'POS_AUTH');
+    dev.log(
+      '[StaffAuthPage] Scan button tapped — starting fingerprint auth',
+      name: 'POS_AUTH',
+    );
     await ref.read(authProvider.notifier).authenticate();
   }
 
@@ -64,9 +66,9 @@ class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(AppLocalizations.of(context).enterAdminPin
-                    
-                    , style: Theme.of(context).textTheme.titleMedium,
+                    Text(
+                      AppLocalizations.of(context).enterAdminPin,
+                      style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 20),
                     TextFormField(
@@ -119,21 +121,23 @@ class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
                   onPressed: () => Navigator.of(ctx).pop(),
                   child: Text(
                     AppLocalizations.of(context).cancel,
-                    style: const TextStyle(color: Colors.red,fontSize: 18),
+                    style: const TextStyle(color: Colors.red, fontSize: 18),
                   ),
                 ),
-                
+
                 PrimaryButton(
                   width: 120,
                   height: 48,
                   onPressed: () {
-                    final accescode = dotenv.env['ADMIN_ACCESS_CODE']??'123456';  
+                    final accescode =
+                        dotenv.env['ADMIN_ACCESS_CODE'] ?? '123456';
                     if (!formKey.currentState!.validate()) return;
                     if (codeController.text.trim() == accescode) {
                       Navigator.of(context).pop();
                       getIt<ActivityLogService>().log(
                         type: 'admin_code_access',
-                        message: 'Admin accessed settings via PIN from staff auth screen',
+                        message:
+                            'Admin accessed settings via PIN from staff auth screen',
                         actorType: 'admin',
                       );
                       Navigator.pushNamed(context, '/settings');
@@ -141,12 +145,12 @@ class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
                       setDialogState(() => isWrong = true);
                       codeController.clear();
                     }
-                  },label: Text(
+                  },
+                  label: Text(
                     AppLocalizations.of(context).confirm,
-                    style: const TextStyle(color: Colors.white,fontSize: 18),
-                  ),)
-
-               
+                    style: const TextStyle(color: Colors.white, fontSize: 18),
+                  ),
+                ),
               ],
             );
           },
@@ -158,7 +162,7 @@ class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(authProvider);
-
+    Size size = MediaQuery.sizeOf(context);
     return PopScope(
       canPop: false,
       child: Scaffold(
@@ -166,36 +170,39 @@ class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
           automaticallyImplyLeading: false,
           centerTitle: true,
           title: OutlineButton(
-            
-                  onPressed: _showLanguageDialog,
-                  prefixChild: const Icon(Icons.translate),
-                  label: Text(AppLocalizations.of(context).changeLanguage,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontSize: 15,
-                      )),
-                  
+            onPressed: _showLanguageDialog,
+            prefixChild: const Icon(Icons.translate),
+            label: Text(
+              AppLocalizations.of(context).changeLanguage,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.primary,
+                fontSize: 15,
+              ),
+            ),
           ),
           actions: [
-             IconButton(
-                        onPressed: _showAdminCodeDialog,
-                        icon: Icon(
-                          Icons.settings,
-                          size: 30,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
+            IconButton(
+              onPressed: _showAdminCodeDialog,
+              icon: Icon(
+                Icons.settings,
+                size: 30,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
           ],
         ),
 
         body: SafeArea(
           child: Stack(
             children: [
-              Center(
+              SizedBox(
+                width: size.width,
+                height: size.height,
                 child: Padding(
-                  padding: const EdgeInsets.all(32),
+                  padding: const EdgeInsets.all(20),
                   child: Column(
-                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       Text(
                         AppLocalizations.of(context).staffSignIn,
@@ -203,23 +210,19 @@ class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
                         style: Theme.of(context).textTheme.headlineMedium
                             ?.copyWith(fontWeight: FontWeight.bold),
                       ),
-                      // const SizedBox(height: 2),
-                      // Text(AppLocalizations.of(context).placeFinger
-                      // , textAlign: TextAlign.center
-                      // , style: Theme.of(context).textTheme.titleLarge
-                      // ),
-                      Spacer(),
+                      // const SizedBox(height: 20),
+                      const Spacer(),
                       AvatarGlow(
                         glowColor: Theme.of(context).colorScheme.primary,
-
+                  
                         child: SvgPicture.asset(
                           'assets/illustrations/pos_auth_finger.svg',
                           width: 200,
                           height: 200,
                         ),
                       ),
-                      Spacer(),
-
+                      const Spacer(),
+                  
                       if (state.isUnauthenticated &&
                           !state.isAuthenticating &&
                           !state.hasError) ...[
@@ -228,20 +231,26 @@ class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
                           width: 280,
                           height: 56,
                           onPressed: _startAuth,
-                          prefixChild: const Icon(Icons.fingerprint,
-                              color: Colors.white, size: 28),
+                          prefixChild: const Icon(
+                            Icons.fingerprint,
+                            color: Colors.white,
+                            size: 28,
+                          ),
                           label: Text(
                             AppLocalizations.of(context).biometricLogin,
                             style: const TextStyle(
-                                color: Colors.white, fontSize: 18),
+                              color: Colors.white,
+                              fontSize: 18,
+                            ),
                           ),
                         ),
                       ],
                       if (state.isAuthenticating) ...[
                         const LinearProgressIndicator(),
                         const SizedBox(height: 16),
-                        Text(AppLocalizations.of(context).scanning,
-                        style: Theme.of(context).textTheme.titleMedium,
+                        Text(
+                          AppLocalizations.of(context).scanning,
+                          style: Theme.of(context).textTheme.titleMedium,
                         ),
                       ],
                       if (state.isAuthenticated && state.staff != null) ...[
@@ -277,7 +286,9 @@ class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
                           icon: const Icon(Icons.fingerprint),
                           label: Text(
                             AppLocalizations.of(context).retry,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Theme.of(
@@ -295,8 +306,6 @@ class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
                   ),
                 ),
               ),
-
-              
             ],
           ),
         ),

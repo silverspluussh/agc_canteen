@@ -45,7 +45,7 @@ void main() async => runZoneGuarded(() async {
 
 void runZoneGuarded(void Function() body) {
   runZonedGuarded(body, (error, stack) {
-    log("Unhandled error: $error", stackTrace: stack);
+   log(error.toString());
   });
 }
 

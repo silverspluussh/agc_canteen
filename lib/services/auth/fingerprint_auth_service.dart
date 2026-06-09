@@ -31,15 +31,26 @@ class FingerprintAuthService {
   Future<bool> init() async {
     dev.log('[FingerprintAuth] Initializing fingerprint device...',
         name: 'POS_AUTH');
-    final ok = await _fingerprint.init();
-    if (!ok) {
-      dev.log('[FingerprintAuth] Fingerprint device init returned false',
-          name: 'POS_AUTH');
-      throw Exception('Fingerprint device initialization failed');
+    const maxRetries = 4;
+    for (var attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        final ok = await _fingerprint.init();
+        if (ok) {
+          dev.log('[FingerprintAuth] Fingerprint device initialized successfully (attempt $attempt)',
+              name: 'POS_AUTH');
+          return true;
+        }
+        dev.log('[FingerprintAuth] Fingerprint device init returned false (attempt $attempt/$maxRetries)',
+            name: 'POS_AUTH');
+      } on Exception catch (e) {
+        dev.log('[FingerprintAuth] Fingerprint device init error (attempt $attempt/$maxRetries): $e',
+            name: 'POS_AUTH');
+      }
+      if (attempt < maxRetries) {
+        await Future.delayed(Duration(seconds: attempt));
+      }
     }
-    dev.log('[FingerprintAuth] Fingerprint device initialized successfully',
-        name: 'POS_AUTH');
-    return true;
+    throw Exception('Fingerprint device initialization failed after $maxRetries attempts');
   }
 
   Future<bool> get isAvailable => _fingerprint.isAvailable();
