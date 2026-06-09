@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:developer' as dev;
 import 'dart:developer';
 import 'package:agc_canteen/models/staff.model.dart';
-// import 'package:agc_canteen/services/biodata_service.dart';
+ import 'package:agc_canteen/services/biodata_service.dart';
 import 'package:agc_canteen/services/encryption_service.dart';
 import 'package:drift/drift.dart';
 import 'package:logger/logger.dart';
@@ -14,7 +14,7 @@ import '../../core/di/injection_container.dart';
 class FingerprintAuthService {
   final AppDatabase _db;
   final PosFingerprintService _fingerprint;
-  // final BioDataService _bioDataService = getIt<BioDataService>();
+   final BioDataService _bioDataService = getIt<BioDataService>();
   final EncryptionService _encryptionService = getIt<EncryptionService>();
   final Logger _logger;
 
@@ -65,9 +65,9 @@ class FingerprintAuthService {
 
     final fingerprintId = DateTime.now().millisecondsSinceEpoch;
     final now = DateTime.now().toIso8601String();
+    final base64data = result.templateBase64??"";
     final encryptedData = await _encryptionService.encrypt(result.templateBase64!);
 
-    log(result.templateBase64!);
     await _db.insertBioData(
       BioDataEntriesCompanion(
         id: Value(fingerprintId),
@@ -82,15 +82,15 @@ class FingerprintAuthService {
       ),
     );
 
-    // unawaited(
-    //   _bioDataService.createBioData(staffId,[ BioData(
-    //     id: fingerprintId,
-    //     staffId: staffId,
-    //     finger: finger,
-    //     data: encryptedData,
-    //     isActive: true,
-    //   )])
-    // );
+    unawaited(
+      _bioDataService.createBioData(staffId,[BioData(
+        id: fingerprintId,
+        staffId: staffId,
+        finger: finger,
+        data: base64data,
+        isActive: true,
+      )])
+    );
 
     _logger.i('Fingerprint enrolled: id=$fingerprintId staffId=$staffId');
     getIt<ActivityLogService>().log(

@@ -10,7 +10,7 @@ import 'core/di/injection_container.dart';
 import 'core/theme/app_theme.dart';
 import 'l10n/generated/app_localizations.dart';
 import 'views/splash/auth_gate.dart';
-import 'views/reports/reports_page.dart';
+import 'views/reports/orders_page.dart';
 import 'views/settings/settings_page.dart';
 import 'views/staff/staff_management_page.dart';
 import 'views/settings/sync_page.dart';

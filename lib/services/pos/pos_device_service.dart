@@ -62,7 +62,6 @@ class PosDeviceService {
       'hr/bio-data',
       builder: (data) {
         if (data is List) {
-          print(data.first);
           return data
               .map((e) => PosDevice.fromMap(e as Map<String, dynamic>))
               .toList();

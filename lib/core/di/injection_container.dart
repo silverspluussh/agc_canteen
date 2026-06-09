@@ -57,7 +57,7 @@ Future<void> setupServiceLocator() async {
 
   getIt.registerLazySingleton<SyncService>(() => SyncService(
         db: getIt<AppDatabase>(),
-        dio: getIt<Dio>(),
+        networkAPI: getIt<NetworkAPI>(),
         connectivity: getIt<Connectivity>(),
       ));
 

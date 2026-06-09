@@ -169,17 +169,17 @@ class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
         appBar: AppBar(
           automaticallyImplyLeading: false,
           centerTitle: true,
-          title: OutlineButton(
-            onPressed: _showLanguageDialog,
-            prefixChild: const Icon(Icons.translate),
-            label: Text(
-              AppLocalizations.of(context).changeLanguage,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.primary,
-                fontSize: 15,
-              ),
-            ),
-          ),
+          // title: OutlineButton(
+          //   onPressed: _showLanguageDialog,
+          //   prefixChild: const Icon(Icons.translate),
+          //   label: Text(
+          //     AppLocalizations.of(context).changeLanguage,
+          //     style: TextStyle(
+          //       color: Theme.of(context).colorScheme.primary,
+          //       fontSize: 15,
+          //     ),
+          //   ),
+          // ),
           actions: [
             IconButton(
               onPressed: _showAdminCodeDialog,

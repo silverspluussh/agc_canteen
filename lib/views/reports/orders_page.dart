@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:agc_canteen/views/widgets/app_buttons.widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,11 +7,84 @@ import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
 
 import '../../l10n/generated/app_localizations.dart';
-import '../../controllers/providers.dart';
 import '../../services/database/app_database.dart';
+import '../../services/pos/pos_print_service.dart';
 
 final _currency = NumberFormat('#,##0.00', 'en_US');
 String _cap(String s) => s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
+
+Future<void> _printReportReceipt(_ReportOrder order) async {
+  try {
+    final printer = GetIt.instance<PosPrintService>();
+    final now = DateTime.now();
+    final pad = (int n) => n.toString().padLeft(2, '0');
+    final date = '${now.year}-${pad(now.month)}-${pad(now.day)} '
+        '${pad(now.hour)}:${pad(now.minute)}';
+
+    final orderTypeLabel = order.orderType == 'takeout' ? 'Takeout' : 'Dine-in';
+    final mealTypeLabel = _cap(order.mealType);
+    final staffLabel = order.staffName ?? 'Group order';
+    final isGroup = order.staffName == null;
+
+    final b = BytesBuilder();
+
+    void ln(String s) => b.add('$s\n'.codeUnits);
+    void boldOn() => b.add(const [0x1B, 0x45, 0x01]);
+    void boldOff() => b.add(const [0x1B, 0x45, 0x00]);
+    void centerOn() => b.add(const [0x1B, 0x61, 0x01]);
+    void centerOff() => b.add(const [0x1B, 0x61, 0x00]);
+    void doubleOn() => b.add(const [0x1D, 0x21, 0x11]);
+    void doubleOff() => b.add(const [0x1D, 0x21, 0x00]);
+
+    centerOn();
+    ln('====================');
+    ln('    AGC CANTEEN');
+    if (isGroup) {
+      ln('  [Group Order]');
+    }
+    ln('====================');
+    centerOn();
+    boldOn();
+    doubleOn();
+    ln(order.orderCode);
+    doubleOff();
+    boldOff();
+    ln('Time:  $date');
+    ln('Staff: $staffLabel');
+    ln('Meal:  $mealTypeLabel');
+    ln('Type:  $orderTypeLabel');
+    if (order.description != null && order.description!.isNotEmpty) {
+      ln('Desc:  ${order.description}');
+    }
+    ln('--------------------');
+    if (isGroup) {
+      ln('People: ${order.groupCount}');
+      ln('--------------------');
+    }
+    for (final item in order.items) {
+      final lineTotal = item.price * item.qty;
+      final name = item.mealName.length > 24
+          ? '${item.mealName.substring(0, 22)}..'
+          : item.mealName;
+      final qty = 'x${item.qty}';
+      final price = '${_currency.format(lineTotal)}';
+      ln('$name${''.padLeft(32 - name.length - qty.length - price.length)}$qty  $price');
+    }
+    ln('--------------------');
+    boldOn();
+    ln('TOTAL: GH\u20B5 ${_currency.format(order.total)}');
+    boldOff();
+    ln('====================');
+    ln('     THANK YOU!');
+    ln('');
+
+    final bytes = Uint8List.fromList(b.toBytes());
+    final printed = await printer.printRawBytes(bytes);
+    if (printed) {
+      await printer.cutPaper();
+    }
+  } catch (_) {}
+}
 
 class _ReportOrderItem {
   final String mealName;
@@ -562,6 +637,19 @@ class _OrderTile extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+          ),
+        ),
+        const Divider(height: 16),
+        TextButton.icon(
+          onPressed: () => _printReportReceipt(o),
+          icon: Icon(Icons.print, size: 18, color: cs.primary),
+          label: Text(
+            'Print Receipt',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: cs.primary,
             ),
           ),
         ),

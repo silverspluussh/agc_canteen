@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../controllers/admin_auth_controller.dart';
 import '../../l10n/generated/app_localizations.dart';
+import 'otp_verification_page.dart';
 
 class AdminLoginPage extends ConsumerStatefulWidget {
   const AdminLoginPage({super.key});
@@ -18,6 +19,11 @@ class _AdminLoginPageState extends ConsumerState<AdminLoginPage> {
   bool _obscurePassword = true;
 
   @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
@@ -27,6 +33,14 @@ class _AdminLoginPageState extends ConsumerState<AdminLoginPage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(adminAuthProvider);
+
+    ref.listen(adminAuthProvider, (prev, next) {
+      if (next.isAwaitingOtp && !(prev?.isAwaitingOtp ?? false)) {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const OtpVerificationPage()),
+        );
+      }
+    });
 
     return Scaffold(
       body: SafeArea(

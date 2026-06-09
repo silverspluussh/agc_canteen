@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 
 import 'package:drift/drift.dart';
 import 'package:logger/logger.dart';
@@ -476,8 +477,8 @@ class RemoteDataSyncService {
         name: Value(mealMap['name'] as String? ?? 'Meal'),
         status: Value(mealMap['status'] as String? ?? 'available'),
         mealType: Value(
-          mealMap['mealType'] as String? ??
-              mealMap['meal_type'] as String? ??
+          mealMap['mealType']['name'] as String? ??
+              mealMap['mealType']['name'] as String? ??
               'breakfast',
         ),
         remarks: Value.absentIfNull(mealMap['remarks'] as String?),

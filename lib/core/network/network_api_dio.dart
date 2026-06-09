@@ -50,6 +50,10 @@ class NetworkAPI {
           throw TimeoutException(
             'Request timed out. Please check your connection and try again.',
           );
+        case 500:
+          throw TimeoutException(
+            'Request timed out. Please check your connection and try again.',
+          );
         default:
           throw InvalidApiKeyException(response.data["message"]);
       }
@@ -89,7 +93,6 @@ class NetworkAPI {
         queryParameters: queryParameters,
         data: data,
       );
-    //  log("Response status: ${response}");
       switch (response.statusCode) {
         case 200:
           final data = response.data;
@@ -109,8 +112,9 @@ class NetworkAPI {
         case 403:
           throw LoginAttemptFailed(response.data["message"]);
         case 404:
-      
-          throw NotFoundException(response.data["message"]);
+          log(response.data.toString());
+
+          throw NotFoundException("Request not found");
         case 405:
           throw NotAllowedException(
             'Request method not allowed. Please contact support.',
@@ -121,6 +125,10 @@ class NetworkAPI {
           );
         case 409:
           throw InvalidCredentials(response.data["message"]);
+        case 500:
+          throw TimeoutException(
+            'Request timed out. Please check your connection and try again.',
+          );
 
         default:
           throw LoginAttemptFailed(response.data["message"]);
@@ -130,7 +138,6 @@ class NetworkAPI {
         'No internet connection. Please check your connection and try again.',
       );
     } on DioException catch (e) {
-      log(e.toString());
       switch (e.type) {
         case DioExceptionType.connectionTimeout:
         case DioExceptionType.sendTimeout:
@@ -142,6 +149,11 @@ class NetworkAPI {
           throw NoInternetConnectionException(
             'No internet connection. Please check your connection and try again.',
           );
+        case DioExceptionType.badResponse:
+          throw NoInternetConnectionException(
+            'There is an issue with the server.',
+          );
+
         default:
           throw Exception(e.message);
       }
@@ -208,6 +220,10 @@ class NetworkAPI {
           throw NoInternetConnectionException(
             'No internet connection. Please check your connection and try again.',
           );
+        case DioExceptionType.badResponse:
+          throw NoInternetConnectionException(
+            'There is an issue with the server.',
+          );
         default:
           throw Exception(e.message);
       }
@@ -273,6 +289,10 @@ class NetworkAPI {
         case DioExceptionType.connectionError:
           throw NoInternetConnectionException(
             'No internet connection. Please check your connection and try again.',
+          );
+        case DioExceptionType.badResponse:
+          throw NoInternetConnectionException(
+            'There is an issue with the server.',
           );
         default:
           throw Exception(e.message);

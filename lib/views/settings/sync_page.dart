@@ -2,7 +2,6 @@ import 'package:agc_canteen/core/theme/app_colors.dart';
 import 'package:agc_canteen/views/widgets/app_buttons.widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
 
 import '../../l10n/generated/app_localizations.dart';

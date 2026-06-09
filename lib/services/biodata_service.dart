@@ -10,7 +10,7 @@ class BioDataService {
 
   Future<List<BioData>> getAllBioDatas() async {
     return await networkAPI.getData<List<BioData>>(
-      'hr/bio-data',
+      '/hr/bio-data',
       builder: (data) {
         if (data is List) {
           return data
@@ -41,18 +41,22 @@ class BioDataService {
     String staffId,
     List<BioData> bioDatas,
   ) async {
+
     final payload = {
-      "staffId": int.tryParse(staffId) ?? staffId,
+      "staffId": staffId,
       "bioDatas": bioDatas
-          .map((b) => {"finger": b.finger.name, "data": b.data})
+          .map((b) {
+
+            return {"finger": b.finger.name, "data": b.data};
+          })
           .toList(),
     };
-
-    log(payload.toString());
+log("Biodata returned :${bioDatas.first.toMap().toString()}");
     return await networkAPI.postData<bool>(
-      'hr/bio-data/create-bulk',
+      '/hr/bio-data/create-bulk',
       data: payload,
       builder: (data) {
+        log("data result $data");
         if(data != null){
           return true;
         }
@@ -70,7 +74,7 @@ class BioDataService {
     };
 
     return await networkAPI.putData<BioData>(
-      'hr/bio-data/update',
+      '/hr/bio-data/update',
       data: payload,
       queryParameters: {"id": bioData.id},
       builder: (data) {

@@ -1,12 +1,13 @@
 import 'dart:convert';
 import 'package:drift/drift.dart';
-import 'package:dio/dio.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:logger/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'database/app_database.dart';
 import 'activity_log_service.dart';
+import 'auth/admin_auth_service.dart';
 import '../core/di/injection_container.dart';
+import '../core/network/network_api_dio.dart';
 
 enum SyncStatus { idle, syncing, success, error }
 
@@ -26,32 +27,21 @@ class SyncResult {
 
 class SyncService {
   final AppDatabase _db;
-  final Dio _dio;
+  final NetworkAPI _networkAPI;
   final Connectivity _connectivity;
   final Logger _logger;
 
   static const _lastSyncKey = 'last_sync_timestamp';
-  static const _baseUrlKey = 'sync_base_url';
 
   SyncService({
     required AppDatabase db,
-    required Dio dio,
+    required NetworkAPI networkAPI,
     Connectivity? connectivity,
     Logger? logger,
   }) : _db = db,
-       _dio = dio,
+       _networkAPI = networkAPI,
        _connectivity = connectivity ?? Connectivity(),
        _logger = logger ?? Logger();
-
-  Future<String?> get baseUrl async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_baseUrlKey);
-  }
-
-  Future<void> setBaseUrl(String url) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_baseUrlKey, url);
-  }
 
   Future<DateTime?> get lastSync async {
     final prefs = await SharedPreferences.getInstance();
@@ -87,21 +77,6 @@ class SyncService {
         pulled: pulled,
         errors: ['No internet connection'],
       );
-    }
-
-    final baseUrl = await this.baseUrl;
-    if (baseUrl == null) {
-      return SyncResult(
-        pushed: pushed,
-        pulled: pulled,
-        errors: ['Sync URL not configured'],
-      );
-    }
-
-    if (!_dio.options.baseUrl.startsWith(baseUrl)) {
-      _dio.options.baseUrl = baseUrl;
-      _dio.options.connectTimeout = const Duration(seconds: 15);
-      _dio.options.receiveTimeout = const Duration(seconds: 30);
     }
 
     const tableOrder = [
@@ -164,23 +139,28 @@ class SyncService {
       );
     }
 
-    final baseUrl = await this.baseUrl;
-    if (baseUrl == null) {
-      return SyncResult(
-        pushed: pushed, pulled: pulled,
-        errors: ['Sync URL not configured'],
-      );
-    }
-
-    if (!_dio.options.baseUrl.startsWith(baseUrl)) {
-      _dio.options.baseUrl = baseUrl;
-    }
-
     try {
-      pushed['orders'] = await _pushTable('orders');
-      pushed['order_items'] = await _pushTable('order_items');
-      pulled['orders'] = await _pullTable('orders');
-      pulled['order_items'] = await _pullTable('order_items');
+      final orders = await _db.getUnsyncedOrders();
+      int pushedCount = 0;
+
+      for (final order in orders) {
+        try {
+          final payload = await _buildSingleOrderPayload(order);
+          await _networkAPI.postData(
+            'pos/order/create',
+            data: payload,
+            builder: (data) => data,
+          );
+          await _db.markOrderSynced(order.id);
+          pushedCount++;
+        } catch (e) {
+          _logger.w('Failed to push single order ${order.orderCode}: $e');
+          errors.add('Order ${order.orderCode}: $e');
+          await _db.markOrderFailed(order.id);
+        }
+      }
+
+      pushed['orders'] = pushedCount;
       await _saveLastSync();
     } catch (e) {
       errors.add(e.toString());
@@ -201,29 +181,97 @@ class SyncService {
       );
     }
 
-    final baseUrl = await this.baseUrl;
-    if (baseUrl == null) {
-      return SyncResult(
-        pushed: pushed, pulled: pulled,
-        errors: ['Sync URL not configured'],
-      );
-    }
-
-    if (!_dio.options.baseUrl.startsWith(baseUrl)) {
-      _dio.options.baseUrl = baseUrl;
-    }
-
     try {
-      pushed['group_orders'] = await _pushTable('group_orders');
-      pushed['group_order_items'] = await _pushTable('group_order_items');
-      pulled['group_orders'] = await _pullTable('group_orders');
-      pulled['group_order_items'] = await _pullTable('group_order_items');
+      final groupOrders = await _db.getUnsyncedGroupOrders();
+      int pushedCount = 0;
+
+      for (final order in groupOrders) {
+        try {
+          final payload = await _buildGroupOrderPayload(order);
+          await _networkAPI.postData(
+            'pos/order/create-group',
+            data: payload,
+            builder: (data) => data,
+          );
+          await _db.markGroupOrderSynced(order.id);
+          pushedCount++;
+        } catch (e) {
+          _logger.w('Failed to push group order ${order.orderCode}: $e');
+          errors.add('Group order ${order.orderCode}: $e');
+          await _db.markGroupOrderFailed(order.id);
+        }
+      }
+
+      pushed['group_orders'] = pushedCount;
       await _saveLastSync();
     } catch (e) {
       errors.add(e.toString());
     }
 
     return SyncResult(pushed: pushed, pulled: pulled, errors: errors);
+  }
+
+  Future<int> _resolveMealTypeId(String mealTypeName) async {
+    final menuTypes = await _db.getAllMenuTypes();
+    final match = menuTypes.where(
+      (mt) => mt.name.toLowerCase() == mealTypeName.toLowerCase(),
+    );
+    if (match.isNotEmpty) {
+      return int.tryParse(match.first.id) ?? 0;
+    }
+    return 0;
+  }
+
+  Future<int> _resolveOrderedBy() async {
+    try {
+      final cachedEmail = await getIt<AdminAuthService>().getCachedEmail();
+      if (cachedEmail != null) {
+        final allUsers = await _db.getAllUsers();
+        final match = allUsers.where(
+          (u) => (u.email?.toLowerCase() ?? '') == cachedEmail.toLowerCase(),
+        );
+        if (match.isNotEmpty) {
+          return int.tryParse(match.first.id) ?? 0;
+        }
+      }
+    } catch (_) {}
+    return 0;
+  }
+
+  Future<Map<String, dynamic>> _buildSingleOrderPayload(Order order) async {
+    final items = await _db.getOrderItems(order.id);
+    return {
+      'orderType': order.orderType,
+      'mealTypeId': await _resolveMealTypeId(order.mealType),
+      'total': order.total,
+      'orderedBy': await _resolveOrderedBy(),
+      'description': order.description ?? '',
+      'isAlaCarte': false,
+      'items': items.map((i) => {
+        'mealId': int.tryParse(i.mealId) ?? 0,
+        'unitPrice': i.price,
+        'quantity': i.qty,
+      }).toList(),
+      // 'posProfileId': 0,
+    };
+  }
+
+  Future<Map<String, dynamic>> _buildGroupOrderPayload(
+    GroupOrder order,
+  ) async {
+    final items = await _db.getGroupOrderItems(order.id);
+    return {
+      'orderType': order.orderType,
+      'mealTypeId': await _resolveMealTypeId(order.mealType),
+      'total': order.total,
+      'orderedBy': await _resolveOrderedBy(),
+      'items': items.map((i) => {
+        'mealId': int.tryParse(i.mealId) ?? 0,
+        'unitPrice': i.price,
+        'quantity': i.qty,
+      }).toList(),
+      'posProfileId': 0,
+    };
   }
 
   Future<int> _pushTable(String table) async {
@@ -234,14 +282,12 @@ class SyncService {
     for (final record in unsynced) {
       try {
         final data = _toJsonMap(record);
-        final existingId = record['id'] as String? ?? '';
-        if (existingId.isEmpty) continue;
+        final id = record['id'] as String? ?? '';
+        if (id.isEmpty) continue;
 
-        final response = await _dio.post('/api/sync/$table', data: data);
-        if (response.statusCode == 200 || response.statusCode == 201) {
-          await _markSynced(table, existingId);
-          pushed++;
-        }
+        await _networkAPI.postData('/api/sync/$table', data: data, builder: (data) => data);
+        await _markSynced(table, id);
+        pushed++;
       } catch (e) {
         _logger.w('Failed to push $table record: $e');
         final id = record['id'] as String?;
@@ -259,17 +305,17 @@ class SyncService {
     }
 
     try {
-      final response = await _dio.get(
+      final responseData = await _networkAPI.getData(
         '/api/sync/$table',
         queryParameters: queryParams,
+        builder: (data) => data,
       );
-      if (response.statusCode != 200) return 0;
 
-      final List<dynamic> data = response.data['data'] ?? [];
-      if (data.isEmpty) return 0;
+      final List<dynamic> records = responseData is List ? responseData : [];
+      if (records.isEmpty) return 0;
 
       int pulled = 0;
-      for (final record in data) {
+      for (final record in records) {
         await _upsertTable(table, record as Map<String, dynamic>);
         pulled++;
       }
