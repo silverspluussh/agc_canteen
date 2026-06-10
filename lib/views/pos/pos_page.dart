@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 
 import 'package:agc_canteen/l10n/generated/app_localizations.dart';
 import 'package:agc_canteen/main.dart';
@@ -55,7 +56,9 @@ class _PosPageState extends ConsumerState<PosPage> {
             onLanguage: _showLanguageDialog,
           ),
           body: mealsAsync.when(
-            data: (meals) => _buildBody(meals, orderState),
+            data: (meals){
+              
+              return  _buildBody(meals, orderState);},
             loading: () => SizedBox(
               height: MediaQuery.of(context).size.height,
               width: MediaQuery.of(context).size.width,

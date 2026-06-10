@@ -96,7 +96,7 @@ Route<dynamic>? _onGenerateRoute(RouteSettings settings) {
       break;
     case '/staff':
       page = const StaffManagementPage();
-      break;
+      break;//////////////
     case '/sync':
       page = const SyncPage();
       break;

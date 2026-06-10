@@ -262,7 +262,7 @@ class AppDatabase extends _$AppDatabase {
     });
   }
 
-  Future<List<Meal>> getAllMeals() => select(meals).get();
+  Future<List<Meal>> getAllMeals() => (select(meals)..where((m)=> m.status.equals("available"))).get();
   Future<Meal?> getMeal(String id) =>
       (select(meals)..where((t) => t.id.equals(id))).getSingleOrNull();
 

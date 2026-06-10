@@ -51,7 +51,6 @@ class BioDataService {
           })
           .toList(),
     };
-log("Biodata returned :${bioDatas.first.toMap().toString()}");
     return await networkAPI.postData<bool>(
       '/hr/bio-data/create-bulk',
       data: payload,

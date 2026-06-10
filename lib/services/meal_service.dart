@@ -26,7 +26,7 @@ class MealService {
           'searchTerm': '',
           'limit': '100',
           'offset': 0,
-          'status': '',
+          'status': 'available',
           // 'mealTypeId': '',
           // 'menuType': '',
           // 'startDate': '',
