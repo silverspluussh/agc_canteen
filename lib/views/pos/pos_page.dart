@@ -16,6 +16,7 @@ import '../../core/di/injection_container.dart';
 import '../../services/activity_log_service.dart';
 import '../../services/database/app_database.dart';
 import '../../services/auth/pos_auth_service.dart';
+import '../../services/meal_time_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class PosPage extends ConsumerStatefulWidget {
@@ -170,8 +171,13 @@ class _PosPageState extends ConsumerState<PosPage> {
 
   Widget _buildBody(List<Meal> meals, OrderState orderState) {
     final selectedId = orderState.selectedMeal?.id;
+    final availableTypes = ref.watch(availableMealTypesProvider);
 
-    final filteredMeals = meals.where((meal) {
+    final mealTypeFiltered = meals.where((meal) {
+      return availableTypes.contains(meal.mealType.toLowerCase());
+    }).toList();
+
+    final filteredMeals = mealTypeFiltered.where((meal) {
       final query = _searchQuery.toLowerCase().trim();
       if (query.isEmpty) return true;
       final nameMatches = meal.name.toLowerCase().contains(query);
