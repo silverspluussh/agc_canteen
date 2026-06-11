@@ -11,6 +11,7 @@ import com.silverware.agc_canteen.plugins.PrintPlugin
 import com.silverware.agc_canteen.plugins.FingerprintPlugin
 import com.silverware.agc_canteen.plugins.ScannerPlugin
 import com.silverware.agc_canteen.plugins.CardPlugin
+import com.silverware.agc_canteen.plugins.ExternalPrintPlugin
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 
@@ -31,6 +32,7 @@ class MainActivity : FlutterActivity() {
         flutterEngine.plugins.add(FingerprintPlugin())
         flutterEngine.plugins.add(ScannerPlugin())
         flutterEngine.plugins.add(CardPlugin())
+        flutterEngine.plugins.add(ExternalPrintPlugin())
     }
 
     private fun requestNeededPermissions() {

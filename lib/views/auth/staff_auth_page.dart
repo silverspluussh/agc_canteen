@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../controllers/auth_controller.dart';
+import '../../controllers/providers.dart';
 import '../../core/di/injection_container.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../services/activity_log_service.dart';
@@ -21,6 +22,38 @@ class StaffAuthPage extends ConsumerStatefulWidget {
 }
 
 class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
+  bool _fingerprintReady = false;
+  bool _fingerprintInitFailed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _initFingerprint());
+  }
+
+  Future<void> _initFingerprint() async {
+    dev.log('[StaffAuthPage] Initializing fingerprint SDK...',
+        name: 'POS_AUTH');
+    try {
+      final posAuth = ref.read(posAuthProvider);
+      final ok = await posAuth.init();
+      if (mounted) {
+        setState(() {
+          _fingerprintReady = ok;
+          _fingerprintInitFailed = !ok;
+        });
+      }
+      if (ok) {
+        dev.log('[StaffAuthPage] Fingerprint SDK initialized successfully',
+            name: 'POS_AUTH');
+      }
+    } catch (e, st) {
+      dev.log('[StaffAuthPage] Fingerprint SDK init FAILED: $e',
+          name: 'POS_AUTH', error: e, stackTrace: st);
+      if (mounted) setState(() => _fingerprintInitFailed = true);
+    }
+  }
+
   Future<void> _startAuth() async {
     dev.log(
       '[StaffAuthPage] Scan button tapped — starting fingerprint auth',
@@ -223,9 +256,19 @@ class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
                       ),
                       const Spacer(),
                   
+                      if (!_fingerprintReady && !_fingerprintInitFailed) ...[
+                        const SizedBox(height: 20),
+                        const LinearProgressIndicator(),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Initializing biometrics...',
+                          style: TextStyle(fontSize: 16),
+                        ),
+                      ],
                       if (state.isUnauthenticated &&
                           !state.isAuthenticating &&
-                          !state.hasError) ...[
+                          !state.hasError &&
+                          _fingerprintReady) ...[
                         const SizedBox(height: 20),
                         PrimaryButton(
                           width: 280,

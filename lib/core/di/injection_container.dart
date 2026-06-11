@@ -16,7 +16,7 @@ import '../../services/pos/pos_card_service.dart';
 import '../../services/pos/pos_device_service.dart';
 import '../../services/device_info_service.dart';
 import '../../services/pos/pos_fingerprint_service.dart';
-import '../../services/pos/pos_print_service.dart';
+import '../../services/print/print_service_manager.dart';
 import '../../services/pos/pos_scanner_service.dart';
 // import '../../services/encryption_service.dart';
 import '../../services/sync_service.dart';
@@ -36,7 +36,8 @@ Future<void> setupServiceLocator() async {
   getIt.registerLazySingleton<PosFingerprintService>(
       () => PosFingerprintService());
   getIt.registerLazySingleton<PosScannerService>(() => PosScannerService());
-  getIt.registerLazySingleton<PosPrintService>(() => PosPrintService());
+  getIt.registerLazySingleton<PrintServiceManager>(() => PrintServiceManager());
+  await getIt<PrintServiceManager>().loadPrinterType();
   getIt.registerLazySingleton<PosCardService>(() => PosCardService());
   getIt.registerLazySingleton<PosDeviceService>(() => PosDeviceService());
   getIt.registerLazySingleton<DeviceInfoService>(() => DeviceInfoService());
@@ -82,6 +83,7 @@ Future<void> setupServiceLocator() async {
   getIt.registerLazySingleton<RemoteDataSyncService>(() => RemoteDataSyncService(
         networkAPI: getIt<NetworkAPI>(),
         db: getIt<AppDatabase>(),
+        deviceInfoService: getIt<DeviceInfoService>(),
       ));
 
   getIt.registerLazySingleton<Connectivity>(() => Connectivity());

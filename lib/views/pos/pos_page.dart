@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:developer';
-
 import 'package:agc_canteen/l10n/generated/app_localizations.dart';
 import 'package:agc_canteen/main.dart';
 import 'package:agc_canteen/views/pos/confirm_order_page.dart';
@@ -18,6 +16,7 @@ import '../../services/database/app_database.dart';
 import '../../services/auth/pos_auth_service.dart';
 import '../../services/meal_time_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 
 class PosPage extends ConsumerStatefulWidget {
   const PosPage({super.key});
@@ -174,13 +173,17 @@ class _PosPageState extends ConsumerState<PosPage> {
     final availableTypes = ref.watch(availableMealTypesProvider);
 
     final mealTypeFiltered = meals.where((meal) {
+     // log(meal.toJsonString());
       return availableTypes.contains(meal.mealType.toLowerCase());
     }).toList();
+
+
 
     final filteredMeals = mealTypeFiltered.where((meal) {
       final query = _searchQuery.toLowerCase().trim();
       if (query.isEmpty) return true;
       final nameMatches = meal.name.toLowerCase().contains(query);
+    
       final typeMatches = meal.mealType.toLowerCase().contains(query);
       return nameMatches || typeMatches;
     }).toList();
@@ -416,6 +419,11 @@ class _PosPageState extends ConsumerState<PosPage> {
     final meal = orderState.selectedMeal;
     if (meal == null) return;
 
+    final staff = ref.read(authProvider).staff;
+    final staffName = staff != null
+        ? '${staff.firstName} ${staff.lastName}'
+        : 'Unknown';
+
     showDialog(
       context: context,
       fullscreenDialog: true,
@@ -425,48 +433,46 @@ class _PosPageState extends ConsumerState<PosPage> {
       builder: (ctx) => Dialog.fullscreen(
         child: ConfirmOrderSheet(
           meal: meal,
+          staffName: staffName,
           onChangeMeal: () => ref.read(orderProvider.notifier).changeMeal(),
-          onPlaceOrder: (desc, orderType) {
-            _placeOrder(description: desc, orderType: orderType);
+          onPlaceOrder: (desc, orderType) => _placeOrder(
+            description: desc,
+            orderType: orderType,
+          ),
+          onDone: () {
+            ref.read(orderProvider.notifier).reset();
+            ref.read(authProvider.notifier).reset();
+            getIt<ActivityLogService>().log(
+              type: 'staff_exit_pos',
+              message:
+                  'Staff exited POS after order: ${staff?.firstName ?? ''} ${staff?.lastName ?? ''}',
+              actorType: 'staff',
+              actorId: staff?.staffId,
+              actorName: staffName,
+            );
           },
         ),
       ),
     );
   }
 
-  void _placeOrder({String? description, String orderType = 'dine_in'}) {
+  Future<String?> _placeOrder({
+    String? description,
+    String orderType = 'dine_in',
+  }) async {
     final staff = ref.read(authProvider).staff;
     if (staff == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: Please try again.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
+      return null;
     }
 
-    ref
-        .read(orderProvider.notifier)
-        .completeOrder(
+    await ref.read(orderProvider.notifier).completeOrder(
           staff.staffId,
           '${staff.firstName} ${staff.lastName}',
           description: description,
           orderType: orderType,
         );
 
-    final meal = ref.read(orderProvider).selectedMeal;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          meal != null
-              ? '${meal.name} — ${AppLocalizations.of(context).orderPlaced}'
-              : AppLocalizations.of(context).orderPlaced,
-        ),
-        backgroundColor: Colors.green,
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    return ref.read(orderProvider).lastOrderCode;
   }
 }
 

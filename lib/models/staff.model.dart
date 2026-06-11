@@ -139,7 +139,7 @@ class BioData {
     required this.staffId,
     required this.isActive,
      this.createdAt,
-     this.updatedAt,
+     this.updatedAt
   });
 
   factory BioData.fromMap(Map<String, dynamic> map) {

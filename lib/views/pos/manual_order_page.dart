@@ -1,18 +1,17 @@
 import 'dart:async';
 import 'dart:typed_data';
+import 'package:agc_canteen/controllers/order_controller.dart';
 import 'package:agc_canteen/views/widgets/app_buttons.widget.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:get_it/get_it.dart';
 import 'package:uuid/uuid.dart';
-
 import '../../core/di/injection_container.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../controllers/providers.dart';
 import '../../services/activity_log_service.dart';
 import '../../services/database/app_database.dart';
-import '../../services/pos/pos_print_service.dart';
+import '../../services/print/print_service_manager.dart';
 
 const _mealTypes = [
   'breakfast',
@@ -33,7 +32,7 @@ Future<void> _printManualReceipt({
   String? description,
 }) async {
   try {
-    final printer = getIt<PosPrintService>();
+    final printer = getIt<PrintServiceManager>();
     final now = DateTime.now();
     final pad = (int n) => n.toString().padLeft(2, '0');
     final date = '${now.year}-${pad(now.month)}-${pad(now.day)} '
@@ -74,10 +73,10 @@ Future<void> _printManualReceipt({
       ln('Description: $description');
     }
     // ln('     \$${price.toStringAsFixed(2)}');
-    ln('--------------------');
-    boldOn();
-    ln('TOTAL: \$${price.toStringAsFixed(2)}');
-    boldOff();
+    // ln('--------------------');
+    // boldOn();
+    // ln('TOTAL: \$${price.toStringAsFixed(2)}');
+    // boldOff();
     ln('====================');
     ln('     THANK YOU!');
     ln('');

@@ -6,10 +6,9 @@ import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
 import '../core/di/injection_container.dart';
-import '../controllers/auth_controller.dart';
 import '../services/activity_log_service.dart';
 import '../services/database/app_database.dart';
-import '../services/pos/pos_print_service.dart';
+import '../services/print/print_service_manager.dart';
 
 enum OrderStep { browsing, confirming, processing, completed }
 
@@ -48,7 +47,7 @@ class OrderState {
 
 class OrderController extends Notifier<OrderState> {
   AppDatabase get _db => getIt<AppDatabase>();
-  PosPrintService get _printer => getIt<PosPrintService>();
+  PrintServiceManager get _printer => getIt<PrintServiceManager>();
 
   @override
   OrderState build() => const OrderState();
@@ -180,12 +179,6 @@ class OrderController extends Notifier<OrderState> {
         lastOrderCode: orderCode,
       );
 
-      Future.delayed(const Duration(seconds: 1), () {
-        if (state.step == OrderStep.completed) {
-          reset();
-        }
-      });
-
       getIt<ActivityLogService>().log(
         type: 'order_placed',
         message: 'Order placed: $orderCode — ${meal.name}',
@@ -203,7 +196,6 @@ class OrderController extends Notifier<OrderState> {
           'order_type': 'pos',
         },
       );
-      ref.read(authProvider.notifier).completeOrder();
     } catch (e) {
       state = state.copyWith(
         step: OrderStep.browsing,

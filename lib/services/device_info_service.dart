@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:agc_canteen/core/network/network_api_dio.dart';
+import 'package:agc_canteen/models/pos_device.model.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:logger/logger.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -7,6 +9,9 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../models/device_info.model.dart';
 
 class DeviceInfoService {
+  final NetworkAPI networkAPI = NetworkAPI();
+  DeviceInfoService();
+
   final _logger = Logger();
 
   Future<DeviceInfo> gatherDeviceInfo() async {
@@ -27,10 +32,12 @@ class DeviceInfoService {
     try {
       final androidInfo = await deviceInfo.androidInfo;
 
-      _logger.i('Device info gathered: model=${androidInfo.model}, '
-          'manufacturer=${androidInfo.manufacturer}, '
-          'sdk=${androidInfo.version.sdkInt}, '
-          'physical=${androidInfo.isPhysicalDevice}');
+      _logger.i(
+        'Device info gathered: model=${androidInfo.model}, '
+        'manufacturer=${androidInfo.manufacturer}, '
+        'sdk=${androidInfo.version.sdkInt}, '
+        'physical=${androidInfo.isPhysicalDevice}',
+      );
 
       return DeviceInfo(
         deviceName: androidInfo.device,
@@ -101,7 +108,10 @@ class DeviceInfoService {
       );
       for (final interface in interfaces) {
         if (interface.name.contains('wlan') || interface.name.contains('eth')) {
-          return (mac: interface.addresses.first.address, interfaceName: interface.name);
+          return (
+            mac: interface.addresses.first.address,
+            interfaceName: interface.name,
+          );
         }
       }
       if (interfaces.isNotEmpty) {
@@ -110,5 +120,19 @@ class DeviceInfoService {
       }
     } catch (_) {}
     return (mac: null, interfaceName: null);
+  }
+
+  Future<PosDevice?> getPOSDevice() async {
+    final deviceModel = await gatherDeviceInfo().then((d) => d.model ?? "");
+    return await networkAPI.getData<PosDevice?>(
+      'pos/profiles',
+      queryParameters: {"model": deviceModel},
+      builder: (data) {
+        if (data is List && data.isNotEmpty) {
+          return PosDevice.fromMap(data.first as Map<String, dynamic>);
+        }
+        return null;
+      },
+    );
   }
 }

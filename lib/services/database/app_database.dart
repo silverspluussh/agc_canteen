@@ -27,7 +27,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -576,17 +576,21 @@ class AppDatabase extends _$AppDatabase {
       );
 
   // ─── PosDevices ────────────────────────────────────────────
+  // ─── Only one PosDevice is stored at a time ──────────────────
 
   Future<void> insertPosDevice(
     PosDevicesCompanion device, {
     InsertMode mode = InsertMode.insert,
-  }) => into(posDevices).insert(device, mode: mode);
+  }) async {
+    await delete(posDevices).go();
+    await into(posDevices).insert(device, mode: mode);
+  }
 
   Future<void> updatePosDevice(String id, PosDevicesCompanion device) =>
       (update(posDevices)..where((t) => t.id.equals(id))).write(device);
 
-  Future<void> deletePosDevice(String id) =>
-      (delete(posDevices)..where((t) => t.id.equals(id))).go();
+  Future<void> deletePosDevice() =>
+      delete(posDevices).go();
 
   Future<List<PosDevice>> getAllPosDevices() => select(posDevices).get();
   Future<PosDevice?> getPosDevice(String id) =>
@@ -595,16 +599,16 @@ class AppDatabase extends _$AppDatabase {
   Future<List<PosDevice>> getUnsyncedPosDevices() =>
       (select(posDevices)..where((t) => t.syncStatus.isNotValue(2))).get();
 
-  Future<void> markPosDeviceSynced(String id) =>
-      (update(posDevices)..where((t) => t.id.equals(id))).write(
+  Future<void> markPosDeviceSynced() =>
+      (update(posDevices)).write(
         PosDevicesCompanion(
           syncStatus: const Value(2),
           syncUpdatedAt: Value(DateTime.now().toIso8601String()),
         ),
       );
 
-  Future<void> markPosDeviceFailed(String id) =>
-      (update(posDevices)..where((t) => t.id.equals(id))).write(
+  Future<void> markPosDeviceFailed() =>
+      (update(posDevices)).write(
         PosDevicesCompanion(
           syncStatus: const Value(3),
           syncUpdatedAt: Value(DateTime.now().toIso8601String()),

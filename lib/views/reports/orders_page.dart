@@ -1,23 +1,21 @@
 import 'dart:typed_data';
-
 import 'package:agc_canteen/views/widgets/app_buttons.widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
-
 import '../../l10n/generated/app_localizations.dart';
 import '../../services/database/app_database.dart';
-import '../../services/pos/pos_print_service.dart';
+import '../../services/print/print_service_manager.dart';
 
 final _currency = NumberFormat('#,##0.00', 'en_US');
 String _cap(String s) => s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
 
 Future<void> _printReportReceipt(_ReportOrder order) async {
   try {
-    final printer = GetIt.instance<PosPrintService>();
+    final printer = GetIt.instance<PrintServiceManager>();
     final now = DateTime.now();
-    final pad = (int n) => n.toString().padLeft(2, '0');
+    String pad(int n) => n.toString().padLeft(2, '0');
     final date = '${now.year}-${pad(now.month)}-${pad(now.day)} '
         '${pad(now.hour)}:${pad(now.minute)}';
 
@@ -71,10 +69,10 @@ Future<void> _printReportReceipt(_ReportOrder order) async {
       ln('$name${''.padLeft(32 - name.length - qty.length - price.length)}$qty  $price');
     }
     ln('--------------------');
-    boldOn();
-    ln('TOTAL: GH\u20B5 ${_currency.format(order.total)}');
-    boldOff();
-    ln('====================');
+    // boldOn();
+    // ln('TOTAL: GH\u20B5 ${_currency.format(order.total)}');
+    // boldOff();
+    // ln('====================');
     ln('     THANK YOU!');
     ln('');
 

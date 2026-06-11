@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:agc_canteen/controllers/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,7 +10,7 @@ import '../../services/activity_log_service.dart';
 import '../../services/database/app_database.dart' show AppDatabase, PosDevice;
 import '../../services/pos/pos_device_service.dart';
 import '../../services/pos/pos_fingerprint_service.dart';
-import '../../services/pos/pos_print_service.dart';
+import '../../services/print/print_service_manager.dart';
 import '../../services/pos/pos_scanner_service.dart';
 
 class PosSettingsPage extends ConsumerStatefulWidget {
@@ -20,12 +22,11 @@ class PosSettingsPage extends ConsumerStatefulWidget {
 
 class _PosSettingsPageState extends ConsumerState<PosSettingsPage> {
   late final PosDeviceService _deviceService;
-  late final PosPrintService _printService;
+  late final PrintServiceManager _printManager;
   late final PosFingerprintService _fingerprintService;
   late final PosScannerService _scannerService;
   late final AppDatabase _db;
 
-  Map<String, dynamic> _deviceInfo = {};
   Map<String, dynamic>? _printerState;
   String? _printerFirmware;
   bool _fingerprintAvailable = false;
@@ -38,18 +39,28 @@ class _PosSettingsPageState extends ConsumerState<PosSettingsPage> {
   void initState() {
     super.initState();
     _deviceService = getIt<PosDeviceService>();
-    _printService = getIt<PosPrintService>();
+    _printManager = getIt<PrintServiceManager>();
+    _printManager.addListener(_onPrinterTypeChanged);
     _fingerprintService = getIt<PosFingerprintService>();
     _scannerService = getIt<PosScannerService>();
     _db = getIt<AppDatabase>();
     _loadAll();
   }
 
+  @override
+  void dispose() {
+    _printManager.removeListener(_onPrinterTypeChanged);
+    super.dispose();
+  }
+
+  void _onPrinterTypeChanged() {
+    _loadPrinterInfo();
+  }
+
   Future<void> _loadAll() async {
     setState(() => _isLoading = true);
 
     await Future.wait([
-      _loadDeviceInfo(),
       _loadPrinterInfo(),
       _loadPeripherals(),
       _loadDbDevices(),
@@ -58,17 +69,12 @@ class _PosSettingsPageState extends ConsumerState<PosSettingsPage> {
     if (mounted) setState(() => _isLoading = false);
   }
 
-  Future<void> _loadDeviceInfo() async {
-    try {
-      final info = await _deviceService.getDeviceInfo();
-      if (mounted) setState(() => _deviceInfo = info);
-    } catch (_) {}
-  }
+ 
 
   Future<void> _loadPrinterInfo() async {
     try {
-      final state = await _printService.checkPrinterState();
-      final fw = await _printService.getFirmwareVersion();
+      final state = await _printManager.checkPrinterState();
+      final fw = await _printManager.getFirmwareVersion();
       if (mounted) {
         setState(() {
           _printerState = state;
@@ -153,18 +159,7 @@ class _PosSettingsPageState extends ConsumerState<PosSettingsPage> {
     }
   }
 
-  Color _syncColor(int syncStatus) {
-    switch (syncStatus) {
-      case 2:
-        return Colors.green;
-      case 1:
-        return Colors.orange;
-      case 3:
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
-  }
+ 
 
   @override
   Widget build(BuildContext context) {
@@ -204,30 +199,52 @@ class _PosSettingsPageState extends ConsumerState<PosSettingsPage> {
                       isToggling: _isToggling,
                       onToggle: _toggleDevice,
                     ),
-                    _InfoRow(
-                      label: "Device Name:",
-                      value: deviceInfo.deviceName,
+
+                    POSDeviceAccountCard(device: _dbDevices.first),
+
+                    // Card(
+                    //   child: Padding(
+                    //     padding: const EdgeInsets.all(8.0),
+                    //     child: Column(
+                    //       children: [
+                    //         _InfoRow(
+                    //           label: "Device Name:",
+                    //           value: deviceInfo.deviceName,
+                    //         ),
+                    //         _InfoRow(
+                    //           label: "Model:",
+                    //           value: deviceInfo.model ?? '—',
+                    //         ),
+                    //         _InfoRow(
+                    //           label: "MAC Address:",
+                    //           value: deviceInfo.macAddress ?? '—',
+                    //         ),
+                    //         Divider(),
+                    //         _InfoRow(
+                    //           label: "Device Name:",
+                    //           value: deviceInfo.appName,
+                    //         ),
+                    //         _InfoRow(
+                    //           label: "Package Name:",
+                    //           value: deviceInfo.packageName,
+                    //         ),
+                    //         _InfoRow(
+                    //           label: "Version:",
+                    //           value: deviceInfo.version,
+                    //         ),
+                    //       ],
+                    //     ),
+                    //   ),
+                    // ),
+                    const SizedBox(height: 20),
+                    _PrinterTypeCard(
+                      currentType: _printManager.printerType,
+                      onChanged: (type) => _printManager.setPrinterType(type),
                     ),
-                    _InfoRow(label: "Model:", value: deviceInfo.model ?? '—'),
-                    _InfoRow(
-                      label: "MAC Address:",
-                      value: deviceInfo.macAddress ?? '—',
-                    ),
-                    Divider(),
-                    _InfoRow(label: "Device Name:", value: deviceInfo.appName),
-                    _InfoRow(
-                      label: "Package Name:",
-                      value: deviceInfo.packageName ?? '—',
-                    ),
-                    _InfoRow(
-                      label: "Version:",
-                      value: deviceInfo.version ?? '—',
-                    ),
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 20),
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
-                        
                         onPressed: _initFingerprint,
                         icon: const Icon(Icons.fingerprint),
                         label: const Text('Initialize Fingerprint Scanner'),
@@ -510,40 +527,28 @@ class _PeripheralRow extends StatelessWidget {
   }
 }
 
-class _RegisteredDevicesCard extends StatelessWidget {
-  const _RegisteredDevicesCard({
-    required this.devices,
-    required this.syncLabel,
-    required this.syncColor,
-  });
+class POSDeviceAccountCard extends StatelessWidget {
+  const POSDeviceAccountCard({super.key, required this.device});
 
-  final List<PosDevice> devices;
-  final String Function(int) syncLabel;
-  final Color Function(int) syncColor;
+  final PosDevice device;
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-
     return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(8),
         child: Column(
+          spacing: 10,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _SectionHeader(title: l10n.posRegisteredDevices),
-            const Divider(height: 16),
-            if (devices.isEmpty)
-              _EmptyPlaceholder(label: l10n.posNoDevicesFound)
-            else
-              ...devices.map(
-                (device) => _DeviceRow(
-                  device: device,
-                  syncLabel: syncLabel(device.syncStatus),
-                  syncColor: syncColor(device.syncStatus),
-                ),
-              ),
+            _InfoRow(label: "POS Name", value: device.name),
+            _InfoRow(label: "Serial Number", value: device.serialNumber),
+            _InfoRow(label: "Model", value: device.model ?? "-"),
+            _InfoRow(label: "Mac Address", value: device.macAddress ?? "-"),
+            _InfoRow(
+              label: "Assigned Kitchen",
+              value: device.kitchenName ?? "Not assigned",
+            ),
           ],
         ),
       ),
@@ -663,6 +668,53 @@ class _EmptyPlaceholder extends StatelessWidget {
         child: Text(
           label,
           style: TextStyle(color: Theme.of(context).colorScheme.outline),
+        ),
+      ),
+    );
+  }
+}
+
+class _PrinterTypeCard extends StatelessWidget {
+  const _PrinterTypeCard({required this.currentType, required this.onChanged});
+
+  final PrinterType currentType;
+  final ValueChanged<PrinterType> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      // shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Printer Type',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            const Divider(height: 16),
+            SegmentedButton<PrinterType>(
+              segments: const [
+                ButtonSegment(
+                  value: PrinterType.inbuilt,
+                  label: Text('Built-in'),
+                  icon: Icon(Icons.print),
+                ),
+                ButtonSegment(
+                  value: PrinterType.external,
+                  label: Text('External'),
+                  icon: Icon(Icons.usb),
+                ),
+              ],
+              selected: {currentType},
+              onSelectionChanged: (v) => onChanged(v.first),
+            ),
+          ],
         ),
       ),
     );

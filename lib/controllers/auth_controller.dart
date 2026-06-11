@@ -1,11 +1,9 @@
 import 'dart:async';
 import 'dart:developer' as dev;
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/di/injection_container.dart';
 import '../services/activity_log_service.dart';
 import '../services/auth/pos_auth_service.dart';
-import '../services/remote_data_sync_service.dart';
 import 'providers.dart';
 
 enum AuthStep {
@@ -13,7 +11,7 @@ enum AuthStep {
   authenticating,
   authenticated,
   completed,
-  error,
+  error
 }
 
 class AuthState {

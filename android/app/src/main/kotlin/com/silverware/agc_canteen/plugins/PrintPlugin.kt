@@ -86,6 +86,9 @@ class PrintPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                     val version = getPort().read()
                     result.success(version?.let { String(it) } ?: "unknown")
                 }
+                "isAvailable" -> {
+                    result.success(isInit)
+                }
                 else -> result.notImplemented()
             }
         } catch (e: Exception) {

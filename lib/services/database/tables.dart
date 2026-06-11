@@ -170,6 +170,8 @@ class PosDevices extends Table {
   TextColumn get model => text().nullable()();
   TextColumn get status => text()();
   TextColumn get macAddress => text().nullable()();
+  TextColumn get kitchenId => text().nullable()();
+  TextColumn get kitchenName => text().nullable()();
   TextColumn get createdAt => text()();
   TextColumn get updatedAt => text()();
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();

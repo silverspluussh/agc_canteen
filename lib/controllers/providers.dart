@@ -1,11 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:get_it/get_it.dart';
 import '../services/database/database_service.dart';
 import '../services/database/app_database.dart';
-import '../services/meal_service.dart';
 import '../services/pos/pos_fingerprint_service.dart';
 import '../services/pos/pos_scanner_service.dart';
-import '../services/pos/pos_print_service.dart';
 import '../services/pos/pos_device_service.dart';
 import '../services/device_info_service.dart';
 import '../models/device_info.model.dart';
@@ -16,13 +13,9 @@ final databaseProvider = Provider<AppDatabase>((ref) {
   return DatabaseService.instance.db;
 });
 
-final mealServiceProvider = Provider<MealService>((ref) {
-  return GetIt.instance<MealService>();
-});
-
 final mealsProvider = FutureProvider<List<Meal>>((ref) async {
-  final mealService = ref.watch(mealServiceProvider);
-  return mealService.getMeals();
+  final db = ref.watch(databaseProvider);
+  return db.getAllMeals();
 });
 
 final staffListProvider = FutureProvider<List<StaffData>>((ref) async {
@@ -36,10 +29,6 @@ final fingerprintDeviceProvider = Provider<PosFingerprintService>((ref) {
 
 final scannerProvider = Provider<PosScannerService>((ref) {
   return PosScannerService();
-});
-
-final printProvider = Provider<PosPrintService>((ref) {
-  return PosPrintService();
 });
 
 final deviceProvider = Provider<PosDeviceService>((ref) {

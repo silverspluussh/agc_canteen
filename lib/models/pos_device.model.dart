@@ -5,6 +5,8 @@ class PosDevice {
   final String? model;
   final String status;
   final String? macAddress;
+  final String? kitchenId;
+  final String? kitchenName;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -15,6 +17,8 @@ class PosDevice {
     this.model,
     required this.status,
     this.macAddress,
+    this.kitchenId,
+    this.kitchenName,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -26,6 +30,8 @@ class PosDevice {
       serialNumber: map['serial_number'] as String,
       model: map['model'] as String?,
       status: map['status'] as String,
+      kitchenId: map['kitchenId'] as String?,
+      kitchenName: map['kitchenName'] as String?,
       macAddress: map['mac_address'] as String?,
       createdAt: DateTime.parse(map['created_at'] as String),
       updatedAt: DateTime.parse(map['updated_at'] as String),
@@ -40,6 +46,8 @@ class PosDevice {
       'model': model,
       'status': status,
       'mac_address': macAddress,
+      'kitchenId': kitchenId,
+      'kitchenName': kitchenName,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
@@ -51,6 +59,8 @@ class PosDevice {
     String? serialNumber,
     String? model,
     String? status,
+    String? kitchenId,
+    String? kitchenName,
     String? macAddress,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -61,6 +71,8 @@ class PosDevice {
       serialNumber: serialNumber ?? this.serialNumber,
       model: model ?? this.model,
       status: status ?? this.status,
+      kitchenId: kitchenId ?? this.kitchenId,
+      kitchenName: kitchenName?? this.kitchenName,
       macAddress: macAddress ?? this.macAddress,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

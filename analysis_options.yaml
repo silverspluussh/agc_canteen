@@ -1,5 +1,6 @@
 analyzer:
   errors:
+    deprecated_member_use: ignore
     library_private_types_in_public_api: ignore
     unused_element: ignore
 include: package:flutter_lints/flutter.yaml

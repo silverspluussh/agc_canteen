@@ -1,10 +1,12 @@
-import 'dart:typed_data';
 import 'package:flutter/services.dart';
-import '../print/abstract_print_service.dart';
+import 'abstract_print_service.dart';
 
-class PosPrintService extends AbstractPrintService {
-  static const _channel = MethodChannel('com.silverware.agc_canteen/print');
+class ExternalThermalPrintService extends AbstractPrintService {
+  static const _channel = MethodChannel(
+    'com.silverware.agc_canteen/external_print',
+  );
 
+  @override
   Future<bool> printRawBytes(Uint8List bytes) async {
     try {
       return await _channel.invokeMethod<bool>(
@@ -17,6 +19,7 @@ class PosPrintService extends AbstractPrintService {
     }
   }
 
+  @override
   Future<bool> cutPaper() async {
     try {
       return await _channel.invokeMethod<bool>('cutPaper') ?? false;
@@ -25,6 +28,7 @@ class PosPrintService extends AbstractPrintService {
     }
   }
 
+  @override
   Future<bool> openCashDrawer() async {
     try {
       return await _channel.invokeMethod<bool>('openCashDrawer') ?? false;
@@ -33,6 +37,7 @@ class PosPrintService extends AbstractPrintService {
     }
   }
 
+  @override
   Future<Map<String, dynamic>?> checkPrinterState() async {
     try {
       final result =
@@ -43,17 +48,7 @@ class PosPrintService extends AbstractPrintService {
     }
   }
 
-  Future<Uint8List?> checkPaper() async {
-    try {
-      final result =
-          await _channel.invokeMethod<List<dynamic>>('checkPaper');
-      if (result == null || result.isEmpty) return null;
-      return Uint8List.fromList(List<int>.from(result));
-    } on Exception {
-      return null;
-    }
-  }
-
+  @override
   Future<String?> getFirmwareVersion() async {
     try {
       return await _channel.invokeMethod<String>('getFirmwareVersion');

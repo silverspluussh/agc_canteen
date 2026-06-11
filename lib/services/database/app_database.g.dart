@@ -6228,6 +6228,28 @@ class $PosDevicesTable extends PosDevices
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _kitchenIdMeta = const VerificationMeta(
+    'kitchenId',
+  );
+  @override
+  late final GeneratedColumn<String> kitchenId = GeneratedColumn<String>(
+    'kitchen_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _kitchenNameMeta = const VerificationMeta(
+    'kitchenName',
+  );
+  @override
+  late final GeneratedColumn<String> kitchenName = GeneratedColumn<String>(
+    'kitchen_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -6281,6 +6303,8 @@ class $PosDevicesTable extends PosDevices
     model,
     status,
     macAddress,
+    kitchenId,
+    kitchenName,
     createdAt,
     updatedAt,
     syncStatus,
@@ -6340,6 +6364,18 @@ class $PosDevicesTable extends PosDevices
       context.handle(
         _macAddressMeta,
         macAddress.isAcceptableOrUnknown(data['mac_address']!, _macAddressMeta),
+      );
+    }
+    if (data.containsKey('kitchen_id')) {
+      context.handle(
+        _kitchenIdMeta,
+        kitchenId.isAcceptableOrUnknown(data['kitchen_id']!, _kitchenIdMeta),
+      );
+    }
+    if (data.containsKey('kitchen_name')) {
+      context.handle(
+        _kitchenNameMeta,
+        kitchenName.isAcceptableOrUnknown(data['kitchen_name']!, _kitchenNameMeta),
       );
     }
     if (data.containsKey('created_at')) {
@@ -6406,6 +6442,14 @@ class $PosDevicesTable extends PosDevices
         DriftSqlType.string,
         data['${effectivePrefix}mac_address'],
       ),
+      kitchenId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kitchen_id'],
+      ),
+      kitchenName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kitchen_name'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}created_at'],
@@ -6438,6 +6482,8 @@ class PosDevice extends DataClass implements Insertable<PosDevice> {
   final String? model;
   final String status;
   final String? macAddress;
+  final String? kitchenId;
+  final String? kitchenName;
   final String createdAt;
   final String updatedAt;
   final int syncStatus;
@@ -6449,6 +6495,8 @@ class PosDevice extends DataClass implements Insertable<PosDevice> {
     this.model,
     required this.status,
     this.macAddress,
+    this.kitchenId,
+    this.kitchenName,
     required this.createdAt,
     required this.updatedAt,
     required this.syncStatus,
@@ -6466,6 +6514,12 @@ class PosDevice extends DataClass implements Insertable<PosDevice> {
     map['status'] = Variable<String>(status);
     if (!nullToAbsent || macAddress != null) {
       map['mac_address'] = Variable<String>(macAddress);
+    }
+    if (!nullToAbsent || kitchenId != null) {
+      map['kitchen_id'] = Variable<String>(kitchenId);
+    }
+    if (!nullToAbsent || kitchenName != null) {
+      map['kitchen_name'] = Variable<String>(kitchenName);
     }
     map['created_at'] = Variable<String>(createdAt);
     map['updated_at'] = Variable<String>(updatedAt);
@@ -6488,6 +6542,12 @@ class PosDevice extends DataClass implements Insertable<PosDevice> {
       macAddress: macAddress == null && nullToAbsent
           ? const Value.absent()
           : Value(macAddress),
+      kitchenId: kitchenId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(kitchenId),
+      kitchenName: kitchenName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(kitchenName),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       syncStatus: Value(syncStatus),
@@ -6509,6 +6569,8 @@ class PosDevice extends DataClass implements Insertable<PosDevice> {
       model: serializer.fromJson<String?>(json['model']),
       status: serializer.fromJson<String>(json['status']),
       macAddress: serializer.fromJson<String?>(json['macAddress']),
+      kitchenId: serializer.fromJson<String?>(json['kitchenId']),
+      kitchenName: serializer.fromJson<String?>(json['kitchenName']),
       createdAt: serializer.fromJson<String>(json['createdAt']),
       updatedAt: serializer.fromJson<String>(json['updatedAt']),
       syncStatus: serializer.fromJson<int>(json['syncStatus']),
@@ -6525,6 +6587,8 @@ class PosDevice extends DataClass implements Insertable<PosDevice> {
       'model': serializer.toJson<String?>(model),
       'status': serializer.toJson<String>(status),
       'macAddress': serializer.toJson<String?>(macAddress),
+      'kitchenId': serializer.toJson<String?>(kitchenId),
+      'kitchenName': serializer.toJson<String?>(kitchenName),
       'createdAt': serializer.toJson<String>(createdAt),
       'updatedAt': serializer.toJson<String>(updatedAt),
       'syncStatus': serializer.toJson<int>(syncStatus),
@@ -6539,6 +6603,8 @@ class PosDevice extends DataClass implements Insertable<PosDevice> {
     Value<String?> model = const Value.absent(),
     String? status,
     Value<String?> macAddress = const Value.absent(),
+    Value<String?> kitchenId = const Value.absent(),
+    Value<String?> kitchenName = const Value.absent(),
     String? createdAt,
     String? updatedAt,
     int? syncStatus,
@@ -6550,6 +6616,8 @@ class PosDevice extends DataClass implements Insertable<PosDevice> {
     model: model.present ? model.value : this.model,
     status: status ?? this.status,
     macAddress: macAddress.present ? macAddress.value : this.macAddress,
+    kitchenId: kitchenId.present ? kitchenId.value : this.kitchenId,
+    kitchenName: kitchenName.present ? kitchenName.value : this.kitchenName,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     syncStatus: syncStatus ?? this.syncStatus,
@@ -6569,6 +6637,12 @@ class PosDevice extends DataClass implements Insertable<PosDevice> {
       macAddress: data.macAddress.present
           ? data.macAddress.value
           : this.macAddress,
+      kitchenId: data.kitchenId.present
+          ? data.kitchenId.value
+          : this.kitchenId,
+      kitchenName: data.kitchenName.present
+          ? data.kitchenName.value
+          : this.kitchenName,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       syncStatus: data.syncStatus.present
@@ -6589,6 +6663,8 @@ class PosDevice extends DataClass implements Insertable<PosDevice> {
           ..write('model: $model, ')
           ..write('status: $status, ')
           ..write('macAddress: $macAddress, ')
+          ..write('kitchenId: $kitchenId, ')
+          ..write('kitchenName: $kitchenName, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('syncStatus: $syncStatus, ')
@@ -6605,6 +6681,8 @@ class PosDevice extends DataClass implements Insertable<PosDevice> {
     model,
     status,
     macAddress,
+    kitchenId,
+    kitchenName,
     createdAt,
     updatedAt,
     syncStatus,
@@ -6620,6 +6698,8 @@ class PosDevice extends DataClass implements Insertable<PosDevice> {
           other.model == this.model &&
           other.status == this.status &&
           other.macAddress == this.macAddress &&
+          other.kitchenId == this.kitchenId &&
+          other.kitchenName == this.kitchenName &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.syncStatus == this.syncStatus &&
@@ -6633,6 +6713,8 @@ class PosDevicesCompanion extends UpdateCompanion<PosDevice> {
   final Value<String?> model;
   final Value<String> status;
   final Value<String?> macAddress;
+  final Value<String?> kitchenId;
+  final Value<String?> kitchenName;
   final Value<String> createdAt;
   final Value<String> updatedAt;
   final Value<int> syncStatus;
@@ -6645,6 +6727,8 @@ class PosDevicesCompanion extends UpdateCompanion<PosDevice> {
     this.model = const Value.absent(),
     this.status = const Value.absent(),
     this.macAddress = const Value.absent(),
+    this.kitchenId = const Value.absent(),
+    this.kitchenName = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.syncStatus = const Value.absent(),
@@ -6658,6 +6742,8 @@ class PosDevicesCompanion extends UpdateCompanion<PosDevice> {
     this.model = const Value.absent(),
     required String status,
     this.macAddress = const Value.absent(),
+    this.kitchenId = const Value.absent(),
+    this.kitchenName = const Value.absent(),
     required String createdAt,
     required String updatedAt,
     this.syncStatus = const Value.absent(),
@@ -6676,6 +6762,8 @@ class PosDevicesCompanion extends UpdateCompanion<PosDevice> {
     Expression<String>? model,
     Expression<String>? status,
     Expression<String>? macAddress,
+    Expression<String>? kitchenId,
+    Expression<String>? kitchenName,
     Expression<String>? createdAt,
     Expression<String>? updatedAt,
     Expression<int>? syncStatus,
@@ -6689,6 +6777,8 @@ class PosDevicesCompanion extends UpdateCompanion<PosDevice> {
       if (model != null) 'model': model,
       if (status != null) 'status': status,
       if (macAddress != null) 'mac_address': macAddress,
+      if (kitchenId != null) 'kitchen_id': kitchenId,
+      if (kitchenName != null) 'kitchen_name': kitchenName,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (syncStatus != null) 'sync_status': syncStatus,
@@ -6704,6 +6794,8 @@ class PosDevicesCompanion extends UpdateCompanion<PosDevice> {
     Value<String?>? model,
     Value<String>? status,
     Value<String?>? macAddress,
+    Value<String?>? kitchenId,
+    Value<String?>? kitchenName,
     Value<String>? createdAt,
     Value<String>? updatedAt,
     Value<int>? syncStatus,
@@ -6717,6 +6809,8 @@ class PosDevicesCompanion extends UpdateCompanion<PosDevice> {
       model: model ?? this.model,
       status: status ?? this.status,
       macAddress: macAddress ?? this.macAddress,
+      kitchenId: kitchenId ?? this.kitchenId,
+      kitchenName: kitchenName ?? this.kitchenName,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       syncStatus: syncStatus ?? this.syncStatus,
@@ -6746,6 +6840,12 @@ class PosDevicesCompanion extends UpdateCompanion<PosDevice> {
     if (macAddress.present) {
       map['mac_address'] = Variable<String>(macAddress.value);
     }
+    if (kitchenId.present) {
+      map['kitchen_id'] = Variable<String>(kitchenId.value);
+    }
+    if (kitchenName.present) {
+      map['kitchen_name'] = Variable<String>(kitchenName.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<String>(createdAt.value);
     }
@@ -6773,6 +6873,8 @@ class PosDevicesCompanion extends UpdateCompanion<PosDevice> {
           ..write('model: $model, ')
           ..write('status: $status, ')
           ..write('macAddress: $macAddress, ')
+          ..write('kitchenId: $kitchenId, ')
+          ..write('kitchenName: $kitchenName, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('syncStatus: $syncStatus, ')

@@ -378,7 +378,8 @@ class SyncService {
       case 'overcharges':
         await _db.markOverchargeSynced(id);
       case 'pos_devices':
-        await _db.markPosDeviceSynced(id);
+        await _db.markPosDeviceSynced();
+        return;
       case 'group_orders':
         await _db.markGroupOrderSynced(id);
       case 'group_order_items':
@@ -407,7 +408,8 @@ class SyncService {
       case 'overcharges':
         await _db.markOverchargeFailed(id);
       case 'pos_devices':
-        await _db.markPosDeviceFailed(id);
+        await _db.markPosDeviceFailed();
+        return;
       case 'group_orders':
         await _db.markGroupOrderFailed(id);
       case 'group_order_items':
@@ -576,6 +578,8 @@ class SyncService {
             model: Value.absentIfNull(data['model'] as String?),
             status: Value(data['status'] as String),
             macAddress: Value.absentIfNull(data['mac_address'] as String?),
+            kitchenId: Value.absentIfNull(data['kitchen_id'] as String?),
+            kitchenName: Value.absentIfNull(data['kitchen_name'] as String?),
             createdAt: Value(data['created_at'] as String),
             updatedAt: Value(data['updated_at'] as String),
             syncStatus: const Value(2),
