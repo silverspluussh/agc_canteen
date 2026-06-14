@@ -1,3 +1,4 @@
+import 'dart:developer';
 import 'dart:io';
 
 import 'package:agc_canteen/core/network/network_api_dio.dart';
@@ -129,6 +130,7 @@ class DeviceInfoService {
       queryParameters: {"model": deviceModel},
       builder: (data) {
         if (data is List && data.isNotEmpty) {
+          //log(data.first.toString());
           return PosDevice.fromMap(data.first as Map<String, dynamic>);
         }
         return null;

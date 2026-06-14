@@ -12,6 +12,7 @@ import '../../controllers/providers.dart';
 import '../../services/activity_log_service.dart';
 import '../../services/database/app_database.dart';
 import '../../services/print/print_service_manager.dart';
+import '../reports/orders_page.dart';
 
 const _mealTypes = [
   'breakfast',
@@ -210,6 +211,8 @@ class _SingleOrderTabState extends ConsumerState<_SingleOrderTab> {
       );
 
       await db.insertOrder(order, [orderItem]);
+
+      ref.invalidate(reportOrdersProvider);
 
       unawaited(_printManualReceipt(
         orderCode: orderCode,
@@ -601,6 +604,8 @@ class _GroupOrderTabState extends ConsumerState<_GroupOrderTab> {
           .toList();
 
       await db.insertGroupOrder(order, items);
+
+      ref.invalidate(reportOrdersProvider);
 
       final mealName = '${_mealsQtySum}x ${_selectedMeals.map((m) => '${m.meal.name}(${m.quantity})').join(', ')}';
       unawaited(_printManualReceipt(

@@ -721,9 +721,9 @@ class $KitchensTable extends Kitchens with TableInfo<$KitchensTable, Kitchen> {
   late final GeneratedColumn<String> companyId = GeneratedColumn<String>(
     'company_id',
     aliasedName,
-    false,
+    true,
     type: DriftSqlType.string,
-    requiredDuringInsert: true,
+    requiredDuringInsert: false,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
       'REFERENCES sites (id)',
     ),
@@ -834,8 +834,6 @@ class $KitchensTable extends Kitchens with TableInfo<$KitchensTable, Kitchen> {
         _companyIdMeta,
         companyId.isAcceptableOrUnknown(data['company_id']!, _companyIdMeta),
       );
-    } else if (isInserting) {
-      context.missing(_companyIdMeta);
     }
     if (data.containsKey('created_at')) {
       context.handle(
@@ -896,7 +894,7 @@ class $KitchensTable extends Kitchens with TableInfo<$KitchensTable, Kitchen> {
       companyId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}company_id'],
-      )!,
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}created_at'],
@@ -927,7 +925,7 @@ class Kitchen extends DataClass implements Insertable<Kitchen> {
   final String name;
   final int minTierRequired;
   final String status;
-  final String companyId;
+  final String? companyId;
   final String createdAt;
   final String updatedAt;
   final int syncStatus;
@@ -937,7 +935,7 @@ class Kitchen extends DataClass implements Insertable<Kitchen> {
     required this.name,
     required this.minTierRequired,
     required this.status,
-    required this.companyId,
+    this.companyId,
     required this.createdAt,
     required this.updatedAt,
     required this.syncStatus,
@@ -950,7 +948,9 @@ class Kitchen extends DataClass implements Insertable<Kitchen> {
     map['name'] = Variable<String>(name);
     map['min_tier_required'] = Variable<int>(minTierRequired);
     map['status'] = Variable<String>(status);
-    map['company_id'] = Variable<String>(companyId);
+    if (!nullToAbsent || companyId != null) {
+      map['company_id'] = Variable<String>(companyId);
+    }
     map['created_at'] = Variable<String>(createdAt);
     map['updated_at'] = Variable<String>(updatedAt);
     map['sync_status'] = Variable<int>(syncStatus);
@@ -966,7 +966,9 @@ class Kitchen extends DataClass implements Insertable<Kitchen> {
       name: Value(name),
       minTierRequired: Value(minTierRequired),
       status: Value(status),
-      companyId: Value(companyId),
+      companyId: companyId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(companyId),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       syncStatus: Value(syncStatus),
@@ -986,7 +988,7 @@ class Kitchen extends DataClass implements Insertable<Kitchen> {
       name: serializer.fromJson<String>(json['name']),
       minTierRequired: serializer.fromJson<int>(json['minTierRequired']),
       status: serializer.fromJson<String>(json['status']),
-      companyId: serializer.fromJson<String>(json['companyId']),
+      companyId: serializer.fromJson<String?>(json['companyId']),
       createdAt: serializer.fromJson<String>(json['createdAt']),
       updatedAt: serializer.fromJson<String>(json['updatedAt']),
       syncStatus: serializer.fromJson<int>(json['syncStatus']),
@@ -1001,7 +1003,7 @@ class Kitchen extends DataClass implements Insertable<Kitchen> {
       'name': serializer.toJson<String>(name),
       'minTierRequired': serializer.toJson<int>(minTierRequired),
       'status': serializer.toJson<String>(status),
-      'companyId': serializer.toJson<String>(companyId),
+      'companyId': serializer.toJson<String?>(companyId),
       'createdAt': serializer.toJson<String>(createdAt),
       'updatedAt': serializer.toJson<String>(updatedAt),
       'syncStatus': serializer.toJson<int>(syncStatus),
@@ -1014,7 +1016,7 @@ class Kitchen extends DataClass implements Insertable<Kitchen> {
     String? name,
     int? minTierRequired,
     String? status,
-    String? companyId,
+    Value<String?> companyId = const Value.absent(),
     String? createdAt,
     String? updatedAt,
     int? syncStatus,
@@ -1024,7 +1026,7 @@ class Kitchen extends DataClass implements Insertable<Kitchen> {
     name: name ?? this.name,
     minTierRequired: minTierRequired ?? this.minTierRequired,
     status: status ?? this.status,
-    companyId: companyId ?? this.companyId,
+    companyId: companyId.present ? companyId.value : this.companyId,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     syncStatus: syncStatus ?? this.syncStatus,
@@ -1100,7 +1102,7 @@ class KitchensCompanion extends UpdateCompanion<Kitchen> {
   final Value<String> name;
   final Value<int> minTierRequired;
   final Value<String> status;
-  final Value<String> companyId;
+  final Value<String?> companyId;
   final Value<String> createdAt;
   final Value<String> updatedAt;
   final Value<int> syncStatus;
@@ -1123,7 +1125,7 @@ class KitchensCompanion extends UpdateCompanion<Kitchen> {
     required String name,
     required int minTierRequired,
     required String status,
-    required String companyId,
+    this.companyId = const Value.absent(),
     required String createdAt,
     required String updatedAt,
     this.syncStatus = const Value.absent(),
@@ -1133,7 +1135,6 @@ class KitchensCompanion extends UpdateCompanion<Kitchen> {
        name = Value(name),
        minTierRequired = Value(minTierRequired),
        status = Value(status),
-       companyId = Value(companyId),
        createdAt = Value(createdAt),
        updatedAt = Value(updatedAt);
   static Insertable<Kitchen> custom({
@@ -1167,7 +1168,7 @@ class KitchensCompanion extends UpdateCompanion<Kitchen> {
     Value<String>? name,
     Value<int>? minTierRequired,
     Value<String>? status,
-    Value<String>? companyId,
+    Value<String?>? companyId,
     Value<String>? createdAt,
     Value<String>? updatedAt,
     Value<int>? syncStatus,
@@ -6375,7 +6376,10 @@ class $PosDevicesTable extends PosDevices
     if (data.containsKey('kitchen_name')) {
       context.handle(
         _kitchenNameMeta,
-        kitchenName.isAcceptableOrUnknown(data['kitchen_name']!, _kitchenNameMeta),
+        kitchenName.isAcceptableOrUnknown(
+          data['kitchen_name']!,
+          _kitchenNameMeta,
+        ),
       );
     }
     if (data.containsKey('created_at')) {
@@ -6637,9 +6641,7 @@ class PosDevice extends DataClass implements Insertable<PosDevice> {
       macAddress: data.macAddress.present
           ? data.macAddress.value
           : this.macAddress,
-      kitchenId: data.kitchenId.present
-          ? data.kitchenId.value
-          : this.kitchenId,
+      kitchenId: data.kitchenId.present ? data.kitchenId.value : this.kitchenId,
       kitchenName: data.kitchenName.present
           ? data.kitchenName.value
           : this.kitchenName,
@@ -9816,7 +9818,7 @@ typedef $$KitchensTableCreateCompanionBuilder =
       required String name,
       required int minTierRequired,
       required String status,
-      required String companyId,
+      Value<String?> companyId,
       required String createdAt,
       required String updatedAt,
       Value<int> syncStatus,
@@ -9829,7 +9831,7 @@ typedef $$KitchensTableUpdateCompanionBuilder =
       Value<String> name,
       Value<int> minTierRequired,
       Value<String> status,
-      Value<String> companyId,
+      Value<String?> companyId,
       Value<String> createdAt,
       Value<String> updatedAt,
       Value<int> syncStatus,
@@ -9845,9 +9847,9 @@ final class $$KitchensTableReferences
     $_aliasNameGenerator(db.kitchens.companyId, db.sites.id),
   );
 
-  $$SitesTableProcessedTableManager get companyId {
-    final $_column = $_itemColumn<String>('company_id')!;
-
+  $$SitesTableProcessedTableManager? get companyId {
+    final $_column = $_itemColumn<String>('company_id');
+    if ($_column == null) return null;
     final manager = $$SitesTableTableManager(
       $_db,
       $_db.sites,
@@ -10241,7 +10243,7 @@ class $$KitchensTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<int> minTierRequired = const Value.absent(),
                 Value<String> status = const Value.absent(),
-                Value<String> companyId = const Value.absent(),
+                Value<String?> companyId = const Value.absent(),
                 Value<String> createdAt = const Value.absent(),
                 Value<String> updatedAt = const Value.absent(),
                 Value<int> syncStatus = const Value.absent(),
@@ -10265,7 +10267,7 @@ class $$KitchensTableTableManager
                 required String name,
                 required int minTierRequired,
                 required String status,
-                required String companyId,
+                Value<String?> companyId = const Value.absent(),
                 required String createdAt,
                 required String updatedAt,
                 Value<int> syncStatus = const Value.absent(),
@@ -14859,6 +14861,8 @@ typedef $$PosDevicesTableCreateCompanionBuilder =
       Value<String?> model,
       required String status,
       Value<String?> macAddress,
+      Value<String?> kitchenId,
+      Value<String?> kitchenName,
       required String createdAt,
       required String updatedAt,
       Value<int> syncStatus,
@@ -14873,6 +14877,8 @@ typedef $$PosDevicesTableUpdateCompanionBuilder =
       Value<String?> model,
       Value<String> status,
       Value<String?> macAddress,
+      Value<String?> kitchenId,
+      Value<String?> kitchenName,
       Value<String> createdAt,
       Value<String> updatedAt,
       Value<int> syncStatus,
@@ -14916,6 +14922,16 @@ class $$PosDevicesTableFilterComposer
 
   ColumnFilters<String> get macAddress => $composableBuilder(
     column: $table.macAddress,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get kitchenId => $composableBuilder(
+    column: $table.kitchenId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get kitchenName => $composableBuilder(
+    column: $table.kitchenName,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -14979,6 +14995,16 @@ class $$PosDevicesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get kitchenId => $composableBuilder(
+    column: $table.kitchenId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get kitchenName => $composableBuilder(
+    column: $table.kitchenName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -15028,6 +15054,14 @@ class $$PosDevicesTableAnnotationComposer
 
   GeneratedColumn<String> get macAddress => $composableBuilder(
     column: $table.macAddress,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get kitchenId =>
+      $composableBuilder(column: $table.kitchenId, builder: (column) => column);
+
+  GeneratedColumn<String> get kitchenName => $composableBuilder(
+    column: $table.kitchenName,
     builder: (column) => column,
   );
 
@@ -15085,6 +15119,8 @@ class $$PosDevicesTableTableManager
                 Value<String?> model = const Value.absent(),
                 Value<String> status = const Value.absent(),
                 Value<String?> macAddress = const Value.absent(),
+                Value<String?> kitchenId = const Value.absent(),
+                Value<String?> kitchenName = const Value.absent(),
                 Value<String> createdAt = const Value.absent(),
                 Value<String> updatedAt = const Value.absent(),
                 Value<int> syncStatus = const Value.absent(),
@@ -15097,6 +15133,8 @@ class $$PosDevicesTableTableManager
                 model: model,
                 status: status,
                 macAddress: macAddress,
+                kitchenId: kitchenId,
+                kitchenName: kitchenName,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 syncStatus: syncStatus,
@@ -15111,6 +15149,8 @@ class $$PosDevicesTableTableManager
                 Value<String?> model = const Value.absent(),
                 required String status,
                 Value<String?> macAddress = const Value.absent(),
+                Value<String?> kitchenId = const Value.absent(),
+                Value<String?> kitchenName = const Value.absent(),
                 required String createdAt,
                 required String updatedAt,
                 Value<int> syncStatus = const Value.absent(),
@@ -15123,6 +15163,8 @@ class $$PosDevicesTableTableManager
                 model: model,
                 status: status,
                 macAddress: macAddress,
+                kitchenId: kitchenId,
+                kitchenName: kitchenName,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 syncStatus: syncStatus,

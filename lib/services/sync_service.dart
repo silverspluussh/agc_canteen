@@ -1,8 +1,11 @@
 import 'dart:convert';
+import 'dart:developer';
+import 'package:agc_canteen/core/network/api_exceptions_util.dart';
 import 'package:drift/drift.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:logger/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
 import 'database/app_database.dart';
 import 'activity_log_service.dart';
 import 'auth/admin_auth_service.dart';
@@ -70,7 +73,9 @@ class SyncService {
       getIt<ActivityLogService>().log(
         type: 'sync_offline',
         message: 'Sync aborted: no internet connection',
-        metadata: {'errors': ['No internet connection']},
+        metadata: {
+          'errors': ['No internet connection'],
+        },
       );
       return SyncResult(
         pushed: pushed,
@@ -120,7 +125,9 @@ class SyncService {
       getIt<ActivityLogService>().log(
         type: 'sync_failed',
         message: 'Sync failed: $e',
-        metadata: {'errors': [e.toString()]},
+        metadata: {
+          'errors': [e.toString()],
+        },
       );
     }
 
@@ -134,33 +141,47 @@ class SyncService {
 
     if (!await isOnline) {
       return SyncResult(
-        pushed: pushed, pulled: pulled,
+        pushed: pushed,
+        pulled: pulled,
         errors: ['No internet connection'],
       );
     }
 
     try {
       final orders = await _db.getUnsyncedOrders();
-      int pushedCount = 0;
+      if (orders.isEmpty) {
+        return SyncResult(pushed: pushed, pulled: pulled, errors: errors);
+      }
 
+      final List<Map<String, dynamic>> payloads = [];
       for (final order in orders) {
-        try {
-          final payload = await _buildSingleOrderPayload(order);
-          await _networkAPI.postData(
-            'pos/order/create',
-            data: payload,
-            builder: (data) => data,
-          );
+        payloads.add(await _buildSingleOrderPayload(order));
+      }
+      try {
+        await _networkAPI.postData(
+          '/pos/order/create-bulk',
+          data: {'orders': payloads},
+          builder: (data) => data,
+        );
+
+        for (final order in orders) {
           await _db.markOrderSynced(order.id);
-          pushedCount++;
-        } catch (e) {
-          _logger.w('Failed to push single order ${order.orderCode}: $e');
+        }
+        pushed['orders'] = orders.length;
+      } on APIException catch (e) {
+        _logger.w('Failed to push bulk orders: ${e.message}');
+        for (final order in orders) {
+          errors.add('Order ${order.orderCode}: $e');
+          await _db.markOrderFailed(order.id);
+        }
+      } catch (e) {
+        _logger.w('Failed to push bulk orders: $e');
+        for (final order in orders) {
           errors.add('Order ${order.orderCode}: $e');
           await _db.markOrderFailed(order.id);
         }
       }
 
-      pushed['orders'] = pushedCount;
       await _saveLastSync();
     } catch (e) {
       errors.add(e.toString());
@@ -176,7 +197,8 @@ class SyncService {
 
     if (!await isOnline) {
       return SyncResult(
-        pushed: pushed, pulled: pulled,
+        pushed: pushed,
+        pulled: pulled,
         errors: ['No internet connection'],
       );
     }
@@ -240,36 +262,47 @@ class SyncService {
 
   Future<Map<String, dynamic>> _buildSingleOrderPayload(Order order) async {
     final items = await _db.getOrderItems(order.id);
+    final posId = await _db.getAllPosDevices().then(
+      (pos) => pos.firstOrNull?.id,
+    );
     return {
+      'uuid': Uuid().v4(),
       'orderType': order.orderType,
       'mealTypeId': await _resolveMealTypeId(order.mealType),
       'total': order.total,
       'orderedBy': await _resolveOrderedBy(),
       'description': order.description ?? '',
       'isAlaCarte': false,
-      'items': items.map((i) => {
-        'mealId': int.tryParse(i.mealId) ?? 0,
-        'unitPrice': i.price,
-        'quantity': i.qty,
-      }).toList(),
-      // 'posProfileId': 0,
+      'posProfileId': int.tryParse(posId ?? '') ?? 0,
+      'createdAt':'',
+      'items': items
+          .map(
+            (i) => {
+              'mealId': int.tryParse(i.mealId) ?? 0,
+              'unitPrice': i.price,
+              'quantity': i.qty,
+            },
+          )
+          .toList(),
     };
   }
 
-  Future<Map<String, dynamic>> _buildGroupOrderPayload(
-    GroupOrder order,
-  ) async {
+  Future<Map<String, dynamic>> _buildGroupOrderPayload(GroupOrder order) async {
     final items = await _db.getGroupOrderItems(order.id);
     return {
       'orderType': order.orderType,
       'mealTypeId': await _resolveMealTypeId(order.mealType),
       'total': order.total,
       'orderedBy': await _resolveOrderedBy(),
-      'items': items.map((i) => {
-        'mealId': int.tryParse(i.mealId) ?? 0,
-        'unitPrice': i.price,
-        'quantity': i.qty,
-      }).toList(),
+      'items': items
+          .map(
+            (i) => {
+              'mealId': int.tryParse(i.mealId) ?? 0,
+              'unitPrice': i.price,
+              'quantity': i.qty,
+            },
+          )
+          .toList(),
       'posProfileId': 0,
     };
   }
@@ -285,7 +318,11 @@ class SyncService {
         final id = record['id'] as String? ?? '';
         if (id.isEmpty) continue;
 
-        await _networkAPI.postData('/api/sync/$table', data: data, builder: (data) => data);
+        await _networkAPI.postData(
+          '/api/sync/$table',
+          data: data,
+          builder: (data) => data,
+        );
         await _markSynced(table, id);
         pushed++;
       } catch (e) {

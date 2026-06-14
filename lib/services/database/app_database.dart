@@ -263,6 +263,16 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<List<Meal>> getAllMeals() => (select(meals)..where((m)=> m.status.equals("available"))).get();
+
+  Future<List<Meal>> getMealsByKitchenId(String kitchenId) {
+    final query = select(meals).join([
+      innerJoin(mealKitchens, mealKitchens.mealId.equalsExp(meals.id)),
+    ])
+      ..where(mealKitchens.kitchenId.equals(kitchenId))
+      ..where(meals.status.equals('available'));
+    return query.map((row) => row.readTable(meals)).get();
+  }
+
   Future<Meal?> getMeal(String id) =>
       (select(meals)..where((t) => t.id.equals(id))).getSingleOrNull();
 

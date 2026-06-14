@@ -22,7 +22,7 @@ class Kitchens extends Table {
   TextColumn get name => text()();
   IntColumn get minTierRequired => integer()();
   TextColumn get status => text()();
-  TextColumn get companyId => text().references(Sites, #id)();
+  TextColumn get companyId => text().nullable().references(Sites, #id)();
   TextColumn get createdAt => text()();
   TextColumn get updatedAt => text()();
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();

@@ -18,19 +18,22 @@ class MealService {
        _logger = logger ?? Logger();
 
   Future<List<Meal>> getMeals() async {
+    final posDevices = await _db.getAllPosDevices();
+    final posKitchenId =
+        posDevices.isNotEmpty ? posDevices.first.kitchenId : null;
+
     try {
       _logger.i('Attempting to fetch meals from remote API...');
+
       final responseData = await _networkAPI.getData(
-        '/caterer/meals',
+        '/pos/meals',
         queryParameters: {
           'searchTerm': '',
-          'limit': '100',
+          'limit': '',
           'offset': 0,
           'status': 'available',
-          // 'mealTypeId': '',
-          // 'menuType': '',
-          // 'startDate': '',
-          // 'endDate': '',
+          if (posKitchenId != null && posKitchenId.isNotEmpty)
+            'kitchenId': posKitchenId,
         },
         builder: (data) => data,
       );
@@ -57,7 +60,9 @@ class MealService {
     }
 
     // Always return local database contents as the source of truth
-    final localMeals = await _db.getAllMeals();
+    final localMeals = posKitchenId != null && posKitchenId.isNotEmpty
+        ? await _db.getMealsByKitchenId(posKitchenId)
+        : await _db.getAllMeals();
     _logger.i('Returning ${localMeals.length} meals from local database.');
     return localMeals;
   }
@@ -93,24 +98,7 @@ class MealService {
         );
       }
 
-      // 2. Ensure a default site exists to satisfy foreign key constraints for kitchens
-      const defaultSiteId = '1';
-      final existingSite = await _db.getSite(defaultSiteId);
-      if (existingSite == null) {
-        final now = DateTime.now().toIso8601String();
-        await _db.insertSite(
-          SitesCompanion(
-            id: const Value(defaultSiteId),
-            name: const Value('Default Site'),
-            createdAt: Value(now),
-            updatedAt: Value(now),
-            syncStatus: const Value(2),
-          ),
-          mode: InsertMode.insertOrReplace,
-        );
-      }
-
-      // 3. Upsert Kitchens and collect their IDs
+      // 2. Upsert Kitchens and collect their IDs
       final kitchensList = mealMap['kitchens'] as List<dynamic>? ?? [];
       final List<String> kitchenIds = [];
       for (final k in kitchensList) {
@@ -128,7 +116,6 @@ class MealService {
                   name: Value(k['name'] as String? ?? 'Kitchen'),
                   minTierRequired: Value(minTier),
                   status: Value(k['status'] as String? ?? 'active'),
-                  companyId: const Value(defaultSiteId),
                   createdAt: Value(
                     k['createdAt'] as String? ??
                         DateTime.now().toIso8601String(),
@@ -146,7 +133,7 @@ class MealService {
         }
       }
 
-      // 4. Upsert Meal entity using the proper AppDatabase transactional helpers
+      // 3. Upsert Meal entity using the proper AppDatabase transactional helpers
       final priceNum = mealMap['price'] as num? ?? 0.0;
       final existingMeal = await _db.getMeal(mealId);
       final mealCompanion = MealsCompanion(

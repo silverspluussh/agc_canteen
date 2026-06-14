@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 import 'package:agc_canteen/l10n/generated/app_localizations.dart';
 import 'package:agc_canteen/main.dart';
 import 'package:agc_canteen/views/pos/confirm_order_page.dart';
@@ -16,7 +17,6 @@ import '../../services/database/app_database.dart';
 import '../../services/auth/pos_auth_service.dart';
 import '../../services/meal_time_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 
 class PosPage extends ConsumerStatefulWidget {
   const PosPage({super.key});
@@ -55,10 +55,10 @@ class _PosPageState extends ConsumerState<PosPage> {
             onCancel: _showCancelOrderDialog,
             onLanguage: _showLanguageDialog,
           ),
-          body: mealsAsync.when(
-            data: (meals){
-              
-              return  _buildBody(meals, orderState);},
+          body: ref.watch(mealsProvider).when(
+            data: (meals) {
+              return _buildBody(meals, orderState);
+            },
             loading: () => SizedBox(
               height: MediaQuery.of(context).size.height,
               width: MediaQuery.of(context).size.width,
@@ -173,17 +173,14 @@ class _PosPageState extends ConsumerState<PosPage> {
     final availableTypes = ref.watch(availableMealTypesProvider);
 
     final mealTypeFiltered = meals.where((meal) {
-     // log(meal.toJsonString());
       return availableTypes.contains(meal.mealType.toLowerCase());
     }).toList();
-
-
 
     final filteredMeals = mealTypeFiltered.where((meal) {
       final query = _searchQuery.toLowerCase().trim();
       if (query.isEmpty) return true;
       final nameMatches = meal.name.toLowerCase().contains(query);
-    
+
       final typeMatches = meal.mealType.toLowerCase().contains(query);
       return nameMatches || typeMatches;
     }).toList();
@@ -252,14 +249,29 @@ class _PosPageState extends ConsumerState<PosPage> {
                       Icon(
                         Icons.restaurant_menu,
                         size: 48,
-                        color: Theme.of(context).colorScheme.outline,
+                        color: Theme.of(context).colorScheme.error,
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        AppLocalizations.of(context).noMealsMatch(_searchQuery),
+                        "No meals available at the moment",
+                        textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: Theme.of(context).colorScheme.outline,
+                          color: Theme.of(context).colorScheme.error,
                           fontWeight: FontWeight.w500,
+                          fontSize: 15,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      SizedBox(
+                        width: 200,
+                        child: PrimaryButton(
+                          height: 45,
+                          onPressed: () => ref.refresh(mealsProvider.future),
+                          label: Text(
+                            "Refresh",
+                            style: TextStyle(color: Colors.white),
+                          ),
                         ),
                       ),
                     ],
@@ -435,10 +447,8 @@ class _PosPageState extends ConsumerState<PosPage> {
           meal: meal,
           staffName: staffName,
           onChangeMeal: () => ref.read(orderProvider.notifier).changeMeal(),
-          onPlaceOrder: (desc, orderType) => _placeOrder(
-            description: desc,
-            orderType: orderType,
-          ),
+          onPlaceOrder: (desc, orderType) =>
+              _placeOrder(description: desc, orderType: orderType),
           onDone: () {
             ref.read(orderProvider.notifier).reset();
             ref.read(authProvider.notifier).reset();
@@ -465,7 +475,9 @@ class _PosPageState extends ConsumerState<PosPage> {
       return null;
     }
 
-    await ref.read(orderProvider.notifier).completeOrder(
+    await ref
+        .read(orderProvider.notifier)
+        .completeOrder(
           staff.staffId,
           '${staff.firstName} ${staff.lastName}',
           description: description,

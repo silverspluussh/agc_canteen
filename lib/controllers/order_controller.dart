@@ -9,6 +9,7 @@ import '../core/di/injection_container.dart';
 import '../services/activity_log_service.dart';
 import '../services/database/app_database.dart';
 import '../services/print/print_service_manager.dart';
+import '../views/reports/orders_page.dart';
 
 enum OrderStep { browsing, confirming, processing, completed }
 
@@ -160,6 +161,8 @@ class OrderController extends Notifier<OrderState> {
       );
 
       await _db.insertOrder(order, [orderItem]);
+
+      ref.invalidate(reportOrdersProvider);
 
       if (isOvercharge) {
         _recordOvercharge(orderCode: orderCode, meal: meal, staffId: staffId);

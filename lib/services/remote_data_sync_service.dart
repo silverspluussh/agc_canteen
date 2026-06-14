@@ -33,10 +33,10 @@ class RemoteDataSyncService {
        _db = db,
        _deviceInfoService = deviceInfoService ?? DeviceInfoService(),
        _logger = logger ?? Logger() {
+    _jobs.add(_SyncJob(name: 'posDevice', execute: _syncPosDevice));
     _jobs.add(_SyncJob(name: 'staff', execute: _syncStaff));
     _jobs.add(_SyncJob(name: 'meals', execute: _syncMeals));
     _jobs.add(_SyncJob(name: 'bioData', execute: _syncBioData));
-    _jobs.add(_SyncJob(name: 'posDevice', execute: _syncPosDevice));
   }
 
   void registerSyncJob(String name, _SyncTask execute) {
@@ -79,9 +79,19 @@ class RemoteDataSyncService {
   Future<bool> _syncStaff() async {
     try {
       _logger.i('RemoteDataSyncService: fetching remote staff...');
+
+      final posDevices = await _db.getAllPosDevices();
+      final posKitchenId =
+          posDevices.isNotEmpty ? posDevices.first.kitchenId : null;
+
       final responseData = await _networkAPI.getData(
         '/hr/staffs',
-        queryParameters: {'limit': '500', 'offset': '0'},
+        queryParameters: {
+          'limit': '1000',
+          'offset': '0',
+          if (posKitchenId != null && posKitchenId.isNotEmpty)
+            'kitchenId': posKitchenId,
+        },
         builder: (data) => data,
       );
 
@@ -335,6 +345,11 @@ class RemoteDataSyncService {
   Future<bool> _syncMealsFromRemote() async {
     try {
       _logger.i('RemoteDataSyncService: fetching remote meals...');
+
+      final posDevices = await _db.getAllPosDevices();
+      final posKitchenId =
+          posDevices.isNotEmpty ? posDevices.first.kitchenId : null;
+
       final responseData = await _networkAPI.getData(
         '/caterer/meals',
         queryParameters: {
@@ -346,6 +361,8 @@ class RemoteDataSyncService {
           'menuType': '',
           'startDate': '',
           'endDate': '',
+          if (posKitchenId != null && posKitchenId.isNotEmpty)
+            'kitchenId': posKitchenId,
         },
         builder: (data) => data,
       );
@@ -414,24 +431,7 @@ class RemoteDataSyncService {
         );
       }
 
-      // 2. Ensure default site exists for kitchen FK
-      const defaultSiteId = '1';
-      final existingSite = await _db.getSite(defaultSiteId);
-      if (existingSite == null) {
-        final now = DateTime.now().toIso8601String();
-        await _db.insertSite(
-          SitesCompanion(
-            id: const Value(defaultSiteId),
-            name: const Value('Default Site'),
-            createdAt: Value(now),
-            updatedAt: Value(now),
-            syncStatus: const Value(2),
-          ),
-          mode: InsertMode.insertOrReplace,
-        );
-      }
-
-      // 3. Upsert Kitchens and collect IDs
+      // 2. Upsert Kitchens and collect IDs
       final kitchensList = mealMap['kitchens'] as List<dynamic>? ?? [];
       final List<String> kitchenIds = [];
       for (final k in kitchensList) {
@@ -454,7 +454,6 @@ class RemoteDataSyncService {
                   name: Value(k['name'] as String? ?? 'Kitchen'),
                   minTierRequired: Value(minTier),
                   status: Value(k['status'] as String? ?? 'active'),
-                  companyId: const Value(defaultSiteId),
                   createdAt: Value(
                     k['created_at'] as String? ??
                         k['createdAt'] as String? ??
@@ -474,7 +473,7 @@ class RemoteDataSyncService {
         }
       }
 
-      // 4. Upsert Meal entity
+      // 3. Upsert Meal entity
       final priceNum = mealMap['price'] as num? ?? 0.0;
       final existingMeal = await _db.getMeal(mealId);
       final mealCompanion = MealsCompanion(
@@ -538,6 +537,7 @@ class RemoteDataSyncService {
       );
       Map<String, dynamic>? deviceMap;
       if (data is List && data.isNotEmpty) {
+
         deviceMap = data.first as Map<String, dynamic>;
       } else if (data is Map<String, dynamic>) {
         deviceMap = data;
@@ -554,7 +554,38 @@ class RemoteDataSyncService {
         return false;
       }
 
+      _logger.e(deviceMap);
+
       final now = DateTime.now().toIso8601String();
+
+      final kitchenMap = deviceMap['kitchen'] as Map<String, dynamic>?;
+      final posKitchenId = kitchenMap?['id']?.toString() ?? '';
+      final posKitchenName = kitchenMap?['name']?.toString() ?? '';
+
+      if (posKitchenId.isNotEmpty) {
+        await _db.insertKitchen(
+          KitchensCompanion(
+            id: Value(posKitchenId),
+            name: Value(posKitchenName),
+            minTierRequired: Value(
+              int.tryParse(
+                    kitchenMap?['minTierRequired']?.toString() ?? '1',
+                  ) ??
+                  1,
+            ),
+            status: Value(kitchenMap?['status'] as String? ?? 'active'),
+            createdAt: Value(kitchenMap?['createdAt'] as String? ?? now),
+            updatedAt: Value(kitchenMap?['updatedAt'] as String? ?? now),
+            syncStatus: const Value(2),
+          ),
+          mode: InsertMode.insertOrReplace,
+        );
+
+        _logger.i(
+          'RemoteDataSyncService: kitchen $posKitchenId ($posKitchenName) stored from POS device profile',
+        );
+      }
+
       await _db.insertPosDevice(
         PosDevicesCompanion(
           id: Value(id),
@@ -563,8 +594,12 @@ class RemoteDataSyncService {
           model: Value.absentIfNull(deviceMap['model'] as String?),
           status: Value(deviceMap['status'] as String? ?? 'active'),
           macAddress: Value.absentIfNull(deviceMap['macAddress'] as String?),
-          kitchenId: Value.absentIfNull(deviceMap['kitchenId'] as String?),
-          kitchenName: Value.absentIfNull(deviceMap['kitchenName'] as String?),
+          kitchenId: Value.absentIfNull(
+            posKitchenId.isNotEmpty ? posKitchenId : null,
+          ),
+          kitchenName: Value.absentIfNull(
+            posKitchenName.isNotEmpty ? posKitchenName : null,
+          ),
           createdAt: Value(deviceMap['createdAt'] as String? ?? now),
           updatedAt: Value(deviceMap['updatedAt'] as String? ?? now),
           syncStatus: const Value(2),

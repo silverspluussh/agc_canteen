@@ -396,7 +396,11 @@ class AdminAuthService {
       if (token != null && token.isNotEmpty) {
         await _networkAPI.postData(
           '/auth/revoke-token',
-          opts: Options(headers: {'Accept': 'application/json'}),
+          opts: Options(
+            headers: {'Accept': 'application/json'},
+            sendTimeout: const Duration(seconds: 5),
+            receiveTimeout: const Duration(seconds: 5),
+          ),
           builder: (data) => data,
         );
       }

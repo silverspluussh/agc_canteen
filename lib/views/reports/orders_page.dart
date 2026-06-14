@@ -118,7 +118,7 @@ class _ReportOrder {
   bool get isSynced => syncStatus == 2;
 }
 
-final _reportOrdersProvider = FutureProvider<List<_ReportOrder>>((ref) async {
+final reportOrdersProvider = FutureProvider<List<_ReportOrder>>((ref) async {
   final db = GetIt.instance<AppDatabase>();
 
   final orders = await db.getAllOrders();
@@ -461,7 +461,7 @@ class _OrdersTabState extends ConsumerState<_OrdersTab>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final ordersAsync = ref.watch(_reportOrdersProvider);
+    final ordersAsync = ref.watch(reportOrdersProvider);
 
     return ordersAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -509,10 +509,11 @@ class _OrdersTabState extends ConsumerState<_OrdersTab>
                   ? _EmptyView(
                       Icons.receipt_long_outlined,
                       AppLocalizations.of(context).noOrders,
+                      onRefresh: () => ref.invalidate(reportOrdersProvider),
                     )
                   : RefreshIndicator(
                     onRefresh: () async {
-                      ref.invalidate(_reportOrdersProvider);
+                      ref.invalidate(reportOrdersProvider);
                       
                     },
                     child: ListView.separated(
@@ -801,9 +802,10 @@ class _DetailRow extends StatelessWidget {
 }
 
 class _EmptyView extends StatelessWidget {
-  const _EmptyView(this.icon, this.label);
+  const _EmptyView(this.icon, this.label, {this.onRefresh});
   final IconData icon;
   final String label;
+  final VoidCallback? onRefresh;
 
   @override
   Widget build(BuildContext context) {
@@ -813,7 +815,16 @@ class _EmptyView extends StatelessWidget {
         children: [
           Icon(icon, size: 64),
           const SizedBox(height: 16),
-          Text(label, style: Theme.of(context).textTheme.bodyMedium),
+          Text(label, style: Theme.of(context).textTheme.labelLarge),
+          const SizedBox(height: 15,),
+          if (onRefresh != null)
+            SizedBox(
+              width: 150,
+              child: PrimaryButton(
+                onPressed: onRefresh,
+                label: const Text("Refresh"),
+              ),
+            ),
         ],
       ),
     );
