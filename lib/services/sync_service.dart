@@ -5,7 +5,6 @@ import 'package:drift/drift.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:logger/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:uuid/uuid.dart';
 import 'database/app_database.dart';
 import 'activity_log_service.dart';
 import 'auth/admin_auth_service.dart';
@@ -171,7 +170,7 @@ class SyncService {
       } on APIException catch (e) {
         _logger.w('Failed to push bulk orders: ${e.message}');
         for (final order in orders) {
-          errors.add('Order ${order.orderCode}: $e');
+          errors.add('Order ${order.orderCode}: ${e.message}');
           await _db.markOrderFailed(order.id);
         }
       } catch (e) {
@@ -211,7 +210,7 @@ class SyncService {
         try {
           final payload = await _buildGroupOrderPayload(order);
           await _networkAPI.postData(
-            'pos/order/create-group',
+            '/pos/order/create-group',
             data: payload,
             builder: (data) => data,
           );
@@ -233,13 +232,10 @@ class SyncService {
     return SyncResult(pushed: pushed, pulled: pulled, errors: errors);
   }
 
-  Future<int> _resolveMealTypeId(String mealTypeName) async {
-    final menuTypes = await _db.getAllMenuTypes();
-    final match = menuTypes.where(
-      (mt) => mt.name.toLowerCase() == mealTypeName.toLowerCase(),
-    );
-    if (match.isNotEmpty) {
-      return int.tryParse(match.first.id) ?? 0;
+  Future<int> _resolveMealTypeIdFromMealId(String mealId) async {
+    final meal = await _db.getMeal(mealId);
+    if (meal != null && meal.mealTypeId.isNotEmpty) {
+      return int.tryParse(meal.mealTypeId) ?? 0;
     }
     return 0;
   }
@@ -265,14 +261,17 @@ class SyncService {
     final posId = await _db.getAllPosDevices().then(
       (pos) => pos.firstOrNull?.id,
     );
+    final mealTypeId = items.isNotEmpty
+        ? await _resolveMealTypeIdFromMealId(items.first.mealId)
+        : 0;
     return {
-      'uuid': Uuid().v4(),
+      'uuid': order.uuid,
       'orderType': order.orderType,
-      'mealTypeId': await _resolveMealTypeId(order.mealType),
+      'mealTypeId': mealTypeId,
       'total': order.total,
-      'orderedBy': await _resolveOrderedBy(),
+      'orderedBy': int.tryParse(order.orderedById) ?? 0,
       'description': order.description ?? '',
-      'isAlaCarte': false,
+      'isAlaCarte': order.orderType == 'alacarte',
       'posProfileId': int.tryParse(posId ?? '') ?? 0,
       'createdAt':'',
       'items': items
@@ -280,7 +279,7 @@ class SyncService {
             (i) => {
               'mealId': int.tryParse(i.mealId) ?? 0,
               'unitPrice': i.price,
-              'quantity': i.qty,
+              'quantity': i.qty
             },
           )
           .toList(),
@@ -289,9 +288,16 @@ class SyncService {
 
   Future<Map<String, dynamic>> _buildGroupOrderPayload(GroupOrder order) async {
     final items = await _db.getGroupOrderItems(order.id);
+    final mealTypeId = items.isNotEmpty
+        ? await _resolveMealTypeIdFromMealId(items.first.mealId)
+        : 0;
+    final posId = await _db.getAllPosDevices().then(
+      (pos) => pos.firstOrNull?.id,
+    );
     return {
+      'uuid': order.uuid,
       'orderType': order.orderType,
-      'mealTypeId': await _resolveMealTypeId(order.mealType),
+      'mealTypeId': mealTypeId,
       'total': order.total,
       'orderedBy': await _resolveOrderedBy(),
       'items': items
@@ -303,7 +309,7 @@ class SyncService {
             },
           )
           .toList(),
-      'posProfileId': 0,
+      'posProfileId': int.tryParse(posId ?? '') ?? 0,
     };
   }
 
@@ -513,6 +519,7 @@ class SyncService {
             name: Value(data['name'] as String),
             status: Value(data['status'] as String),
             mealType: Value(data['meal_type'] as String),
+            mealTypeId: Value(data['meal_type_id'] as String? ?? ''),
             remarks: Value.absentIfNull(data['remarks'] as String?),
             price: Value((data['price'] as num).toDouble()),
             photoUrl: Value.absentIfNull(data['photo_url'] as String?),
@@ -561,6 +568,7 @@ class SyncService {
         await _db.insertOrder(
           OrdersCompanion(
             id: Value(data['id'] as String),
+            uuid: Value(data['uuid'] as String),
             orderCode: Value(data['order_code'] as String),
             status: Value(data['status'] as String),
             orderType: Value(data['order_type'] as String),

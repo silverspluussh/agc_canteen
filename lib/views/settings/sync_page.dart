@@ -2,6 +2,7 @@ import 'package:agc_canteen/views/widgets/app_buttons.widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../l10n/generated/app_localizations.dart';
 import '../../core/di/injection_container.dart';
@@ -39,11 +40,11 @@ class _SyncPageState extends ConsumerState<SyncPage> {
 
   Future<void> _loadCounts() async {
     final orders = await _db.getUnsyncedOrders();
-    final groupOrders = await _db.getUnsyncedGroupOrders();
+    //final groupOrders = await _db.getUnsyncedGroupOrders();
     if (mounted) {
       setState(() {
         _unsyncedOrders = orders.length;
-        _unsyncedGroupOrders = groupOrders.length;
+        _unsyncedGroupOrders = 0;
       });
     }
   }
@@ -60,6 +61,7 @@ class _SyncPageState extends ConsumerState<SyncPage> {
       if (mounted) _showResultSnackBar(result, 'Single orders');
     } finally {
       if (mounted) {
+       
         setState(() => _syncingOrders = false);
         await _loadCounts();
         await _loadLastSync();
@@ -345,22 +347,22 @@ class _SyncPageState extends ConsumerState<SyncPage> {
             const SizedBox(height: 10),
             _SyncStatCard(
               icon: Icons.receipt_long_outlined,
-              label: 'Single Orders',
+              label: 'Staff Orders',
               count: _unsyncedOrders,
               syncing: _syncingOrders,
               onSync: _unsyncedOrders > 0 ? _syncOrders : null,
               onView: _unsyncedOrders > 0 ? () => _viewUnsynced(true) : null,
             ),
-            const SizedBox(height: 12),
-            _SyncStatCard(
-              icon: Icons.group_work_outlined,
-              label: 'Group Orders',
-              count: _unsyncedGroupOrders,
-              syncing: _syncingGroupOrders,
-              onSync: _unsyncedGroupOrders > 0 ? _syncGroupOrders : null,
-              onView:
-                  _unsyncedGroupOrders > 0 ? () => _viewUnsynced(false) : null,
-            ),
+            // const SizedBox(height: 12),
+            // _SyncStatCard(
+            //   icon: Icons.group_work_outlined,
+            //   label: 'Group Orders',
+            //   count: _unsyncedGroupOrders,
+            //   syncing: _syncingGroupOrders,
+            //   onSync: _unsyncedGroupOrders > 0 ? _syncGroupOrders : null,
+            //   onView:
+            //       _unsyncedGroupOrders > 0 ? () => _viewUnsynced(false) : null,
+            // ),
 
             const SizedBox(height: 24),
 

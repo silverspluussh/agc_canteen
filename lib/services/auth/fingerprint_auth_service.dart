@@ -1,9 +1,7 @@
 import 'dart:async';
 import 'dart:developer' as dev;
-import 'dart:developer';
 import 'package:agc_canteen/models/staff.model.dart';
  import 'package:agc_canteen/services/biodata_service.dart';
-import 'package:agc_canteen/services/encryption_service.dart';
 import 'package:drift/drift.dart';
 import 'package:logger/logger.dart';
 import '../database/app_database.dart';

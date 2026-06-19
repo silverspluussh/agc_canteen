@@ -1803,6 +1803,17 @@ class $MealsTable extends Meals with TableInfo<$MealsTable, Meal> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _mealTypeIdMeta = const VerificationMeta(
+    'mealTypeId',
+  );
+  @override
+  late final GeneratedColumn<String> mealTypeId = GeneratedColumn<String>(
+    'meal_type_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
   static const VerificationMeta _remarksMeta = const VerificationMeta(
     'remarks',
   );
@@ -1899,6 +1910,7 @@ class $MealsTable extends Meals with TableInfo<$MealsTable, Meal> {
     name,
     status,
     mealType,
+    mealTypeId,
     remarks,
     price,
     photoUrl,
@@ -1948,6 +1960,17 @@ class $MealsTable extends Meals with TableInfo<$MealsTable, Meal> {
       );
     } else if (isInserting) {
       context.missing(_mealTypeMeta);
+    }
+    if (data.containsKey('meal_type_id')) {
+      context.handle(
+        _mealTypeIdMeta,
+        mealTypeId.isAcceptableOrUnknown(
+          data['meal_type_id']!,
+          _mealTypeIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_mealTypeIdMeta);
     }
     if (data.containsKey('remarks')) {
       context.handle(
@@ -2036,6 +2059,10 @@ class $MealsTable extends Meals with TableInfo<$MealsTable, Meal> {
         DriftSqlType.string,
         data['${effectivePrefix}meal_type'],
       )!,
+      mealTypeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}meal_type_id'],
+      )!,
       remarks: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}remarks'],
@@ -2082,6 +2109,7 @@ class Meal extends DataClass implements Insertable<Meal> {
   final String name;
   final String status;
   final String mealType;
+  final String mealTypeId;
   final String? remarks;
   final double price;
   final String? photoUrl;
@@ -2095,6 +2123,7 @@ class Meal extends DataClass implements Insertable<Meal> {
     required this.name,
     required this.status,
     required this.mealType,
+    required this.mealTypeId,
     this.remarks,
     required this.price,
     this.photoUrl,
@@ -2111,6 +2140,7 @@ class Meal extends DataClass implements Insertable<Meal> {
     map['name'] = Variable<String>(name);
     map['status'] = Variable<String>(status);
     map['meal_type'] = Variable<String>(mealType);
+    map['meal_type_id'] = Variable<String>(mealTypeId);
     if (!nullToAbsent || remarks != null) {
       map['remarks'] = Variable<String>(remarks);
     }
@@ -2134,6 +2164,7 @@ class Meal extends DataClass implements Insertable<Meal> {
       name: Value(name),
       status: Value(status),
       mealType: Value(mealType),
+      mealTypeId: Value(mealTypeId),
       remarks: remarks == null && nullToAbsent
           ? const Value.absent()
           : Value(remarks),
@@ -2161,6 +2192,7 @@ class Meal extends DataClass implements Insertable<Meal> {
       name: serializer.fromJson<String>(json['name']),
       status: serializer.fromJson<String>(json['status']),
       mealType: serializer.fromJson<String>(json['mealType']),
+      mealTypeId: serializer.fromJson<String>(json['mealTypeId']),
       remarks: serializer.fromJson<String?>(json['remarks']),
       price: serializer.fromJson<double>(json['price']),
       photoUrl: serializer.fromJson<String?>(json['photoUrl']),
@@ -2179,6 +2211,7 @@ class Meal extends DataClass implements Insertable<Meal> {
       'name': serializer.toJson<String>(name),
       'status': serializer.toJson<String>(status),
       'mealType': serializer.toJson<String>(mealType),
+      'mealTypeId': serializer.toJson<String>(mealTypeId),
       'remarks': serializer.toJson<String?>(remarks),
       'price': serializer.toJson<double>(price),
       'photoUrl': serializer.toJson<String?>(photoUrl),
@@ -2195,6 +2228,7 @@ class Meal extends DataClass implements Insertable<Meal> {
     String? name,
     String? status,
     String? mealType,
+    String? mealTypeId,
     Value<String?> remarks = const Value.absent(),
     double? price,
     Value<String?> photoUrl = const Value.absent(),
@@ -2208,6 +2242,7 @@ class Meal extends DataClass implements Insertable<Meal> {
     name: name ?? this.name,
     status: status ?? this.status,
     mealType: mealType ?? this.mealType,
+    mealTypeId: mealTypeId ?? this.mealTypeId,
     remarks: remarks.present ? remarks.value : this.remarks,
     price: price ?? this.price,
     photoUrl: photoUrl.present ? photoUrl.value : this.photoUrl,
@@ -2225,6 +2260,9 @@ class Meal extends DataClass implements Insertable<Meal> {
       name: data.name.present ? data.name.value : this.name,
       status: data.status.present ? data.status.value : this.status,
       mealType: data.mealType.present ? data.mealType.value : this.mealType,
+      mealTypeId: data.mealTypeId.present
+          ? data.mealTypeId.value
+          : this.mealTypeId,
       remarks: data.remarks.present ? data.remarks.value : this.remarks,
       price: data.price.present ? data.price.value : this.price,
       photoUrl: data.photoUrl.present ? data.photoUrl.value : this.photoUrl,
@@ -2249,6 +2287,7 @@ class Meal extends DataClass implements Insertable<Meal> {
           ..write('name: $name, ')
           ..write('status: $status, ')
           ..write('mealType: $mealType, ')
+          ..write('mealTypeId: $mealTypeId, ')
           ..write('remarks: $remarks, ')
           ..write('price: $price, ')
           ..write('photoUrl: $photoUrl, ')
@@ -2267,6 +2306,7 @@ class Meal extends DataClass implements Insertable<Meal> {
     name,
     status,
     mealType,
+    mealTypeId,
     remarks,
     price,
     photoUrl,
@@ -2284,6 +2324,7 @@ class Meal extends DataClass implements Insertable<Meal> {
           other.name == this.name &&
           other.status == this.status &&
           other.mealType == this.mealType &&
+          other.mealTypeId == this.mealTypeId &&
           other.remarks == this.remarks &&
           other.price == this.price &&
           other.photoUrl == this.photoUrl &&
@@ -2299,6 +2340,7 @@ class MealsCompanion extends UpdateCompanion<Meal> {
   final Value<String> name;
   final Value<String> status;
   final Value<String> mealType;
+  final Value<String> mealTypeId;
   final Value<String?> remarks;
   final Value<double> price;
   final Value<String?> photoUrl;
@@ -2313,6 +2355,7 @@ class MealsCompanion extends UpdateCompanion<Meal> {
     this.name = const Value.absent(),
     this.status = const Value.absent(),
     this.mealType = const Value.absent(),
+    this.mealTypeId = const Value.absent(),
     this.remarks = const Value.absent(),
     this.price = const Value.absent(),
     this.photoUrl = const Value.absent(),
@@ -2328,6 +2371,7 @@ class MealsCompanion extends UpdateCompanion<Meal> {
     required String name,
     required String status,
     required String mealType,
+    required String mealTypeId,
     this.remarks = const Value.absent(),
     required double price,
     this.photoUrl = const Value.absent(),
@@ -2341,6 +2385,7 @@ class MealsCompanion extends UpdateCompanion<Meal> {
        name = Value(name),
        status = Value(status),
        mealType = Value(mealType),
+       mealTypeId = Value(mealTypeId),
        price = Value(price),
        menuTypeId = Value(menuTypeId),
        createdAt = Value(createdAt),
@@ -2350,6 +2395,7 @@ class MealsCompanion extends UpdateCompanion<Meal> {
     Expression<String>? name,
     Expression<String>? status,
     Expression<String>? mealType,
+    Expression<String>? mealTypeId,
     Expression<String>? remarks,
     Expression<double>? price,
     Expression<String>? photoUrl,
@@ -2365,6 +2411,7 @@ class MealsCompanion extends UpdateCompanion<Meal> {
       if (name != null) 'name': name,
       if (status != null) 'status': status,
       if (mealType != null) 'meal_type': mealType,
+      if (mealTypeId != null) 'meal_type_id': mealTypeId,
       if (remarks != null) 'remarks': remarks,
       if (price != null) 'price': price,
       if (photoUrl != null) 'photo_url': photoUrl,
@@ -2382,6 +2429,7 @@ class MealsCompanion extends UpdateCompanion<Meal> {
     Value<String>? name,
     Value<String>? status,
     Value<String>? mealType,
+    Value<String>? mealTypeId,
     Value<String?>? remarks,
     Value<double>? price,
     Value<String?>? photoUrl,
@@ -2397,6 +2445,7 @@ class MealsCompanion extends UpdateCompanion<Meal> {
       name: name ?? this.name,
       status: status ?? this.status,
       mealType: mealType ?? this.mealType,
+      mealTypeId: mealTypeId ?? this.mealTypeId,
       remarks: remarks ?? this.remarks,
       price: price ?? this.price,
       photoUrl: photoUrl ?? this.photoUrl,
@@ -2423,6 +2472,9 @@ class MealsCompanion extends UpdateCompanion<Meal> {
     }
     if (mealType.present) {
       map['meal_type'] = Variable<String>(mealType.value);
+    }
+    if (mealTypeId.present) {
+      map['meal_type_id'] = Variable<String>(mealTypeId.value);
     }
     if (remarks.present) {
       map['remarks'] = Variable<String>(remarks.value);
@@ -2461,6 +2513,7 @@ class MealsCompanion extends UpdateCompanion<Meal> {
           ..write('name: $name, ')
           ..write('status: $status, ')
           ..write('mealType: $mealType, ')
+          ..write('mealTypeId: $mealTypeId, ')
           ..write('remarks: $remarks, ')
           ..write('price: $price, ')
           ..write('photoUrl: $photoUrl, ')
@@ -4222,6 +4275,15 @@ class $OrdersTable extends Orders with TableInfo<$OrdersTable, Order> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _uuidMeta = const VerificationMeta('uuid');
+  @override
+  late final GeneratedColumn<String> uuid = GeneratedColumn<String>(
+    'uuid',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
   static const VerificationMeta _orderCodeMeta = const VerificationMeta(
     'orderCode',
   );
@@ -4357,6 +4419,7 @@ class $OrdersTable extends Orders with TableInfo<$OrdersTable, Order> {
   @override
   List<GeneratedColumn> get $columns => [
     id,
+    uuid,
     orderCode,
     status,
     orderType,
@@ -4386,6 +4449,14 @@ class $OrdersTable extends Orders with TableInfo<$OrdersTable, Order> {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     } else if (isInserting) {
       context.missing(_idMeta);
+    }
+    if (data.containsKey('uuid')) {
+      context.handle(
+        _uuidMeta,
+        uuid.isAcceptableOrUnknown(data['uuid']!, _uuidMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_uuidMeta);
     }
     if (data.containsKey('order_code')) {
       context.handle(
@@ -4499,6 +4570,10 @@ class $OrdersTable extends Orders with TableInfo<$OrdersTable, Order> {
         DriftSqlType.string,
         data['${effectivePrefix}id'],
       )!,
+      uuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}uuid'],
+      )!,
       orderCode: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}order_code'],
@@ -4558,6 +4633,7 @@ class $OrdersTable extends Orders with TableInfo<$OrdersTable, Order> {
 
 class Order extends DataClass implements Insertable<Order> {
   final String id;
+  final String uuid;
   final String orderCode;
   final String status;
   final String orderType;
@@ -4572,6 +4648,7 @@ class Order extends DataClass implements Insertable<Order> {
   final String? syncUpdatedAt;
   const Order({
     required this.id,
+    required this.uuid,
     required this.orderCode,
     required this.status,
     required this.orderType,
@@ -4589,6 +4666,7 @@ class Order extends DataClass implements Insertable<Order> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
+    map['uuid'] = Variable<String>(uuid);
     map['order_code'] = Variable<String>(orderCode);
     map['status'] = Variable<String>(status);
     map['order_type'] = Variable<String>(orderType);
@@ -4611,6 +4689,7 @@ class Order extends DataClass implements Insertable<Order> {
   OrdersCompanion toCompanion(bool nullToAbsent) {
     return OrdersCompanion(
       id: Value(id),
+      uuid: Value(uuid),
       orderCode: Value(orderCode),
       status: Value(status),
       orderType: Value(orderType),
@@ -4637,6 +4716,7 @@ class Order extends DataClass implements Insertable<Order> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return Order(
       id: serializer.fromJson<String>(json['id']),
+      uuid: serializer.fromJson<String>(json['uuid']),
       orderCode: serializer.fromJson<String>(json['orderCode']),
       status: serializer.fromJson<String>(json['status']),
       orderType: serializer.fromJson<String>(json['orderType']),
@@ -4656,6 +4736,7 @@ class Order extends DataClass implements Insertable<Order> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
+      'uuid': serializer.toJson<String>(uuid),
       'orderCode': serializer.toJson<String>(orderCode),
       'status': serializer.toJson<String>(status),
       'orderType': serializer.toJson<String>(orderType),
@@ -4673,6 +4754,7 @@ class Order extends DataClass implements Insertable<Order> {
 
   Order copyWith({
     String? id,
+    String? uuid,
     String? orderCode,
     String? status,
     String? orderType,
@@ -4687,6 +4769,7 @@ class Order extends DataClass implements Insertable<Order> {
     Value<String?> syncUpdatedAt = const Value.absent(),
   }) => Order(
     id: id ?? this.id,
+    uuid: uuid ?? this.uuid,
     orderCode: orderCode ?? this.orderCode,
     status: status ?? this.status,
     orderType: orderType ?? this.orderType,
@@ -4705,6 +4788,7 @@ class Order extends DataClass implements Insertable<Order> {
   Order copyWithCompanion(OrdersCompanion data) {
     return Order(
       id: data.id.present ? data.id.value : this.id,
+      uuid: data.uuid.present ? data.uuid.value : this.uuid,
       orderCode: data.orderCode.present ? data.orderCode.value : this.orderCode,
       status: data.status.present ? data.status.value : this.status,
       orderType: data.orderType.present ? data.orderType.value : this.orderType,
@@ -4734,6 +4818,7 @@ class Order extends DataClass implements Insertable<Order> {
   String toString() {
     return (StringBuffer('Order(')
           ..write('id: $id, ')
+          ..write('uuid: $uuid, ')
           ..write('orderCode: $orderCode, ')
           ..write('status: $status, ')
           ..write('orderType: $orderType, ')
@@ -4753,6 +4838,7 @@ class Order extends DataClass implements Insertable<Order> {
   @override
   int get hashCode => Object.hash(
     id,
+    uuid,
     orderCode,
     status,
     orderType,
@@ -4771,6 +4857,7 @@ class Order extends DataClass implements Insertable<Order> {
       identical(this, other) ||
       (other is Order &&
           other.id == this.id &&
+          other.uuid == this.uuid &&
           other.orderCode == this.orderCode &&
           other.status == this.status &&
           other.orderType == this.orderType &&
@@ -4787,6 +4874,7 @@ class Order extends DataClass implements Insertable<Order> {
 
 class OrdersCompanion extends UpdateCompanion<Order> {
   final Value<String> id;
+  final Value<String> uuid;
   final Value<String> orderCode;
   final Value<String> status;
   final Value<String> orderType;
@@ -4802,6 +4890,7 @@ class OrdersCompanion extends UpdateCompanion<Order> {
   final Value<int> rowid;
   const OrdersCompanion({
     this.id = const Value.absent(),
+    this.uuid = const Value.absent(),
     this.orderCode = const Value.absent(),
     this.status = const Value.absent(),
     this.orderType = const Value.absent(),
@@ -4818,6 +4907,7 @@ class OrdersCompanion extends UpdateCompanion<Order> {
   });
   OrdersCompanion.insert({
     required String id,
+    required String uuid,
     required String orderCode,
     required String status,
     required String orderType,
@@ -4832,6 +4922,7 @@ class OrdersCompanion extends UpdateCompanion<Order> {
     this.syncUpdatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
+       uuid = Value(uuid),
        orderCode = Value(orderCode),
        status = Value(status),
        orderType = Value(orderType),
@@ -4843,6 +4934,7 @@ class OrdersCompanion extends UpdateCompanion<Order> {
        updatedAt = Value(updatedAt);
   static Insertable<Order> custom({
     Expression<String>? id,
+    Expression<String>? uuid,
     Expression<String>? orderCode,
     Expression<String>? status,
     Expression<String>? orderType,
@@ -4859,6 +4951,7 @@ class OrdersCompanion extends UpdateCompanion<Order> {
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
+      if (uuid != null) 'uuid': uuid,
       if (orderCode != null) 'order_code': orderCode,
       if (status != null) 'status': status,
       if (orderType != null) 'order_type': orderType,
@@ -4877,6 +4970,7 @@ class OrdersCompanion extends UpdateCompanion<Order> {
 
   OrdersCompanion copyWith({
     Value<String>? id,
+    Value<String>? uuid,
     Value<String>? orderCode,
     Value<String>? status,
     Value<String>? orderType,
@@ -4893,6 +4987,7 @@ class OrdersCompanion extends UpdateCompanion<Order> {
   }) {
     return OrdersCompanion(
       id: id ?? this.id,
+      uuid: uuid ?? this.uuid,
       orderCode: orderCode ?? this.orderCode,
       status: status ?? this.status,
       orderType: orderType ?? this.orderType,
@@ -4914,6 +5009,9 @@ class OrdersCompanion extends UpdateCompanion<Order> {
     final map = <String, Expression>{};
     if (id.present) {
       map['id'] = Variable<String>(id.value);
+    }
+    if (uuid.present) {
+      map['uuid'] = Variable<String>(uuid.value);
     }
     if (orderCode.present) {
       map['order_code'] = Variable<String>(orderCode.value);
@@ -4961,6 +5059,7 @@ class OrdersCompanion extends UpdateCompanion<Order> {
   String toString() {
     return (StringBuffer('OrdersCompanion(')
           ..write('id: $id, ')
+          ..write('uuid: $uuid, ')
           ..write('orderCode: $orderCode, ')
           ..write('status: $status, ')
           ..write('orderType: $orderType, ')
@@ -7519,6 +7618,15 @@ class $GroupOrdersTable extends GroupOrders
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _uuidMeta = const VerificationMeta('uuid');
+  @override
+  late final GeneratedColumn<String> uuid = GeneratedColumn<String>(
+    'uuid',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
   static const VerificationMeta _orderCodeMeta = const VerificationMeta(
     'orderCode',
   );
@@ -7640,6 +7748,7 @@ class $GroupOrdersTable extends GroupOrders
   @override
   List<GeneratedColumn> get $columns => [
     id,
+    uuid,
     orderCode,
     status,
     orderType,
@@ -7668,6 +7777,14 @@ class $GroupOrdersTable extends GroupOrders
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     } else if (isInserting) {
       context.missing(_idMeta);
+    }
+    if (data.containsKey('uuid')) {
+      context.handle(
+        _uuidMeta,
+        uuid.isAcceptableOrUnknown(data['uuid']!, _uuidMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_uuidMeta);
     }
     if (data.containsKey('order_code')) {
       context.handle(
@@ -7770,6 +7887,10 @@ class $GroupOrdersTable extends GroupOrders
         DriftSqlType.string,
         data['${effectivePrefix}id'],
       )!,
+      uuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}uuid'],
+      )!,
       orderCode: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}order_code'],
@@ -7825,6 +7946,7 @@ class $GroupOrdersTable extends GroupOrders
 
 class GroupOrder extends DataClass implements Insertable<GroupOrder> {
   final String id;
+  final String uuid;
   final String orderCode;
   final String status;
   final String orderType;
@@ -7838,6 +7960,7 @@ class GroupOrder extends DataClass implements Insertable<GroupOrder> {
   final String? syncUpdatedAt;
   const GroupOrder({
     required this.id,
+    required this.uuid,
     required this.orderCode,
     required this.status,
     required this.orderType,
@@ -7854,6 +7977,7 @@ class GroupOrder extends DataClass implements Insertable<GroupOrder> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
+    map['uuid'] = Variable<String>(uuid);
     map['order_code'] = Variable<String>(orderCode);
     map['status'] = Variable<String>(status);
     map['order_type'] = Variable<String>(orderType);
@@ -7875,6 +7999,7 @@ class GroupOrder extends DataClass implements Insertable<GroupOrder> {
   GroupOrdersCompanion toCompanion(bool nullToAbsent) {
     return GroupOrdersCompanion(
       id: Value(id),
+      uuid: Value(uuid),
       orderCode: Value(orderCode),
       status: Value(status),
       orderType: Value(orderType),
@@ -7900,6 +8025,7 @@ class GroupOrder extends DataClass implements Insertable<GroupOrder> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return GroupOrder(
       id: serializer.fromJson<String>(json['id']),
+      uuid: serializer.fromJson<String>(json['uuid']),
       orderCode: serializer.fromJson<String>(json['orderCode']),
       status: serializer.fromJson<String>(json['status']),
       orderType: serializer.fromJson<String>(json['orderType']),
@@ -7918,6 +8044,7 @@ class GroupOrder extends DataClass implements Insertable<GroupOrder> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
+      'uuid': serializer.toJson<String>(uuid),
       'orderCode': serializer.toJson<String>(orderCode),
       'status': serializer.toJson<String>(status),
       'orderType': serializer.toJson<String>(orderType),
@@ -7934,6 +8061,7 @@ class GroupOrder extends DataClass implements Insertable<GroupOrder> {
 
   GroupOrder copyWith({
     String? id,
+    String? uuid,
     String? orderCode,
     String? status,
     String? orderType,
@@ -7947,6 +8075,7 @@ class GroupOrder extends DataClass implements Insertable<GroupOrder> {
     Value<String?> syncUpdatedAt = const Value.absent(),
   }) => GroupOrder(
     id: id ?? this.id,
+    uuid: uuid ?? this.uuid,
     orderCode: orderCode ?? this.orderCode,
     status: status ?? this.status,
     orderType: orderType ?? this.orderType,
@@ -7964,6 +8093,7 @@ class GroupOrder extends DataClass implements Insertable<GroupOrder> {
   GroupOrder copyWithCompanion(GroupOrdersCompanion data) {
     return GroupOrder(
       id: data.id.present ? data.id.value : this.id,
+      uuid: data.uuid.present ? data.uuid.value : this.uuid,
       orderCode: data.orderCode.present ? data.orderCode.value : this.orderCode,
       status: data.status.present ? data.status.value : this.status,
       orderType: data.orderType.present ? data.orderType.value : this.orderType,
@@ -7990,6 +8120,7 @@ class GroupOrder extends DataClass implements Insertable<GroupOrder> {
   String toString() {
     return (StringBuffer('GroupOrder(')
           ..write('id: $id, ')
+          ..write('uuid: $uuid, ')
           ..write('orderCode: $orderCode, ')
           ..write('status: $status, ')
           ..write('orderType: $orderType, ')
@@ -8008,6 +8139,7 @@ class GroupOrder extends DataClass implements Insertable<GroupOrder> {
   @override
   int get hashCode => Object.hash(
     id,
+    uuid,
     orderCode,
     status,
     orderType,
@@ -8025,6 +8157,7 @@ class GroupOrder extends DataClass implements Insertable<GroupOrder> {
       identical(this, other) ||
       (other is GroupOrder &&
           other.id == this.id &&
+          other.uuid == this.uuid &&
           other.orderCode == this.orderCode &&
           other.status == this.status &&
           other.orderType == this.orderType &&
@@ -8040,6 +8173,7 @@ class GroupOrder extends DataClass implements Insertable<GroupOrder> {
 
 class GroupOrdersCompanion extends UpdateCompanion<GroupOrder> {
   final Value<String> id;
+  final Value<String> uuid;
   final Value<String> orderCode;
   final Value<String> status;
   final Value<String> orderType;
@@ -8054,6 +8188,7 @@ class GroupOrdersCompanion extends UpdateCompanion<GroupOrder> {
   final Value<int> rowid;
   const GroupOrdersCompanion({
     this.id = const Value.absent(),
+    this.uuid = const Value.absent(),
     this.orderCode = const Value.absent(),
     this.status = const Value.absent(),
     this.orderType = const Value.absent(),
@@ -8069,6 +8204,7 @@ class GroupOrdersCompanion extends UpdateCompanion<GroupOrder> {
   });
   GroupOrdersCompanion.insert({
     required String id,
+    required String uuid,
     required String orderCode,
     required String status,
     required String orderType,
@@ -8082,6 +8218,7 @@ class GroupOrdersCompanion extends UpdateCompanion<GroupOrder> {
     this.syncUpdatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
+       uuid = Value(uuid),
        orderCode = Value(orderCode),
        status = Value(status),
        orderType = Value(orderType),
@@ -8092,6 +8229,7 @@ class GroupOrdersCompanion extends UpdateCompanion<GroupOrder> {
        updatedAt = Value(updatedAt);
   static Insertable<GroupOrder> custom({
     Expression<String>? id,
+    Expression<String>? uuid,
     Expression<String>? orderCode,
     Expression<String>? status,
     Expression<String>? orderType,
@@ -8107,6 +8245,7 @@ class GroupOrdersCompanion extends UpdateCompanion<GroupOrder> {
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
+      if (uuid != null) 'uuid': uuid,
       if (orderCode != null) 'order_code': orderCode,
       if (status != null) 'status': status,
       if (orderType != null) 'order_type': orderType,
@@ -8124,6 +8263,7 @@ class GroupOrdersCompanion extends UpdateCompanion<GroupOrder> {
 
   GroupOrdersCompanion copyWith({
     Value<String>? id,
+    Value<String>? uuid,
     Value<String>? orderCode,
     Value<String>? status,
     Value<String>? orderType,
@@ -8139,6 +8279,7 @@ class GroupOrdersCompanion extends UpdateCompanion<GroupOrder> {
   }) {
     return GroupOrdersCompanion(
       id: id ?? this.id,
+      uuid: uuid ?? this.uuid,
       orderCode: orderCode ?? this.orderCode,
       status: status ?? this.status,
       orderType: orderType ?? this.orderType,
@@ -8159,6 +8300,9 @@ class GroupOrdersCompanion extends UpdateCompanion<GroupOrder> {
     final map = <String, Expression>{};
     if (id.present) {
       map['id'] = Variable<String>(id.value);
+    }
+    if (uuid.present) {
+      map['uuid'] = Variable<String>(uuid.value);
     }
     if (orderCode.present) {
       map['order_code'] = Variable<String>(orderCode.value);
@@ -8203,6 +8347,7 @@ class GroupOrdersCompanion extends UpdateCompanion<GroupOrder> {
   String toString() {
     return (StringBuffer('GroupOrdersCompanion(')
           ..write('id: $id, ')
+          ..write('uuid: $uuid, ')
           ..write('orderCode: $orderCode, ')
           ..write('status: $status, ')
           ..write('orderType: $orderType, ')
@@ -10768,6 +10913,7 @@ typedef $$MealsTableCreateCompanionBuilder =
       required String name,
       required String status,
       required String mealType,
+      required String mealTypeId,
       Value<String?> remarks,
       required double price,
       Value<String?> photoUrl,
@@ -10784,6 +10930,7 @@ typedef $$MealsTableUpdateCompanionBuilder =
       Value<String> name,
       Value<String> status,
       Value<String> mealType,
+      Value<String> mealTypeId,
       Value<String?> remarks,
       Value<double> price,
       Value<String?> photoUrl,
@@ -10916,6 +11063,11 @@ class $$MealsTableFilterComposer extends Composer<_$AppDatabase, $MealsTable> {
 
   ColumnFilters<String> get mealType => $composableBuilder(
     column: $table.mealType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get mealTypeId => $composableBuilder(
+    column: $table.mealTypeId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -11107,6 +11259,11 @@ class $$MealsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get mealTypeId => $composableBuilder(
+    column: $table.mealTypeId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get remarks => $composableBuilder(
     column: $table.remarks,
     builder: (column) => ColumnOrderings(column),
@@ -11186,6 +11343,11 @@ class $$MealsTableAnnotationComposer
 
   GeneratedColumn<String> get mealType =>
       $composableBuilder(column: $table.mealType, builder: (column) => column);
+
+  GeneratedColumn<String> get mealTypeId => $composableBuilder(
+    column: $table.mealTypeId,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get remarks =>
       $composableBuilder(column: $table.remarks, builder: (column) => column);
@@ -11374,6 +11536,7 @@ class $$MealsTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<String> status = const Value.absent(),
                 Value<String> mealType = const Value.absent(),
+                Value<String> mealTypeId = const Value.absent(),
                 Value<String?> remarks = const Value.absent(),
                 Value<double> price = const Value.absent(),
                 Value<String?> photoUrl = const Value.absent(),
@@ -11388,6 +11551,7 @@ class $$MealsTableTableManager
                 name: name,
                 status: status,
                 mealType: mealType,
+                mealTypeId: mealTypeId,
                 remarks: remarks,
                 price: price,
                 photoUrl: photoUrl,
@@ -11404,6 +11568,7 @@ class $$MealsTableTableManager
                 required String name,
                 required String status,
                 required String mealType,
+                required String mealTypeId,
                 Value<String?> remarks = const Value.absent(),
                 required double price,
                 Value<String?> photoUrl = const Value.absent(),
@@ -11418,6 +11583,7 @@ class $$MealsTableTableManager
                 name: name,
                 status: status,
                 mealType: mealType,
+                mealTypeId: mealTypeId,
                 remarks: remarks,
                 price: price,
                 photoUrl: photoUrl,
@@ -13301,6 +13467,7 @@ typedef $$UserKitchensTableProcessedTableManager =
 typedef $$OrdersTableCreateCompanionBuilder =
     OrdersCompanion Function({
       required String id,
+      required String uuid,
       required String orderCode,
       required String status,
       required String orderType,
@@ -13318,6 +13485,7 @@ typedef $$OrdersTableCreateCompanionBuilder =
 typedef $$OrdersTableUpdateCompanionBuilder =
     OrdersCompanion Function({
       Value<String> id,
+      Value<String> uuid,
       Value<String> orderCode,
       Value<String> status,
       Value<String> orderType,
@@ -13384,6 +13552,11 @@ class $$OrdersTableFilterComposer
   });
   ColumnFilters<String> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get uuid => $composableBuilder(
+    column: $table.uuid,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -13505,6 +13678,11 @@ class $$OrdersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get uuid => $composableBuilder(
+    column: $table.uuid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get orderCode => $composableBuilder(
     column: $table.orderCode,
     builder: (column) => ColumnOrderings(column),
@@ -13595,6 +13773,9 @@ class $$OrdersTableAnnotationComposer
   });
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get uuid =>
+      $composableBuilder(column: $table.uuid, builder: (column) => column);
 
   GeneratedColumn<String> get orderCode =>
       $composableBuilder(column: $table.orderCode, builder: (column) => column);
@@ -13715,6 +13896,7 @@ class $$OrdersTableTableManager
           updateCompanionCallback:
               ({
                 Value<String> id = const Value.absent(),
+                Value<String> uuid = const Value.absent(),
                 Value<String> orderCode = const Value.absent(),
                 Value<String> status = const Value.absent(),
                 Value<String> orderType = const Value.absent(),
@@ -13730,6 +13912,7 @@ class $$OrdersTableTableManager
                 Value<int> rowid = const Value.absent(),
               }) => OrdersCompanion(
                 id: id,
+                uuid: uuid,
                 orderCode: orderCode,
                 status: status,
                 orderType: orderType,
@@ -13747,6 +13930,7 @@ class $$OrdersTableTableManager
           createCompanionCallback:
               ({
                 required String id,
+                required String uuid,
                 required String orderCode,
                 required String status,
                 required String orderType,
@@ -13762,6 +13946,7 @@ class $$OrdersTableTableManager
                 Value<int> rowid = const Value.absent(),
               }) => OrdersCompanion.insert(
                 id: id,
+                uuid: uuid,
                 orderCode: orderCode,
                 status: status,
                 orderType: orderType,
@@ -15493,6 +15678,7 @@ typedef $$ActivityLogsTableProcessedTableManager =
 typedef $$GroupOrdersTableCreateCompanionBuilder =
     GroupOrdersCompanion Function({
       required String id,
+      required String uuid,
       required String orderCode,
       required String status,
       required String orderType,
@@ -15509,6 +15695,7 @@ typedef $$GroupOrdersTableCreateCompanionBuilder =
 typedef $$GroupOrdersTableUpdateCompanionBuilder =
     GroupOrdersCompanion Function({
       Value<String> id,
+      Value<String> uuid,
       Value<String> orderCode,
       Value<String> status,
       Value<String> orderType,
@@ -15562,6 +15749,11 @@ class $$GroupOrdersTableFilterComposer
   });
   ColumnFilters<String> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get uuid => $composableBuilder(
+    column: $table.uuid,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -15660,6 +15852,11 @@ class $$GroupOrdersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get uuid => $composableBuilder(
+    column: $table.uuid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get orderCode => $composableBuilder(
     column: $table.orderCode,
     builder: (column) => ColumnOrderings(column),
@@ -15727,6 +15924,9 @@ class $$GroupOrdersTableAnnotationComposer
   });
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get uuid =>
+      $composableBuilder(column: $table.uuid, builder: (column) => column);
 
   GeneratedColumn<String> get orderCode =>
       $composableBuilder(column: $table.orderCode, builder: (column) => column);
@@ -15824,6 +16024,7 @@ class $$GroupOrdersTableTableManager
           updateCompanionCallback:
               ({
                 Value<String> id = const Value.absent(),
+                Value<String> uuid = const Value.absent(),
                 Value<String> orderCode = const Value.absent(),
                 Value<String> status = const Value.absent(),
                 Value<String> orderType = const Value.absent(),
@@ -15838,6 +16039,7 @@ class $$GroupOrdersTableTableManager
                 Value<int> rowid = const Value.absent(),
               }) => GroupOrdersCompanion(
                 id: id,
+                uuid: uuid,
                 orderCode: orderCode,
                 status: status,
                 orderType: orderType,
@@ -15854,6 +16056,7 @@ class $$GroupOrdersTableTableManager
           createCompanionCallback:
               ({
                 required String id,
+                required String uuid,
                 required String orderCode,
                 required String status,
                 required String orderType,
@@ -15868,6 +16071,7 @@ class $$GroupOrdersTableTableManager
                 Value<int> rowid = const Value.absent(),
               }) => GroupOrdersCompanion.insert(
                 id: id,
+                uuid: uuid,
                 orderCode: orderCode,
                 status: status,
                 orderType: orderType,

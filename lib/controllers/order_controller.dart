@@ -134,6 +134,7 @@ class OrderController extends Notifier<OrderState> {
 
       final order = OrdersCompanion(
         id: Value(orderId),
+        uuid: Value(const Uuid().v4()),
         orderCode: Value(orderCode),
         status: const Value('completed'),
         orderType: Value(orderType),

@@ -3,6 +3,7 @@ import 'order_item.model.dart';
 
 class Order {
   final String id;
+  final String uuid;
   final String orderCode;
   final String status;
   final String orderType;
@@ -17,6 +18,7 @@ class Order {
 
   const Order({
     required this.id,
+    required this.uuid,
     required this.orderCode,
     required this.status,
     required this.orderType,
@@ -33,6 +35,7 @@ class Order {
   factory Order.fromMap(Map<String, dynamic> map) {
     return Order(
       id: map['id'] as String,
+      uuid: map['uuid'] as String,
       orderCode: map['order_code'] as String,
       status: map['status'] as String,
       orderType: map['order_type'] as String,
@@ -52,6 +55,7 @@ class Order {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'uuid': uuid,
       'order_code': orderCode,
       'status': status,
       'order_type': orderType,
@@ -68,6 +72,7 @@ class Order {
 
   Order copyWith({
     String? id,
+    String? uuid,
     String? orderCode,
     String? status,
     String? orderType,
@@ -82,6 +87,7 @@ class Order {
   }) {
     return Order(
       id: id ?? this.id,
+      uuid: uuid ?? this.uuid,
       orderCode: orderCode ?? this.orderCode,
       status: status ?? this.status,
       orderType: orderType ?? this.orderType,

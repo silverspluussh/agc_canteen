@@ -51,6 +51,7 @@ class Meals extends Table {
   TextColumn get name => text()();
   TextColumn get status => text()();
   TextColumn get mealType => text()();
+  TextColumn get mealTypeId => text()();
   TextColumn get remarks => text().nullable()();
   RealColumn get price => real()();
   TextColumn get photoUrl => text().nullable()();
@@ -115,6 +116,7 @@ class UserKitchens extends Table {
 
 class Orders extends Table {
   TextColumn get id => text()();
+  TextColumn get uuid => text()();
   TextColumn get orderCode => text()();
   TextColumn get status => text()();
   TextColumn get orderType => text()();
@@ -199,6 +201,7 @@ class ActivityLogs extends Table {
 
 class GroupOrders extends Table {
   TextColumn get id => text()();
+  TextColumn get uuid => text()();
   TextColumn get orderCode => text()();
   TextColumn get status => text()();
   TextColumn get orderType => text()();

@@ -173,9 +173,10 @@ class _PosPageState extends ConsumerState<PosPage> {
     final availableTypes = ref.watch(availableMealTypesProvider);
 
     final mealTypeFiltered = meals.where((meal) {
-      return availableTypes.contains(meal.mealType.toLowerCase());
+      // return availableTypes.contains(meal.mealType.toLowerCase());
+      return true;
     }).toList();
-
+log(meals.first.toJsonString());
     final filteredMeals = mealTypeFiltered.where((meal) {
       final query = _searchQuery.toLowerCase().trim();
       if (query.isEmpty) return true;
@@ -478,7 +479,7 @@ class _PosPageState extends ConsumerState<PosPage> {
     await ref
         .read(orderProvider.notifier)
         .completeOrder(
-          staff.staffId,
+          staff.staffId!,
           '${staff.firstName} ${staff.lastName}',
           description: description,
           orderType: orderType,

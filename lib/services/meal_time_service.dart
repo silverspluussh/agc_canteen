@@ -40,7 +40,7 @@ const List<MealTimeWindow> mealTimeWindows = [
   MealTimeWindow(
     mealType: 'dinner',
     start: TimeOfDay(hour: 16, minute: 0),
-    end: TimeOfDay(hour: 19, minute: 0),
+    end: TimeOfDay(hour: 12, minute: 0),
   ),
   MealTimeWindow(
     mealType: 'midnight',

@@ -8,6 +8,16 @@ class NetworkAPI {
   NetworkAPI();
   Dio dioClient = DioClient.dio;
 
+  String _safeMessage(dynamic data) {
+    if (data == null) return 'Unknown error';
+    if (data is Map) {
+      final msg = data['message'];
+      if (msg is String) return msg;
+      return msg?.toString() ?? data.toString();
+    }
+    return data.toString();
+  }
+
   Future<T> getData<T>(
     String path, {
     required T Function(dynamic data) builder,
@@ -25,9 +35,8 @@ class NetworkAPI {
 
       switch (response.statusCode) {
         case 200:
-          final data = response.data;
-          return builder(data["data"]);
         case 201:
+        case 202:
           final data = response.data;
           return builder(data["data"]);
         case 300:
@@ -93,27 +102,24 @@ class NetworkAPI {
         queryParameters: queryParameters,
         data: data,
       );
-;      switch (response.statusCode) {
+      log(response.data.toString());
+      switch (response.statusCode) {
         case 200:
-          final data = response.data;
-          return builder(data);
         case 201:
+        case 202:
           final data = response.data;
           return builder(data);
-
         case 300:
         case 301:
         case 302:
-          throw InvalidCredentials("Invalid credentials provided");
+          throw InvalidCredentials(_safeMessage(response.data));
         case 400:
-          throw InvalidCredentials(response.data["message"]);
+          throw InvalidCredentials(_safeMessage(response.data));
         case 401:
-          throw InvalidApiKeyException(response.data["message"]);
+          throw InvalidApiKeyException(_safeMessage(response.data));
         case 403:
-          throw LoginAttemptFailed(response.data["message"]);
+          throw LoginAttemptFailed(_safeMessage(response.data));
         case 404:
-          log(response.data.toString());
-
           throw NotFoundException("Request not found");
         case 405:
           throw NotAllowedException(
@@ -124,14 +130,16 @@ class NetworkAPI {
             'Request timed out. Please check your connection and try again.',
           );
         case 409:
-          throw InvalidCredentials(response.data["message"]);
+          throw InvalidCredentials(_safeMessage(response.data));
+        case 422:
+          throw LoginAttemptFailed(_safeMessage(response.data));
         case 500:
           throw TimeoutException(
             'Request timed out. Please check your connection and try again.',
           );
 
         default:
-          throw LoginAttemptFailed(response.data["message"]);
+          throw LoginAttemptFailed(_safeMessage(response.data));
       }
     } on SocketException catch (_) {
       throw NoInternetConnectionException(
@@ -176,8 +184,9 @@ class NetworkAPI {
       );
 
       switch (response.statusCode) {
-        case 201:
         case 200:
+        case 201:
+        case 202:
           final data = response.data;
           return builder(data);
         case 300:

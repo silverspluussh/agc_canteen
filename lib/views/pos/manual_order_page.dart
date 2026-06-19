@@ -99,7 +99,7 @@ class ManualOrderPage extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
 
     return DefaultTabController(
-      length: 2,
+      length: 0,
       child: Scaffold(
         appBar: AppBar(
           backgroundColor: cs.primary,
@@ -107,34 +107,35 @@ class ManualOrderPage extends StatelessWidget {
           title: Text(l10n.manualPosOrder),
           leading: const BackButton(color: Colors.white),
           centerTitle: true,
-          bottom: TabBar(
-            labelColor: cs.onPrimary,
-            unselectedLabelColor: cs.onPrimary.withOpacity(0.6),
-            indicatorColor: cs.onPrimary,
-            indicatorWeight: 3,
-            tabs: [
-              Tab(
-                icon: const Icon(Icons.person, color: Colors.white),
-                child: Text(
-                  l10n.singleOrder,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.labelLarge!.copyWith(color: Colors.white),
-                ),
-              ),
-              Tab(
-                icon: const Icon(Icons.group, color: Colors.white),
-                child: Text(
-                  l10n.groupOrder,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.labelLarge!.copyWith(color: Colors.white),
-                ),
-              ),
-            ],
-          ),
+          // bottom: TabBar(
+          //   labelColor: cs.onPrimary,
+          //   unselectedLabelColor: cs.onPrimary.withOpacity(0.6),
+          //   indicatorColor: cs.onPrimary,
+          //   indicatorWeight: 3,
+          //   tabs: [
+          //     Tab(
+          //       icon: const Icon(Icons.person, color: Colors.white),
+          //       child: Text(
+          //         l10n.singleOrder,
+          //         style: Theme.of(
+          //           context,
+          //         ).textTheme.labelLarge!.copyWith(color: Colors.white),
+          //       ),
+          //     ),
+          //     Tab(
+          //       icon: const Icon(Icons.group, color: Colors.white),
+          //       child: Text(
+          //         l10n.groupOrder,
+          //         style: Theme.of(
+          //           context,
+          //         ).textTheme.labelLarge!.copyWith(color: Colors.white),
+          //       ),
+          //     ),
+          //   ],
+          // ),
         ),
-        body: const TabBarView(children: [_SingleOrderTab(), _GroupOrderTab()]),
+        body: _SingleOrderTab(),
+      //  body: const TabBarView(children: [_SingleOrderTab(), _GroupOrderTab()]),
       ),
     );
   }
@@ -184,6 +185,7 @@ class _SingleOrderTabState extends ConsumerState<_SingleOrderTab> {
 
       final order = OrdersCompanion(
         id: Value(orderId),
+        uuid: Value(const Uuid().v4()),
         orderCode: Value(orderCode),
         status: const Value('completed'),
         orderType: Value(_orderType),
@@ -574,6 +576,7 @@ class _GroupOrderTabState extends ConsumerState<_GroupOrderTab> {
 
       final order = GroupOrdersCompanion(
         id: Value(orderId),
+        uuid: Value(const Uuid().v4()),
         orderCode: Value(orderCode),
         status: const Value('completed'),
         orderType: Value(_orderType),

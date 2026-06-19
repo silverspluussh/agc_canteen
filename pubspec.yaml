@@ -13,7 +13,7 @@ dependencies:
   dio: ^5.9.2
   drift: 2.31.0
   esc_pos_utils: ^1.1.0
-  ffi: ^2.2.0
+  # ffi: ^2.2.0
   flutter:
     sdk: flutter
   flutter_localizations:

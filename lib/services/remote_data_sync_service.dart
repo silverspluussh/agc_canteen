@@ -96,6 +96,7 @@ class RemoteDataSyncService {
       );
 
       List<dynamic>? staffList;
+      _logger.e(staffList);
       if (responseData is List) {
         staffList = responseData;
       } else if (responseData is Map && responseData['data'] is List) {
@@ -182,8 +183,17 @@ class RemoteDataSyncService {
   Future<bool> _syncBioData() async {
     try {
       _logger.i('RemoteDataSyncService: fetching remote bio-data...');
+
+      final posDevices = await _db.getAllPosDevices();
+      final posKitchenId =
+          posDevices.isNotEmpty ? posDevices.first.kitchenId : null;
+
       final responseData = await _networkAPI.getData(
         '/hr/bio-data',
+        queryParameters: {
+          if (posKitchenId != null && posKitchenId.isNotEmpty)
+            'kitchenId': posKitchenId,
+        },
         builder: (data) => data,
       );
 
@@ -401,6 +411,8 @@ class RemoteDataSyncService {
 
   Future<void> _upsertMealData(Map<String, dynamic> mealMap) async {
     try {
+              _logger.e("Meal response data:$mealMap");
+
       final mealId = mealMap['id']?.toString() ?? '';
       if (mealId.isEmpty) return;
 
@@ -484,6 +496,9 @@ class RemoteDataSyncService {
           mealMap['mealType']['name'] as String? ??
               mealMap['mealType']['name'] as String? ??
               'breakfast',
+        ),
+        mealTypeId: Value(
+          mealMap['mealType']['id']?.toString() ?? '',
         ),
         remarks: Value.absentIfNull(mealMap['remarks'] as String?),
         price: Value(priceNum.toDouble()),

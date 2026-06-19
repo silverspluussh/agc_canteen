@@ -62,24 +62,32 @@ class AuthController extends Notifier<AuthState> {
 
       dev.log(
         '[AuthController] authenticateWithFingerprint returned: '
-        'result=${result != null ? "staffId=${result.staffId}, name=${result.firstName} ${result.lastName}" : "null (no match)"}',
+        'result=${result.isAuthenticated ? "staffId=${result.staffId}, name=${result.firstName} ${result.lastName}" : "failure=${result.failureReason?.name}"}',
         name: 'POS_AUTH',
       );
 
-      if (result == null) {
+      if (!result.isAuthenticated) {
+        final reason = result.failureReason;
+        final errorMessage = switch (reason) {
+          AuthFailureReason.notEnrolled =>
+            'Fingerprint not recognized. Please enroll your fingerprint.',
+          AuthFailureReason.notInKitchen =>
+            'Staff is not assigned to this kitchen.',
+          null => 'Authentication failed.',
+        };
         dev.log(
-          '[AuthController] No match — setting error state',
+          '[AuthController] Auth failed ($reason) — setting error state',
           name: 'POS_AUTH',
         );
         getIt<ActivityLogService>().log(
           type: 'staff_auth_failure',
-          message: 'Staff fingerprint authentication failed: no match',
+          message: 'Staff authentication failed: ${reason?.name ?? "unknown"}',
           actorType: 'staff',
-          metadata: {'reason': 'no_match'},
+          metadata: {'reason': reason?.name},
         );
         state = state.copyWith(
           step: AuthStep.error,
-          error: 'Fingerprint not matched. Try again.',
+          error: errorMessage,
         );
         return;
       }

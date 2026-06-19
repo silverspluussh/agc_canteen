@@ -13,6 +13,7 @@ class AuthInterceptor extends Interceptor {
       options.headers = {
         "Authorization": "Bearer $token",
         "Content-Type": "application/json",
+        "Accept": "application/json"
       };
     }
     handler.next(options);
