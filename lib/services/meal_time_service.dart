@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../controllers/providers.dart';
+
 class MealTimeWindow {
   final String mealType;
   final TimeOfDay start;
@@ -26,36 +28,31 @@ class MealTimeWindow {
   }
 }
 
-const List<MealTimeWindow> mealTimeWindows = [
-  MealTimeWindow(
-    mealType: 'breakfast',
-    start: TimeOfDay(hour: 5, minute: 0),
-    end: TimeOfDay(hour: 10, minute: 30),
-  ),
-  MealTimeWindow(
-    mealType: 'lunch',
-    start: TimeOfDay(hour: 11, minute: 0),
-    end: TimeOfDay(hour: 14, minute: 0),
-  ),
-  MealTimeWindow(
-    mealType: 'dinner',
-    start: TimeOfDay(hour: 16, minute: 0),
-    end: TimeOfDay(hour: 12, minute: 0),
-  ),
-  MealTimeWindow(
-    mealType: 'midnight',
-    start: TimeOfDay(hour: 0, minute: 0),
-    end: TimeOfDay(hour: 3, minute: 0),
-  ),
-];
+TimeOfDay _parseTimeOfDay(String time) {
+  final parts = time.split(':');
+  final hour = int.tryParse(parts[0]) ?? 0;
+  final minute = parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
+  return TimeOfDay(hour: hour, minute: minute);
+}
 
-List<String> getAvailableMealTypes(DateTime now) {
-  return mealTimeWindows
+final mealTimeWindowsProvider = FutureProvider<List<MealTimeWindow>>((ref) async {
+  final db = ref.watch(databaseProvider);
+  final mealTypes = await db.getAllMealTypes();
+  final activeTypes = mealTypes.where((mt) => mt.status == 'active');
+  return activeTypes.map((mt) {
+    return MealTimeWindow(
+      mealType: mt.name.toLowerCase(),
+      start: _parseTimeOfDay(mt.beginTime),
+      end: _parseTimeOfDay(mt.endTime),
+    );
+  }).toList();
+});
+
+final availableMealTypesProvider = FutureProvider<List<String>>((ref) async {
+  final windows = await ref.watch(mealTimeWindowsProvider.future);
+  final now = DateTime.now();
+  return windows
       .where((window) => window.isActiveAt(now))
       .map((window) => window.mealType)
       .toList();
-}
-
-final availableMealTypesProvider = Provider<List<String>>((ref) {
-  return getAvailableMealTypes(DateTime.now());
 });

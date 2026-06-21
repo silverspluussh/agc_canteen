@@ -1,3 +1,4 @@
+import 'package:agc_canteen/l10n/generated/app_localizations.dart';
 import 'package:agc_canteen/views/widgets/app_buttons.widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -158,13 +159,33 @@ class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
                   ),
                   const SizedBox(height: 12),
                   if (state.errorMessage != null)
+
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Text(
-                        state.errorMessage!,
-                        style: TextStyle(color: colorScheme.error),
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Container(
+                          padding: EdgeInsets.all(5),
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              width: 1,color: Colors.red
+                            )
+                          ),
+                          child: Row(
+                            spacing: 15,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.error,color: Colors.red),
+                              Text(
+                                state.errorMessage ??
+                                    AppLocalizations.of(context).loginFailed,
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.error,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
+                  
                   const SizedBox(height: 24),
                   PrimaryButton(
                     onPressed: _isOtpComplete && !_isLoading

@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:developer';
 import 'package:agc_canteen/core/network/api_exceptions_util.dart';
 import 'package:drift/drift.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -87,6 +86,7 @@ class SyncService {
       'sites',
       'kitchens',
       'menu_types',
+      'meal_types',
       'meals',
       'staff',
       'users',
@@ -358,10 +358,20 @@ class SyncService {
       if (records.isEmpty) return 0;
 
       int pulled = 0;
+      final remoteIds = <String>{};
       for (final record in records) {
-        await _upsertTable(table, record as Map<String, dynamic>);
+        final map = record as Map<String, dynamic>;
+        await _upsertTable(table, map);
+        final id = map['id']?.toString();
+        if (id != null && id.isNotEmpty) remoteIds.add(id);
         pulled++;
       }
+
+      // Clean up local synced records not present in remote
+      if (remoteIds.isNotEmpty) {
+        await _cleanupStaleRecords(table, remoteIds);
+      }
+
       return pulled;
     } catch (e) {
       _logger.w('Failed to pull $table: $e');
@@ -377,6 +387,8 @@ class SyncService {
         return (await _db.getUnsyncedKitchens()).map(_rowToMap).toList();
       case 'menu_types':
         return (await _db.getUnsyncedMenuTypes()).map(_rowToMap).toList();
+      case 'meal_types':
+        return (await _db.getUnsyncedMealTypes()).map(_rowToMap).toList();
       case 'meals':
         return (await _db.getUnsyncedMeals()).map(_rowToMap).toList();
       case 'staff':
@@ -408,6 +420,8 @@ class SyncService {
         await _db.markKitchenSynced(id);
       case 'menu_types':
         await _db.markMenuTypeSynced(id);
+      case 'meal_types':
+        await _db.markMealTypeSynced(id);
       case 'meals':
         await _db.markMealSynced(id);
       case 'staff':
@@ -438,6 +452,8 @@ class SyncService {
         await _db.markKitchenFailed(id);
       case 'menu_types':
         await _db.markMenuTypeFailed(id);
+      case 'meal_types':
+        await _db.markMealTypeFailed(id);
       case 'meals':
         await _db.markMealFailed(id);
       case 'staff':
@@ -505,6 +521,22 @@ class SyncService {
             name: Value(data['name'] as String),
             remarks: Value.absentIfNull(data['remarks'] as String?),
             status: Value(data['status'] as String),
+            createdAt: Value(data['created_at'] as String),
+            updatedAt: Value(data['updated_at'] as String),
+            syncStatus: const Value(2),
+            syncUpdatedAt: Value(now),
+          ),
+          mode: InsertMode.insertOrReplace,
+        );
+      case 'meal_types':
+        await _db.insertMealType(
+          MealTypesCompanion(
+            id: Value(data['id'] as String),
+            name: Value(data['name'] as String),
+            status: Value(data['status'] as String),
+            beginTime: Value(data['begin_time'] as String),
+            endTime: Value(data['end_time'] as String),
+            remarks: Value.absentIfNull(data['remarks'] as String?),
             createdAt: Value(data['created_at'] as String),
             updatedAt: Value(data['updated_at'] as String),
             syncStatus: const Value(2),
@@ -632,6 +664,30 @@ class SyncService {
           ),
           mode: InsertMode.insertOrReplace,
         );
+    }
+  }
+
+  /// Deletes locally synced records that are missing from the remote set.
+  /// Only tables where remote is the source-of-truth are cleaned.
+  Future<void> _cleanupStaleRecords(String table, Set<String> remoteIds) async {
+    switch (table) {
+      case 'sites':
+        await _db.deleteSitesNotIn(remoteIds);
+      case 'kitchens':
+        await _db.deleteKitchensNotIn(remoteIds);
+      case 'menu_types':
+        await _db.deleteMenuTypesNotIn(remoteIds);
+      case 'meal_types':
+        await _db.deleteMealTypesNotIn(remoteIds);
+      case 'meals':
+        await _db.deleteMealsNotIn(remoteIds);
+      case 'staff':
+        await _db.deleteStaffNotIn(remoteIds);
+      case 'users':
+        await _db.deleteUsersNotIn(remoteIds);
+      // tables skipped: orders, order_items, group_orders,
+      // group_order_items, overcharges, pos_devices, bio_data —
+      // these are local-first or handled separately.
     }
   }
 

@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 
 
 class PosDeviceService {
-  static const _channel = MethodChannel('com.silverware.agc_canteen/pos');
+  static const _channel = MethodChannel('com.silverware.canteen_staff_enrollment/pos');
     final NetworkAPI networkAPI = NetworkAPI();
 
   bool _isInitialized = false;

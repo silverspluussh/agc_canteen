@@ -24,6 +24,7 @@ class NetworkAPI {
       );
 
       switch (response.statusCode) {
+        case 202:
         case 200:
           final data = response.data;
           return builder(data["data"]);
@@ -93,8 +94,8 @@ class NetworkAPI {
         queryParameters: queryParameters,
         data: data,
       );
-      log(" rseponse ${response.data} ${response.statusCode}")
-;      switch (response.statusCode) {
+      switch (response.statusCode) {
+        case 202:
         case 200:
           final data = response.data;
           return builder(data);
@@ -102,7 +103,6 @@ class NetworkAPI {
           final data = response.data;
           return builder(data);
         case 300:
-          
         case 301:
         case 302:
           throw InvalidCredentials("Invalid credentials provided");
@@ -113,8 +113,6 @@ class NetworkAPI {
         case 403:
           throw LoginAttemptFailed(response.data["message"]);
         case 404:
-          log(response.data.toString());
-
           throw NotFoundException("Request not found");
         case 405:
           throw NotAllowedException(
@@ -175,8 +173,10 @@ class NetworkAPI {
         queryParameters: queryParameters,
         data: data,
       );
-
+     
+     log("Data ${response.data.toString()} statuscode ${response.statusCode}");
       switch (response.statusCode) {
+        case 202:
         case 201:
         case 200:
           final data = response.data;
@@ -185,7 +185,6 @@ class NetworkAPI {
         case 301:
         case 302:
           throw InvalidCredentials("Invalid credentials provided");
-
         case 400:
           throw InvalidCredentials(response.data["message"]);
         case 401:
@@ -210,6 +209,7 @@ class NetworkAPI {
         'No internet connection. Please check your connection and try again.',
       );
     } on DioException catch (e) {
+
       switch (e.type) {
         case DioExceptionType.connectionTimeout:
         case DioExceptionType.sendTimeout:
@@ -249,6 +249,7 @@ class NetworkAPI {
       switch (response.statusCode) {
         case 201:
         case 200:
+        case 202:
           final data = response.data;
           return builder(data);
         case 300:
@@ -314,7 +315,13 @@ class NetworkAPI {
         options: opts,
         queryParameters: queryParameters,
       );
+      log(response.data.toString());
+      log(response.statusCode.toString());
       switch (response.statusCode) {
+        case 202:
+        case 203:
+        case 204:
+        case 201:
         case 200:
           final data = response.data;
           return builder(data);

@@ -1,7 +1,8 @@
-import 'package:canteen_staff_enrollment/controllers/biodata_service.dart';
+import 'package:canteen_staff_enrollment/repos/biodata_service.dart';
 import 'package:canteen_staff_enrollment/core/network/dio_client.dart';
 import 'package:canteen_staff_enrollment/core/network/network_api_dio.dart';
 import 'package:canteen_staff_enrollment/core/network/securestorage.dart';
+import 'package:canteen_staff_enrollment/repos/staff_service.dart';
 import 'package:canteen_staff_enrollment/services/pos/pos_card_service.dart';
 import 'package:canteen_staff_enrollment/services/pos/pos_device_service.dart';
 import 'package:canteen_staff_enrollment/services/pos/pos_fingerprint_service.dart';
@@ -34,6 +35,9 @@ Future<void> setupServiceLocator() async {
         storage: getIt<SecureStorage>(),
       ));
   getIt.registerLazySingleton<StaffBioDataService>(() => StaffBioDataService(
+        networkAPI: getIt<NetworkAPI>(),
+      ));
+      getIt.registerLazySingleton<StaffService>(() => StaffService(
         networkAPI: getIt<NetworkAPI>(),
       ));
 }

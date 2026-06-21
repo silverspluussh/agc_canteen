@@ -1,6 +1,8 @@
 import 'dart:developer' as dev;
 import 'package:canteen_staff_enrollment/controllers/admin_auth_controller.dart';
 import 'package:canteen_staff_enrollment/controllers/injection_container.dart';
+import 'package:canteen_staff_enrollment/views/auth/admin_login_page.dart';
+import 'package:canteen_staff_enrollment/views/dashboard/dashboard.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../services/pos/pos_device_service.dart';
@@ -52,12 +54,11 @@ class _AuthGateState extends ConsumerState<AuthGate> {
     }
 
     if (adminState.isAuthenticated) {
-      
-      return const SizedBox();
+      return const DashboardPage();
     }
 
 //login
-    return const SizedBox();
+    return const AdminLoginPage();
   }
 
   Widget _buildSplash(BuildContext context) {

@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:developer' as dev;
-import 'package:canteen_staff_enrollment/controllers/biodata_service.dart';
+import 'package:canteen_staff_enrollment/repos/biodata_service.dart';
 import 'package:canteen_staff_enrollment/controllers/injection_container.dart';
 import 'package:canteen_staff_enrollment/models/staff.model.dart';
 import 'package:canteen_staff_enrollment/services/pos/pos_fingerprint_service.dart';
@@ -8,7 +8,7 @@ import 'package:logger/logger.dart';
 
 class FingerprintAuthService {
   final PosFingerprintService _fingerprint;
-  // final EncryptionService _encryptionService = getIt<EncryptionService>();
+  // final EncryptionService _encryptionService = getIt<EncryptionSe rvice>();
   final Logger _logger;
   final StaffBioDataService _bioDataService = getIt<StaffBioDataService>();
 
@@ -81,6 +81,26 @@ class FingerprintAuthService {
 
     _logger.i('Fingerprint enrolled: id=$fingerprintId staffId=$staffId');
 
+    return fingerprintId;
+  }
+
+  Future<int?> enrollWithTemplate({
+    required String staffId,
+    required Finger finger,
+    required String templateBase64,
+  }) async {
+    final fingerprintId = DateTime.now().millisecondsSinceEpoch;
+    await _bioDataService.createBioData(staffId, [
+      BioData(
+        id: fingerprintId,
+        staffId: staffId,
+        finger: finger,
+        data: templateBase64,
+        isActive: true,
+      ),
+    ]);
+
+    _logger.i('Fingerprint enrolled with template: id=$fingerprintId staffId=$staffId');
     return fingerprintId;
   }
 }

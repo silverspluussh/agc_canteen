@@ -1,5 +1,5 @@
 class Site {
-  final String id;
+  final int id;
   final String name;
   final String? location;
   final int noOfEmployees;
@@ -23,19 +23,27 @@ class Site {
 
   factory Site.fromMap(Map<String, dynamic> map) {
     return Site(
-      id: map['id'] as String,
-      name: map['name'] as String,
+      id: map['id'] as int,
+      name: (map['name'] ?? '') as String,
       location: map['location'] as String?,
-      noOfEmployees: (map['no_of_employees'] as num?)?.toInt() ?? 0,
-      isActive: map['is_active'] as bool,
-      startDate: map['start_date'] != null
-          ? DateTime.parse(map['start_date'] as String)
+      noOfEmployees:
+          int.tryParse(
+            (map['no_of_employees'] ?? map['noOfEmployees'] ?? '').toString(),
+          ) ??
+          0,
+      isActive: map['is_active'] as bool? ?? map['isActive'] as bool? ?? true,
+      startDate: (map['start_date'] ?? map['startDate']) != null
+          ? DateTime.parse((map['start_date'] ?? map['startDate']) as String)
           : null,
-      endDate: map['end_date'] != null
-          ? DateTime.parse(map['end_date'] as String)
+      endDate: (map['end_date'] ?? map['endDate']) != null
+          ? DateTime.parse((map['end_date'] ?? map['endDate']) as String)
           : null,
-      createdAt: DateTime.parse(map['created_at'] as String),
-      updatedAt: DateTime.parse(map['updated_at'] as String),
+      createdAt: DateTime.parse(
+        (map['created_at'] ?? map['createdAt']) as String,
+      ),
+      updatedAt: DateTime.parse(
+        (map['updated_at'] ?? map['updatedAt']) as String,
+      ),
     );
   }
 
@@ -54,7 +62,7 @@ class Site {
   }
 
   Site copyWith({
-    String? id,
+    int? id,
     String? name,
     String? location,
     int? noOfEmployees,

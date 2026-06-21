@@ -16,6 +16,7 @@ import 'views/staff/staff_management_page.dart';
 import 'views/settings/sync_page.dart';
 import 'views/pos/pos_settings_page.dart';
 import 'views/pos/manual_order_page.dart';
+import 'views/settings/card_test_page.dart';
 
 final localeProvider = StateProvider<Locale>((ref) {
   return const Locale('en');
@@ -45,7 +46,7 @@ void main() async => runZoneGuarded(() async {
 
 void runZoneGuarded(void Function() body) {
   runZonedGuarded(body, (error, stack) {
-   log(error.toString());
+    log(error.toString());
   });
 }
 
@@ -63,7 +64,7 @@ class MyApp extends ConsumerWidget {
       dark: AppTheme.dark,
       initial: savedThemeMode ?? AppTheme.initialMode,
       builder: (theme, darkTheme) => MaterialApp(
-        title: 'AGC Canteen',
+        title: 'ASG Canteen',
         debugShowCheckedModeBanner: false,
         theme: theme,
         darkTheme: darkTheme,
@@ -96,7 +97,7 @@ Route<dynamic>? _onGenerateRoute(RouteSettings settings) {
       break;
     case '/staff':
       page = const StaffManagementPage();
-      break;//////////////
+      break; //////////////
     case '/sync':
       page = const SyncPage();
       break;
@@ -106,6 +107,7 @@ Route<dynamic>? _onGenerateRoute(RouteSettings settings) {
     case '/create-manual-order':
       page = const ManualOrderPage();
       break;
+
     default:
       return null;
   }

@@ -3,7 +3,7 @@ import 'dependant.model.dart';
 import 'kitchen.model.dart';
 
 class Staff {
-  final String id;
+  final int id;
   final String empId;
   final String firstName;
   final String lastName;
@@ -39,28 +39,34 @@ class Staff {
 
   factory Staff.fromMap(Map<String, dynamic> map) {
     return Staff(
-      id: map['id'] as String,
-      empId: map['emp_id'] as String,
-      firstName: map['first_name'] as String,
-      lastName: map['last_name'] as String,
-      tier: map['tier'] as int,
-      level: map['level'] as String,
-      staffType: map['staff_type'] as String?,
-      totalDependant: map['total_dependant'] as int?,
-      bioData: (map['bioData'] as List<dynamic>)
-          .map((item) => BioData.fromMap(item as Map<String, dynamic>))
-          .toList(),
-      noOfDependantAssigned: map['no_of_dependant_assigned'] as int?,
-      department: Department.fromMap(map['department'] as Map<String, dynamic>),
-      kitchens: (map['kitchens'] as List<dynamic>)
-          .map((item) => Kitchen.fromMap(item as Map<String, dynamic>))
-          .toList(),
-      dependants: (map['dependants'] as List<dynamic>)
-          .map((item) => Dependant.fromMap(item as Map<String, dynamic>))
-          .toList(),
-      createdAt: DateTime.parse(map['created_at'] as String),
-      updatedAt: map['updated_at'] != null
-          ? DateTime.parse(map['updated_at'] as String)
+      id: map['id'] as int,
+      empId: (map['empId'] ?? map['emp_id'] ?? '') as String,
+      firstName: (map['firstName'] ?? map['first_name'] ?? '') as String,
+      lastName: (map['lastName'] ?? map['last_name'] ?? '') as String,
+      tier: int.tryParse((map['tier'] ?? '1').toString()) ?? 1,
+      level: (map['level'] ?? '') as String,
+      staffType: (map['staffType'] ?? map['staff_type']) as String?,
+      bioData: map['bioData'] != null
+          ? (map['bioData'] as List<dynamic>)
+              .map((item) => BioData.fromMap(item as Map<String, dynamic>))
+              .toList()
+          : null,
+      totalDependant: int.tryParse((map['totalDependant'] ?? map['total_dependant'] ?? '').toString()),
+      noOfDependantAssigned: int.tryParse((map['noOfDependantAssigned'] ?? map['no_of_dependant_assigned'] ?? '').toString()),
+      department: map['department'] != null ? Department.fromMap(map['department'] as Map<String, dynamic>) : null,
+      kitchens: map['kitchens'] != null
+          ? (map['kitchens'] as List<dynamic>)
+              .map((item) => Kitchen.fromMap(item as Map<String, dynamic>))
+              .toList()
+          : null,
+      dependants: (map['dependents'] ?? map['dependants']) != null
+          ? ((map['dependents'] ?? map['dependants']) as List<dynamic>)
+              .map((item) => Dependant.fromMap(item as Map<String, dynamic>))
+              .toList()
+          : null,
+      createdAt: DateTime.parse((map['createdAt'] ?? map['created_at']) as String),
+      updatedAt: (map['updatedAt'] ?? map['updated_at']) != null
+          ? DateTime.parse((map['updatedAt'] ?? map['updated_at']) as String)
           : null,
     );
   }
@@ -86,7 +92,7 @@ class Staff {
   }
 
   Staff copyWith({
-    String? id,
+    int? id,
     String? empId,
     String? firstName,
     String? lastName,
@@ -145,12 +151,24 @@ class BioData {
   factory BioData.fromMap(Map<String, dynamic> map) {
     return BioData(
       id: map['id'] as int,
-      finger: Finger.values.firstWhere((f) => f.name == map['finger']),
+      finger: Finger.values.firstWhere(
+        (f) {
+          final fingerVal = (map['finger'] as String? ?? '').toLowerCase();
+          return f.name.toLowerCase() == fingerVal ||
+              (f == Finger.indexFinger && fingerVal == 'index') ||
+              (f == Finger.little && fingerVal == 'pinky');
+        },
+        orElse: () => Finger.thumb,
+      ),
       data: map['data'] as String,
-      staffId: map['staffId'] as String,
-      isActive: map['isActive'] as bool,
-      createdAt: DateTime.parse(map['createdAt']),
-      updatedAt: DateTime.parse(map['updatedAt']),
+      staffId: (map['staffId'] ?? map['staff_id'] ?? '').toString(),
+      isActive: map['isActive'] as bool? ?? map['is_active'] as bool? ?? true,
+      createdAt: map['createdAt'] != null
+          ? DateTime.tryParse(map['createdAt'] as String)
+          : (map['created_at'] != null ? DateTime.tryParse(map['created_at'] as String) : null),
+      updatedAt: map['updatedAt'] != null
+          ? DateTime.tryParse(map['updatedAt'] as String)
+          : (map['updated_at'] != null ? DateTime.tryParse(map['updated_at'] as String) : null),
     );
   }
 

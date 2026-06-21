@@ -198,12 +198,7 @@ class _FingerprintEnrollmentSheetState
                   ),
                 ],
               ),
-              // const SizedBox(height: 16),
-              // Text(
-              //   l10n.placeFingerToEnroll,
-              //   textAlign: TextAlign.center,
-              //   style: const TextStyle(fontSize: 16),
-              // ),
+            
               const SizedBox(height: 32),
               PrimaryButton(
                 onPressed: _selectedFinger == null ? null : _enroll,

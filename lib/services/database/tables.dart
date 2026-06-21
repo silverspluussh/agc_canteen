@@ -46,12 +46,28 @@ class MenuTypes extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+class MealTypes extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  TextColumn get status => text()();
+  TextColumn get beginTime => text()();
+  TextColumn get endTime => text()();
+  TextColumn get remarks => text().nullable()();
+  TextColumn get createdAt => text()();
+  TextColumn get updatedAt => text()();
+  IntColumn get syncStatus => integer().withDefault(const Constant(0))();
+  TextColumn get syncUpdatedAt => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 class Meals extends Table {
   TextColumn get id => text()();
   TextColumn get name => text()();
   TextColumn get status => text()();
   TextColumn get mealType => text()();
-  TextColumn get mealTypeId => text()();
+  TextColumn get mealTypeId => text().references(MealTypes, #id)();
   TextColumn get remarks => text().nullable()();
   RealColumn get price => real()();
   TextColumn get photoUrl => text().nullable()();

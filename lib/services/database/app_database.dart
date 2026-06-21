@@ -8,6 +8,7 @@ part 'app_database.g.dart';
     Sites,
     Kitchens,
     MenuTypes,
+    MealTypes,
     Meals,
     MealKitchens,
     Staff,
@@ -44,6 +45,7 @@ class AppDatabase extends _$AppDatabase {
       await delete(sites).go();
       await delete(kitchens).go();
       await delete(menuTypes).go();
+      await delete(mealTypes).go();
       await delete(meals).go();
       await delete(mealKitchens).go();
       await delete(staff).go();
@@ -65,6 +67,7 @@ class AppDatabase extends _$AppDatabase {
       'sites': await _countUnsyncedSites(),
       'kitchens': await _countUnsyncedKitchens(),
       'menu_types': await _countUnsyncedMenuTypes(),
+      'meal_types': await _countUnsyncedMealTypes(),
       'meals': await _countUnsyncedMeals(),
       'staff': await _countUnsyncedStaff(),
       'users': await _countUnsyncedUsers(),
@@ -86,6 +89,9 @@ class AppDatabase extends _$AppDatabase {
   )..where((t) => t.syncStatus.isNotValue(2))).get()).length;
   Future<int> _countUnsyncedMenuTypes() async => (await (select(
     menuTypes,
+  )..where((t) => t.syncStatus.isNotValue(2))).get()).length;
+  Future<int> _countUnsyncedMealTypes() async => (await (select(
+    mealTypes,
   )..where((t) => t.syncStatus.isNotValue(2))).get()).length;
   Future<int> _countUnsyncedMeals() async => (await (select(
     meals,
@@ -151,6 +157,19 @@ class AppDatabase extends _$AppDatabase {
         ),
       );
 
+  Future<int> deleteSitesNotIn(Set<String> keepIds) async {
+    if (keepIds.isEmpty) {
+      return (delete(sites)..where((t) => t.syncStatus.equals(2))).go();
+    }
+    final toDelete = await (select(sites)
+          ..where((t) => t.syncStatus.equals(2) & t.id.isNotIn(keepIds)))
+        .get();
+    for (final record in toDelete) {
+      await deleteSite(record.id);
+    }
+    return toDelete.length;
+  }
+
   // ─── Kitchens ──────────────────────────────────────────────
 
   Future<void> insertKitchen(
@@ -190,6 +209,19 @@ class AppDatabase extends _$AppDatabase {
         ),
       );
 
+  Future<int> deleteKitchensNotIn(Set<String> keepIds) async {
+    if (keepIds.isEmpty) {
+      return (delete(kitchens)..where((t) => t.syncStatus.equals(2))).go();
+    }
+    final toDelete = await (select(kitchens)
+          ..where((t) => t.syncStatus.equals(2) & t.id.isNotIn(keepIds)))
+        .get();
+    for (final record in toDelete) {
+      await deleteKitchen(record.id);
+    }
+    return toDelete.length;
+  }
+
   // ─── MenuTypes ─────────────────────────────────────────────
 
   Future<void> insertMenuType(
@@ -225,6 +257,72 @@ class AppDatabase extends _$AppDatabase {
           syncUpdatedAt: Value(DateTime.now().toIso8601String()),
         ),
       );
+
+  Future<int> deleteMenuTypesNotIn(Set<String> keepIds) async {
+    if (keepIds.isEmpty) {
+      return (delete(menuTypes)..where((t) => t.syncStatus.equals(2))).go();
+    }
+    final toDelete = await (select(menuTypes)
+          ..where((t) => t.syncStatus.equals(2) & t.id.isNotIn(keepIds)))
+        .get();
+    for (final record in toDelete) {
+      await deleteMenuType(record.id);
+    }
+    return toDelete.length;
+  }
+
+  // ─── MealTypes ─────────────────────────────────────────────
+
+  Future<void> insertMealType(
+    MealTypesCompanion mealType, {
+    InsertMode mode = InsertMode.insert,
+  }) => into(mealTypes).insert(mealType, mode: mode);
+
+  Future<void> updateMealType(String id, MealTypesCompanion mealType) =>
+      (update(mealTypes)..where((t) => t.id.equals(id))).write(mealType);
+
+  Future<void> deleteMealType(String id) =>
+      (delete(mealTypes)..where((t) => t.id.equals(id))).go();
+
+  Future<List<MealType>> getAllMealTypes() => select(mealTypes).get();
+  Future<MealType?> getMealType(String id) =>
+      (select(mealTypes)..where((t) => t.id.equals(id))).getSingleOrNull();
+
+  Future<List<MealType>> getUnsyncedMealTypes() =>
+      (select(mealTypes)..where((t) => t.syncStatus.isNotValue(2))).get();
+
+  Future<void> markMealTypeSynced(String id) =>
+      (update(mealTypes)..where((t) => t.id.equals(id))).write(
+        MealTypesCompanion(
+          syncStatus: const Value(2),
+          syncUpdatedAt: Value(DateTime.now().toIso8601String()),
+        ),
+      );
+
+  Future<void> markMealTypeFailed(String id) =>
+      (update(mealTypes)..where((t) => t.id.equals(id))).write(
+        MealTypesCompanion(
+          syncStatus: const Value(3),
+          syncUpdatedAt: Value(DateTime.now().toIso8601String()),
+        ),
+      );
+
+  /// Deletes synced MealType records whose IDs are not in [keepIds].
+  Future<int> deleteMealTypesNotIn(Set<String> keepIds) async {
+    if (keepIds.isEmpty) {
+      final deleted = await (delete(mealTypes)
+            ..where((t) => t.syncStatus.equals(2)))
+          .go();
+      return deleted;
+    }
+    final toDelete = await (select(mealTypes)
+          ..where((t) => t.syncStatus.equals(2) & t.id.isNotIn(keepIds)))
+        .get();
+    for (final record in toDelete) {
+      await deleteMealType(record.id);
+    }
+    return toDelete.length;
+  }
 
   // ─── Meals ─────────────────────────────────────────────────
 
@@ -301,6 +399,23 @@ class AppDatabase extends _$AppDatabase {
         ),
       );
 
+  Future<int> deleteMealsNotIn(Set<String> keepIds) async {
+    List<Meal> toDelete;
+    if (keepIds.isEmpty) {
+      toDelete = await (select(meals)
+            ..where((t) => t.syncStatus.equals(2)))
+          .get();
+    } else {
+      toDelete = await (select(meals)
+            ..where((t) => t.syncStatus.equals(2) & t.id.isNotIn(keepIds)))
+          .get();
+    }
+    for (final meal in toDelete) {
+      await deleteMeal(meal.id);
+    }
+    return toDelete.length;
+  }
+
   // ─── Staff ─────────────────────────────────────────────────
 
   Future<void> insertStaff(
@@ -336,6 +451,19 @@ class AppDatabase extends _$AppDatabase {
           syncUpdatedAt: Value(DateTime.now().toIso8601String()),
         ),
       );
+
+  Future<int> deleteStaffNotIn(Set<String> keepIds) async {
+    if (keepIds.isEmpty) {
+      return (delete(staff)..where((t) => t.syncStatus.equals(2))).go();
+    }
+    final toDelete = await (select(staff)
+          ..where((t) => t.syncStatus.equals(2) & t.id.isNotIn(keepIds)))
+        .get();
+    for (final record in toDelete) {
+      await deleteStaff(record.id);
+    }
+    return toDelete.length;
+  }
 
   // ─── Users ─────────────────────────────────────────────────
 
@@ -398,6 +526,23 @@ class AppDatabase extends _$AppDatabase {
           syncUpdatedAt: Value(DateTime.now().toIso8601String()),
         ),
       );
+
+  Future<int> deleteUsersNotIn(Set<String> keepIds) async {
+    List<User> toDelete;
+    if (keepIds.isEmpty) {
+      toDelete = await (select(users)
+            ..where((t) => t.syncStatus.equals(2)))
+          .get();
+    } else {
+      toDelete = await (select(users)
+            ..where((t) => t.syncStatus.equals(2) & t.id.isNotIn(keepIds)))
+          .get();
+    }
+    for (final user in toDelete) {
+      await deleteUser(user.id);
+    }
+    return toDelete.length;
+  }
 
   // ─── Orders ────────────────────────────────────────────────
 
@@ -721,4 +866,33 @@ class AppDatabase extends _$AppDatabase {
           .get();
 
   Future<int> getActivityLogCount() => activityLogs.count().getSingle();
+
+  /// Returns the next ASG-prefixed order code (ASG0001, ASG0002, ...)
+  /// by scanning existing [orders] and [group_orders] for the highest
+  /// numeric suffix and incrementing it.
+  Future<String> nextOrderCode() async {
+    int maxCode = 0;
+
+    int? parseMax(List<QueryRow> rows) {
+      if (rows.isEmpty) return null;
+      final val = rows.first.data.values.firstOrNull;
+      return val is int ? val : (val is num ? val.toInt() : null);
+    }
+
+    final orderRows = await customSelect(
+      'SELECT MAX(CAST(SUBSTR(order_code, 4) AS INTEGER)) FROM orders WHERE order_code LIKE ?',
+      variables: [Variable<String>('ASG%')],
+    ).get();
+    final groupOrderRows = await customSelect(
+      'SELECT MAX(CAST(SUBSTR(order_code, 4) AS INTEGER)) FROM group_orders WHERE order_code LIKE ?',
+      variables: [Variable<String>('ASG%')],
+    ).get();
+
+    final orderMax = parseMax(orderRows) ?? 0;
+    final groupMax = parseMax(groupOrderRows) ?? 0;
+    maxCode = orderMax > groupMax ? orderMax : groupMax;
+
+    final next = maxCode + 1;
+    return 'ASG${next.toString().padLeft(4, '0')}';
+  }
 }

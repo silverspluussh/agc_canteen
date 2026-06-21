@@ -9,6 +9,7 @@ import '../core/di/injection_container.dart';
 import '../services/activity_log_service.dart';
 import '../services/database/app_database.dart';
 import '../services/print/print_service_manager.dart';
+import '../services/sync_service.dart';
 import '../views/reports/orders_page.dart';
 
 enum OrderStep { browsing, confirming, processing, completed }
@@ -119,7 +120,7 @@ class OrderController extends Notifier<OrderState> {
       final meal = state.selectedMeal!;
       final now = DateTime.now().toIso8601String();
       final orderId = const Uuid().v4();
-      final orderCode = _generateOrderCode();
+      final orderCode = await _generateOrderCode();
       final orderItemId = const Uuid().v4();
 
       final nowDateTime = DateTime.now();
@@ -165,6 +166,7 @@ class OrderController extends Notifier<OrderState> {
 
       ref.invalidate(reportOrdersProvider);
 
+
       if (isOvercharge) {
         _recordOvercharge(orderCode: orderCode, meal: meal, staffId: staffId);
       }
@@ -200,6 +202,8 @@ class OrderController extends Notifier<OrderState> {
           'order_type': 'pos',
         },
       );
+            unawaited(getIt<SyncService>().syncSingleOrders());
+
     } catch (e) {
       state = state.copyWith(
         step: OrderStep.browsing,
@@ -276,10 +280,8 @@ class OrderController extends Notifier<OrderState> {
     state = const OrderState();
   }
 
-  String _generateOrderCode() {
-    final suffix = (1000 + (DateTime.now().millisecondsSinceEpoch % 9000))
-        .toString();
-    return 'AGC$suffix';
+  Future<String> _generateOrderCode() async {
+    return _db.nextOrderCode();
   }
 
   String _pad(int n) => n.toString().padLeft(2, '0');
@@ -368,10 +370,10 @@ class OrderController extends Notifier<OrderState> {
       ln('Description: $description');
     }
     // ln('     \$${price.toStringAsFixed(2)}');
-    ln('--------------------');
-    boldOn();
-    ln('TOTAL: \$${price.toStringAsFixed(2)}');
-    boldOff();
+    // ln('--------------------');
+    // boldOn();
+    // ln('TOTAL: \$${price.toStringAsFixed(2)}');
+    // boldOff();
     ln('====================');
     ln('     THANK YOU!');
     // ln('');

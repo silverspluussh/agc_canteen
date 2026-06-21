@@ -23,7 +23,6 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
   String _query = '';
   bool? _fingerprintFilter;
 
-
   @override
   void initState() {
     super.initState();
@@ -232,9 +231,9 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
                                 onAddFingerprint: () async {
                                   final result =
                                       await FingerprintEnrollmentSheet.show(
-                                    context,
-                                    entry.staff,
-                                  );
+                                        context,
+                                        entry.staff,
+                                      );
                                   if (result == true) {
                                     _refreshStaffData();
                                   }
@@ -252,7 +251,6 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
   }
 
   void _showFingerprintsSheet(_StaffWithFingerprint entry) {
-    final l10n = AppLocalizations.of(context);
     final colorScheme = Theme.of(context).colorScheme;
     final fingerprints = entry.fingerprints;
 
@@ -303,8 +301,11 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(Icons.fingerprint,
-                          size: 16, color: colorScheme.primary),
+                      Icon(
+                        Icons.fingerprint,
+                        size: 16,
+                        color: colorScheme.primary,
+                      ),
                       const SizedBox(width: 6),
                       Text(
                         '${fingerprints.length} fingerprint${fingerprints.length == 1 ? '' : 's'} stored',
@@ -327,16 +328,16 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
                       child: ListView.separated(
                         controller: scrollController,
                         itemCount: fingerprints.length,
-                        separatorBuilder: (_, _) =>
-                            const Divider(height: 1),
+                        separatorBuilder: (_, _) => const Divider(height: 1),
                         itemBuilder: (context, index) {
                           final fp = fingerprints[index];
                           return ListTile(
                             leading: CircleAvatar(
-                              backgroundColor:
-                                  colorScheme.primaryContainer,
-                              child: Icon(Icons.fingerprint,
-                                  color: colorScheme.primary),
+                              backgroundColor: colorScheme.primaryContainer,
+                              child: Icon(
+                                Icons.fingerprint,
+                                color: colorScheme.primary,
+                              ),
                             ),
                             title: Text(_fingerLabelFromString(fp.finger)),
                             subtitle: Text(
@@ -344,8 +345,10 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
                               style: const TextStyle(fontSize: 12),
                             ),
                             trailing: IconButton(
-                              icon: const Icon(Icons.delete_outline,
-                                  color: Colors.red),
+                              icon: const Icon(
+                                Icons.delete_outline,
+                                color: Colors.red,
+                              ),
                               onPressed: () async {
                                 Navigator.pop(ctx);
                                 await _deleteSingleFingerprint(fp);
@@ -388,8 +391,7 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(l10n.deleteFingerprint),
         content: Text(
           'Delete ${_fingerLabelFromString(fp.finger)} fingerprint (ID: ${fp.id})?',
@@ -403,8 +405,7 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
           DestructiveButton(
             width: 120,
             onPressed: () => Navigator.pop(ctx, true),
-            label:
-                Text(l10n.delete, style: TextStyle(color: Colors.white)),
+            label: Text(l10n.delete, style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -416,9 +417,9 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
     await authService.deleteFingerprint(fp.id);
     await _refreshStaffData();
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.deleteFingerprint)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.deleteFingerprint)));
     }
   }
 
@@ -508,13 +509,6 @@ class _StaffCard extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    // Text(
-                    //   entry.staff.id,
-                    //   style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                    //     color: colorScheme.onPrimary,
-                    //   ),
-                    // ),
-                    // SizedBox(width: 12),
                     Row(
                       children: [
                         Icon(

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:developer';
 import 'package:agc_canteen/l10n/generated/app_localizations.dart';
 import 'package:agc_canteen/main.dart';
 import 'package:agc_canteen/views/pos/confirm_order_page.dart';
@@ -42,7 +41,7 @@ class _PosPageState extends ConsumerState<PosPage> {
     final authState = ref.watch(authProvider);
     final staff = authState.staff;
     final orderState = ref.watch(orderProvider);
-    final mealsAsync = ref.watch(mealsProvider);
+    //final mealsAsync = ref.watch(mealsProvider);
 
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
@@ -170,18 +169,15 @@ class _PosPageState extends ConsumerState<PosPage> {
 
   Widget _buildBody(List<Meal> meals, OrderState orderState) {
     final selectedId = orderState.selectedMeal?.id;
-    final availableTypes = ref.watch(availableMealTypesProvider);
+    final availableTypes = ref.watch(availableMealTypesProvider).asData?.value ?? [];
 
     final mealTypeFiltered = meals.where((meal) {
-      // return availableTypes.contains(meal.mealType.toLowerCase());
-      return true;
+      return availableTypes.contains(meal.mealType.toLowerCase());
     }).toList();
-log(meals.first.toJsonString());
     final filteredMeals = mealTypeFiltered.where((meal) {
       final query = _searchQuery.toLowerCase().trim();
       if (query.isEmpty) return true;
       final nameMatches = meal.name.toLowerCase().contains(query);
-
       final typeMatches = meal.mealType.toLowerCase().contains(query);
       return nameMatches || typeMatches;
     }).toList();
@@ -399,7 +395,7 @@ log(meals.first.toJsonString());
           ),
 
           DestructiveButton(
-            width: 110,
+            width: 130,
             onPressed: () {
               Navigator.pop(context);
               ref.read(orderProvider.notifier).reset();
@@ -417,7 +413,7 @@ log(meals.first.toJsonString());
               ref.read(authProvider.notifier).reset();
             },
             label: Text(
-              AppLocalizations.of(context).yesSignOut,
+              "Cancel Order",
               style: Theme.of(
                 context,
               ).textTheme.labelLarge!.copyWith(color: Colors.white),

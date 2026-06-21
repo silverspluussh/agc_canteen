@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:typed_data';
-import 'package:agc_canteen/controllers/order_controller.dart';
 import 'package:agc_canteen/views/widgets/app_buttons.widget.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +11,7 @@ import '../../controllers/providers.dart';
 import '../../services/activity_log_service.dart';
 import '../../services/database/app_database.dart';
 import '../../services/print/print_service_manager.dart';
+import '../../services/sync_service.dart';
 import '../reports/orders_page.dart';
 
 const _mealTypes = [
@@ -78,7 +78,7 @@ Future<void> _printManualReceipt({
     // boldOn();
     // ln('TOTAL: \$${price.toStringAsFixed(2)}');
     // boldOff();
-    ln('====================');
+    ln('--------------------');
     ln('     THANK YOU!');
     ln('');
 
@@ -180,7 +180,7 @@ class _SingleOrderTabState extends ConsumerState<_SingleOrderTab> {
       final db = getIt<AppDatabase>();
       final now = DateTime.now().toIso8601String();
       final orderId = const Uuid().v4();
-      final orderCode = _generateOrderCode();
+      final orderCode = await _generateOrderCode();
       final orderItemId = const Uuid().v4();
 
       final order = OrdersCompanion(
@@ -215,6 +215,8 @@ class _SingleOrderTabState extends ConsumerState<_SingleOrderTab> {
       await db.insertOrder(order, [orderItem]);
 
       ref.invalidate(reportOrdersProvider);
+
+      unawaited(getIt<SyncService>().syncSingleOrders());
 
       unawaited(_printManualReceipt(
         orderCode: orderCode,
@@ -414,10 +416,8 @@ class _SingleOrderTabState extends ConsumerState<_SingleOrderTab> {
     return type[0].toUpperCase() + type.substring(1).replaceAll('_', ' ');
   }
 
-  String _generateOrderCode() {
-    final suffix = (1000 + (DateTime.now().millisecondsSinceEpoch % 9000))
-        .toString();
-    return 'AGC$suffix';
+  Future<String> _generateOrderCode() async {
+    return getIt<AppDatabase>().nextOrderCode();
   }
 
   String _pad(int n) => n.toString().padLeft(2, '0');
@@ -567,7 +567,7 @@ class _GroupOrderTabState extends ConsumerState<_GroupOrderTab> {
       final db = getIt<AppDatabase>();
       final now = DateTime.now().toIso8601String();
       final orderId = const Uuid().v4();
-      final orderCode = _generateOrderCode();
+      final orderCode = await _generateOrderCode();
 
       final totalPrice = _selectedMeals.fold<double>(
         0,
@@ -610,6 +610,7 @@ class _GroupOrderTabState extends ConsumerState<_GroupOrderTab> {
 
       ref.invalidate(reportOrdersProvider);
 
+
       final mealName = '${_mealsQtySum}x ${_selectedMeals.map((m) => '${m.meal.name}(${m.quantity})').join(', ')}';
       unawaited(_printManualReceipt(
         orderCode: orderCode,
@@ -633,6 +634,8 @@ class _GroupOrderTabState extends ConsumerState<_GroupOrderTab> {
           'order_type': 'manual_group_pos',
         },
       );
+            unawaited(getIt<SyncService>().syncGroupOrders());
+
 
       if (!mounted) return;
       ScaffoldMessenger.maybeOf(context)?.showSnackBar(
@@ -666,10 +669,8 @@ class _GroupOrderTabState extends ConsumerState<_GroupOrderTab> {
     });
   }
 
-  String _generateOrderCode() {
-    final suffix = (1000 + (DateTime.now().millisecondsSinceEpoch % 9000))
-        .toString();
-    return 'AGC$suffix';
+  Future<String> _generateOrderCode() async {
+    return getIt<AppDatabase>().nextOrderCode();
   }
 
   String _formatMealType(String type) {

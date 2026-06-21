@@ -85,13 +85,18 @@ class EnrollmentController extends Notifier<EnrollmentState> {
 
   Future<void> confirmEnrollment() async {
     final staffId = state.staffId;
-    if (staffId == null || state.finger == null || state.captureResult == null) return;
+    final captureResult = state.captureResult;
+    if (staffId == null || state.finger == null || captureResult == null || captureResult.templateBase64 == null) return;
 
     state = state.copyWith(step: EnrollmentStep.storing);
 
     try {
       final fingerprintAuth = ref.read(fingerprintAuthProvider);
-      final fpId = await fingerprintAuth.enroll(staffId, state.finger!);
+      final fpId = await fingerprintAuth.enrollWithTemplate(
+        staffId: staffId,
+        finger: state.finger!,
+        templateBase64: captureResult.templateBase64!,
+      );
 
       if (fpId == null) {
         state = state.copyWith(

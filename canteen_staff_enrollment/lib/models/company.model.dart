@@ -1,6 +1,6 @@
 
 class DepartmentCompany {
-  final String id;
+  final int id;
   final String name;
   final String location;
 
@@ -12,9 +12,9 @@ class DepartmentCompany {
 
   factory DepartmentCompany.fromMap(Map<String, dynamic> map) {
     return DepartmentCompany(
-      id: map['id'] as String,
-      name: map['name'] as String,
-      location: map['location'] as String,
+      id: map['id'] as int,
+      name: (map['name'] ?? '') as String,
+      location: (map['location'] ?? '') as String,
     );
   }
 
@@ -27,7 +27,7 @@ class DepartmentCompany {
   }
 
   DepartmentCompany copyWith({
-    String? id,
+    int? id,
     String? name,
     String? location,
   }) {
@@ -40,7 +40,7 @@ class DepartmentCompany {
 }
 
 class Department {
-  final String id;
+  final int id;
   final String name;
   final DepartmentCompany company;
   final DateTime createdAt;
@@ -56,13 +56,13 @@ class Department {
 
   factory Department.fromMap(Map<String, dynamic> map) {
     return Department(
-      id: map['id'] as String,
-      name: map['name'] as String,
+      id: map['id'] as int,
+      name: (map['name'] ?? '') as String,
       company: DepartmentCompany.fromMap(
           map['company'] as Map<String, dynamic>),
-      createdAt: DateTime.parse(map['created_at'] as String),
-      updatedAt: map['updated_at'] != null
-          ? DateTime.parse(map['updated_at'] as String)
+      createdAt: DateTime.parse((map['createdAt'] ?? map['created_at']) as String),
+      updatedAt: (map['updatedAt'] ?? map['updated_at']) != null
+          ? DateTime.parse((map['updatedAt'] ?? map['updated_at']) as String)
           : null,
     );
   }
@@ -78,7 +78,7 @@ class Department {
   }
 
   Department copyWith({
-    String? id,
+    int? id,
     String? name,
     DepartmentCompany? company,
     DateTime? createdAt,

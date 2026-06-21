@@ -65,7 +65,7 @@ Future<void> _printReportReceipt(_ReportOrder order) async {
           ? '${item.mealName.substring(0, 22)}..'
           : item.mealName;
       final qty = 'x${item.qty}';
-      final price = '${_currency.format(lineTotal)}';
+      final price = _currency.format(lineTotal);
       ln('$name${''.padLeft(32 - name.length - qty.length - price.length)}$qty  $price');
     }
     ln('--------------------');

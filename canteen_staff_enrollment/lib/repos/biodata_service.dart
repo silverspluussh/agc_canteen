@@ -1,4 +1,7 @@
 import 'dart:developer';
+
+import 'package:canteen_staff_enrollment/core/network/api_exceptions_util.dart';
+
 import '../core/network/network_api_dio.dart';
 import '../models/staff.model.dart';
 
@@ -35,30 +38,52 @@ class StaffBioDataService {
     );
   }
 
-  Future<bool> createBioData(
-    String staffId,
-    List<BioData> bioDatas,
-  ) async {
-
+  Future<bool> createBioData(String staffId, List<BioData> bioDatas) async {
     final payload = {
       "staffId": staffId,
-      "bioDatas": bioDatas
-          .map((b) {
-
-            return {"finger": b.finger.name, "data": b.data};
-          })
-          .toList(),
+      "bioDatas": bioDatas.map((b) {
+        return {"finger": b.finger.name, "data": b.data};
+      }).toList(),
     };
     return await networkAPI.postData<bool>(
       '/hr/bio-data/create-bulk',
       data: payload,
       builder: (data) {
-        log("data result $data");
-        if(data != null){
+        if (data != null) {
           return true;
         }
         return false;
-       
+      },
+    );
+  }
+
+  Future<bool> deleteBioData(int bioDataId) async {
+    try {
+      return await networkAPI.deleteData<bool>(
+        '/hr/bio-data/delete/$bioDataId',
+        builder: (data) => true,
+      );
+    } on APIException catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<bool> activateBioData(int id) async {
+    return await networkAPI.patchData<bool>(
+      '/hr/bio-data/update/$id/status',
+      data: {'id': id, 'isActive': true},
+      builder: (data) {
+        return true;
+      },
+    );
+  }
+
+  Future<bool> deactivateBioData(int id) async {
+    return await networkAPI.patchData<bool>(
+      '/hr/bio-data/update/$id/status',
+      data: {'id': id, 'isActive': false},
+      builder: (data) {
+        return true;
       },
     );
   }

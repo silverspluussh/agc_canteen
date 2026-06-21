@@ -5,7 +5,6 @@ import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-
 class DioClient {
   static String baseUrl = dotenv.env['BASE_URL']!;
   SecureStorage secureStorage = SecureStorage();
@@ -16,6 +15,10 @@ class DioClient {
     _dio ??= Dio(
       BaseOptions(
         baseUrl: baseUrl,
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
         connectTimeout: const Duration(seconds: 30),
         receiveTimeout: const Duration(seconds: 30),
         validateStatus: (status) => status! < 500,

@@ -189,11 +189,26 @@ class _AdminLoginPageState extends ConsumerState<AdminLoginPage> {
                     if (state.hasError)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 8),
-                        child: Text(
-                          state.errorMessage ??
-                              AppLocalizations.of(context).loginFailed,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.error,
+                        child: Container(
+                          padding: EdgeInsets.all(5),
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              width: 1,color: Colors.red
+                            )
+                          ),
+                          child: Row(
+                            spacing: 15,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.error,color: Colors.red),
+                              Text(
+                                state.errorMessage ??
+                                    AppLocalizations.of(context).loginFailed,
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.error,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),

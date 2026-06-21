@@ -161,8 +161,8 @@ class CardPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
         var code = 0
         for (i in 0 until 10) {
             code = getPort().write(cmd)
-            if (code == 0) continue
-            return code
+            if (code != 0) return code
+            Thread.sleep(100)
         }
         return code
     }

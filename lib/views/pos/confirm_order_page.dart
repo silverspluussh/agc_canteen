@@ -31,7 +31,7 @@ class _ConfirmOrderSheetState extends State<ConfirmOrderSheet> {
   String? _orderCode;
   bool _isPlacing = false;
 
-  bool get _isLaCarte => widget.meal.menuTypeId == '18';
+  bool get _isLaCarte => widget.meal.mealType.contains("Carte")||widget.meal.mealType.contains("carte")||widget.meal.mealType.contains("Cart");
 
   @override
   void dispose() {

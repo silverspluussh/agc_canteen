@@ -84,13 +84,11 @@ class AdminAuthController extends Notifier<AdminAuthState> {
           step: AdminAuthStep.authenticated,
           token: result.token,
         );
-       // unawaited(getIt<RemoteDataSyncService>().syncAll());
       case AdminAuthStatus.authenticatedOffline:
         state = AdminAuthState(
           step: AdminAuthStep.authenticatedOffline,
           token: result.token,
         );
-      //  unawaited(getIt<RemoteDataSyncService>().syncAll());
       case AdminAuthStatus.unauthenticated:
         state = const AdminAuthState(step: AdminAuthStep.unauthenticated);
       case AdminAuthStatus.error:

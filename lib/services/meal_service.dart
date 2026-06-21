@@ -98,7 +98,34 @@ class MealService {
         );
       }
 
-      // 2. Upsert Kitchens and collect their IDs
+      // 2. Upsert MealType to satisfy foreign key constraints
+      String mealTypeId = '';
+      final mealTypeObj = mealMap['mealType'] as Map<String, dynamic>?;
+      if (mealTypeObj != null) {
+        mealTypeId = mealTypeObj['id']?.toString() ?? '';
+        await _db.insertMealType(
+          MealTypesCompanion(
+            id: Value(mealTypeId),
+            name: Value(mealTypeObj['name'] as String? ?? 'Meal Type'),
+            status: Value(mealTypeObj['status'] as String? ?? 'active'),
+            beginTime: Value(mealTypeObj['beginTime'] as String? ?? mealTypeObj['begin_time'] as String? ?? '00:00:00'),
+            endTime: Value(mealTypeObj['endTime'] as String? ?? mealTypeObj['end_time'] as String? ?? '23:59:59'),
+            remarks: Value.absentIfNull(mealTypeObj['remarks'] as String?),
+            createdAt: Value(
+              mealTypeObj['createdAt'] as String? ??
+                  DateTime.now().toIso8601String(),
+            ),
+            updatedAt: Value(
+              mealTypeObj['updatedAt'] as String? ??
+                  DateTime.now().toIso8601String(),
+            ),
+            syncStatus: const Value(2),
+          ),
+          mode: InsertMode.insertOrReplace,
+        );
+      }
+
+      // 3. Upsert Kitchens and collect their IDs
       final kitchensList = mealMap['kitchens'] as List<dynamic>? ?? [];
       final List<String> kitchenIds = [];
       for (final k in kitchensList) {
@@ -133,17 +160,17 @@ class MealService {
         }
       }
 
-      // 3. Upsert Meal entity using the proper AppDatabase transactional helpers
+      // 4. Upsert Meal entity using the proper AppDatabase transactional helpers
       final priceNum = mealMap['price'] as num? ?? 0.0;
       final existingMeal = await _db.getMeal(mealId);
       final mealCompanion = MealsCompanion(
         id: Value(mealId),
         name: Value(mealMap['name'] as String? ?? 'Meal'),
         status: Value(mealMap['status'] as String? ?? 'available'),
-        mealType: Value(mealMap['mealType']['name'] as String? ?? 'breakfast'),
-        mealTypeId: Value(
-          mealMap['mealType']['id']?.toString() ?? '',
+        mealType: Value(
+          mealTypeObj?['name'] as String? ?? 'breakfast',
         ),
+        mealTypeId: Value(mealTypeId),
         remarks: Value.absentIfNull(mealMap['remarks'] as String?),
         price: Value(priceNum.toDouble()),
         photoUrl: Value.absentIfNull(mealMap['photoUrl'] as String?),

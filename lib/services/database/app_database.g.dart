@@ -1760,6 +1760,619 @@ class MenuTypesCompanion extends UpdateCompanion<MenuType> {
   }
 }
 
+class $MealTypesTable extends MealTypes
+    with TableInfo<$MealTypesTable, MealType> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $MealTypesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _beginTimeMeta = const VerificationMeta(
+    'beginTime',
+  );
+  @override
+  late final GeneratedColumn<String> beginTime = GeneratedColumn<String>(
+    'begin_time',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _endTimeMeta = const VerificationMeta(
+    'endTime',
+  );
+  @override
+  late final GeneratedColumn<String> endTime = GeneratedColumn<String>(
+    'end_time',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _remarksMeta = const VerificationMeta(
+    'remarks',
+  );
+  @override
+  late final GeneratedColumn<String> remarks = GeneratedColumn<String>(
+    'remarks',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<String> createdAt = GeneratedColumn<String>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<String> updatedAt = GeneratedColumn<String>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _syncStatusMeta = const VerificationMeta(
+    'syncStatus',
+  );
+  @override
+  late final GeneratedColumn<int> syncStatus = GeneratedColumn<int>(
+    'sync_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _syncUpdatedAtMeta = const VerificationMeta(
+    'syncUpdatedAt',
+  );
+  @override
+  late final GeneratedColumn<String> syncUpdatedAt = GeneratedColumn<String>(
+    'sync_updated_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    status,
+    beginTime,
+    endTime,
+    remarks,
+    createdAt,
+    updatedAt,
+    syncStatus,
+    syncUpdatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'meal_types';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<MealType> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_statusMeta);
+    }
+    if (data.containsKey('begin_time')) {
+      context.handle(
+        _beginTimeMeta,
+        beginTime.isAcceptableOrUnknown(data['begin_time']!, _beginTimeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_beginTimeMeta);
+    }
+    if (data.containsKey('end_time')) {
+      context.handle(
+        _endTimeMeta,
+        endTime.isAcceptableOrUnknown(data['end_time']!, _endTimeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_endTimeMeta);
+    }
+    if (data.containsKey('remarks')) {
+      context.handle(
+        _remarksMeta,
+        remarks.isAcceptableOrUnknown(data['remarks']!, _remarksMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('sync_status')) {
+      context.handle(
+        _syncStatusMeta,
+        syncStatus.isAcceptableOrUnknown(data['sync_status']!, _syncStatusMeta),
+      );
+    }
+    if (data.containsKey('sync_updated_at')) {
+      context.handle(
+        _syncUpdatedAtMeta,
+        syncUpdatedAt.isAcceptableOrUnknown(
+          data['sync_updated_at']!,
+          _syncUpdatedAtMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  MealType map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return MealType(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      beginTime: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}begin_time'],
+      )!,
+      endTime: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}end_time'],
+      )!,
+      remarks: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}remarks'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      syncStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sync_status'],
+      )!,
+      syncUpdatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_updated_at'],
+      ),
+    );
+  }
+
+  @override
+  $MealTypesTable createAlias(String alias) {
+    return $MealTypesTable(attachedDatabase, alias);
+  }
+}
+
+class MealType extends DataClass implements Insertable<MealType> {
+  final String id;
+  final String name;
+  final String status;
+  final String beginTime;
+  final String endTime;
+  final String? remarks;
+  final String createdAt;
+  final String updatedAt;
+  final int syncStatus;
+  final String? syncUpdatedAt;
+  const MealType({
+    required this.id,
+    required this.name,
+    required this.status,
+    required this.beginTime,
+    required this.endTime,
+    this.remarks,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.syncStatus,
+    this.syncUpdatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    map['status'] = Variable<String>(status);
+    map['begin_time'] = Variable<String>(beginTime);
+    map['end_time'] = Variable<String>(endTime);
+    if (!nullToAbsent || remarks != null) {
+      map['remarks'] = Variable<String>(remarks);
+    }
+    map['created_at'] = Variable<String>(createdAt);
+    map['updated_at'] = Variable<String>(updatedAt);
+    map['sync_status'] = Variable<int>(syncStatus);
+    if (!nullToAbsent || syncUpdatedAt != null) {
+      map['sync_updated_at'] = Variable<String>(syncUpdatedAt);
+    }
+    return map;
+  }
+
+  MealTypesCompanion toCompanion(bool nullToAbsent) {
+    return MealTypesCompanion(
+      id: Value(id),
+      name: Value(name),
+      status: Value(status),
+      beginTime: Value(beginTime),
+      endTime: Value(endTime),
+      remarks: remarks == null && nullToAbsent
+          ? const Value.absent()
+          : Value(remarks),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      syncStatus: Value(syncStatus),
+      syncUpdatedAt: syncUpdatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncUpdatedAt),
+    );
+  }
+
+  factory MealType.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return MealType(
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      status: serializer.fromJson<String>(json['status']),
+      beginTime: serializer.fromJson<String>(json['beginTime']),
+      endTime: serializer.fromJson<String>(json['endTime']),
+      remarks: serializer.fromJson<String?>(json['remarks']),
+      createdAt: serializer.fromJson<String>(json['createdAt']),
+      updatedAt: serializer.fromJson<String>(json['updatedAt']),
+      syncStatus: serializer.fromJson<int>(json['syncStatus']),
+      syncUpdatedAt: serializer.fromJson<String?>(json['syncUpdatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+      'status': serializer.toJson<String>(status),
+      'beginTime': serializer.toJson<String>(beginTime),
+      'endTime': serializer.toJson<String>(endTime),
+      'remarks': serializer.toJson<String?>(remarks),
+      'createdAt': serializer.toJson<String>(createdAt),
+      'updatedAt': serializer.toJson<String>(updatedAt),
+      'syncStatus': serializer.toJson<int>(syncStatus),
+      'syncUpdatedAt': serializer.toJson<String?>(syncUpdatedAt),
+    };
+  }
+
+  MealType copyWith({
+    String? id,
+    String? name,
+    String? status,
+    String? beginTime,
+    String? endTime,
+    Value<String?> remarks = const Value.absent(),
+    String? createdAt,
+    String? updatedAt,
+    int? syncStatus,
+    Value<String?> syncUpdatedAt = const Value.absent(),
+  }) => MealType(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    status: status ?? this.status,
+    beginTime: beginTime ?? this.beginTime,
+    endTime: endTime ?? this.endTime,
+    remarks: remarks.present ? remarks.value : this.remarks,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    syncStatus: syncStatus ?? this.syncStatus,
+    syncUpdatedAt: syncUpdatedAt.present
+        ? syncUpdatedAt.value
+        : this.syncUpdatedAt,
+  );
+  MealType copyWithCompanion(MealTypesCompanion data) {
+    return MealType(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      status: data.status.present ? data.status.value : this.status,
+      beginTime: data.beginTime.present ? data.beginTime.value : this.beginTime,
+      endTime: data.endTime.present ? data.endTime.value : this.endTime,
+      remarks: data.remarks.present ? data.remarks.value : this.remarks,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      syncStatus: data.syncStatus.present
+          ? data.syncStatus.value
+          : this.syncStatus,
+      syncUpdatedAt: data.syncUpdatedAt.present
+          ? data.syncUpdatedAt.value
+          : this.syncUpdatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MealType(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('status: $status, ')
+          ..write('beginTime: $beginTime, ')
+          ..write('endTime: $endTime, ')
+          ..write('remarks: $remarks, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('syncUpdatedAt: $syncUpdatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    name,
+    status,
+    beginTime,
+    endTime,
+    remarks,
+    createdAt,
+    updatedAt,
+    syncStatus,
+    syncUpdatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MealType &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.status == this.status &&
+          other.beginTime == this.beginTime &&
+          other.endTime == this.endTime &&
+          other.remarks == this.remarks &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.syncStatus == this.syncStatus &&
+          other.syncUpdatedAt == this.syncUpdatedAt);
+}
+
+class MealTypesCompanion extends UpdateCompanion<MealType> {
+  final Value<String> id;
+  final Value<String> name;
+  final Value<String> status;
+  final Value<String> beginTime;
+  final Value<String> endTime;
+  final Value<String?> remarks;
+  final Value<String> createdAt;
+  final Value<String> updatedAt;
+  final Value<int> syncStatus;
+  final Value<String?> syncUpdatedAt;
+  final Value<int> rowid;
+  const MealTypesCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.status = const Value.absent(),
+    this.beginTime = const Value.absent(),
+    this.endTime = const Value.absent(),
+    this.remarks = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.syncUpdatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  MealTypesCompanion.insert({
+    required String id,
+    required String name,
+    required String status,
+    required String beginTime,
+    required String endTime,
+    this.remarks = const Value.absent(),
+    required String createdAt,
+    required String updatedAt,
+    this.syncStatus = const Value.absent(),
+    this.syncUpdatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       name = Value(name),
+       status = Value(status),
+       beginTime = Value(beginTime),
+       endTime = Value(endTime),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<MealType> custom({
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<String>? status,
+    Expression<String>? beginTime,
+    Expression<String>? endTime,
+    Expression<String>? remarks,
+    Expression<String>? createdAt,
+    Expression<String>? updatedAt,
+    Expression<int>? syncStatus,
+    Expression<String>? syncUpdatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (status != null) 'status': status,
+      if (beginTime != null) 'begin_time': beginTime,
+      if (endTime != null) 'end_time': endTime,
+      if (remarks != null) 'remarks': remarks,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (syncStatus != null) 'sync_status': syncStatus,
+      if (syncUpdatedAt != null) 'sync_updated_at': syncUpdatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  MealTypesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? name,
+    Value<String>? status,
+    Value<String>? beginTime,
+    Value<String>? endTime,
+    Value<String?>? remarks,
+    Value<String>? createdAt,
+    Value<String>? updatedAt,
+    Value<int>? syncStatus,
+    Value<String?>? syncUpdatedAt,
+    Value<int>? rowid,
+  }) {
+    return MealTypesCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      status: status ?? this.status,
+      beginTime: beginTime ?? this.beginTime,
+      endTime: endTime ?? this.endTime,
+      remarks: remarks ?? this.remarks,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      syncStatus: syncStatus ?? this.syncStatus,
+      syncUpdatedAt: syncUpdatedAt ?? this.syncUpdatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (beginTime.present) {
+      map['begin_time'] = Variable<String>(beginTime.value);
+    }
+    if (endTime.present) {
+      map['end_time'] = Variable<String>(endTime.value);
+    }
+    if (remarks.present) {
+      map['remarks'] = Variable<String>(remarks.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<String>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<String>(updatedAt.value);
+    }
+    if (syncStatus.present) {
+      map['sync_status'] = Variable<int>(syncStatus.value);
+    }
+    if (syncUpdatedAt.present) {
+      map['sync_updated_at'] = Variable<String>(syncUpdatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MealTypesCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('status: $status, ')
+          ..write('beginTime: $beginTime, ')
+          ..write('endTime: $endTime, ')
+          ..write('remarks: $remarks, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('syncUpdatedAt: $syncUpdatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $MealsTable extends Meals with TableInfo<$MealsTable, Meal> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -1813,6 +2426,9 @@ class $MealsTable extends Meals with TableInfo<$MealsTable, Meal> {
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES meal_types (id)',
+    ),
   );
   static const VerificationMeta _remarksMeta = const VerificationMeta(
     'remarks',
@@ -9507,6 +10123,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $SitesTable sites = $SitesTable(this);
   late final $KitchensTable kitchens = $KitchensTable(this);
   late final $MenuTypesTable menuTypes = $MenuTypesTable(this);
+  late final $MealTypesTable mealTypes = $MealTypesTable(this);
   late final $MealsTable meals = $MealsTable(this);
   late final $MealKitchensTable mealKitchens = $MealKitchensTable(this);
   late final $StaffTable staff = $StaffTable(this);
@@ -9530,6 +10147,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     sites,
     kitchens,
     menuTypes,
+    mealTypes,
     meals,
     mealKitchens,
     staff,
@@ -10907,6 +11525,399 @@ typedef $$MenuTypesTableProcessedTableManager =
       MenuType,
       PrefetchHooks Function({bool mealsRefs})
     >;
+typedef $$MealTypesTableCreateCompanionBuilder =
+    MealTypesCompanion Function({
+      required String id,
+      required String name,
+      required String status,
+      required String beginTime,
+      required String endTime,
+      Value<String?> remarks,
+      required String createdAt,
+      required String updatedAt,
+      Value<int> syncStatus,
+      Value<String?> syncUpdatedAt,
+      Value<int> rowid,
+    });
+typedef $$MealTypesTableUpdateCompanionBuilder =
+    MealTypesCompanion Function({
+      Value<String> id,
+      Value<String> name,
+      Value<String> status,
+      Value<String> beginTime,
+      Value<String> endTime,
+      Value<String?> remarks,
+      Value<String> createdAt,
+      Value<String> updatedAt,
+      Value<int> syncStatus,
+      Value<String?> syncUpdatedAt,
+      Value<int> rowid,
+    });
+
+final class $$MealTypesTableReferences
+    extends BaseReferences<_$AppDatabase, $MealTypesTable, MealType> {
+  $$MealTypesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$MealsTable, List<Meal>> _mealsRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.meals,
+    aliasName: $_aliasNameGenerator(db.mealTypes.id, db.meals.mealTypeId),
+  );
+
+  $$MealsTableProcessedTableManager get mealsRefs {
+    final manager = $$MealsTableTableManager(
+      $_db,
+      $_db.meals,
+    ).filter((f) => f.mealTypeId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_mealsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$MealTypesTableFilterComposer
+    extends Composer<_$AppDatabase, $MealTypesTable> {
+  $$MealTypesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get beginTime => $composableBuilder(
+    column: $table.beginTime,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get endTime => $composableBuilder(
+    column: $table.endTime,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get remarks => $composableBuilder(
+    column: $table.remarks,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get syncUpdatedAt => $composableBuilder(
+    column: $table.syncUpdatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> mealsRefs(
+    Expression<bool> Function($$MealsTableFilterComposer f) f,
+  ) {
+    final $$MealsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.meals,
+      getReferencedColumn: (t) => t.mealTypeId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MealsTableFilterComposer(
+            $db: $db,
+            $table: $db.meals,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$MealTypesTableOrderingComposer
+    extends Composer<_$AppDatabase, $MealTypesTable> {
+  $$MealTypesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get beginTime => $composableBuilder(
+    column: $table.beginTime,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get endTime => $composableBuilder(
+    column: $table.endTime,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get remarks => $composableBuilder(
+    column: $table.remarks,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get syncUpdatedAt => $composableBuilder(
+    column: $table.syncUpdatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$MealTypesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $MealTypesTable> {
+  $$MealTypesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get beginTime =>
+      $composableBuilder(column: $table.beginTime, builder: (column) => column);
+
+  GeneratedColumn<String> get endTime =>
+      $composableBuilder(column: $table.endTime, builder: (column) => column);
+
+  GeneratedColumn<String> get remarks =>
+      $composableBuilder(column: $table.remarks, builder: (column) => column);
+
+  GeneratedColumn<String> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<String> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get syncUpdatedAt => $composableBuilder(
+    column: $table.syncUpdatedAt,
+    builder: (column) => column,
+  );
+
+  Expression<T> mealsRefs<T extends Object>(
+    Expression<T> Function($$MealsTableAnnotationComposer a) f,
+  ) {
+    final $$MealsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.meals,
+      getReferencedColumn: (t) => t.mealTypeId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MealsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.meals,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$MealTypesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $MealTypesTable,
+          MealType,
+          $$MealTypesTableFilterComposer,
+          $$MealTypesTableOrderingComposer,
+          $$MealTypesTableAnnotationComposer,
+          $$MealTypesTableCreateCompanionBuilder,
+          $$MealTypesTableUpdateCompanionBuilder,
+          (MealType, $$MealTypesTableReferences),
+          MealType,
+          PrefetchHooks Function({bool mealsRefs})
+        > {
+  $$MealTypesTableTableManager(_$AppDatabase db, $MealTypesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$MealTypesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$MealTypesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$MealTypesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<String> beginTime = const Value.absent(),
+                Value<String> endTime = const Value.absent(),
+                Value<String?> remarks = const Value.absent(),
+                Value<String> createdAt = const Value.absent(),
+                Value<String> updatedAt = const Value.absent(),
+                Value<int> syncStatus = const Value.absent(),
+                Value<String?> syncUpdatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => MealTypesCompanion(
+                id: id,
+                name: name,
+                status: status,
+                beginTime: beginTime,
+                endTime: endTime,
+                remarks: remarks,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                syncStatus: syncStatus,
+                syncUpdatedAt: syncUpdatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String name,
+                required String status,
+                required String beginTime,
+                required String endTime,
+                Value<String?> remarks = const Value.absent(),
+                required String createdAt,
+                required String updatedAt,
+                Value<int> syncStatus = const Value.absent(),
+                Value<String?> syncUpdatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => MealTypesCompanion.insert(
+                id: id,
+                name: name,
+                status: status,
+                beginTime: beginTime,
+                endTime: endTime,
+                remarks: remarks,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                syncStatus: syncStatus,
+                syncUpdatedAt: syncUpdatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$MealTypesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({mealsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (mealsRefs) db.meals],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (mealsRefs)
+                    await $_getPrefetchedData<MealType, $MealTypesTable, Meal>(
+                      currentTable: table,
+                      referencedTable: $$MealTypesTableReferences
+                          ._mealsRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$MealTypesTableReferences(db, table, p0).mealsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.mealTypeId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$MealTypesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $MealTypesTable,
+      MealType,
+      $$MealTypesTableFilterComposer,
+      $$MealTypesTableOrderingComposer,
+      $$MealTypesTableAnnotationComposer,
+      $$MealTypesTableCreateCompanionBuilder,
+      $$MealTypesTableUpdateCompanionBuilder,
+      (MealType, $$MealTypesTableReferences),
+      MealType,
+      PrefetchHooks Function({bool mealsRefs})
+    >;
 typedef $$MealsTableCreateCompanionBuilder =
     MealsCompanion Function({
       required String id,
@@ -10945,6 +11956,23 @@ typedef $$MealsTableUpdateCompanionBuilder =
 final class $$MealsTableReferences
     extends BaseReferences<_$AppDatabase, $MealsTable, Meal> {
   $$MealsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $MealTypesTable _mealTypeIdTable(_$AppDatabase db) => db.mealTypes
+      .createAlias($_aliasNameGenerator(db.meals.mealTypeId, db.mealTypes.id));
+
+  $$MealTypesTableProcessedTableManager get mealTypeId {
+    final $_column = $_itemColumn<String>('meal_type_id')!;
+
+    final manager = $$MealTypesTableTableManager(
+      $_db,
+      $_db.mealTypes,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_mealTypeIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
 
   static $MenuTypesTable _menuTypeIdTable(_$AppDatabase db) => db.menuTypes
       .createAlias($_aliasNameGenerator(db.meals.menuTypeId, db.menuTypes.id));
@@ -11066,11 +12094,6 @@ class $$MealsTableFilterComposer extends Composer<_$AppDatabase, $MealsTable> {
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get mealTypeId => $composableBuilder(
-    column: $table.mealTypeId,
-    builder: (column) => ColumnFilters(column),
-  );
-
   ColumnFilters<String> get remarks => $composableBuilder(
     column: $table.remarks,
     builder: (column) => ColumnFilters(column),
@@ -11105,6 +12128,29 @@ class $$MealsTableFilterComposer extends Composer<_$AppDatabase, $MealsTable> {
     column: $table.syncUpdatedAt,
     builder: (column) => ColumnFilters(column),
   );
+
+  $$MealTypesTableFilterComposer get mealTypeId {
+    final $$MealTypesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.mealTypeId,
+      referencedTable: $db.mealTypes,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MealTypesTableFilterComposer(
+            $db: $db,
+            $table: $db.mealTypes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 
   $$MenuTypesTableFilterComposer get menuTypeId {
     final $$MenuTypesTableFilterComposer composer = $composerBuilder(
@@ -11259,11 +12305,6 @@ class $$MealsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get mealTypeId => $composableBuilder(
-    column: $table.mealTypeId,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<String> get remarks => $composableBuilder(
     column: $table.remarks,
     builder: (column) => ColumnOrderings(column),
@@ -11298,6 +12339,29 @@ class $$MealsTableOrderingComposer
     column: $table.syncUpdatedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  $$MealTypesTableOrderingComposer get mealTypeId {
+    final $$MealTypesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.mealTypeId,
+      referencedTable: $db.mealTypes,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MealTypesTableOrderingComposer(
+            $db: $db,
+            $table: $db.mealTypes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 
   $$MenuTypesTableOrderingComposer get menuTypeId {
     final $$MenuTypesTableOrderingComposer composer = $composerBuilder(
@@ -11344,11 +12408,6 @@ class $$MealsTableAnnotationComposer
   GeneratedColumn<String> get mealType =>
       $composableBuilder(column: $table.mealType, builder: (column) => column);
 
-  GeneratedColumn<String> get mealTypeId => $composableBuilder(
-    column: $table.mealTypeId,
-    builder: (column) => column,
-  );
-
   GeneratedColumn<String> get remarks =>
       $composableBuilder(column: $table.remarks, builder: (column) => column);
 
@@ -11373,6 +12432,29 @@ class $$MealsTableAnnotationComposer
     column: $table.syncUpdatedAt,
     builder: (column) => column,
   );
+
+  $$MealTypesTableAnnotationComposer get mealTypeId {
+    final $$MealTypesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.mealTypeId,
+      referencedTable: $db.mealTypes,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MealTypesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.mealTypes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 
   $$MenuTypesTableAnnotationComposer get menuTypeId {
     final $$MenuTypesTableAnnotationComposer composer = $composerBuilder(
@@ -11512,6 +12594,7 @@ class $$MealsTableTableManager
           (Meal, $$MealsTableReferences),
           Meal,
           PrefetchHooks Function({
+            bool mealTypeId,
             bool menuTypeId,
             bool mealKitchensRefs,
             bool orderItemsRefs,
@@ -11602,6 +12685,7 @@ class $$MealsTableTableManager
               .toList(),
           prefetchHooksCallback:
               ({
+                mealTypeId = false,
                 menuTypeId = false,
                 mealKitchensRefs = false,
                 orderItemsRefs = false,
@@ -11632,6 +12716,19 @@ class $$MealsTableTableManager
                           dynamic
                         >
                       >(state) {
+                        if (mealTypeId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.mealTypeId,
+                                    referencedTable: $$MealsTableReferences
+                                        ._mealTypeIdTable(db),
+                                    referencedColumn: $$MealsTableReferences
+                                        ._mealTypeIdTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
                         if (menuTypeId) {
                           state =
                               state.withJoin(
@@ -11751,6 +12848,7 @@ typedef $$MealsTableProcessedTableManager =
       (Meal, $$MealsTableReferences),
       Meal,
       PrefetchHooks Function({
+        bool mealTypeId,
         bool menuTypeId,
         bool mealKitchensRefs,
         bool orderItemsRefs,
@@ -17056,6 +18154,8 @@ class $AppDatabaseManager {
       $$KitchensTableTableManager(_db, _db.kitchens);
   $$MenuTypesTableTableManager get menuTypes =>
       $$MenuTypesTableTableManager(_db, _db.menuTypes);
+  $$MealTypesTableTableManager get mealTypes =>
+      $$MealTypesTableTableManager(_db, _db.mealTypes);
   $$MealsTableTableManager get meals =>
       $$MealsTableTableManager(_db, _db.meals);
   $$MealKitchensTableTableManager get mealKitchens =>

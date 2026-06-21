@@ -5,14 +5,10 @@ import 'package:canteen_staff_enrollment/auth_gate.dart';
 import 'package:canteen_staff_enrollment/controllers/injection_container.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/theme/app_theme.dart';
 
-final localeProvider = StateProvider<Locale>((ref) {
-  return const Locale('en');
-});
 
 void main() async => runZoneGuarded(() async {
   WidgetsFlutterBinding.ensureInitialized();

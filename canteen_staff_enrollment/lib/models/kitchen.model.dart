@@ -1,11 +1,11 @@
 import 'site.model.dart';
 
 class Kitchen {
-  final String id;
+  final int id;
   final String name;
   final int minTierRequired;
   final String status;
-  final Site company;
+  final Site? company;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -14,20 +14,20 @@ class Kitchen {
     required this.name,
     required this.minTierRequired,
     required this.status,
-    required this.company,
+    this.company,
     required this.createdAt,
     required this.updatedAt,
   });
 
   factory Kitchen.fromMap(Map<String, dynamic> map) {
     return Kitchen(
-      id: map['id'] as String,
-      name: map['name'] as String,
-      minTierRequired: (map['min_tier_required'] as num).toInt(),
-      status: map['status'] as String,
-      company: Site.fromMap(map['company'] as Map<String, dynamic>),
-      createdAt: DateTime.parse(map['created_at'] as String),
-      updatedAt: DateTime.parse(map['updated_at'] as String),
+      id: map['id'] as int,
+      name: (map['name'] ?? '') as String,
+      minTierRequired: int.tryParse((map['minTierRequired'] ?? map['min_tier_required'] ?? '1').toString()) ?? 1,
+      status: (map['status'] ?? '') as String,
+      company: map['company'] != null ? Site.fromMap(map['company'] as Map<String, dynamic>) : null,
+      createdAt: DateTime.parse((map['createdAt'] ?? map['created_at']) as String),
+      updatedAt: DateTime.parse((map['updatedAt'] ?? map['updated_at']) as String),
     );
   }
 
@@ -37,14 +37,14 @@ class Kitchen {
       'name': name,
       'min_tier_required': minTierRequired,
       'status': status,
-      'company': company.toMap(),
+      'company': company?.toMap(),
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
   }
 
   Kitchen copyWith({
-    String? id,
+    int? id,
     String? name,
     int? minTierRequired,
     String? status,

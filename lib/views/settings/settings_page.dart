@@ -10,6 +10,7 @@ import '../../core/di/injection_container.dart';
 import '../../core/di/securestorage.dart';
 import '../../main.dart';
 import '../../services/activity_log_service.dart';
+import '../../services/remote_data_sync_service.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -289,6 +290,47 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     }
   }
 
+  Future<void> _refreshRemoteData() async {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Row(
+          children: [
+            SizedBox(
+              width: 16, height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+            ),
+            SizedBox(width: 12),
+            Text('Pulling remote data...'),
+          ],
+        ),
+        duration: Duration(seconds: 30),
+      ),
+    );
+    try {
+      await getIt<RemoteDataSyncService>().syncAll();
+      if (mounted) {
+        messenger.hideCurrentSnackBar();
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('Remote data refreshed successfully'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        messenger.hideCurrentSnackBar();
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('Failed to refresh remote data'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -330,15 +372,16 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             subtitle: l10n.pushPullSubtitle,
             onTap: () => Navigator.of(context).pushNamed('/sync'),
           ),
+         
+          _SettingsTile(
+            icon: Icons.cloud_download_rounded,
+            title: 'Refresh Remote Data',
+            subtitle: 'Pull latest staff, meals, menu & meal types from server',
+            onTap: _refreshRemoteData,
+          ),
           // ── Account ────────────────────────────────────────────────────────
           _SectionHeader(label: l10n.account),
-          // _SettingsTile(
-          //   icon: Icons.account_circle_outlined,
-          //   title: l10n.adminAccountInfo,
-          //   subtitle: _adminEmail ?? l10n.loading,
-          //   onTap: _showAdminInfoDialog,
-          // ),
-          //staff managment
+
           _SettingsTile(
             icon: Icons.group_outlined,
             title: l10n.staffManagement, // "Staff Management"
@@ -374,16 +417,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
           // ── System ─────────────────────────────────────────────────────────
           _SectionHeader(label: l10n.system),
-          // _SettingsTile(
-          //   icon: Icons.system_update_alt_rounded,
-          //   title: l10n.appUpdate,
-          //   subtitle: l10n.checkLatestVersion,
-          //   onTap: () {
-          //     ScaffoldMessenger.of(
-          //       context,
-          //     ).showSnackBar(SnackBar(content: Text(l10n.latestVersion)));
-          //   },
-          // ),
+         
           _SettingsTile(
             icon: Icons.info_outline_rounded,
             title: l10n.about,

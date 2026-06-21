@@ -1,5 +1,5 @@
 class Dependant {
-  final String id;
+  final int id;
   final String firstName;
   final String lastName;
   final String? email;
@@ -29,19 +29,21 @@ class Dependant {
 
   factory Dependant.fromMap(Map<String, dynamic> map) {
     return Dependant(
-      id: map['id'] as String,
-      firstName: map['first_name'] as String,
-      lastName: map['last_name'] as String,
+      id: map['id'] as int,
+      firstName: (map['firstName'] ?? map['first_name'] ?? '') as String,
+      lastName: (map['lastName'] ?? map['last_name'] ?? '') as String,
       email: map['email'] as String?,
       phone: map['phone'] as String?,
-      status: map['status'] as String,
+      status: (map['status'] ?? map['empStatus'] ?? '') as String,
       gender: map['gender'] as String?,
-      dob: map['dob'] != null ? DateTime.parse(map['dob'] as String) : null,
-      relationship: map['relationship'] as String,
-      photoUrl: map['photo_url'] as String?,
-      createdAt: DateTime.parse(map['created_at'] as String),
-      updatedAt: map['updated_at'] != null
-          ? DateTime.parse(map['updated_at'] as String)
+      dob: (map['dob'] ?? map['dateOfBirth']) != null
+          ? DateTime.tryParse((map['dob'] ?? map['dateOfBirth']) as String)
+          : null,
+      relationship: (map['relationship'] ?? '') as String,
+      photoUrl: (map['photoUrl'] ?? map['photo_url']) as String?,
+      createdAt: DateTime.parse((map['createdAt'] ?? map['created_at']) as String),
+      updatedAt: (map['updatedAt'] ?? map['updated_at']) != null
+          ? DateTime.tryParse((map['updatedAt'] ?? map['updated_at']) as String)
           : null,
     );
   }
@@ -64,7 +66,7 @@ class Dependant {
   }
 
   Dependant copyWith({
-    String? id,
+    int? id,
     String? firstName,
     String? lastName,
     String? email,

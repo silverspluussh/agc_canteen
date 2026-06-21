@@ -2,8 +2,6 @@ import 'package:agc_canteen/views/widgets/app_buttons.widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:uuid/uuid.dart';
-
 import '../../l10n/generated/app_localizations.dart';
 import '../../core/di/injection_container.dart';
 import '../../services/database/app_database.dart';
@@ -24,7 +22,7 @@ class _SyncPageState extends ConsumerState<SyncPage> {
   int _unsyncedGroupOrders = 0;
   DateTime? _lastSyncTime;
   bool _syncingOrders = false;
-  bool _syncingGroupOrders = false;
+ // bool _syncingGroupOrders = false;
   bool _syncingAll = false;
 
   int get _totalUnsynced => _unsyncedOrders + _unsyncedGroupOrders;
@@ -69,19 +67,19 @@ class _SyncPageState extends ConsumerState<SyncPage> {
     }
   }
 
-  Future<void> _syncGroupOrders() async {
-    setState(() => _syncingGroupOrders = true);
-    try {
-      final result = await _syncService.syncGroupOrders();
-      if (mounted) _showResultSnackBar(result, 'Group orders');
-    } finally {
-      if (mounted) {
-        setState(() => _syncingGroupOrders = false);
-        await _loadCounts();
-        await _loadLastSync();
-      }
-    }
-  }
+  // Future<void> _syncGroupOrders() async {
+  //   setState(() => _syncingGroupOrders = true);
+  //   try {
+  //     final result = await _syncService.syncGroupOrders();
+  //     if (mounted) _showResultSnackBar(result, 'Group orders');
+  //   } finally {
+  //     if (mounted) {
+  //       setState(() => _syncingGroupOrders = false);
+  //       await _loadCounts();
+  //       await _loadLastSync();
+  //     }
+  //   }
+  // }
 
   Future<void> _syncAll() async {
     setState(() => _syncingAll = true);

@@ -1,8 +1,17 @@
 import 'package:agc_canteen/services/database/app_database.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class MealCard extends StatelessWidget {
+import '../../controllers/providers.dart';
+
+final _menuTypeNameMapProvider = FutureProvider<Map<String, String>>((ref) async {
+  final db = ref.watch(databaseProvider);
+  final types = await db.getAllMenuTypes();
+  return {for (final t in types) t.id: t.name};
+});
+
+class MealCard extends ConsumerWidget {
   final Meal meal;
   final bool isSelected;
   final VoidCallback onTap;
@@ -14,7 +23,8 @@ class MealCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final menuTypes = ref.watch(_menuTypeNameMapProvider).asData?.value ?? {};
     return Card(
       elevation: isSelected ? 4 : 1,
       shadowColor: Theme.of(context).colorScheme.primary,
@@ -39,13 +49,14 @@ class MealCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: [
+                children: [                  const SizedBox(height: 10),
+
                   _MealImage(photoUrl: meal.photoUrl),
                   const SizedBox(height: 10),
           
                   Text(
                     meal.name,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+                    style: const TextStyle(fontWeight: FontWeight.w500),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
@@ -53,26 +64,26 @@ class MealCard extends StatelessWidget {
                 ],
               ),
           
-              // Positioned(
-              //   top: 0,
-              //   left: 5,
-              //   child: Container(
-              //     padding: const EdgeInsets.symmetric(
-              //       horizontal: 8,
-              //       vertical: 2,
-              //     ),
-              //     decoration: BoxDecoration(
-              //       color: Theme.of(
-              //         context,
-              //       ).colorScheme.primary.withValues(alpha: 0.5),
-              //       borderRadius: BorderRadius.circular(8),
-              //     ),
-              //     child: Text(
-              //       meal.mealType,
-              //       style: const TextStyle(fontSize: 12),
-              //     ),
-              //   ),
-              // ),
+              Positioned(
+                top: 3,
+                left: 5,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    menuTypes[meal.menuTypeId] ?? meal.mealType,
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
