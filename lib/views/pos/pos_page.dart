@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 import 'package:agc_canteen/l10n/generated/app_localizations.dart';
 import 'package:agc_canteen/main.dart';
 import 'package:agc_canteen/views/pos/confirm_order_page.dart';
@@ -41,7 +42,8 @@ class _PosPageState extends ConsumerState<PosPage> {
     final authState = ref.watch(authProvider);
     final staff = authState.staff;
     final orderState = ref.watch(orderProvider);
-    //final mealsAsync = ref.watch(mealsProvider);
+    final mealsAsync = ref.watch(mealsProvider);
+    final availableTypesAsync = ref.watch(availableMealTypesProvider);
 
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
@@ -54,9 +56,10 @@ class _PosPageState extends ConsumerState<PosPage> {
             onCancel: _showCancelOrderDialog,
             onLanguage: _showLanguageDialog,
           ),
-          body: ref.watch(mealsProvider).when(
+          body: mealsAsync.when(
             data: (meals) {
-              return _buildBody(meals, orderState);
+              final availableTypes = availableTypesAsync.asData?.value ?? [];
+              return _buildBody(meals, orderState, availableTypes);
             },
             loading: () => SizedBox(
               height: MediaQuery.of(context).size.height,
@@ -167,11 +170,12 @@ class _PosPageState extends ConsumerState<PosPage> {
     );
   }
 
-  Widget _buildBody(List<Meal> meals, OrderState orderState) {
+  Widget _buildBody(List<Meal> meals, OrderState orderState, List<String> availableTypes) {
     final selectedId = orderState.selectedMeal?.id;
-    final availableTypes = ref.watch(availableMealTypesProvider).asData?.value ?? [];
 
     final mealTypeFiltered = meals.where((meal) {
+      log(meal.toJsonString());
+      log(meal.mealType);
       return availableTypes.contains(meal.mealType.toLowerCase());
     }).toList();
     final filteredMeals = mealTypeFiltered.where((meal) {

@@ -10,13 +10,12 @@ import 'core/di/injection_container.dart';
 import 'core/theme/app_theme.dart';
 import 'l10n/generated/app_localizations.dart';
 import 'views/splash/auth_gate.dart';
-import 'views/reports/orders_page.dart';
+import 'views/reports/reports_page.dart';
 import 'views/settings/settings_page.dart';
 import 'views/staff/staff_management_page.dart';
 import 'views/settings/sync_page.dart';
 import 'views/pos/pos_settings_page.dart';
 import 'views/pos/manual_order_page.dart';
-import 'views/settings/card_test_page.dart';
 
 final localeProvider = StateProvider<Locale>((ref) {
   return const Locale('en');
@@ -90,7 +89,7 @@ Route<dynamic>? _onGenerateRoute(RouteSettings settings) {
   Widget page;
   switch (settings.name) {
     case '/reports':
-      page = const ReportsPage();
+      page = const ReportsDashboardPage();
       break;
     case '/settings':
       page = const SettingsPage();

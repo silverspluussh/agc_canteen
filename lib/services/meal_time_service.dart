@@ -1,6 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../controllers/providers.dart';
 
 class MealTimeWindow {
@@ -29,7 +29,7 @@ class MealTimeWindow {
 }
 
 TimeOfDay _parseTimeOfDay(String time) {
-  final parts = time.split(':');
+  final parts = time.trim().split(':');
   final hour = int.tryParse(parts[0]) ?? 0;
   final minute = parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
   return TimeOfDay(hour: hour, minute: minute);
@@ -38,21 +38,30 @@ TimeOfDay _parseTimeOfDay(String time) {
 final mealTimeWindowsProvider = FutureProvider<List<MealTimeWindow>>((ref) async {
   final db = ref.watch(databaseProvider);
   final mealTypes = await db.getAllMealTypes();
-  final activeTypes = mealTypes.where((mt) => mt.status == 'active');
+
+  final activeTypes = mealTypes.where((mt) => mt.status == 'active').toList();
   return activeTypes.map((mt) {
+    final start = _parseTimeOfDay(mt.beginTime);
+    final end = _parseTimeOfDay(mt.endTime);
     return MealTimeWindow(
       mealType: mt.name.toLowerCase(),
-      start: _parseTimeOfDay(mt.beginTime),
-      end: _parseTimeOfDay(mt.endTime),
+      start: start,
+      end: end,
     );
   }).toList();
 });
 
 final availableMealTypesProvider = FutureProvider<List<String>>((ref) async {
+  final timer = Timer.periodic(const Duration(seconds: 30), (_) {
+    ref.invalidateSelf();
+  });
+  ref.onDispose(() => timer.cancel());
+
   final windows = await ref.watch(mealTimeWindowsProvider.future);
   final now = DateTime.now();
-  return windows
-      .where((window) => window.isActiveAt(now))
-      .map((window) => window.mealType)
-      .toList();
+  final active = windows.where((window) {
+    final active = window.isActiveAt(now);
+    return active;
+  }).map((window) => window.mealType).toList();
+  return active;
 });

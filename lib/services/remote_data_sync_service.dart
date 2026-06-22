@@ -550,22 +550,35 @@ class RemoteDataSyncService {
       final mealTypeObj = mealMap['mealType'] as Map<String, dynamic>?;
       if (mealTypeObj != null) {
         mealTypeId = mealTypeObj['id']?.toString() ?? '';
+        final hasBeginTime = mealTypeObj.containsKey('beginTime') || mealTypeObj.containsKey('begin_time');
+        final hasEndTime = mealTypeObj.containsKey('endTime') || mealTypeObj.containsKey('end_time');
+        final existing = await _db.getMealType(mealTypeId);
         await _db.insertMealType(
           MealTypesCompanion(
             id: Value(mealTypeId),
-            name: Value(mealTypeObj['name'] as String? ?? 'Meal Type'),
-            status: Value(mealTypeObj['status'] as String? ?? 'active'),
-            beginTime: Value(mealTypeObj['begin_time'] as String? ?? mealTypeObj['beginTime'] as String? ?? '00:00:00'),
-            endTime: Value(mealTypeObj['end_time'] as String? ?? mealTypeObj['endTime'] as String? ?? '23:59:59'),
+            name: Value(mealTypeObj['name'] as String? ?? existing?.name ?? 'Meal Type'),
+            status: Value(mealTypeObj['status'] as String? ?? existing?.status ?? 'active'),
+            beginTime: Value(
+              hasBeginTime
+                  ? (mealTypeObj['begin_time'] as String? ?? mealTypeObj['beginTime'] as String? ?? existing?.beginTime ?? '00:00:00')
+                  : (existing?.beginTime ?? '00:00:00'),
+            ),
+            endTime: Value(
+              hasEndTime
+                  ? (mealTypeObj['end_time'] as String? ?? mealTypeObj['endTime'] as String? ?? existing?.endTime ?? '23:59:59')
+                  : (existing?.endTime ?? '23:59:59'),
+            ),
             remarks: Value.absentIfNull(mealTypeObj['remarks'] as String?),
             createdAt: Value(
               mealTypeObj['created_at'] as String? ??
                   mealTypeObj['createdAt'] as String? ??
+                  existing?.createdAt ??
                   DateTime.now().toIso8601String(),
             ),
             updatedAt: Value(
               mealTypeObj['updated_at'] as String? ??
                   mealTypeObj['updatedAt'] as String? ??
+                  existing?.updatedAt ??
                   DateTime.now().toIso8601String(),
             ),
             syncStatus: const Value(2),
@@ -671,6 +684,8 @@ class RemoteDataSyncService {
         _logger.w('RemoteDataSyncService: no device model available');
         return false;
       }
+
+log(deviceInfo.toMap().toString());
 
       final data = await _networkAPI.getData<dynamic>(
         '/pos/profiles',

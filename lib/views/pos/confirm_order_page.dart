@@ -31,7 +31,7 @@ class _ConfirmOrderSheetState extends State<ConfirmOrderSheet> {
   String? _orderCode;
   bool _isPlacing = false;
 
-  bool get _isLaCarte => widget.meal.mealType.contains("Carte")||widget.meal.mealType.contains("carte")||widget.meal.mealType.contains("Cart");
+  bool get _isLaCarte => widget.meal.mealType.toLowerCase().contains('carte');
 
   @override
   void dispose() {
@@ -202,52 +202,49 @@ class _ConfirmOrderSheetState extends State<ConfirmOrderSheet> {
                 widget.meal.mealType,
                 bold: true,
               ),
-              Divider(),
-              const SizedBox(height: 15),
-              TextFormField(
-                controller: _descriptionController,
-                minLines: 3,
-                maxLines: null,
-                keyboardType: TextInputType.multiline,
-                decoration: InputDecoration(
-                  labelText: _isLaCarte
-                      ? '${AppLocalizations.of(context).description} *'
-                      : AppLocalizations.of(context).description,
-                  labelStyle: Theme.of(context).textTheme.titleMedium,
-                  hintStyle: Theme.of(context).textTheme.titleMedium,
-                  border: OutlineInputBorder(
-                    borderSide: BorderSide(
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white
-                          : Colors.black,
-                      width: 1.5,
+              if (_isLaCarte) ...[
+                const SizedBox(height: 15),
+                TextFormField(
+                  controller: _descriptionController,
+                  minLines: 3,
+                  maxLines: null,
+                  keyboardType: TextInputType.multiline,
+                  decoration: InputDecoration(
+                    labelText: '${AppLocalizations.of(context).description} *',
+                    labelStyle: Theme.of(context).textTheme.titleMedium,
+                    hintStyle: Theme.of(context).textTheme.titleMedium,
+                    border: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Colors.black,
+                        width: 1.5,
+                      ),
                     ),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white
-                          : Colors.black,
-                      width: 1.5,
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Colors.black,
+                        width: 1.5,
+                      ),
                     ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(
-                      color: Theme.of(context).colorScheme.primary,
-                      width: 1.5,
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Theme.of(context).colorScheme.primary,
+                        width: 1.5,
+                      ),
                     ),
+                    hintText: 'Describe what you want to order',
+                    errorText: _descriptionError,
                   ),
-                  hintText: _isLaCarte
-                      ? 'Describe what you want to order'
-                      : AppLocalizations.of(context).description,
-                  errorText: _descriptionError,
+                  onChanged: (_) {
+                    if (_descriptionError != null) {
+                      setState(() => _descriptionError = null);
+                    }
+                  },
                 ),
-                onChanged: (_) {
-                  if (_descriptionError != null) {
-                    setState(() => _descriptionError = null);
-                  }
-                },
-              ),
+              ],
               const SizedBox(height: 30),
               SegmentedButton<String>(
                 style: ButtonStyle(
