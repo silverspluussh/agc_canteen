@@ -201,11 +201,15 @@ class _AdminLoginPageState extends ConsumerState<AdminLoginPage> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(Icons.error,color: Colors.red),
-                              Text(
-                                state.errorMessage ??
-                                    AppLocalizations.of(context).loginFailed,
-                                style: TextStyle(
-                                  color: Theme.of(context).colorScheme.error,
+                              Expanded(
+                                child: Text(
+                                  state.errorMessage ??
+                                      AppLocalizations.of(context).loginFailed,
+                                  
+                                  maxLines: 2,
+                                  style: TextStyle(
+                                    color: Theme.of(context).colorScheme.error,
+                                  ),
                                 ),
                               ),
                             ],

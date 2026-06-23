@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/di/injection_container.dart';
 import '../../services/auth/admin_auth_service.dart';
-import '../../services/remote_data_sync_service.dart';
 
 enum AdminAuthStep {
   checking,
@@ -86,13 +85,11 @@ class AdminAuthController extends Notifier<AdminAuthState> {
           step: AdminAuthStep.authenticated,
           token: result.token,
         );
-        unawaited(getIt<RemoteDataSyncService>().syncAll());
       case AdminAuthStatus.authenticatedOffline:
         state = AdminAuthState(
           step: AdminAuthStep.authenticatedOffline,
           token: result.token,
         );
-        unawaited(getIt<RemoteDataSyncService>().syncAll());
       case AdminAuthStatus.unauthenticated:
         state = const AdminAuthState(step: AdminAuthStep.unauthenticated);
       case AdminAuthStatus.error:
@@ -116,13 +113,11 @@ class AdminAuthController extends Notifier<AdminAuthState> {
         );
        
         unawaited(_service.fetchSecretKey());
-        unawaited(getIt<RemoteDataSyncService>().syncAll());
       case AdminAuthStatus.authenticatedOffline:
         state = AdminAuthState(
           step: AdminAuthStep.authenticatedOffline,
           token: result.token,
         );
-        unawaited(getIt<RemoteDataSyncService>().syncAll());
       case AdminAuthStatus.awaitingOtp:
         state = AdminAuthState(
           step: AdminAuthStep.awaitingOtp,
@@ -164,7 +159,6 @@ class AdminAuthController extends Notifier<AdminAuthState> {
           token: result.token,
         );
         unawaited(_service.fetchSecretKey());
-        unawaited(getIt<RemoteDataSyncService>().syncAll());
         return true;
       case AdminAuthStatus.error:
       default:

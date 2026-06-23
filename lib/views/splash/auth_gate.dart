@@ -1,14 +1,16 @@
+import 'dart:async';
 import 'dart:developer' as dev;
 import 'package:agc_canteen/views/auth/staff_auth_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../l10n/generated/app_localizations.dart';
 import '../../controllers/admin_auth_controller.dart';
 import '../../controllers/auth_controller.dart';
 import '../../core/di/injection_container.dart';
 import '../../services/pos/pos_device_service.dart';
+import '../../services/remote_data_sync_service.dart';
 import '../auth/admin_login_page.dart';
 import '../pos/pos_page.dart';
+import '../settings/pos_selection_dialog.dart';
 
 
 class AuthGate extends ConsumerStatefulWidget {
@@ -19,13 +21,36 @@ class AuthGate extends ConsumerStatefulWidget {
 }
 
 class _AuthGateState extends ConsumerState<AuthGate> {
+  bool _syncStarted = false;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(adminAuthProvider.notifier).tryAutoLogin();
-      _initPosDevice();
+      Future.delayed(const Duration(milliseconds: 500), _initPosDevice);
     });
+  }
+
+  Future<void> _startSyncWithPosCheck() async {
+    if (_syncStarted) return;
+    _syncStarted = true;
+
+    final syncService = getIt<RemoteDataSyncService>();
+    final alreadyRegistered = await syncService.isPosDeviceRegistered;
+
+    if (!alreadyRegistered && mounted) {
+      final selected = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const PosSelectionDialog(),
+      );
+      if (selected != true || !mounted) return;
+    }
+
+    if (mounted) {
+      unawaited(syncService.syncAll());
+    }
   }
 
   Future<void> _initPosDevice() async {
@@ -57,6 +82,12 @@ class _AuthGateState extends ConsumerState<AuthGate> {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) ref.read(authProvider.notifier).reset();
         });
+      }
+    });
+
+    ref.listen(adminAuthProvider, (prev, next) {
+      if (next.isAuthenticated && (prev == null || !prev.isAuthenticated)) {
+        _startSyncWithPosCheck();
       }
     });
 

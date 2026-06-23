@@ -27,7 +27,11 @@ import 'securestorage.dart';
 final getIt = GetIt.instance;
 
 Future<void> setupServiceLocator() async {
-  await DatabaseService.instance.init();
+  try {
+    await DatabaseService.instance.init();
+  } catch (e) {
+    throw Exception('Database init failed: $e');
+  }
 
   getIt.registerLazySingleton<AppDatabase>(() => DatabaseService.instance.db);
 
@@ -37,7 +41,9 @@ Future<void> setupServiceLocator() async {
       () => PosFingerprintService());
   getIt.registerLazySingleton<PosScannerService>(() => PosScannerService());
   getIt.registerLazySingleton<PrintServiceManager>(() => PrintServiceManager());
-  await getIt<PrintServiceManager>().loadPrinterType();
+  try {
+    await getIt<PrintServiceManager>().loadPrinterType();
+  } catch (_) {}
   getIt.registerLazySingleton<PosCardService>(() => PosCardService());
   getIt.registerLazySingleton<PosDeviceService>(() => PosDeviceService());
   getIt.registerLazySingleton<DeviceInfoService>(() => DeviceInfoService());
@@ -83,7 +89,6 @@ Future<void> setupServiceLocator() async {
   getIt.registerLazySingleton<RemoteDataSyncService>(() => RemoteDataSyncService(
         networkAPI: getIt<NetworkAPI>(),
         db: getIt<AppDatabase>(),
-        deviceInfoService: getIt<DeviceInfoService>(),
       ));
 
   getIt.registerLazySingleton<Connectivity>(() => Connectivity());

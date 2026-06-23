@@ -1,12 +1,10 @@
 import 'dart:async';
-import 'dart:developer';
 
 import 'package:drift/drift.dart';
 import 'package:logger/logger.dart';
 
 import '../core/network/network_api_dio.dart';
 import 'database/app_database.dart';
-import 'device_info_service.dart';
 
 typedef _SyncTask = Future<bool> Function();
 
@@ -21,17 +19,14 @@ class RemoteDataSyncService {
   final NetworkAPI _networkAPI;
   final AppDatabase _db;
   final Logger _logger;
-  final DeviceInfoService _deviceInfoService;
   final List<_SyncJob> _jobs = [];
 
   RemoteDataSyncService({
     required NetworkAPI networkAPI,
     required AppDatabase db,
-    DeviceInfoService? deviceInfoService,
     Logger? logger,
   }) : _networkAPI = networkAPI,
        _db = db,
-       _deviceInfoService = deviceInfoService ?? DeviceInfoService(),
        _logger = logger ?? Logger() {
     _jobs.add(_SyncJob(name: 'posDevice', execute: _syncPosDevice));
     _jobs.add(_SyncJob(name: 'staff', execute: _syncStaff));
@@ -674,102 +669,86 @@ class RemoteDataSyncService {
 
   // ─── PosDevice Sync ────────────────────────────────────────
 
-  Future<bool> _syncPosDevice() async {
-    try {
-      _logger.i('RemoteDataSyncService: fetching POS device profile...');
+  Future<bool> get isPosDeviceRegistered async {
+    final devices = await _db.getAllPosDevices();
+    return devices.isNotEmpty;
+  }
 
-      final deviceInfo = await _deviceInfoService.gatherDeviceInfo();
-      final deviceModel = deviceInfo.model ?? '';
-      if (deviceModel.isEmpty) {
-        _logger.w('RemoteDataSyncService: no device model available');
-        return false;
-      }
+  Future<List<Map<String, dynamic>>> fetchAllPosProfiles() async {
+    _logger.i('RemoteDataSyncService: fetching all POS device profiles...');
+    final data = await _networkAPI.getData<dynamic>(
+      '/pos/profiles',
+      builder: (d) => d,
+    );
+    if (data is List && data.isNotEmpty) {
+      return data.cast<Map<String, dynamic>>();
+    } else if (data is Map && data['data'] is List) {
+      return (data['data'] as List).cast<Map<String, dynamic>>();
+    }
+    throw Exception('No POS device profiles returned from server');
+  }
 
-log(deviceInfo.toMap().toString());
+  Future<void> saveSelectedPosProfile(Map<String, dynamic> deviceMap) async {
+    final id = deviceMap['id']?.toString() ?? '';
+    if (id.isEmpty) throw Exception('Selected device profile has no id');
 
-      final data = await _networkAPI.getData<dynamic>(
-        '/pos/profiles',
-        queryParameters: {'model': deviceModel},
-        builder: (d) => d,
-      );
-      Map<String, dynamic>? deviceMap;
-      if (data is List && data.isNotEmpty) {
+    final now = DateTime.now().toIso8601String();
 
-        deviceMap = data.first as Map<String, dynamic>;
-      } else if (data is Map<String, dynamic>) {
-        deviceMap = data;
-      }
+    final kitchenMap = deviceMap['kitchen'] as Map<String, dynamic>?;
+    final posKitchenId = kitchenMap?['id']?.toString() ?? '';
+    final posKitchenName = kitchenMap?['name']?.toString() ?? '';
 
-      if (deviceMap == null) {
-        _logger.w('RemoteDataSyncService: no POS device profile found');
-        return false;
-      }
-
-      final id = deviceMap['id']?.toString() ?? '';
-      if (id.isEmpty) {
-        _logger.w('RemoteDataSyncService: device profile has no id');
-        return false;
-      }
-
-
-      final now = DateTime.now().toIso8601String();
-
-      final kitchenMap = deviceMap['kitchen'] as Map<String, dynamic>?;
-      final posKitchenId = kitchenMap?['id']?.toString() ?? '';
-      final posKitchenName = kitchenMap?['name']?.toString() ?? '';
-
-      if (posKitchenId.isNotEmpty) {
-        await _db.insertKitchen(
-          KitchensCompanion(
-            id: Value(posKitchenId),
-            name: Value(posKitchenName),
-            minTierRequired: Value(
-              int.tryParse(
-                    kitchenMap?['minTierRequired']?.toString() ?? '1',
-                  ) ??
-                  1,
-            ),
-            status: Value(kitchenMap?['status'] as String? ?? 'active'),
-            createdAt: Value(kitchenMap?['createdAt'] as String? ?? now),
-            updatedAt: Value(kitchenMap?['updatedAt'] as String? ?? now),
-            syncStatus: const Value(2),
+    if (posKitchenId.isNotEmpty) {
+      await _db.insertKitchen(
+        KitchensCompanion(
+          id: Value(posKitchenId),
+          name: Value(posKitchenName),
+          minTierRequired: Value(
+            int.tryParse(kitchenMap?['minTierRequired']?.toString() ?? '1') ?? 1,
           ),
-          mode: InsertMode.insertOrReplace,
-        );
-
-        _logger.i(
-          'RemoteDataSyncService: kitchen $posKitchenId ($posKitchenName) stored from POS device profile',
-        );
-      }
-
-      await _db.insertPosDevice(
-        PosDevicesCompanion(
-          id: Value(id),
-          name: Value(deviceMap['name'] as String? ?? ''),
-          serialNumber: Value(deviceMap['serialNumber'] as String? ?? ''),
-          model: Value.absentIfNull(deviceMap['model'] as String?),
-          status: Value(deviceMap['status'] as String? ?? 'active'),
-          macAddress: Value.absentIfNull(deviceMap['macAddress'] as String?),
-          kitchenId: Value.absentIfNull(
-            posKitchenId.isNotEmpty ? posKitchenId : null,
-          ),
-          kitchenName: Value.absentIfNull(
-            posKitchenName.isNotEmpty ? posKitchenName : null,
-          ),
-          createdAt: Value(deviceMap['createdAt'] as String? ?? now),
-          updatedAt: Value(deviceMap['updatedAt'] as String? ?? now),
+          status: Value(kitchenMap?['status'] as String? ?? 'active'),
+          createdAt: Value(kitchenMap?['createdAt'] as String? ?? now),
+          updatedAt: Value(kitchenMap?['updatedAt'] as String? ?? now),
           syncStatus: const Value(2),
-          syncUpdatedAt: Value(now),
         ),
         mode: InsertMode.insertOrReplace,
       );
+      _logger.i('RemoteDataSyncService: kitchen $posKitchenId ($posKitchenName) stored from POS selection');
+    }
 
-      _logger.i('RemoteDataSyncService: POS device profile synced ($id)');
-      return true;
+    await _db.insertPosDevice(
+      PosDevicesCompanion(
+        id: Value(id),
+        name: Value(deviceMap['name'] as String? ?? ''),
+        serialNumber: Value(deviceMap['serialNumber'] as String? ?? ''),
+        model: Value.absentIfNull(deviceMap['model'] as String?),
+        status: Value(deviceMap['status'] as String? ?? 'active'),
+        macAddress: Value.absentIfNull(deviceMap['macAddress'] as String?),
+        kitchenId: Value.absentIfNull(posKitchenId.isNotEmpty ? posKitchenId : null),
+        kitchenName: Value.absentIfNull(posKitchenName.isNotEmpty ? posKitchenName : null),
+        createdAt: Value(deviceMap['createdAt'] as String? ?? now),
+        updatedAt: Value(deviceMap['updatedAt'] as String? ?? now),
+        syncStatus: const Value(2),
+        syncUpdatedAt: Value(now),
+      ),
+      mode: InsertMode.insertOrReplace,
+    );
+
+    _logger.i('RemoteDataSyncService: POS device profile saved from selection ($id)');
+  }
+
+  Future<bool> _syncPosDevice() async {
+    try {
+      final devices = await _db.getAllPosDevices();
+      if (devices.isNotEmpty) {
+        _logger.i('RemoteDataSyncService: POS device already registered, skipping auto-fetch');
+        return true;
+      }
+
+      _logger.i('RemoteDataSyncService: no local POS device, skipping sync (needs manual selection)');
+      return false;
     } catch (e) {
-      _logger.w(
-        'RemoteDataSyncService: POS device sync failed ($e), keeping local data',
-      );
+      _logger.w('RemoteDataSyncService: POS device sync failed ($e)');
       return false;
     }
   }

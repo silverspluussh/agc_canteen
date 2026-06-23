@@ -45,8 +45,7 @@ class FingerprintPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, EventC
 
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
         activity = binding.activity
-        Log.d("FingerprintPlugin", "Activity attached: ${activity?.javaClass?.simpleName} — starting SDK init")
-        initSdkAndLaunch()
+        Log.d("FingerprintPlugin", "Activity attached: ${activity?.javaClass?.simpleName} — deferred init to Flutter call")
     }
 
     override fun onDetachedFromActivityForConfigChanges() {
@@ -58,8 +57,7 @@ class FingerprintPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, EventC
 
     override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
         activity = binding.activity
-        Log.d("FingerprintPlugin", "Activity re-attached — re-initializing SDK")
-        initSdkAndLaunch()
+        Log.d("FingerprintPlugin", "Activity re-attached — will re-init on next Flutter init call")
     }
 
     override fun onDetachedFromActivity() {

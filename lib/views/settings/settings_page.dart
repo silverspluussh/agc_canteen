@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:adaptive_theme/adaptive_theme.dart';
 import 'package:agc_canteen/views/widgets/app_buttons.widget.dart';
 import 'package:flutter/material.dart';
@@ -5,12 +7,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../controllers/admin_auth_controller.dart';
+import '../../controllers/auth_controller.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../core/di/injection_container.dart';
 import '../../core/di/securestorage.dart';
 import '../../main.dart';
 import '../../services/activity_log_service.dart';
+import '../../services/database/app_database.dart';
 import '../../services/remote_data_sync_service.dart';
+import 'pos_selection_dialog.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -91,7 +96,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
                 PrimaryButton(
                   width: 130,
-                  
+
                   onPressed: () async {
                     await prefs.setString('app_language', selected);
                     ref.read(localeProvider.notifier).state = Locale(selected);
@@ -106,11 +111,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       },
                     );
                     if (ctx.mounted) Navigator.of(ctx).pop();
-                  },label: const Text(
+                  },
+                  label: const Text(
                     'Apply',
                     style: TextStyle(color: Colors.white),
-                  ),)
-               
+                  ),
+                ),
               ],
             );
           },
@@ -196,8 +202,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     ).applyFilters, // Using applyFilters as a generic apply
                     style: const TextStyle(color: Colors.white),
                   ),
-                  )
-
+                ),
               ],
             );
           },
@@ -257,6 +262,63 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
+  Future<void> _killSwitch() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            const Icon(Icons.dangerous, color: Colors.red, size: 28),
+            const SizedBox(width: 8),
+            const Text('Kill Switch'),
+          ],
+        ),
+        content: const Text(
+          'This will permanently delete ALL local data '
+          '(database, credentials, settings) and return to the login screen.\n'
+          'This action cannot be undone. Use only when reassigning '
+          'this terminal to a new location or project.',
+          style: TextStyle(fontSize: 14),
+        ),
+        actions: [
+          PrimaryButton(
+            width: 120,
+            height: 45,
+            onPressed: () => Navigator.pop(ctx, false),
+            label: const Text('Cancel', style: TextStyle(color: Colors.white)),
+          ),
+          DestructiveButton(
+            width: 140,
+
+            color: Colors.red,
+            onPressed: () => Navigator.pop(ctx, true),
+            label: const Text(
+              'Wipe Everything',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    try {
+      await getIt<AppDatabase>().clearAll();
+      await getIt<SecureStorage>().clearSecureData();
+    } catch (_) {}
+
+    ref.invalidate(adminAuthProvider);
+    ref.invalidate(authProvider);
+
+    if (mounted) {
+      await Future.delayed(const Duration(milliseconds: 50));
+      if (mounted) {
+        Navigator.of(context).pushNamedAndRemoveUntil('/', (_) => false);
+      }
+    }
+  }
+
   Future<void> _confirmLogout() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -291,14 +353,30 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   Future<void> _refreshRemoteData() async {
+    final syncService = getIt<RemoteDataSyncService>();
+    final alreadyRegistered = await syncService.isPosDeviceRegistered;
+
+    if (!alreadyRegistered && mounted) {
+      final selected = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const PosSelectionDialog(),
+      );
+      if (selected != true || !mounted) return;
+    }
+
     final messenger = ScaffoldMessenger.of(context);
     messenger.showSnackBar(
       const SnackBar(
         content: Row(
           children: [
             SizedBox(
-              width: 16, height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
             ),
             SizedBox(width: 12),
             Text('Pulling remote data...'),
@@ -308,7 +386,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       ),
     );
     try {
-      await getIt<RemoteDataSyncService>().syncAll();
+      await syncService.syncAll();
       if (mounted) {
         messenger.hideCurrentSnackBar();
         messenger.showSnackBar(
@@ -351,7 +429,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         physics: const ClampingScrollPhysics(),
-        children: [ // ── Data ───────────────────────────────────────────────────────────
+        children: [
+          // ── Data ───────────────────────────────────────────────────────────
           _SectionHeader(label: l10n.data),
           _SettingsTile(
             icon: Icons.fastfood_rounded,
@@ -372,7 +451,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             subtitle: l10n.pushPullSubtitle,
             onTap: () => Navigator.of(context).pushNamed('/sync'),
           ),
-         
+
           _SettingsTile(
             icon: Icons.cloud_download_rounded,
             title: 'Refresh Remote Data',
@@ -398,8 +477,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             onTap: () => Navigator.of(context).pushNamed('/pos'),
           ),
 
-         
-
           // ── Preferences ────────────────────────────────────────────────────
           _SectionHeader(label: l10n.preferences),
           _SettingsTile(
@@ -417,7 +494,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
           // ── System ─────────────────────────────────────────────────────────
           _SectionHeader(label: l10n.system),
-         
+
           _SettingsTile(
             icon: Icons.info_outline_rounded,
             title: l10n.about,
@@ -437,6 +514,20 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ),
 
           const Divider(height: 32),
+
+          ListTile(
+            leading: CircleAvatar(
+              backgroundColor: Colors.red.shade900,
+              child: const Icon(Icons.dangerous, color: Colors.white, size: 20),
+            ),
+            title: const Text(
+              'Reset Switch',
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
+            ),
+            subtitle: const Text('Clear all data & reset POS terminal'),
+            onTap: _killSwitch,
+          ),
+          const SizedBox(height: 8),
 
           ListTile(
             leading: CircleAvatar(

@@ -45,7 +45,37 @@ void main() async => runZoneGuarded(() async {
 
 void runZoneGuarded(void Function() body) {
   runZonedGuarded(body, (error, stack) {
-    log(error.toString());
+    log('FATAL STARTUP ERROR: $error\n$stack');
+    runApp(
+      ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'App failed to start',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '$error',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 13, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   });
 }
 
@@ -88,6 +118,9 @@ class MyApp extends ConsumerWidget {
 Route<dynamic>? _onGenerateRoute(RouteSettings settings) {
   Widget page;
   switch (settings.name) {
+    case '/':
+      page = const AuthGate();
+      break;
     case '/reports':
       page = const ReportsDashboardPage();
       break;

@@ -1,9 +1,8 @@
-import 'dart:developer';
-
+import 'dart:async';
 import 'package:agc_canteen/controllers/providers.dart';
+import 'package:agc_canteen/views/widgets/app_buttons.widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../../core/di/injection_container.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../services/activity_log_service.dart';
@@ -12,6 +11,8 @@ import '../../services/pos/pos_device_service.dart';
 import '../../services/pos/pos_fingerprint_service.dart';
 import '../../services/print/print_service_manager.dart';
 import '../../services/pos/pos_scanner_service.dart';
+import '../../services/remote_data_sync_service.dart';
+import '../settings/pos_selection_dialog.dart';
 
 class PosSettingsPage extends ConsumerStatefulWidget {
   const PosSettingsPage({super.key});
@@ -68,8 +69,6 @@ class _PosSettingsPageState extends ConsumerState<PosSettingsPage> {
 
     if (mounted) setState(() => _isLoading = false);
   }
-
- 
 
   Future<void> _loadPrinterInfo() async {
     try {
@@ -146,6 +145,63 @@ class _PosSettingsPageState extends ConsumerState<PosSettingsPage> {
     }
   }
 
+  Future<void> _changePosDevice() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Change POS Device'),
+        content: const Text(
+          'This will clear all local data (orders, staff, meals, fingerprints) '
+          'and re-sync from the server with the new device assignment.\n\n'
+          'This action cannot be undone. Continue?',
+        ),
+        actions: [
+          SizedBox(
+            width: 120,
+            child: OutlineButton(
+              color: Colors.red,
+              onPressed: () => Navigator.pop(ctx, false),
+              label: const Text('Cancel', style: TextStyle(color: Colors.red)),
+            ),
+          ),
+          PrimaryButton(
+            height: 45,
+            width: 140,
+            onPressed: () => Navigator.pop(ctx, true),
+            label: const Text(
+              'Clear & Change',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    final selected = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const PosSelectionDialog(),
+    );
+    if (selected != true || !mounted) return;
+
+    try {
+      await _db.clearAll();
+    } catch (_) {}
+
+    if (mounted) {
+      unawaited(getIt<RemoteDataSyncService>().syncAll());
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('POS device changed. Re-syncing all data...'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      _loadAll();
+    }
+  }
+
   String _syncLabel(int syncStatus) {
     switch (syncStatus) {
       case 2:
@@ -159,7 +215,56 @@ class _PosSettingsPageState extends ConsumerState<PosSettingsPage> {
     }
   }
 
- 
+  Widget _buildChangePosCard(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(top: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.swap_horiz,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Change Assigned Device',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 20),
+            const Text(
+              'Select a different POS device profile. This will clear all '
+              'local data and re-sync from the server.',
+              style: TextStyle(fontSize: 13),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _changePosDevice,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.orange,
+                  side: const BorderSide(color: Colors.orange),
+                ),
+                icon: const Icon(Icons.swap_horiz),
+                label: const Text('Change POS Device'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -202,40 +307,8 @@ class _PosSettingsPageState extends ConsumerState<PosSettingsPage> {
 
                     POSDeviceAccountCard(device: _dbDevices.first),
 
-                    // Card(
-                    //   child: Padding(
-                    //     padding: const EdgeInsets.all(8.0),
-                    //     child: Column(
-                    //       children: [
-                    //         _InfoRow(
-                    //           label: "Device Name:",
-                    //           value: deviceInfo.deviceName,
-                    //         ),
-                    //         _InfoRow(
-                    //           label: "Model:",
-                    //           value: deviceInfo.model ?? '—',
-                    //         ),
-                    //         _InfoRow(
-                    //           label: "MAC Address:",
-                    //           value: deviceInfo.macAddress ?? '—',
-                    //         ),
-                    //         Divider(),
-                    //         _InfoRow(
-                    //           label: "Device Name:",
-                    //           value: deviceInfo.appName,
-                    //         ),
-                    //         _InfoRow(
-                    //           label: "Package Name:",
-                    //           value: deviceInfo.packageName,
-                    //         ),
-                    //         _InfoRow(
-                    //           label: "Version:",
-                    //           value: deviceInfo.version,
-                    //         ),
-                    //       ],
-                    //     ),
-                    //   ),
-                    // ),
+                    if (_dbDevices.isNotEmpty) _buildChangePosCard(context),
+
                     const SizedBox(height: 20),
                     _PrinterTypeCard(
                       currentType: _printManager.printerType,
