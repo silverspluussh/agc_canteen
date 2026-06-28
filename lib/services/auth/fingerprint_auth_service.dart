@@ -1,12 +1,12 @@
-import 'dart:async';
+ import 'dart:async';
 import 'dart:developer' as dev;
 import 'package:agc_canteen/models/staff.model.dart';
- import 'package:agc_canteen/services/biodata_service.dart';
+ import 'package:agc_canteen/repositories/biodata.repo.dart';
 import 'package:drift/drift.dart';
 import 'package:logger/logger.dart';
 import '../database/app_database.dart';
 import '../pos/pos_fingerprint_service.dart';
-import '../activity_log_service.dart';
+import '../database/activity_log_service.dart';
 import '../../core/di/injection_container.dart';
 
 class FingerprintAuthService {
@@ -54,12 +54,12 @@ class FingerprintAuthService {
   Future<bool> get isAvailable => _fingerprint.isAvailable();
 
   
-  Future<bool> hasFingerType(String staffId, Finger finger) async {
+  Future<bool> hasFingerType(int staffId, Finger finger) async {
     final fingerprints = await _db.getActiveBioDataByStaff(staffId);
     return fingerprints.any((f) => f.finger == finger.name);
   }
 
-  Future<int?> enroll(String staffId, Finger finger) async {
+  Future<int?> enroll(int staffId, Finger finger) async {
     final result = await _fingerprint.capture();
     if (result == null || !result.success || result.templateBase64 == null) {
       _logger.w('Fingerprint enrollment capture failed');
@@ -107,7 +107,7 @@ class FingerprintAuthService {
     return fingerprintId;
   }
 
-  Future<String?> authenticate() async {
+  Future<int?> authenticate() async {
     dev.log('[FingerprintAuth] Starting fingerprint capture via hardware...',
         name: 'POS_AUTH');
     final result = await _fingerprint.capture();
@@ -172,7 +172,7 @@ class FingerprintAuthService {
   }
 
   /// Get all stored template IDs for a staff member.
-  Future<List<int>> getFingerprintsForStaff(String staffId) async {
+  Future<List<int>> getFingerprintsForStaff(int staffId) async {
     final fingerprints = await _db.getActiveBioDataByStaff(staffId);
     return fingerprints.map((t) => t.id).toList();
   }

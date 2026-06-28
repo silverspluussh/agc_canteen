@@ -1,6 +1,6 @@
 class Fingerprint {
-  final String id;
-  final String staffId;
+  final int id;
+  final int staffId;
   final String dataBase64;
   final bool isActive;
   final DateTime createdAt;
@@ -17,8 +17,8 @@ class Fingerprint {
 
   factory Fingerprint.fromMap(Map<String, dynamic> map) {
     return Fingerprint(
-      id: map['id'] as String,
-      staffId: map['staff_id'] as String,
+      id: map['id'] as int,
+      staffId: map['staff_id'] as int,
       dataBase64: map['data_base64'] as String,
       isActive: map['is_active'] as bool? ?? true,
       createdAt: DateTime.parse(map['created_at'] as String),
@@ -38,8 +38,8 @@ class Fingerprint {
   }
 
   Fingerprint copyWith({
-    String? id,
-    String? staffId,
+    int? id,
+    int? staffId,
     String? dataBase64,
     bool? isActive,
     DateTime? createdAt,

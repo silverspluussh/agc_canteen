@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -40,20 +42,14 @@ extension _PeriodFilter on ReportPeriod {
 class _ReportSummary {
   final int totalOrders;
   final double totalRevenue;
-  final int totalMeals;
   final int totalMealTypes;
-  final int totalMenuTypes;
   final int totalStaff;
-  final int totalOvercharges;
 
   const _ReportSummary({
     required this.totalOrders,
     required this.totalRevenue,
-    required this.totalMeals,
     required this.totalMealTypes,
-    required this.totalMenuTypes,
     required this.totalStaff,
-    required this.totalOvercharges,
   });
 }
 
@@ -62,11 +58,8 @@ final reportSummaryProvider = FutureProvider.family<_ReportSummary, ReportPeriod
 
   final orders = await db.getAllOrders();
   final groupOrders = await db.getAllGroupOrders();
-  final meals = await db.getAllMeals();
   final mealTypes = await db.getAllMealTypes();
-  final menuTypes = await db.getAllMenuTypes();
   final staff = await db.getAllStaff();
-  final overcharges = await db.getAllOvercharges();
 
   bool inRange(String? isoString) {
     if (isoString == null) return false;
@@ -81,21 +74,9 @@ final reportSummaryProvider = FutureProvider.family<_ReportSummary, ReportPeriod
 
   final isAllTime = period == ReportPeriod.allTime;
 
-  final filteredMeals = isAllTime
-      ? meals
-      : meals.where((m) => inRange(m.createdAt)).toList();
-
   final filteredMealTypes = isAllTime
       ? mealTypes
       : mealTypes.where((m) => inRange(m.createdAt)).toList();
-
-  final filteredMenuTypes = isAllTime
-      ? menuTypes
-      : menuTypes.where((m) => inRange(m.createdAt)).toList();
-
-  final filteredOvercharges = isAllTime
-      ? overcharges
-      : overcharges.where((o) => inRange(o.createdAt)).toList();
 
   final filteredOrderCount = isAllTime
       ? orders.length + groupOrders.length
@@ -115,11 +96,8 @@ final reportSummaryProvider = FutureProvider.family<_ReportSummary, ReportPeriod
   return _ReportSummary(
     totalOrders: filteredOrderCount,
     totalRevenue: totalRevenue,
-    totalMeals: filteredMeals.length,
     totalMealTypes: filteredMealTypes.length,
-    totalMenuTypes: filteredMenuTypes.length,
     totalStaff: staff.length,
-    totalOvercharges: filteredOvercharges.length,
   );
 });
 
@@ -176,9 +154,11 @@ class _ReportsDashboardPageState extends ConsumerState<ReportsDashboardPage> {
             child: summaryAsync.when(
               data: (summary) => _buildSummaryCards(summary, theme),
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(
+              error: (e, _) {
+                log(e.toString());
+                return Center(
                 child: Text('${l10n.failedToLoadMeals} $e'),
-              ),
+              );}
             ),
           ),
         ],
@@ -230,22 +210,10 @@ class _ReportsDashboardPageState extends ConsumerState<ReportsDashboardPage> {
             color: Colors.green,
           ),
           _SummaryCard(
-            icon: Icons.fastfood_rounded,
-            label: AppLocalizations.of(context).mealName,
-            value: summary.totalMeals.toString(),
-            color: Colors.orange,
-          ),
-          _SummaryCard(
             icon: Icons.category_rounded,
             label: AppLocalizations.of(context).mealType,
             value: summary.totalMealTypes.toString(),
             color: Colors.purple,
-          ),
-          _SummaryCard(
-            icon: Icons.menu_book_rounded,
-            label: 'Menu Types',
-            value: summary.totalMenuTypes.toString(),
-            color: Colors.teal,
           ),
           _SummaryCard(
             icon: Icons.people_rounded,

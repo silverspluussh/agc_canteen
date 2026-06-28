@@ -47,7 +47,7 @@ class _StaffBiodataPageState extends ConsumerState<StaffBiodataPage>
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
 
-  String get _staffId => widget.staff.id.toString();
+  int get _staffId => widget.staff.id;
 
   String _fingerLabel(Finger finger) {
     switch (finger) {

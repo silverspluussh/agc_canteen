@@ -1,6 +1,6 @@
 
 class DepartmentCompany {
-  final String id;
+  final int id;
   final String name;
   final String location;
 
@@ -12,7 +12,7 @@ class DepartmentCompany {
 
   factory DepartmentCompany.fromMap(Map<String, dynamic> map) {
     return DepartmentCompany(
-      id: map['id'] as String,
+      id: map['id'] as int,
       name: map['name'] as String,
       location: map['location'] as String,
     );
@@ -27,7 +27,7 @@ class DepartmentCompany {
   }
 
   DepartmentCompany copyWith({
-    String? id,
+    int? id,
     String? name,
     String? location,
   }) {
@@ -40,30 +40,25 @@ class DepartmentCompany {
 }
 
 class Department {
-  final String id;
+  final int id;
   final String name;
   final DepartmentCompany company;
-  final DateTime createdAt;
-  final DateTime? updatedAt;
+
 
   const Department({
     required this.id,
     required this.name,
     required this.company,
-    required this.createdAt,
-    this.updatedAt,
+ 
   });
 
   factory Department.fromMap(Map<String, dynamic> map) {
     return Department(
-      id: map['id'] as String,
+      id: map['id'] as int,
       name: map['name'] as String,
       company: DepartmentCompany.fromMap(
           map['company'] as Map<String, dynamic>),
-      createdAt: DateTime.parse(map['created_at'] as String),
-      updatedAt: map['updated_at'] != null
-          ? DateTime.parse(map['updated_at'] as String)
-          : null,
+     
     );
   }
 
@@ -72,24 +67,21 @@ class Department {
       'id': id,
       'name': name,
       'company': company.toMap(),
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt?.toIso8601String(),
+
     };
   }
 
   Department copyWith({
-    String? id,
+    int? id,
     String? name,
     DepartmentCompany? company,
-    DateTime? createdAt,
-    DateTime? updatedAt,
+  
   }) {
     return Department(
       id: id ?? this.id,
       name: name ?? this.name,
       company: company ?? this.company,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
+
     );
   }
 }

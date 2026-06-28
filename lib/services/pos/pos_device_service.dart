@@ -1,7 +1,7 @@
 import 'package:agc_canteen/core/network/network_api_dio.dart';
 import 'package:agc_canteen/models/pos_device.model.dart';
 import 'package:flutter/services.dart';
-import '../activity_log_service.dart';
+import '../database/activity_log_service.dart';
 import '../../core/di/injection_container.dart';
 
 class PosDeviceService {

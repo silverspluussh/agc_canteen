@@ -57,7 +57,7 @@ class FingerprintAuthService {
 
   Future<bool> get isAvailable => _fingerprint.isAvailable();
 
-  Future<int?> enroll(String staffId, Finger finger) async {
+  Future<int?> enroll(int staffId, Finger finger) async {
     final result = await _fingerprint.capture();
     if (result == null || !result.success || result.templateBase64 == null) {
       _logger.w('Fingerprint enrollment capture failed');
@@ -85,7 +85,7 @@ class FingerprintAuthService {
   }
 
   Future<int?> enrollWithTemplate({
-    required String staffId,
+    required int staffId,
     required Finger finger,
     required String templateBase64,
   }) async {

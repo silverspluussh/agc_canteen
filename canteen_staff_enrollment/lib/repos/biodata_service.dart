@@ -23,7 +23,7 @@ class StaffBioDataService {
     );
   }
 
-  Future<List<BioData>> getBioDatasByStaffId(String staffId) async {
+  Future<List<BioData>> getBioDatasByStaffId(int staffId) async {
     return await networkAPI.getData<List<BioData>>(
       '/hr/bio-data',
       queryParameters: {"staffId": staffId},
@@ -38,7 +38,7 @@ class StaffBioDataService {
     );
   }
 
-  Future<bool> createBioData(String staffId, List<BioData> bioDatas) async {
+  Future<bool> createBioData(int staffId, List<BioData> bioDatas) async {
     final payload = {
       "staffId": staffId,
       "bioDatas": bioDatas.map((b) {

@@ -1,5 +1,5 @@
 class NfcCard {
-  final String id;
+  final int id;
   final String serialNumber;
   final String status;
   final bool isEncoded;
@@ -25,7 +25,7 @@ class NfcCard {
 
   factory NfcCard.fromMap(Map<String, dynamic> map) {
     return NfcCard(
-      id: map['id'] as String,
+      id: map['id'] as int,
       serialNumber: map['serial_number'] as String,
       status: map['status'] as String,
       isEncoded: map['is_encoded'] as bool,
@@ -60,7 +60,7 @@ class NfcCard {
   }
 
   NfcCard copyWith({
-    String? id,
+    int? id,
     String? serialNumber,
     String? status,
     bool? isEncoded,

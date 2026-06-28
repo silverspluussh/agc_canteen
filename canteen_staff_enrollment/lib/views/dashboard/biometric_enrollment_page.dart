@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'dart:developer' as dev;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../controllers/enrollment_controller.dart';
+import '../../controllers/providers.dart';
 import '../../controllers/staff_controller.dart';
 import '../../models/staff.model.dart';
 import '../../core/theme/app_colors.dart';
@@ -26,7 +28,20 @@ class _BiometricEnrollmentPageState
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(enrollmentProvider.notifier).reset();
+      _initFingerprintDevice();
     });
+  }
+
+  Future<void> _initFingerprintDevice() async {
+    try {
+      final posAuth = ref.read(posAuthProvider);
+      await posAuth.init();
+      dev.log('[BiometricEnrollmentPage] Fingerprint device initialized',
+          name: 'POS_AUTH');
+    } catch (e) {
+      dev.log('[BiometricEnrollmentPage] Fingerprint init failed: $e',
+          name: 'POS_AUTH');
+    }
   }
 
   @override
@@ -37,7 +52,7 @@ class _BiometricEnrollmentPageState
     ref.listen(enrollmentProvider, (previous, next) {
       if (next.step == EnrollmentStep.enrolled) {
         ref.invalidate(staffListProvider);
-        ref.invalidate(staffBiodataProvider(widget.staff.id.toString()));
+        ref.invalidate(staffBiodataProvider(widget.staff.id));
         ref.invalidate(allBiodataProvider);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -221,7 +236,7 @@ class _BiometricEnrollmentPageState
             onPressed: () {
               ref
                   .read(enrollmentProvider.notifier)
-                  .startEnrollment(widget.staff.id.toString(), _selectedFinger);
+                  .startEnrollment(widget.staff.id, _selectedFinger);
             },
             label: const Text(
               'Start Capture',

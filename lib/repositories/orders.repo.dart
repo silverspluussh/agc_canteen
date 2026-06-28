@@ -1,5 +1,4 @@
 import 'package:logger/logger.dart';
-
 import '../core/network/network_api_dio.dart';
 
 class OrderItemRequest {
@@ -63,26 +62,7 @@ class OrderService {
   })  : _networkAPI = networkAPI,
         _logger = logger ?? Logger();
 
-  // ─── Caterer / Admin Order APIs ─────────────────────────────────────────────
 
-  /// POST /caterer/order/group
-  Future<Map<String, dynamic>> createGroupOrder(
-      CreateGroupOrderRequest request) async {
-    try {
-      final result = await _networkAPI.postData(
-        '/caterer/order/group',
-        builder: (data) => data as Map<String, dynamic>,
-        data: request.toJson(),
-      );
-      _logger.i('Group order created: $result');
-      return result;
-    } catch (e) {
-      _logger.e('Failed to create group order: $e');
-      rethrow;
-    }
-  }
-
-  /// GET /caterer/orders
   Future<Map<String, dynamic>> fetchOrders({
     String? searchTerm,
     String? status,
@@ -116,7 +96,6 @@ class OrderService {
     }
   }
 
-  /// GET /caterer/order/:id
   Future<Map<String, dynamic>> fetchOrderById(String id) async {
     try {
       final result = await _networkAPI.getData(
@@ -131,7 +110,6 @@ class OrderService {
     }
   }
 
-  /// DELETE /caterer/order/delete/:id
   Future<void> deleteOrder(String id) async {
     try {
       await _networkAPI.deleteData(
@@ -145,7 +123,6 @@ class OrderService {
     }
   }
 
-  /// PATCH /caterer/order/status
   Future<void> updateOrderStatus({
     required String status,
     required String orderIds,
@@ -166,10 +143,8 @@ class OrderService {
     }
   }
 
-  // ─── POS Order APIs ─────────────────────────────────────────────────────────
-
-  /// POST /pos/order/create
-  Future<Map<String, dynamic>> posCreateOrder({
+  
+  Future<Map<String, dynamic>> createOrder({
     required String orderType,
     required String mealType,
     required double total,
@@ -200,31 +175,5 @@ class OrderService {
     }
   }
 
-  /// POST /pos/order/create-group
-  Future<Map<String, dynamic>> posCreateGroupOrder({
-    required String orderType,
-    required String mealType,
-    required int total,
-    required int orderedBy,
-    required List<OrderItemRequest> items,
-  }) async {
-    try {
-      final result = await _networkAPI.postData(
-        '/pos/order/create-group',
-        builder: (data) => data as Map<String, dynamic>,
-        data: {
-          'orderType': orderType,
-          'mealType': mealType,
-          'total': total,
-          'orderedBy': orderedBy,
-          'items': items.map((i) => i.toJson()).toList(),
-        },
-      );
-      _logger.i('POS group order created: $result');
-      return result;
-    } catch (e) {
-      _logger.e('Failed to create POS group order: $e');
-      rethrow;
-    }
-  }
+ 
 }

@@ -6,7 +6,7 @@ import 'fingerprint_auth_service.dart';
 enum AuthFailureReason { notEnrolled, notInKitchen }
 
 class StaffAuthResult {
-  final String? staffId;
+  final int? staffId;
   final String? firstName;
   final String? lastName;
   final AuthFailureReason? failureReason;
@@ -14,7 +14,7 @@ class StaffAuthResult {
   bool get isAuthenticated => staffId != null;
 
   const StaffAuthResult.authenticated({
-    required String staffId,
+    required int staffId,
     required String firstName,
     required String lastName,
   })  : staffId = staffId,
@@ -84,7 +84,7 @@ class PosAuthService {
   /// Authenticate with PIN (fallback when fingerprint isn't available).
   Future<StaffAuthResult> authenticateWithPin(
       String staffId, String pin) async {
-    final staff = await _db.getStaff(staffId);
+    final staff = await _db.getStaff(int.tryParse(staffId) ?? 0);
     if (staff == null) {
       return const StaffAuthResult.failed(
         failureReason: AuthFailureReason.notInKitchen,
@@ -101,12 +101,12 @@ class PosAuthService {
   }
 
   /// Enroll a new fingerprint for a staff member.
-  Future<int?> enrollFingerprint(String staffId,  Finger finger) async {
+  Future<int?> enrollFingerprint(int staffId,  Finger finger) async {
     return _fingerprintAuth.enroll(staffId, finger);
   }
 
   /// Get all enrolled fingerprint IDs for a staff member.
-  Future<List<int>> getFingerprintsForStaff(String staffId) async {
+  Future<List<int>> getFingerprintsForStaff(int staffId) async {
     return _fingerprintAuth.getFingerprintsForStaff(staffId);
   }
 

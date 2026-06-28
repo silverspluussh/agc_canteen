@@ -133,7 +133,7 @@ class StaffDirectoryPage extends ConsumerWidget {
                       itemBuilder: (context, index) {
                         final staff = staffList[index];
                         final fingerprintCount =
-                            biodataCounts[staff.id.toString()] ?? 0;
+                            biodataCounts[staff.id] ?? 0;
                         final isEnrolled = fingerprintCount > 0;
 ;                        return Card(
                           margin: EdgeInsets.zero,

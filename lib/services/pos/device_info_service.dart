@@ -1,13 +1,10 @@
-import 'dart:developer';
 import 'dart:io';
-
 import 'package:agc_canteen/core/network/network_api_dio.dart';
 import 'package:agc_canteen/models/pos_device.model.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:logger/logger.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-
-import '../models/device_info.model.dart';
+import '../../models/device_info.model.dart';
 
 class DeviceInfoService {
   final NetworkAPI networkAPI = NetworkAPI();

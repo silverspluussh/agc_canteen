@@ -69,7 +69,7 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
     final q = _query;
     final name = '${s.staff.firstName} ${s.staff.lastName}'.toLowerCase();
     final matchQ =
-        q.isEmpty || name.contains(q) || s.staff.id.toLowerCase().contains(q);
+        q.isEmpty || name.contains(q) || s.staff.id.toString().contains(q);
     final matchF =
         _fingerprintFilter == null || s.hasFingerprint == _fingerprintFilter;
     return matchQ && matchF;

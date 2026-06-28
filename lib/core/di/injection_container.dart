@@ -5,21 +5,20 @@ import 'package:get_it/get_it.dart';
 import '../../services/auth/admin_auth_service.dart';
 import '../../services/auth/fingerprint_auth_service.dart';
 import '../../services/auth/pos_auth_service.dart';
-import '../../services/activity_log_service.dart';
+import '../../services/database/activity_log_service.dart';
 import '../../services/database/app_database.dart';
 import '../../services/database/database_service.dart';
-import '../../services/biodata_service.dart';
-import '../../services/meal_service.dart';
-import '../../services/order_service.dart';
-import '../../services/remote_data_sync_service.dart';
+import '../../repositories/biodata.repo.dart';
+import '../../repositories/orders.repo.dart';
+import '../../services/sync_services/remote_data_sync_service.dart';
 import '../../services/pos/pos_card_service.dart';
 import '../../services/pos/pos_device_service.dart';
-import '../../services/device_info_service.dart';
+import '../../services/pos/device_info_service.dart';
 import '../../services/pos/pos_fingerprint_service.dart';
 import '../../services/print/print_service_manager.dart';
 import '../../services/pos/pos_scanner_service.dart';
 // import '../../services/encryption_service.dart';
-import '../../services/sync_service.dart';
+import '../../services/sync_services/sync_service.dart';
 import '../network/dio_client.dart';
 import '../network/network_api_dio.dart';
 import 'securestorage.dart';
@@ -73,17 +72,13 @@ Future<void> setupServiceLocator() async {
         storage: getIt<SecureStorage>(),
       ));
 
-  getIt.registerLazySingleton<MealService>(() => MealService(
-        networkAPI: getIt<NetworkAPI>(),
-        db: getIt<AppDatabase>(),
-      ));
-
   getIt.registerLazySingleton<OrderService>(() => OrderService(
         networkAPI: getIt<NetworkAPI>(),
       ));
 
   getIt.registerLazySingleton<BioDataService>(() => BioDataService(
         networkAPI: getIt<NetworkAPI>(),
+        db: getIt<AppDatabase>(),
       ));
 
   getIt.registerLazySingleton<RemoteDataSyncService>(() => RemoteDataSyncService(

@@ -1,11 +1,11 @@
 class PosDevice {
-  final String id;
+  final int id;
   final String name;
   final String serialNumber;
   final String? model;
   final String status;
   final String? macAddress;
-  final String? kitchenId;
+  final int? kitchenId;
   final String? kitchenName;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -25,12 +25,12 @@ class PosDevice {
 
   factory PosDevice.fromMap(Map<String, dynamic> map) {
     return PosDevice(
-      id: map['id'] as String,
+      id: map['id'] as int,
       name: map['name'] as String,
       serialNumber: map['serial_number'] as String,
       model: map['model'] as String?,
       status: map['status'] as String,
-      kitchenId: map['kitchenId'] as String?,
+      kitchenId: map['kitchenId'] as int?,
       kitchenName: map['kitchenName'] as String?,
       macAddress: map['mac_address'] as String?,
       createdAt: DateTime.parse(map['created_at'] as String),
@@ -54,12 +54,12 @@ class PosDevice {
   }
 
   PosDevice copyWith({
-    String? id,
+    int? id,
     String? name,
     String? serialNumber,
     String? model,
     String? status,
-    String? kitchenId,
+    int? kitchenId,
     String? kitchenName,
     String? macAddress,
     DateTime? createdAt,

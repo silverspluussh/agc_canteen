@@ -3,7 +3,7 @@ import 'package:canteen_staff_enrollment/models/staff.model.dart';
 import 'fingerprint_auth_service.dart';
 
 class StaffAuthResult {
-  final String staffId;
+  final int staffId;
   final String firstName;
   final String lastName;
 
@@ -32,7 +32,7 @@ class PosAuthService {
 
   Future<bool> get isFingerprintAvailable => _fingerprintAuth.isAvailable;
 
-  Future<int?> enrollFingerprint(String staffId,  Finger finger) async {
+  Future<int?> enrollFingerprint(int staffId,  Finger finger) async {
     return _fingerprintAuth.enroll(staffId, finger);
   }
   

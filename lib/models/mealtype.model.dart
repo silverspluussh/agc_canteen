@@ -4,9 +4,9 @@ class MealTypeModel {
   final String status;
   final String beginTime;
   final String endTime;
-  final String? remarks;
-  final DateTime createdAt;
-  final DateTime updatedAt;
+  final double price;
+
+
 
   const MealTypeModel({
     required this.id,
@@ -14,9 +14,8 @@ class MealTypeModel {
     required this.status,
     required this.beginTime,
     required this.endTime,
-    this.remarks,
-    required this.createdAt,
-    required this.updatedAt,
+    required this.price,
+  
   });
 
   factory MealTypeModel.fromMap(Map<String, dynamic> map) {
@@ -26,9 +25,8 @@ class MealTypeModel {
       status: map['status'] as String,
       beginTime: map['begin_time'] as String,
       endTime: map['end_time'] as String,
-      remarks: map['remarks'] as String?,
-      createdAt: DateTime.parse(map['created_at'] as String),
-      updatedAt: DateTime.parse(map['updated_at'] as String),
+      price: (map['price'] as num).toDouble(),
+ 
     );
   }
 
@@ -39,9 +37,8 @@ class MealTypeModel {
       'status': status,
       'begin_time': beginTime,
       'end_time': endTime,
-      'remarks': remarks,
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
+      'price': price,
+    
     };
   }
 
@@ -51,6 +48,7 @@ class MealTypeModel {
     String? status,
     String? beginTime,
     String? endTime,
+    double? price,
     String? remarks,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -61,9 +59,8 @@ class MealTypeModel {
       status: status ?? this.status,
       beginTime: beginTime ?? this.beginTime,
       endTime: endTime ?? this.endTime,
-      remarks: remarks ?? this.remarks,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
+      price: price ?? this.price,
+    
     );
   }
 }

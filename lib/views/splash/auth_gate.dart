@@ -7,9 +7,8 @@ import '../../controllers/admin_auth_controller.dart';
 import '../../controllers/auth_controller.dart';
 import '../../core/di/injection_container.dart';
 import '../../services/pos/pos_device_service.dart';
-import '../../services/remote_data_sync_service.dart';
+import '../../services/sync_services/remote_data_sync_service.dart';
 import '../auth/admin_login_page.dart';
-import '../pos/pos_page.dart';
 import '../settings/pos_selection_dialog.dart';
 
 
@@ -75,11 +74,10 @@ class _AuthGateState extends ConsumerState<AuthGate> {
   @override
   Widget build(BuildContext context) {
     final adminState = ref.watch(adminAuthProvider);
-    final staffState = ref.watch(authProvider);
 
     ref.listen(authProvider, (prev, next) {
-      if (next.isCompleted) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (next.isCompleted && prev?.isCompleted != true) {
+        Future.delayed(const Duration(seconds: 5), () {
           if (mounted) ref.read(authProvider.notifier).reset();
         });
       }
@@ -96,9 +94,6 @@ class _AuthGateState extends ConsumerState<AuthGate> {
     }
 
     if (adminState.isAuthenticated) {
-      if (staffState.isAuthenticated) {
-        return const PosPage();
-      }
       return const StaffAuthPage();
     }
 

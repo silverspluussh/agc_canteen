@@ -12,9 +12,9 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../core/di/injection_container.dart';
 import '../../core/di/securestorage.dart';
 import '../../main.dart';
-import '../../services/activity_log_service.dart';
+import '../../services/database/activity_log_service.dart';
 import '../../services/database/app_database.dart';
-import '../../services/remote_data_sync_service.dart';
+import '../../services/sync_services/remote_data_sync_service.dart';
 import 'pos_selection_dialog.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {

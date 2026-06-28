@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/di/injection_container.dart';
-import '../../services/remote_data_sync_service.dart';
+import '../../services/sync_services/remote_data_sync_service.dart';
 
 class PosSelectionDialog extends StatefulWidget {
   const PosSelectionDialog({super.key});

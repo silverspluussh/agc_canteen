@@ -15,30 +15,34 @@ class AuthGate extends ConsumerStatefulWidget {
 }
 
 class _AuthGateState extends ConsumerState<AuthGate> {
+  bool _posInitStarted = false;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(adminAuthProvider.notifier).tryAutoLogin();
-      _initPosDevice();
     });
   }
 
   Future<void> _initPosDevice() async {
-    dev.log('[AuthGate] Initializing POS device SDK on app start...',
+    if (_posInitStarted) return;
+    _posInitStarted = true;
+
+    dev.log('[AuthGate] Initializing POS device SDK after login...',
         name: 'POS_AUTH');
     try {
       final deviceService = getIt<PosDeviceService>();
       final ok = await deviceService.init();
       if (ok) {
-        dev.log('[AuthGate] POS device SDK initialized successfully at startup',
+        dev.log('[AuthGate] POS device SDK initialized successfully',
             name: 'POS_AUTH');
       } else {
-        dev.log('[AuthGate] POS device SDK init returned false at startup',
+        dev.log('[AuthGate] POS device SDK init returned false',
             name: 'POS_AUTH');
       }
     } catch (e, st) {
-      dev.log('[AuthGate] POS device SDK init FAILED at startup: $e',
+      dev.log('[AuthGate] POS device SDK init FAILED: $e',
           name: 'POS_AUTH', error: e, stackTrace: st);
     }
   }
@@ -47,7 +51,11 @@ class _AuthGateState extends ConsumerState<AuthGate> {
   Widget build(BuildContext context) {
     final adminState = ref.watch(adminAuthProvider);
 
-  
+    ref.listen(adminAuthProvider, (prev, next) {
+      if (next.isAuthenticated && (prev == null || !prev.isAuthenticated)) {
+        _initPosDevice();
+      }
+    });
 
     if (adminState.isChecking) {
       return _buildSplash(context);

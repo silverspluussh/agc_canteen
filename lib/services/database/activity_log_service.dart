@@ -1,6 +1,5 @@
 import 'package:drift/drift.dart';
-import 'package:uuid/uuid.dart';
-import 'database/app_database.dart';
+import 'app_database.dart';
 
 class ActivityLogService {
   final AppDatabase _db;
@@ -10,7 +9,7 @@ class ActivityLogService {
     required String type,
     required String message,
     String? actorType,
-    String? actorId,
+    int? actorId,
     String? actorName,
     String? sourceTable,
     String? recordId,
@@ -19,7 +18,7 @@ class ActivityLogService {
     final now = DateTime.now().toIso8601String();
     await _db.insertActivityLog(
       ActivityLogsCompanion(
-        id: Value(Uuid().v4()),
+        id: Value(DateTime.now().millisecondsSinceEpoch),
         type: Value(type),
         message: Value(message),
         actorType: Value.absentIfNull(actorType),
@@ -41,7 +40,7 @@ class ActivityLogService {
   Future<List<ActivityLog>> getByType(String type) =>
       _db.getActivityLogsByType(type);
 
-  Future<List<ActivityLog>> getByActor(String actorType, String actorId) =>
+  Future<List<ActivityLog>> getByActor(String actorType, int actorId) =>
       _db.getActivityLogsByActor(actorType, actorId);
 
   Future<int> count() => _db.getActivityLogCount();

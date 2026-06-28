@@ -51,30 +51,12 @@ Future<void> _printReportReceipt(_ReportOrder order) async {
     ln('Staff: $staffLabel');
     ln('Meal:  $mealTypeLabel');
     ln('Type:  $orderTypeLabel');
-    if (order.description != null && order.description!.isNotEmpty) {
-      ln('Desc:  ${order.description}');
-    }
     ln('--------------------');
     if (isGroup) {
       ln('People: ${order.groupCount}');
       ln('--------------------');
     }
-    for (final item in order.items) {
-      final lineTotal = item.price * item.qty;
-      final name = item.mealName.length > 24
-          ? '${item.mealName.substring(0, 22)}..'
-          : item.mealName;
-      final qty = 'x${item.qty}';
-      final price = _currency.format(lineTotal);
-      ln('$name${''.padLeft(32 - name.length - qty.length - price.length)}$qty  $price');
-    }
-    ln('--------------------');
-    // boldOn();
-    // ln('TOTAL: GH\u20B5 ${_currency.format(order.total)}');
-    // boldOff();
-    // ln('====================');
-    ln('     THANK YOU!');
-    ln('');
+ 
 
     final bytes = Uint8List.fromList(b.toBytes());
     final printed = await printer.printRawBytes(bytes);
@@ -84,21 +66,14 @@ Future<void> _printReportReceipt(_ReportOrder order) async {
   } catch (_) {}
 }
 
-class _ReportOrderItem {
-  final String mealName;
-  final int qty;
-  final double price;
-  const _ReportOrderItem(this.mealName, this.qty, this.price);
-}
-
 class _ReportOrder {
-  final String id, orderCode, status, orderType, mealType;
+  final int id;
+  final String orderCode, status, orderType, mealType;
   final double total;
   final int groupCount;
   final int syncStatus;
   final String? description, staffName;
   final DateTime createdAt;
-  final List<_ReportOrderItem> items;
 
   const _ReportOrder({
     required this.id,
@@ -112,7 +87,6 @@ class _ReportOrder {
     this.description,
     this.staffName,
     required this.createdAt,
-    required this.items,
   });
 
   bool get isSynced => syncStatus == 2;
@@ -124,21 +98,15 @@ final reportOrdersProvider = FutureProvider<List<_ReportOrder>>((ref) async {
   final orders = await db.getAllOrders();
   final groupOrders = await db.getAllGroupOrders();
   final staffList = await db.getAllStaff();
-  final meals = await db.getAllMeals();
 
-  String staffName(String id) {
+  String staffName(int id) {
     final s = staffList.where((e) => e.id == id).firstOrNull;
-    return s != null ? '${s.firstName} ${s.lastName}' : id;
-  }
-
-  String mealName(String id) {
-    return meals.where((e) => e.id == id).firstOrNull?.name ?? id;
+    return s != null ? '${s.firstName} ${s.lastName}' : id.toString();
   }
 
   final results = <_ReportOrder>[];
 
   for (final o in orders) {
-    final items = await db.getOrderItems(o.id);
     results.add(_ReportOrder(
       id: o.id,
       orderCode: o.orderCode,
@@ -151,14 +119,10 @@ final reportOrdersProvider = FutureProvider<List<_ReportOrder>>((ref) async {
       description: o.description,
       staffName: staffName(o.orderedById),
       createdAt: DateTime.tryParse(o.createdAt) ?? DateTime.now(),
-      items: items
-          .map((i) => _ReportOrderItem(mealName(i.mealId), i.qty, i.price))
-          .toList(),
     ));
   }
 
   for (final o in groupOrders) {
-    final items = await db.getGroupOrderItems(o.id);
     results.add(_ReportOrder(
       id: o.id,
       orderCode: o.orderCode,
@@ -171,9 +135,6 @@ final reportOrdersProvider = FutureProvider<List<_ReportOrder>>((ref) async {
       description: o.description,
       staffName: null,
       createdAt: DateTime.tryParse(o.createdAt) ?? DateTime.now(),
-      items: items
-          .map((i) => _ReportOrderItem(mealName(i.mealId), i.qty, i.price))
-          .toList(),
     ));
   }
 
@@ -577,69 +538,9 @@ class _OrderTile extends StatelessWidget {
       ),
       childrenPadding: const EdgeInsets.fromLTRB(16, 5, 16, 5),
       children: [
-        if (o.description != null && o.description!.isNotEmpty)
-              _DetailRow("${l10n.description} : ", o.description!),
-        
+   
         const Divider(height: 8),
-        Row(
-          children: [
-            Expanded(
-              flex: 4,
-              child: Text(
-                l10n.item,
-                style: const TextStyle(
-                    fontSize: 11, fontWeight: FontWeight.bold),
-              ),
-            ),
-            Expanded(
-              child: Text(
-                l10n.quantity,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                    fontSize: 11, fontWeight: FontWeight.bold),
-              ),
-            ),
-            Expanded(
-              flex: 2,
-              child: Text(
-                l10n.total,
-                textAlign: TextAlign.right,
-                style: const TextStyle(
-                    fontSize: 11, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        ),
-        const Divider(height: 8),
-        ...o.items.map(
-          (item) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 3),
-            child: Row(
-              children: [
-                Expanded(
-                  flex: 4,
-                  child: Text(item.mealName, style: const TextStyle(fontSize: 12)),
-                ),
-                Expanded(
-                  child: Text(
-                    '×${item.qty}',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                ),
-                Expanded(
-                  flex: 2,
-                  child: Text(
-                    'GH₵ ${_currency.format(item.price * item.qty)}',
-                    textAlign: TextAlign.right,
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const Divider(height: 16),
+       
         TextButton.icon(
           onPressed: () => _printReportReceipt(o),
           icon: Icon(Icons.print, size: 18, color: cs.primary),

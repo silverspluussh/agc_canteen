@@ -7,7 +7,7 @@ import '../../core/di/injection_container.dart';
 import '../../core/di/securestorage.dart';
 import '../../core/network/api_exceptions_util.dart';
 import '../../core/network/network_api_dio.dart';
-import '../activity_log_service.dart';
+import '../database/activity_log_service.dart';
 
 enum AdminAuthStatus {
   unauthenticated,

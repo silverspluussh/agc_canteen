@@ -1,7 +1,7 @@
 import 'kitchen.model.dart';
 
 class User {
-  final String id;
+  final int id;
   final String firstName;
   final String lastName;
   final String? email;
@@ -33,7 +33,7 @@ class User {
 
   factory User.fromMap(Map<String, dynamic> map) {
     return User(
-      id: map['id'] as String,
+      id: map['id'] as int,
       firstName: map['first_name'] as String,
       lastName: map['last_name'] as String,
       email: map['email'] as String?,
@@ -76,7 +76,7 @@ class User {
   }
 
   User copyWith({
-    String? id,
+    int? id,
     String? firstName,
     String? lastName,
     String? email,

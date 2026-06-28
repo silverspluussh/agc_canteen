@@ -133,7 +133,7 @@ class BioData {
   int id;
   Finger finger;
   String data;
-  String staffId;
+  int staffId;
   bool isActive;
   DateTime? createdAt;
   DateTime? updatedAt;
@@ -161,7 +161,7 @@ class BioData {
         orElse: () => Finger.thumb,
       ),
       data: map['data'] as String,
-      staffId: (map['staffId'] ?? map['staff_id'] ?? '').toString(),
+      staffId: (map['staffId'] as num?)?.toInt() ?? 0,
       isActive: map['isActive'] as bool? ?? map['is_active'] as bool? ?? true,
       createdAt: map['createdAt'] != null
           ? DateTime.tryParse(map['createdAt'] as String)

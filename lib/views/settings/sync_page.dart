@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../core/di/injection_container.dart';
 import '../../services/database/app_database.dart';
-import '../../services/sync_service.dart';
+import '../../services/sync_services/sync_service.dart';
 
 class SyncPage extends ConsumerStatefulWidget {
   const SyncPage({super.key});
@@ -109,9 +109,9 @@ class _SyncPageState extends ConsumerState<SyncPage> {
 
   Future<void> _viewUnsynced(bool single) async {
     final staff = await _db.getAllStaff();
-    String staffName(String id) {
+    String staffName(int id) {
       final s = staff.where((e) => e.id == id).firstOrNull;
-      return s != null ? '${s.firstName} ${s.lastName}' : id;
+      return s != null ? '${s.firstName} ${s.lastName}' : id.toString();
     }
 
     if (!mounted) return;
@@ -192,7 +192,7 @@ class _SyncPageState extends ConsumerState<SyncPage> {
   }
 
   Future<List<Widget>> _buildOrderList(
-    String Function(String) staffName,
+    String Function(int) staffName,
   ) async {
     final orders = await _db.getUnsyncedOrders();
     return orders.map((o) {
@@ -432,7 +432,7 @@ class _SyncPageState extends ConsumerState<SyncPage> {
               width: double.infinity,
               height: 52,
               child: PrimaryButton(
-                onPressed: _syncingAll ? null : _syncAll,
+                onPressed: _syncingAll ? null : _syncOrders,
                 label: _syncingAll
                     ? Row(
                         mainAxisSize: MainAxisSize.min,

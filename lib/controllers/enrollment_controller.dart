@@ -7,7 +7,7 @@ enum EnrollmentStep { idle, capturing, captured, storing, enrolled, error }
 
 class EnrollmentState {
   final EnrollmentStep step;
-  final String? staffId;
+  final int? staffId;
   final Finger? finger;
   final int? fingerprintId;
   final FingerprintResult? captureResult;
@@ -24,7 +24,7 @@ class EnrollmentState {
 
   EnrollmentState copyWith({
     EnrollmentStep? step,
-    String? staffId,
+    int? staffId,
     Finger? finger,
     int? fingerprintId,
     FingerprintResult? captureResult,
@@ -51,7 +51,7 @@ class EnrollmentController extends Notifier<EnrollmentState> {
   @override
   EnrollmentState build() => const EnrollmentState();
 
-  Future<void> startEnrollment(String staffId, Finger finger) async {
+  Future<void> startEnrollment(int staffId, Finger finger) async {
     state = state.copyWith(
       step: EnrollmentStep.capturing,
       staffId: staffId,

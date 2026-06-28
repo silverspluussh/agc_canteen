@@ -1,28 +1,42 @@
-import 'dart:developer';
 
 import '../core/network/network_api_dio.dart';
 import '../models/staff.model.dart';
+import '../services/database/app_database.dart';
 
 class BioDataService {
   final NetworkAPI networkAPI;
+  final AppDatabase _db;
 
-  BioDataService({required this.networkAPI});
+  BioDataService({required this.networkAPI, required AppDatabase db}) : _db = db;
 
   Future<List<BioData>> getAllBioDatas() async {
-    return await networkAPI.getData<List<BioData>>(
-      '/hr/bio-data',
-      builder: (data) {
-        if (data is List) {
+
+      final posDevices = await _db.getAllPosDevices();
+      final posKitchenId =
+          posDevices.isNotEmpty ? posDevices.first.kitchenId : null;
+
+      return await networkAPI.getData(
+        '/hr/bio-data',
+        queryParameters: {
+          if (posKitchenId != null && posKitchenId != 0)
+            'kitchenId': posKitchenId,
+        },
+        builder: (data) {
+           if (data is List) {
           return data
               .map((e) => BioData.fromMap(e as Map<String, dynamic>))
               .toList();
         }
         return [];
-      },
-    );
+        },
+      );
+
+    
+   
+    
   }
 
-  Future<List<BioData>> getBioDatasByStaffId(String staffId) async {
+  Future<List<BioData>> getBioDatasByStaffId(int staffId) async {
     return await networkAPI.getData<List<BioData>>(
       'hr/bio-data',
       queryParameters: {"staffId": staffId},
@@ -38,7 +52,7 @@ class BioDataService {
   }
 
   Future<bool> createBioData(
-    String staffId,
+    int staffId,
     List<BioData> bioDatas,
   ) async {
 
@@ -55,7 +69,6 @@ class BioDataService {
       '/hr/bio-data/create-bulk',
       data: payload,
       builder: (data) {
-        log("data result $data");
         if(data != null){
           return true;
         }

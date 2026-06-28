@@ -1,14 +1,15 @@
 import 'dart:convert';
+import 'dart:developer';
 import 'package:agc_canteen/core/network/api_exceptions_util.dart';
 import 'package:drift/drift.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:logger/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'database/app_database.dart';
-import 'activity_log_service.dart';
-import 'auth/admin_auth_service.dart';
-import '../core/di/injection_container.dart';
-import '../core/network/network_api_dio.dart';
+import '../database/app_database.dart';
+import '../database/activity_log_service.dart';
+import '../auth/admin_auth_service.dart';
+import '../../core/di/injection_container.dart';
+import '../../core/network/network_api_dio.dart';
 
 enum SyncStatus { idle, syncing, success, error }
 
@@ -83,19 +84,13 @@ class SyncService {
     }
 
     const tableOrder = [
-      'sites',
-      'kitchens',
-      'menu_types',
-      'meal_types',
-      'meals',
-      'staff',
-      'users',
+     // 'sites',
+     // 'kitchens',
+    //  'staff',
+     // 'users',
       'orders',
-      'order_items',
-      'group_orders',
-      'group_order_items',
-      'overcharges',
-      'pos_devices',
+      //'group_orders',
+     // 'pos_devices',
     ];
 
     try {
@@ -154,13 +149,20 @@ class SyncService {
 
       final List<Map<String, dynamic>> payloads = [];
       for (final order in orders) {
+   
         payloads.add(await _buildSingleOrderPayload(order));
       }
+ 
+      log(payloads.first.toString());
       try {
         await _networkAPI.postData(
           '/pos/order/create-bulk',
           data: {'orders': payloads},
-          builder: (data) => data,
+          builder: (data)  {
+            log(data.toString());
+            return data;
+
+          },
         );
 
         for (final order in orders) {
@@ -232,14 +234,6 @@ class SyncService {
     return SyncResult(pushed: pushed, pulled: pulled, errors: errors);
   }
 
-  Future<int> _resolveMealTypeIdFromMealId(String mealId) async {
-    final meal = await _db.getMeal(mealId);
-    if (meal != null && meal.mealTypeId.isNotEmpty) {
-      return int.tryParse(meal.mealTypeId) ?? 0;
-    }
-    return 0;
-  }
-
   Future<int> _resolveOrderedBy() async {
     try {
       final cachedEmail = await getIt<AdminAuthService>().getCachedEmail();
@@ -249,7 +243,7 @@ class SyncService {
           (u) => (u.email?.toLowerCase() ?? '') == cachedEmail.toLowerCase(),
         );
         if (match.isNotEmpty) {
-          return int.tryParse(match.first.id) ?? 0;
+          return match.first.id;
         }
       }
     } catch (_) {}
@@ -257,59 +251,60 @@ class SyncService {
   }
 
   Future<Map<String, dynamic>> _buildSingleOrderPayload(Order order) async {
-    final items = await _db.getOrderItems(order.id);
-    final posId = await _db.getAllPosDevices().then(
+
+      final posId = await _db.getAllPosDevices().then(
       (pos) => pos.firstOrNull?.id,
     );
-    final mealTypeId = items.isNotEmpty
-        ? await _resolveMealTypeIdFromMealId(items.first.mealId)
-        : 0;
+    final kitchenid = await _db.getAllPosDevices().then(
+      (pos) => pos.firstOrNull?.kitchenId,
+    );
+
+    final allTypes = await _db.getAllMealTypes();
+    final mealTypeId = allTypes
+        .where((t) => t.name.toLowerCase() == order.mealType.toLowerCase())
+        .firstOrNull
+        ?.id;
+
+        
+
     return {
       'uuid': order.uuid,
       'orderType': order.orderType,
-      'mealTypeId': mealTypeId,
+      'mealTypeId': mealTypeId ?? 0,
       'total': order.total,
-      'orderedBy': int.tryParse(order.orderedById) ?? 0,
+      'orderedBy': order.orderedById,
       'description': order.description ?? '',
       'isAlaCarte': order.orderType == 'alacarte',
-      'posProfileId': int.tryParse(posId ?? '') ?? 0,
-      'createdAt':'',
-      'items': items
-          .map(
-            (i) => {
-              'mealId': int.tryParse(i.mealId) ?? 0,
-              'unitPrice': i.price,
-              'quantity': i.qty
-            },
-          )
-          .toList(),
+      'posProfileId': posId ?? 0,
+      'kitchenId': kitchenid,
+      'quantity': 1,
+      'createdAt': '',
     };
+
   }
 
   Future<Map<String, dynamic>> _buildGroupOrderPayload(GroupOrder order) async {
-    final items = await _db.getGroupOrderItems(order.id);
-    final mealTypeId = items.isNotEmpty
-        ? await _resolveMealTypeIdFromMealId(items.first.mealId)
-        : 0;
     final posId = await _db.getAllPosDevices().then(
       (pos) => pos.firstOrNull?.id,
     );
+    final kitchenid = await _db.getAllPosDevices().then(
+      (pos) => pos.firstOrNull?.kitchenId,
+    );
+
+    final allTypes = await _db.getAllMealTypes();
+    final mealTypeId = allTypes
+        .where((t) => t.name.toLowerCase() == order.mealType.toLowerCase())
+        .firstOrNull
+        ?.id;
+
     return {
       'uuid': order.uuid,
       'orderType': order.orderType,
-      'mealTypeId': mealTypeId,
+      'mealTypeId': mealTypeId ?? 0,
       'total': order.total,
       'orderedBy': await _resolveOrderedBy(),
-      'items': items
-          .map(
-            (i) => {
-              'mealId': int.tryParse(i.mealId) ?? 0,
-              'unitPrice': i.price,
-              'quantity': i.qty,
-            },
-          )
-          .toList(),
-      'posProfileId': int.tryParse(posId ?? '') ?? 0,
+      'kitchenId': kitchenid,
+      'posProfileId': posId ?? 0,
     };
   }
 
@@ -321,11 +316,11 @@ class SyncService {
     for (final record in unsynced) {
       try {
         final data = _toJsonMap(record);
-        final id = record['id'] as String? ?? '';
-        if (id.isEmpty) continue;
+        final id = (record['id'] as num?)?.toInt() ?? 0;
+        if (id == 0) continue;
 
         await _networkAPI.postData(
-          '/api/sync/$table',
+          '/pos/order/create-bulk',
           data: data,
           builder: (data) => data,
         );
@@ -333,8 +328,8 @@ class SyncService {
         pushed++;
       } catch (e) {
         _logger.w('Failed to push $table record: $e');
-        final id = record['id'] as String?;
-        if (id != null) await _markFailed(table, id);
+        final id = (record['id'] as num?)?.toInt();
+        if (id != null && id != 0) await _markFailed(table, id);
       }
     }
     return pushed;
@@ -358,12 +353,12 @@ class SyncService {
       if (records.isEmpty) return 0;
 
       int pulled = 0;
-      final remoteIds = <String>{};
+      final remoteIds = <int>{};
       for (final record in records) {
         final map = record as Map<String, dynamic>;
         await _upsertTable(table, map);
-        final id = map['id']?.toString();
-        if (id != null && id.isNotEmpty) remoteIds.add(id);
+        final id = (map['id'] as num?)?.toInt();
+        if (id != null) remoteIds.add(id);
         pulled++;
       }
 
@@ -385,94 +380,58 @@ class SyncService {
         return (await _db.getUnsyncedSites()).map(_rowToMap).toList();
       case 'kitchens':
         return (await _db.getUnsyncedKitchens()).map(_rowToMap).toList();
-      case 'menu_types':
-        return (await _db.getUnsyncedMenuTypes()).map(_rowToMap).toList();
-      case 'meal_types':
-        return (await _db.getUnsyncedMealTypes()).map(_rowToMap).toList();
-      case 'meals':
-        return (await _db.getUnsyncedMeals()).map(_rowToMap).toList();
       case 'staff':
         return (await _db.getUnsyncedStaff()).map(_rowToMap).toList();
       case 'users':
         return (await _db.getUnsyncedUsers()).map(_rowToMap).toList();
       case 'orders':
         return (await _db.getUnsyncedOrders()).map(_rowToMap).toList();
-      case 'order_items':
-        return (await _db.getUnsyncedOrderItems()).map(_rowToMap).toList();
-      case 'overcharges':
-        return (await _db.getUnsyncedOvercharges()).map(_rowToMap).toList();
       case 'pos_devices':
         return (await _db.getUnsyncedPosDevices()).map(_rowToMap).toList();
       case 'group_orders':
         return (await _db.getUnsyncedGroupOrders()).map(_rowToMap).toList();
-      case 'group_order_items':
-        return (await _db.getUnsyncedGroupOrderItems()).map(_rowToMap).toList();
       default:
         return [];
     }
   }
 
-  Future<void> _markSynced(String table, String id) async {
+  Future<void> _markSynced(String table, int id) async {
     switch (table) {
       case 'sites':
         await _db.markSiteSynced(id);
       case 'kitchens':
         await _db.markKitchenSynced(id);
-      case 'menu_types':
-        await _db.markMenuTypeSynced(id);
-      case 'meal_types':
-        await _db.markMealTypeSynced(id);
-      case 'meals':
-        await _db.markMealSynced(id);
       case 'staff':
         await _db.markStaffSynced(id);
       case 'users':
         await _db.markUserSynced(id);
       case 'orders':
         await _db.markOrderSynced(id);
-      case 'order_items':
-        await _db.markOrderItemSynced(id);
-      case 'overcharges':
-        await _db.markOverchargeSynced(id);
       case 'pos_devices':
         await _db.markPosDeviceSynced();
         return;
       case 'group_orders':
         await _db.markGroupOrderSynced(id);
-      case 'group_order_items':
-        await _db.markGroupOrderItemSynced(id);
     }
   }
 
-  Future<void> _markFailed(String table, String id) async {
+  Future<void> _markFailed(String table, int id) async {
     switch (table) {
       case 'sites':
         await _db.markSiteFailed(id);
       case 'kitchens':
         await _db.markKitchenFailed(id);
-      case 'menu_types':
-        await _db.markMenuTypeFailed(id);
-      case 'meal_types':
-        await _db.markMealTypeFailed(id);
-      case 'meals':
-        await _db.markMealFailed(id);
       case 'staff':
         await _db.markStaffFailed(id);
       case 'users':
         await _db.markUserFailed(id);
       case 'orders':
         await _db.markOrderFailed(id);
-      case 'order_items':
-        await _db.markOrderItemFailed(id);
-      case 'overcharges':
-        await _db.markOverchargeFailed(id);
       case 'pos_devices':
         await _db.markPosDeviceFailed();
         return;
       case 'group_orders':
         await _db.markGroupOrderFailed(id);
-      case 'group_order_items':
-        await _db.markGroupOrderItemFailed(id);
     }
   }
 
@@ -483,7 +442,7 @@ class SyncService {
       case 'sites':
         await _db.insertSite(
           SitesCompanion(
-            id: Value(data['id'] as String),
+            id: Value((data['id'] as num).toInt()),
             name: Value(data['name'] as String),
             location: Value.absentIfNull(data['location'] as String?),
             noOfEmployees: Value(
@@ -492,8 +451,6 @@ class SyncService {
             isActive: Value((data['is_active'] as bool?) ?? true),
             startDate: Value.absentIfNull(data['start_date'] as String?),
             endDate: Value.absentIfNull(data['end_date'] as String?),
-            createdAt: Value(data['created_at'] as String),
-            updatedAt: Value(data['updated_at'] as String),
             syncStatus: const Value(2),
             syncUpdatedAt: Value(now),
           ),
@@ -502,75 +459,35 @@ class SyncService {
       case 'kitchens':
         await _db.insertKitchen(
           KitchensCompanion(
-            id: Value(data['id'] as String),
+            id: Value((data['id'] as num).toInt()),
             name: Value(data['name'] as String),
             minTierRequired: Value((data['min_tier_required'] as num).toInt()),
             status: Value(data['status'] as String),
-            companyId: Value(data['company_id'] as String),
-            createdAt: Value(data['created_at'] as String),
-            updatedAt: Value(data['updated_at'] as String),
+            companyId: Value((data['company_id'] as num).toInt()),
             syncStatus: const Value(2),
             syncUpdatedAt: Value(now),
           ),
           mode: InsertMode.insertOrReplace,
-        );
-      case 'menu_types':
-        await _db.insertMenuType(
-          MenuTypesCompanion(
-            id: Value(data['id'] as String),
-            name: Value(data['name'] as String),
-            remarks: Value.absentIfNull(data['remarks'] as String?),
-            status: Value(data['status'] as String),
-            createdAt: Value(data['created_at'] as String),
-            updatedAt: Value(data['updated_at'] as String),
-            syncStatus: const Value(2),
-            syncUpdatedAt: Value(now),
-          ),
-          mode: InsertMode.insertOrReplace,
-        );
-      case 'meal_types':
-        await _db.insertMealType(
-          MealTypesCompanion(
-            id: Value(data['id'] as String),
-            name: Value(data['name'] as String),
-            status: Value(data['status'] as String),
-            beginTime: Value(data['begin_time'] as String),
-            endTime: Value(data['end_time'] as String),
-            remarks: Value.absentIfNull(data['remarks'] as String?),
-            createdAt: Value(data['created_at'] as String),
-            updatedAt: Value(data['updated_at'] as String),
-            syncStatus: const Value(2),
-            syncUpdatedAt: Value(now),
-          ),
-          mode: InsertMode.insertOrReplace,
-        );
-      case 'meals':
-        await _db.insertMeal(
-          MealsCompanion(
-            id: Value(data['id'] as String),
-            name: Value(data['name'] as String),
-            status: Value(data['status'] as String),
-            mealType: Value(data['meal_type'] as String),
-            mealTypeId: Value(data['meal_type_id'] as String? ?? ''),
-            remarks: Value.absentIfNull(data['remarks'] as String?),
-            price: Value((data['price'] as num).toDouble()),
-            photoUrl: Value.absentIfNull(data['photo_url'] as String?),
-            menuTypeId: Value(data['menu_type_id'] as String),
-            createdAt: Value(data['created_at'] as String),
-            updatedAt: Value(data['updated_at'] as String),
-            syncStatus: const Value(2),
-            syncUpdatedAt: Value(now),
-          ),
-          (data['kitchen_ids'] as List<dynamic>?)?.cast<String>() ?? [],
         );
       case 'staff':
         await _db.insertStaff(
           StaffCompanion(
-            id: Value(data['id'] as String),
+            id: Value((data['id'] as num).toInt()),
+            empId: Value(data['emp_id'] as String),
             firstName: Value(data['first_name'] as String),
             lastName: Value(data['last_name'] as String),
-            phone: Value.absentIfNull(data['phone'] as String?),
-            email: Value.absentIfNull(data['email'] as String?),
+            employeeType: Value(data['employee_type'] as String),
+            companyId: Value.absentIfNull((data['company_id'] as num?)?.toInt()),
+            jobTitle: Value.absentIfNull(data['job_title'] as String?),
+            empStatus: Value.absentIfNull(data['emp_status'] as String?),
+            startDate: Value.absentIfNull(data['start_date'] as String?),
+            endDate: Value.absentIfNull(data['end_date'] as String?),
+            allowGroupOrder: Value.absentIfNull(data['allow_group_order'] as bool?),
+            maxOrderCount: Value.absentIfNull((data['max_order_count'] as num?)?.toInt()),
+            shiftId: Value.absentIfNull((data['shift_id'] as num?)?.toInt()),
+            totalDependant: Value.absentIfNull((data['total_dependant'] as num?)?.toInt()),
+            noOfDependantAssigned: Value.absentIfNull((data['no_of_dependant_assigned'] as num?)?.toInt()),
+            departmentId: Value.absentIfNull((data['department_id'] as num?)?.toInt()),
             syncStatus: const Value(2),
             syncUpdatedAt: Value(now),
           ),
@@ -579,7 +496,7 @@ class SyncService {
       case 'users':
         await _db.insertUser(
           UsersCompanion(
-            id: Value(data['id'] as String),
+            id: Value((data['id'] as num).toInt()),
             firstName: Value(data['first_name'] as String),
             lastName: Value(data['last_name'] as String),
             email: Value.absentIfNull(data['email'] as String?),
@@ -594,12 +511,12 @@ class SyncService {
             syncStatus: const Value(2),
             syncUpdatedAt: Value(now),
           ),
-          (data['kitchen_ids'] as List<dynamic>?)?.cast<String>() ?? [],
+          (data['kitchen_ids'] as List<dynamic>?)?.map((e) => (e as num).toInt()).toList() ?? [],
         );
       case 'orders':
         await _db.insertOrder(
           OrdersCompanion(
-            id: Value(data['id'] as String),
+            id: Value((data['id'] as num).toInt()),
             uuid: Value(data['uuid'] as String),
             orderCode: Value(data['order_code'] as String),
             status: Value(data['status'] as String),
@@ -608,54 +525,23 @@ class SyncService {
             total: Value((data['total'] as num).toDouble()),
             groupCount: Value((data['group_count'] as num).toInt()),
             description: Value.absentIfNull(data['description'] as String?),
-            orderedById: Value(data['ordered_by_id'] as String),
+            orderedById: Value((data['ordered_by_id'] as num).toInt()),
             createdAt: Value(data['created_at'] as String),
             updatedAt: Value(data['updated_at'] as String),
             syncStatus: const Value(2),
             syncUpdatedAt: Value(now),
           ),
-          (data['order_items'] as List<dynamic>?)?.map((item) {
-                final i = item as Map<String, dynamic>;
-                return OrderItemsCompanion(
-                  id: Value(i['id'] as String),
-                  price: Value((i['price'] as num).toDouble()),
-                  qty: Value((i['qty'] as num).toInt()),
-                  mealId: Value(i['meal_id'] as String),
-                  orderId: Value(data['id'] as String),
-                  createdAt: Value(i['created_at'] as String),
-                  updatedAt: Value(i['updated_at'] as String),
-                  syncStatus: const Value(2),
-                  syncUpdatedAt: Value(now),
-                );
-              }).toList() ??
-              [],
-        );
-      case 'overcharges':
-        await _db.insertOvercharge(
-          OverchargesCompanion(
-            id: Value(data['id'] as String),
-            mealType: Value(data['meal_type'] as String),
-            orderCode: Value(data['order_code'] as String),
-            price: Value((data['price'] as num).toDouble()),
-            staffId: Value(data['staff_id'] as String),
-            mealId: Value(data['meal_id'] as String),
-            createdAt: Value(data['created_at'] as String),
-            updatedAt: Value(data['updated_at'] as String),
-            syncStatus: const Value(2),
-            syncUpdatedAt: Value(now),
-          ),
-          mode: InsertMode.insertOrReplace,
         );
       case 'pos_devices':
         await _db.insertPosDevice(
           PosDevicesCompanion(
-            id: Value(data['id'] as String),
+            id: Value((data['id'] as num).toInt()),
             name: Value(data['name'] as String),
             serialNumber: Value(data['serial_number'] as String),
             model: Value.absentIfNull(data['model'] as String?),
             status: Value(data['status'] as String),
             macAddress: Value.absentIfNull(data['mac_address'] as String?),
-            kitchenId: Value.absentIfNull(data['kitchen_id'] as String?),
+            kitchenId: Value.absentIfNull((data['kitchen_id'] as num?)?.toInt()),
             kitchenName: Value.absentIfNull(data['kitchen_name'] as String?),
             createdAt: Value(data['created_at'] as String),
             updatedAt: Value(data['updated_at'] as String),
@@ -669,25 +555,17 @@ class SyncService {
 
   /// Deletes locally synced records that are missing from the remote set.
   /// Only tables where remote is the source-of-truth are cleaned.
-  Future<void> _cleanupStaleRecords(String table, Set<String> remoteIds) async {
+  Future<void> _cleanupStaleRecords(String table, Set<int> remoteIds) async {
     switch (table) {
       case 'sites':
         await _db.deleteSitesNotIn(remoteIds);
       case 'kitchens':
         await _db.deleteKitchensNotIn(remoteIds);
-      case 'menu_types':
-        await _db.deleteMenuTypesNotIn(remoteIds);
-      case 'meal_types':
-        await _db.deleteMealTypesNotIn(remoteIds);
-      case 'meals':
-        await _db.deleteMealsNotIn(remoteIds);
       case 'staff':
         await _db.deleteStaffNotIn(remoteIds);
       case 'users':
         await _db.deleteUsersNotIn(remoteIds);
-      // tables skipped: orders, order_items, group_orders,
-      // group_order_items, overcharges, pos_devices, bio_data —
-      // these are local-first or handled separately.
+      // tables skipped: orders, group_orders, pos_devices, bio_data —
     }
   }
 

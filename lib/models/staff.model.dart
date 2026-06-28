@@ -3,122 +3,190 @@ import 'dependant.model.dart';
 import 'kitchen.model.dart';
 
 class Staff {
-  final String id;
+  final int id;
   final String empId;
   final String firstName;
   final String lastName;
-  final int tier;
-  final String level;
+  final int? companyId;
+  final String? jobTitle;
+  final String? empStatus;
+  final String employeeType;
+  final DateTime? startDate;
+  final DateTime? endDate;
+  final bool? allowGroupOrder;
+  final int? maxOrderCount;
+  final int? shiftId;
   final List<BioData>? bioData;
-  final String? staffType;
   final int? totalDependant;
+  final List<dynamic> card;
   final int? noOfDependantAssigned;
   final Department? department;
   final List<Kitchen>? kitchens;
   final List<Dependant>? dependants;
-  final DateTime createdAt;
-  final DateTime? updatedAt;
 
   const Staff({
     required this.id,
     required this.empId,
     required this.firstName,
     required this.lastName,
-    required this.tier,
-    required this.level,
-    this.staffType,
+    this.companyId,
+    this.jobTitle,
+    this.empStatus,
+    required this.employeeType,
+    this.startDate,
+    this.endDate,
+    this.allowGroupOrder,
+    this.maxOrderCount,
+    this.shiftId,
     this.bioData,
     this.totalDependant,
+    this.card = const [],
     this.noOfDependantAssigned,
     this.department,
     this.kitchens,
     this.dependants,
-    required this.createdAt,
-    this.updatedAt,
   });
 
   factory Staff.fromMap(Map<String, dynamic> map) {
     return Staff(
-      id: map['id'] as String,
+      id: map['id'] as int,
       empId: map['emp_id'] as String,
       firstName: map['first_name'] as String,
       lastName: map['last_name'] as String,
-      tier: map['tier'] as int,
-      level: map['level'] as String,
-      staffType: map['staff_type'] as String?,
+      companyId: map['company_id'] as int?,
+      jobTitle: map['job_title'] as String?,
+      empStatus: map['emp_status'] as String?,
+      employeeType: map['employee_type'] as String,
+      startDate: map['start_date'] != null
+          ? DateTime.parse(map['start_date'] as String)
+          : null,
+      endDate: map['end_date'] != null
+          ? DateTime.parse(map['end_date'] as String)
+          : null,
+      allowGroupOrder: map['allow_group_order'] as bool?,
+      maxOrderCount: map['max_order_count'] as int?,
+      shiftId: map['shift_id'] as int?,
       totalDependant: map['total_dependant'] as int?,
-      bioData: (map['bioData'] as List<dynamic>)
-          .map((item) => BioData.fromMap(item as Map<String, dynamic>))
-          .toList(),
+      card: (map['card'] as List<dynamic>?) ?? [],
       noOfDependantAssigned: map['no_of_dependant_assigned'] as int?,
-      department: Department.fromMap(map['department'] as Map<String, dynamic>),
-      kitchens: (map['kitchens'] as List<dynamic>)
-          .map((item) => Kitchen.fromMap(item as Map<String, dynamic>))
-          .toList(),
-      dependants: (map['dependants'] as List<dynamic>)
-          .map((item) => Dependant.fromMap(item as Map<String, dynamic>))
-          .toList(),
-      createdAt: DateTime.parse(map['created_at'] as String),
-      updatedAt: map['updated_at'] != null
-          ? DateTime.parse(map['updated_at'] as String)
+      bioData: map['bioData'] != null
+          ? (map['bioData'] as List<dynamic>)
+              .map((item) => BioData.fromMap(item as Map<String, dynamic>))
+              .toList()
+          : null,
+      department: map['department'] != null
+          ? Department.fromMap(map['department'] as Map<String, dynamic>)
+          : null,
+      kitchens: map['kitchens'] != null
+          ? (map['kitchens'] as List<dynamic>)
+              .map((item) => Kitchen.fromMap(item as Map<String, dynamic>))
+              .toList()
+          : null,
+      dependants: map['dependants'] != null
+          ? (map['dependants'] as List<dynamic>)
+              .map((item) => Dependant.fromMap(item as Map<String, dynamic>))
+              .toList()
           : null,
     );
   }
 
+  Map<String, dynamic> toLocalDatabase() {
+    return {
+
+      'id': id,
+      'emp_id': empId,
+      'first_name': firstName,
+      'last_name': lastName,
+      'company_id': companyId,
+      'job_title': jobTitle,
+      'emp_status': empStatus,
+      'employee_type': employeeType,
+      'start_date': startDate?.toIso8601String(),
+      'end_date': endDate?.toIso8601String(),
+      'allow_group_order': allowGroupOrder,
+      'max_order_count': maxOrderCount,
+      'shift_id': shiftId,
+      'total_dependant': totalDependant,
+      'cardIds': card,
+      'no_of_dependant_assigned': noOfDependantAssigned,
+      'departmentId': department?.id,
+      'bioDataIds': bioData?.map((item) => item.id).toList(),
+      'kitchensIds': kitchens?.map((item) => item.id).toList(),
+      'dependantsIds': dependants?.map((item) => item.id).toList(),
+
+    };
+  }
+
+  
   Map<String, dynamic> toMap() {
     return {
       'id': id,
       'emp_id': empId,
       'first_name': firstName,
       'last_name': lastName,
-      'tier': tier,
-      'level': level,
-      'staff_type': staffType,
+      'company_id': companyId,
+      'job_title': jobTitle,
+      'emp_status': empStatus,
+      'employee_type': employeeType,
+      'start_date': startDate?.toIso8601String(),
+      'end_date': endDate?.toIso8601String(),
+      'allow_group_order': allowGroupOrder,
+      'max_order_count': maxOrderCount,
+      'shift_id': shiftId,
       'total_dependant': totalDependant,
+      'card': card,
       'no_of_dependant_assigned': noOfDependantAssigned,
       'department': department?.toMap(),
       'bioData': bioData?.map((item) => item.toMap()).toList(),
       'kitchens': kitchens?.map((item) => item.toMap()).toList(),
       'dependants': dependants?.map((item) => item.toMap()).toList(),
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt?.toIso8601String(),
     };
   }
 
   Staff copyWith({
-    String? id,
+    int? id,
     String? empId,
     String? firstName,
     String? lastName,
-    int? tier,
-    String? level,
-    String? staffType,
+    int? companyId,
+    String? jobTitle,
+    String? empStatus,
+    String? employeeType,
+    DateTime? startDate,
+    DateTime? endDate,
+    bool? allowGroupOrder,
+    int? maxOrderCount,
+    int? shiftId,
     int? totalDependant,
+    List<dynamic>? card,
     int? noOfDependantAssigned,
     Department? department,
     List<BioData>? bioData,
     List<Kitchen>? kitchens,
     List<Dependant>? dependants,
-    DateTime? createdAt,
-    DateTime? updatedAt,
   }) {
     return Staff(
       id: id ?? this.id,
       empId: empId ?? this.empId,
       firstName: firstName ?? this.firstName,
       lastName: lastName ?? this.lastName,
-      tier: tier ?? this.tier,
-      level: level ?? this.level,
-      staffType: staffType ?? this.staffType,
-      bioData: bioData ?? this.bioData,
+      companyId: companyId ?? this.companyId,
+      jobTitle: jobTitle ?? this.jobTitle,
+      empStatus: empStatus ?? this.empStatus,
+      employeeType: employeeType ?? this.employeeType,
+      startDate: startDate ?? this.startDate,
+      endDate: endDate ?? this.endDate,
+      allowGroupOrder: allowGroupOrder ?? this.allowGroupOrder,
+      maxOrderCount: maxOrderCount ?? this.maxOrderCount,
+      shiftId: shiftId ?? this.shiftId,
       totalDependant: totalDependant ?? this.totalDependant,
+      card: card ?? this.card,
       noOfDependantAssigned:
           noOfDependantAssigned ?? this.noOfDependantAssigned,
       department: department ?? this.department,
+      bioData: bioData ?? this.bioData,
       kitchens: kitchens ?? this.kitchens,
       dependants: dependants ?? this.dependants,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 }
@@ -127,7 +195,7 @@ class BioData {
   int id;
   Finger finger;
   String data;
-  String staffId;
+  int staffId;
   bool isActive;
   DateTime? createdAt;
   DateTime? updatedAt;
@@ -147,10 +215,14 @@ class BioData {
       id: map['id'] as int,
       finger: Finger.values.firstWhere((f) => f.name == map['finger']),
       data: map['data'] as String,
-      staffId: map['staffId'] as String,
+      staffId: map['staffId'] as int,
       isActive: map['isActive'] as bool,
-      createdAt: DateTime.parse(map['createdAt']),
-      updatedAt: DateTime.parse(map['updatedAt']),
+      createdAt: map['createdAt'] != null
+          ? DateTime.tryParse(map['createdAt'] as String)
+          : null,
+      updatedAt: map['updatedAt'] != null
+          ? DateTime.tryParse(map['updatedAt'] as String)
+          : null,
     );
   }
 

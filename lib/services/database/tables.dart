@@ -1,15 +1,13 @@
 import 'package:drift/drift.dart';
 
 class Sites extends Table {
-  TextColumn get id => text()();
+  IntColumn get id => integer()();
   TextColumn get name => text()();
   TextColumn get location => text().nullable()();
   IntColumn get noOfEmployees => integer().withDefault(const Constant(0))();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
   TextColumn get startDate => text().nullable()();
   TextColumn get endDate => text().nullable()();
-  TextColumn get createdAt => text()();
-  TextColumn get updatedAt => text()();
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();
   TextColumn get syncUpdatedAt => text().nullable()();
 
@@ -17,14 +15,43 @@ class Sites extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+class Departments extends Table {
+  IntColumn get id => integer()();
+  TextColumn get name => text()();
+  IntColumn get companyId => integer().references(Sites, #id)();
+  IntColumn get syncStatus => integer().withDefault(const Constant(0))();
+  TextColumn get syncUpdatedAt => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class Shifts extends Table {
+  IntColumn get id => integer()();
+  TextColumn get name => text()();
+  IntColumn get hours => integer()();
+  IntColumn get companyId => integer().references(Sites, #id)();
+  IntColumn get syncStatus => integer().withDefault(const Constant(0))();
+  TextColumn get syncUpdatedAt => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class ShiftMealTypes extends Table {
+  IntColumn get shiftId => integer().references(Shifts, #id)();
+  IntColumn get mealTypeId => integer().references(MealTypes, #id)();
+
+  @override
+  Set<Column> get primaryKey => {shiftId, mealTypeId};
+}
+
 class Kitchens extends Table {
-  TextColumn get id => text()();
+  IntColumn get id => integer()();
   TextColumn get name => text()();
   IntColumn get minTierRequired => integer()();
   TextColumn get status => text()();
-  TextColumn get companyId => text().nullable().references(Sites, #id)();
-  TextColumn get createdAt => text()();
-  TextColumn get updatedAt => text()();
+  IntColumn get companyId => integer().nullable().references(Sites, #id)();
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();
   TextColumn get syncUpdatedAt => text().nullable()();
 
@@ -33,7 +60,7 @@ class Kitchens extends Table {
 }
 
 class MenuTypes extends Table {
-  TextColumn get id => text()();
+  IntColumn get id => integer()();
   TextColumn get name => text()();
   TextColumn get remarks => text().nullable()();
   TextColumn get status => text()();
@@ -47,11 +74,12 @@ class MenuTypes extends Table {
 }
 
 class MealTypes extends Table {
-  TextColumn get id => text()();
+  IntColumn get id => integer()();
   TextColumn get name => text()();
   TextColumn get status => text()();
   TextColumn get beginTime => text()();
   TextColumn get endTime => text()();
+  RealColumn get price => real().withDefault(const Constant(0))();
   TextColumn get remarks => text().nullable()();
   TextColumn get createdAt => text()();
   TextColumn get updatedAt => text()();
@@ -60,41 +88,66 @@ class MealTypes extends Table {
 
   @override
   Set<Column> get primaryKey => {id};
-}
-
-class Meals extends Table {
-  TextColumn get id => text()();
-  TextColumn get name => text()();
-  TextColumn get status => text()();
-  TextColumn get mealType => text()();
-  TextColumn get mealTypeId => text().references(MealTypes, #id)();
-  TextColumn get remarks => text().nullable()();
-  RealColumn get price => real()();
-  TextColumn get photoUrl => text().nullable()();
-  TextColumn get menuTypeId => text().references(MenuTypes, #id)();
-  TextColumn get createdAt => text()();
-  TextColumn get updatedAt => text()();
-  IntColumn get syncStatus => integer().withDefault(const Constant(0))();
-  TextColumn get syncUpdatedAt => text().nullable()();
-
-  @override
-  Set<Column> get primaryKey => {id};
-}
-
-class MealKitchens extends Table {
-  TextColumn get mealId => text().references(Meals, #id)();
-  TextColumn get kitchenId => text().references(Kitchens, #id)();
-
-  @override
-  Set<Column> get primaryKey => {mealId, kitchenId};
 }
 
 class Staff extends Table {
-  TextColumn get id => text()();
+  IntColumn get id => integer()();
+  TextColumn get empId => text()();
   TextColumn get firstName => text()();
   TextColumn get lastName => text()();
-  TextColumn get phone => text().nullable()();
-  TextColumn get email => text().nullable()();
+  IntColumn get companyId => integer().nullable().references(Sites, #id)();
+  TextColumn get jobTitle => text().nullable()();
+  TextColumn get empStatus => text().nullable()();
+  TextColumn get employeeType => text()();
+  TextColumn get startDate => text().nullable()();
+  TextColumn get endDate => text().nullable()();
+  BoolColumn get allowGroupOrder => boolean().nullable()();
+  IntColumn get maxOrderCount => integer().nullable()();
+  IntColumn get shiftId => integer().nullable()();
+  IntColumn get totalDependant => integer().nullable()();
+  IntColumn get noOfDependantAssigned => integer().nullable()();
+  IntColumn get departmentId => integer().nullable().references(Departments, #id)();
+  IntColumn get syncStatus => integer().withDefault(const Constant(0))();
+  TextColumn get syncUpdatedAt => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class StaffKitchens extends Table {
+  IntColumn get staffId => integer().references(Staff, #id)();
+  IntColumn get kitchenId => integer().references(Kitchens, #id)();
+
+  @override
+  Set<Column> get primaryKey => {staffId, kitchenId};
+}
+
+class Dependants extends Table {
+  IntColumn get id => integer()();
+  TextColumn get firstName => text()();
+  TextColumn get lastName => text()();
+  TextColumn get status => text()();
+  TextColumn get gender => text().nullable()();
+  IntColumn get staffId => integer().references(Staff, #id)();
+  IntColumn get syncStatus => integer().withDefault(const Constant(0))();
+  TextColumn get syncUpdatedAt => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class Cards extends Table {
+  IntColumn get id => integer()();
+  TextColumn get serialNumber => text()();
+  TextColumn get status => text()();
+  BoolColumn get isEncoded => boolean().withDefault(const Constant(false))();
+  BoolColumn get isAssigned => boolean().withDefault(const Constant(false))();
+  IntColumn get totalScanCount => integer().withDefault(const Constant(0))();
+  TextColumn get issuedDate => text().nullable()();
+  TextColumn get expiryDate => text().nullable()();
+  TextColumn get lastUsedAt => text().nullable()();
+  TextColumn get uploadedAt => text()();
+  IntColumn get staffId => integer().nullable().references(Staff, #id)();
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();
   TextColumn get syncUpdatedAt => text().nullable()();
 
@@ -103,7 +156,7 @@ class Staff extends Table {
 }
 
 class Users extends Table {
-  TextColumn get id => text()();
+  IntColumn get id => integer()();
   TextColumn get firstName => text()();
   TextColumn get lastName => text()();
   TextColumn get email => text().nullable()();
@@ -123,15 +176,15 @@ class Users extends Table {
 }
 
 class UserKitchens extends Table {
-  TextColumn get userId => text().references(Users, #id)();
-  TextColumn get kitchenId => text().references(Kitchens, #id)();
+  IntColumn get userId => integer().references(Users, #id)();
+  IntColumn get kitchenId => integer().references(Kitchens, #id)();
 
   @override
   Set<Column> get primaryKey => {userId, kitchenId};
 }
 
 class Orders extends Table {
-  TextColumn get id => text()();
+  IntColumn get id => integer()();
   TextColumn get uuid => text()();
   TextColumn get orderCode => text()();
   TextColumn get status => text()();
@@ -140,38 +193,7 @@ class Orders extends Table {
   RealColumn get total => real()();
   IntColumn get groupCount => integer()();
   TextColumn get description => text().nullable()();
-  TextColumn get orderedById => text().references(Staff, #id)();
-  TextColumn get createdAt => text()();
-  TextColumn get updatedAt => text()();
-  IntColumn get syncStatus => integer().withDefault(const Constant(0))();
-  TextColumn get syncUpdatedAt => text().nullable()();
-
-  @override
-  Set<Column> get primaryKey => {id};
-}
-
-class OrderItems extends Table {
-  TextColumn get id => text()();
-  RealColumn get price => real()();
-  IntColumn get qty => integer()();
-  TextColumn get mealId => text().references(Meals, #id)();
-  TextColumn get orderId => text().references(Orders, #id)();
-  TextColumn get createdAt => text()();
-  TextColumn get updatedAt => text()();
-  IntColumn get syncStatus => integer().withDefault(const Constant(0))();
-  TextColumn get syncUpdatedAt => text().nullable()();
-
-  @override
-  Set<Column> get primaryKey => {id};
-}
-
-class Overcharges extends Table {
-  TextColumn get id => text()();
-  TextColumn get mealType => text()();
-  TextColumn get orderCode => text()();
-  RealColumn get price => real()();
-  TextColumn get staffId => text().references(Staff, #id)();
-  TextColumn get mealId => text().references(Meals, #id)();
+  IntColumn get orderedById => integer().references(Staff, #id)();
   TextColumn get createdAt => text()();
   TextColumn get updatedAt => text()();
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();
@@ -182,13 +204,13 @@ class Overcharges extends Table {
 }
 
 class PosDevices extends Table {
-  TextColumn get id => text()();
+  IntColumn get id => integer()();
   TextColumn get name => text()();
   TextColumn get serialNumber => text()();
   TextColumn get model => text().nullable()();
   TextColumn get status => text()();
   TextColumn get macAddress => text().nullable()();
-  TextColumn get kitchenId => text().nullable()();
+  IntColumn get kitchenId => integer().nullable()();
   TextColumn get kitchenName => text().nullable()();
   TextColumn get createdAt => text()();
   TextColumn get updatedAt => text()();
@@ -200,11 +222,11 @@ class PosDevices extends Table {
 }
 
 class ActivityLogs extends Table {
-  TextColumn get id => text()();
+  IntColumn get id => integer()();
   TextColumn get type => text()();
   TextColumn get message => text()();
   TextColumn get actorType => text().nullable()();
-  TextColumn get actorId => text().nullable()();
+  IntColumn get actorId => integer().nullable()();
   TextColumn get actorName => text().nullable()();
   TextColumn get sourceTable => text().nullable()();
   TextColumn get recordId => text().nullable()();
@@ -216,7 +238,7 @@ class ActivityLogs extends Table {
 }
 
 class GroupOrders extends Table {
-  TextColumn get id => text()();
+  IntColumn get id => integer()();
   TextColumn get uuid => text()();
   TextColumn get orderCode => text()();
   TextColumn get status => text()();
@@ -234,14 +256,46 @@ class GroupOrders extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-class GroupOrderItems extends Table {
-  TextColumn get id => text()();
-  RealColumn get price => real()();
-  IntColumn get qty => integer()();
-  TextColumn get mealId => text().references(Meals, #id)();
-  TextColumn get groupOrderId => text().references(GroupOrders, #id)();
-  TextColumn get createdAt => text()();
-  TextColumn get updatedAt => text()();
+class Contractors extends Table {
+  IntColumn get id => integer()();
+  TextColumn get name => text()();
+  TextColumn get status => text()();
+  IntColumn get noOfStaffs => integer().withDefault(const Constant(0))();
+  IntColumn get companyId => integer().references(Sites, #id)();
+  IntColumn get departmentId => integer().references(Departments, #id)();
+  IntColumn get syncStatus => integer().withDefault(const Constant(0))();
+  TextColumn get syncUpdatedAt => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class ContractorStaffTable extends Table {
+  IntColumn get id => integer()();
+  TextColumn get name => text()();
+  TextColumn get gender => text().nullable()();
+  IntColumn get contractorId => integer().references(Contractors, #id)();
+  IntColumn get companyId => integer().references(Sites, #id)();
+  IntColumn get departmentId => integer().references(Departments, #id)();
+  TextColumn get startDate => text()();
+  TextColumn get endDate => text()();
+  BoolColumn get isCharged => boolean().withDefault(const Constant(false))();
+  IntColumn get syncStatus => integer().withDefault(const Constant(0))();
+  TextColumn get syncUpdatedAt => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class Visitors extends Table {
+  IntColumn get id => integer()();
+  TextColumn get name => text()();
+  TextColumn get phone => text().nullable()();
+  TextColumn get company => text().nullable()();
+  TextColumn get purpose => text().nullable()();
+  TextColumn get visitDate => text()();
+  IntColumn get companyId => integer().nullable().references(Sites, #id)();
+  IntColumn get departmentId => integer().nullable().references(Departments, #id)();
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();
   TextColumn get syncUpdatedAt => text().nullable()();
 
@@ -250,12 +304,9 @@ class GroupOrderItems extends Table {
 }
 
 class BioDataEntries extends Table {
-  /// Remote API integer ID.
   IntColumn get id => integer()();
-  TextColumn get staffId => text().references(Staff, #id)();
-  /// Which finger this template belongs to (e.g. 'left_thumb', 'right_index').
+  IntColumn get staffId => integer().references(Staff, #id)();
   TextColumn get finger => text()();
-  /// Raw biometric template stored as a Base64 string.
   TextColumn get dataBase64 => text()();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
   TextColumn get createdAt => text()();

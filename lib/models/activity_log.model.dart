@@ -1,9 +1,9 @@
 class ActivityLogEntity {
-  final String id;
+  final int id;
   final String type;
   final String message;
   final String? actorType;
-  final String? actorId;
+  final int? actorId;
   final String? actorName;
   final String? sourceTable;
   final String? recordId;
@@ -25,11 +25,11 @@ class ActivityLogEntity {
 
   factory ActivityLogEntity.fromMap(Map<String, dynamic> map) {
     return ActivityLogEntity(
-      id: map['id'] as String,
+      id: map['id'] as int,
       type: map['type'] as String,
       message: map['message'] as String,
       actorType: map['actor_type'] as String?,
-      actorId: map['actor_id'] as String?,
+      actorId: map['actor_id'] as int?,
       actorName: map['actor_name'] as String?,
       sourceTable: map['source_table'] as String?,
       recordId: map['record_id'] as String?,

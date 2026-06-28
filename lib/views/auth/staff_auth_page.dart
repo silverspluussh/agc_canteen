@@ -12,7 +12,7 @@ import '../../controllers/auth_controller.dart';
 import '../../controllers/providers.dart';
 import '../../core/di/injection_container.dart';
 import '../../l10n/generated/app_localizations.dart';
-import '../../services/activity_log_service.dart';
+import '../../services/database/activity_log_service.dart';
 
 class StaffAuthPage extends ConsumerStatefulWidget {
   const StaffAuthPage({super.key});
@@ -32,8 +32,10 @@ class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
   }
 
   Future<void> _initFingerprint() async {
-    dev.log('[StaffAuthPage] Initializing fingerprint SDK...',
-        name: 'POS_AUTH');
+    dev.log(
+      '[StaffAuthPage] Initializing fingerprint SDK...',
+      name: 'POS_AUTH',
+    );
     try {
       final posAuth = ref.read(posAuthProvider);
       final ok = await posAuth.init();
@@ -44,12 +46,18 @@ class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
         });
       }
       if (ok) {
-        dev.log('[StaffAuthPage] Fingerprint SDK initialized successfully',
-            name: 'POS_AUTH');
+        dev.log(
+          '[StaffAuthPage] Fingerprint SDK initialized successfully',
+          name: 'POS_AUTH',
+        );
       }
     } catch (e, st) {
-      dev.log('[StaffAuthPage] Fingerprint SDK init FAILED: $e',
-          name: 'POS_AUTH', error: e, stackTrace: st);
+      dev.log(
+        '[StaffAuthPage] Fingerprint SDK init FAILED: $e',
+        name: 'POS_AUTH',
+        error: e,
+        stackTrace: st,
+      );
       if (mounted) setState(() => _fingerprintInitFailed = true);
     }
   }
@@ -200,19 +208,10 @@ class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
       canPop: false,
       child: Scaffold(
         appBar: AppBar(
+          backgroundColor: Colors.transparent,
           automaticallyImplyLeading: false,
           centerTitle: true,
-          // title: OutlineButton(
-          //   onPressed: _showLanguageDialog,
-          //   prefixChild: const Icon(Icons.translate),
-          //   label: Text(
-          //     AppLocalizations.of(context).changeLanguage,
-          //     style: TextStyle(
-          //       color: Theme.of(context).colorScheme.primary,
-          //       fontSize: 15,
-          //     ),
-          //   ),
-          // ),
+
           actions: [
             IconButton(
               onPressed: _showAdminCodeDialog,
@@ -232,22 +231,15 @@ class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
                 width: size.width,
                 height: size.height,
                 child: Padding(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(15),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      Text(
-                        AppLocalizations.of(context).staffSignIn,
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.headlineMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                      // const SizedBox(height: 20),
-                      const Spacer(),
+                      SizedBox(height: 20),
                       AvatarGlow(
                         glowColor: Theme.of(context).colorScheme.primary,
-                  
+
                         child: SvgPicture.asset(
                           'assets/illustrations/pos_auth_finger.svg',
                           width: 200,
@@ -255,7 +247,7 @@ class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
                         ),
                       ),
                       const Spacer(),
-                  
+
                       if (!_fingerprintReady && !_fingerprintInitFailed) ...[
                         const SizedBox(height: 20),
                         const LinearProgressIndicator(),
@@ -272,12 +264,12 @@ class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
                         const SizedBox(height: 20),
                         PrimaryButton(
                           width: 280,
-                          height: 56,
+                          height: 60,
                           onPressed: _startAuth,
                           prefixChild: const Icon(
                             Icons.fingerprint,
                             color: Colors.white,
-                            size: 28,
+                            size: 35,
                           ),
                           label: Text(
                             AppLocalizations.of(context).biometricLogin,
@@ -296,7 +288,15 @@ class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                       ],
-                      if (state.isAuthenticated && state.staff != null) ...[
+                      if (state.isPlacingOrder) ...[
+                        const LinearProgressIndicator(),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Printing voucher...',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ],
+                      if (state.isCompleted && state.orderCode != null) ...[
                         const Icon(
                           Icons.check_circle,
                           color: Colors.green,
@@ -304,8 +304,20 @@ class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          '${state.staff!.firstName} ${state.staff!.lastName}',
-                          style: Theme.of(context).textTheme.titleLarge,
+                          'Voucher Printed',
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green,
+                              ),
+                        ),
+                        const SizedBox(height: 16),
+                        _VoucherCard(
+                          orderCode: state.orderCode!,
+                          staffName:
+                              '${state.staff?.firstName ?? ""} ${state.staff?.lastName ?? ""}',
+                          mealType: state.mealType ?? '',
+                          orderTime: state.orderTime ?? '',
                         ),
                       ],
                       if (state.hasError) ...[
@@ -326,12 +338,10 @@ class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
                         const SizedBox(height: 16),
                         ElevatedButton.icon(
                           onPressed: _startAuth,
-                          icon: const Icon(Icons.fingerprint),
+                          icon: const Icon(Icons.fingerprint, size: 30,),
                           label: Text(
                             AppLocalizations.of(context).retry,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Theme.of(
@@ -343,8 +353,9 @@ class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 10),
                       ],
+                      const SizedBox(height: 10),
                     ],
                   ),
                 ),
@@ -355,84 +366,75 @@ class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
       ),
     );
   }
+}
 
-  Future<void> _showLanguageDialog() async {
-    const languages = [
-      Lang('English', 'en'),
-      Lang('French', 'fr'),
-      Lang('Spanish', 'es'),
-    ];
+class _VoucherCard extends StatelessWidget {
+  final String orderCode;
+  final String staffName;
+  final String mealType;
+  final String orderTime;
 
-    final prefs = await SharedPreferences.getInstance();
-    final current = prefs.getString('app_language') ?? 'en';
+  const _VoucherCard({
+    required this.orderCode,
+    required this.staffName,
+    required this.mealType,
+    required this.orderTime,
+  });
 
-    if (!mounted) return;
-    String selected = current;
-
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (ctx, setD) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final mealLabel =
+        mealType[0].toUpperCase() + mealType.substring(1).replaceAll('_', ' ');
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'AGC CANTEEN',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              orderCode,
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: cs.primary,
               ),
-              title: Row(
-                children: [
-                  const Icon(Icons.translate),
-                  const SizedBox(width: 8),
-                  Text(AppLocalizations.of(context).language),
-                ],
+            ),
+            const Divider(height: 20),
+            _row(context, 'Time', orderTime),
+            _row(context, 'Staff', staffName),
+            _row(context, 'Meal', mealLabel),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _row(BuildContext context, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 60,
+            child: Text(
+              '$label:',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
               ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: languages.map((lang) {
-                  return RadioListTile<String>(
-                    value: lang.code,
-                    groupValue: selected,
-                    title: Text(lang.label),
-                    onChanged: (v) => setD(() => selected = v!),
-                    contentPadding: EdgeInsets.zero,
-                  );
-                }).toList(),
-              ),
-              actionsAlignment: MainAxisAlignment.spaceBetween,
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  child: Text(AppLocalizations.of(context).cancel),
-                ),
-                TextButton(
-                  style: TextButton.styleFrom(
-                    backgroundColor: Colors.lightGreen,
-                  ),
-                  onPressed: () async {
-                    await prefs.setString('app_language', selected);
-                    ref.read(localeProvider.notifier).state = Locale(selected);
-                    getIt<ActivityLogService>().log(
-                      type: 'language_changed',
-                      message:
-                          'Language changed from POS: $current → $selected',
-                      actorType: 'staff',
-                      metadata: {
-                        'old_language': current,
-                        'new_language': selected,
-                      },
-                    );
-                    if (ctx.mounted) Navigator.of(ctx).pop();
-                  },
-                  child: Text(
-                    AppLocalizations.of(context).save,
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
+            ),
+          ),
+          Expanded(child: Text(value)),
+        ],
+      ),
     );
   }
 }

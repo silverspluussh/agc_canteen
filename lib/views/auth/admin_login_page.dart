@@ -56,14 +56,14 @@ class _AdminLoginPageState extends ConsumerState<AdminLoginPage> {
                     Image.asset('assets/app_logo.png', width: 200),
                     const SizedBox(height: 20),
                     Text(
-                      AppLocalizations.of(context).appTitle,
-                      style: Theme.of(context).textTheme.headlineLarge
+                      "AGC Canteen",
+                      style: Theme.of(context).textTheme.headlineMedium
                           ?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       AppLocalizations.of(context).signInSubtitle,
-                      style: Theme.of(context).textTheme.titleLarge,
+                      style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 24),
                     TextFormField(

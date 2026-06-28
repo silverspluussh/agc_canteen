@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:developer';
 import 'package:adaptive_theme/adaptive_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -45,7 +44,6 @@ void main() async => runZoneGuarded(() async {
 
 void runZoneGuarded(void Function() body) {
   runZonedGuarded(body, (error, stack) {
-    log('FATAL STARTUP ERROR: $error\n$stack');
     runApp(
       ProviderScope(
         child: MaterialApp(
@@ -129,7 +127,7 @@ Route<dynamic>? _onGenerateRoute(RouteSettings settings) {
       break;
     case '/staff':
       page = const StaffManagementPage();
-      break; //////////////
+      break;
     case '/sync':
       page = const SyncPage();
       break;

@@ -4,18 +4,13 @@ import '../services/database/app_database.dart';
 import '../services/pos/pos_fingerprint_service.dart';
 import '../services/pos/pos_scanner_service.dart';
 import '../services/pos/pos_device_service.dart';
-import '../services/device_info_service.dart';
+import '../services/pos/device_info_service.dart';
 import '../models/device_info.model.dart';
 import '../services/auth/fingerprint_auth_service.dart';
 import '../services/auth/pos_auth_service.dart';
 
 final databaseProvider = Provider<AppDatabase>((ref) {
   return DatabaseService.instance.db;
-});
-
-final mealsProvider = FutureProvider<List<Meal>>((ref) async {
-  final db = ref.watch(databaseProvider);
-  return db.getAllMeals();
 });
 
 final staffListProvider = FutureProvider<List<StaffData>>((ref) async {

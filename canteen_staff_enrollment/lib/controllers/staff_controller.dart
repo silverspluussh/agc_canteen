@@ -13,17 +13,17 @@ final staffListProvider = FutureProvider<List<Staff>>((ref) async {
 
 final staffQueryProvider = StateProvider<String>((ref) => '');
 
-final staffBiodataProvider = FutureProvider.family<List<BioData>, String>(
-  (ref, staffId) async {
+final staffBiodataProvider = FutureProvider.family<List<BioData>, int>(
+  (ref, int staffId) async {
     final service = getIt<StaffBioDataService>();
     return service.getBioDatasByStaffId(staffId);
   },
 );
 
-final allBiodataProvider = FutureProvider<Map<String, int>>((ref) async {
+final allBiodataProvider = FutureProvider<Map<int, int>>((ref) async {
   final service = getIt<StaffBioDataService>();
   final all = await service.getAllBioDatas();
-  final map = <String, int>{};
+  final map = <int, int>{};
   for (final b in all) {
     map[b.staffId] = (map[b.staffId] ?? 0) + 1;
   }
@@ -121,11 +121,11 @@ final filteredStaffListProvider =
     if (filter.enrolled != null) {
       if (filter.enrolled!) {
         result = result.where((staff) {
-          return (biodataCounts[staff.id.toString()] ?? 0) > 0;
+          return (biodataCounts[staff.id] ?? 0) > 0;
         }).toList();
       } else {
         result = result.where((staff) {
-          return (biodataCounts[staff.id.toString()] ?? 0) == 0;
+          return (biodataCounts[staff.id] ?? 0) == 0;
         }).toList();
       }
     }

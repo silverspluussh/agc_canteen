@@ -5,13 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/di/injection_container.dart';
 import '../../l10n/generated/app_localizations.dart';
-import '../../services/activity_log_service.dart';
+import '../../services/database/activity_log_service.dart';
 import '../../services/database/app_database.dart' show AppDatabase, PosDevice;
 import '../../services/pos/pos_device_service.dart';
 import '../../services/pos/pos_fingerprint_service.dart';
 import '../../services/print/print_service_manager.dart';
 import '../../services/pos/pos_scanner_service.dart';
-import '../../services/remote_data_sync_service.dart';
+import '../../services/sync_services/remote_data_sync_service.dart';
 import '../settings/pos_selection_dialog.dart';
 
 class PosSettingsPage extends ConsumerStatefulWidget {
