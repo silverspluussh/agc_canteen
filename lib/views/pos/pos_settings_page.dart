@@ -11,7 +11,6 @@ import '../../services/pos/pos_device_service.dart';
 import '../../services/pos/pos_fingerprint_service.dart';
 import '../../services/print/print_service_manager.dart';
 import '../../services/pos/pos_scanner_service.dart';
-import '../../services/sync_services/remote_data_sync_service.dart';
 import '../settings/pos_selection_dialog.dart';
 
 class PosSettingsPage extends ConsumerStatefulWidget {
@@ -28,11 +27,17 @@ class _PosSettingsPageState extends ConsumerState<PosSettingsPage> {
   late final PosScannerService _scannerService;
   late final AppDatabase _db;
 
+  // ignore: unused_field
   Map<String, dynamic>? _printerState;
+  // ignore: unused_field
   String? _printerFirmware;
+  // ignore: unused_field
   bool _fingerprintAvailable = false;
+  // ignore: unused_field
   bool _isScanning = false;
+  // ignore: unused_field
   List<PosDevice> _dbDevices = [];
+  // ignore: unused_field
   bool _isLoading = true;
   bool _isToggling = false;
 
@@ -191,7 +196,6 @@ class _PosSettingsPageState extends ConsumerState<PosSettingsPage> {
     } catch (_) {}
 
     if (mounted) {
-      unawaited(getIt<RemoteDataSyncService>().syncAll());
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('POS device changed. Re-syncing all data...'),

@@ -21,7 +21,7 @@ class Kitchen {
     return Kitchen(
       id: map['id'] as int,
       name: map['name'] as String,
-      minTierRequired: (map['min_tier_required'] as num).toInt(),
+      minTierRequired: int.tryParse((map['min_tier_required'] ?? '').toString()) ?? 1,
       status: map['status'] as String,
       company: Site.fromMap(map['company'] as Map<String, dynamic>),
 

@@ -3,8 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../controllers/admin_auth_controller.dart';
 import '../../core/theme/app_colors.dart';
+import 'contractor_directory_page.dart';
+import 'dependant_directory_page.dart';
 import 'overview_page.dart';
 import 'staff_directory_page.dart';
+import 'visitor_directory_page.dart';
 
 class DashboardPage extends ConsumerStatefulWidget {
   const DashboardPage({super.key});
@@ -24,13 +27,31 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
     final List<Widget> pages = [
       OverviewPage(
-        onNavigateToStaff: () {
-          setState(() {
-            _currentIndex = 1;
-          });
-        },
+        onNavigateToStaff: () => setState(() => _currentIndex = 1),
+        onNavigateToVisitors: () => setState(() => _currentIndex = 2),
+        onNavigateToDependants: () => setState(() => _currentIndex = 3),
+        onNavigateToContractors: () => setState(() => _currentIndex = 4),
       ),
       const StaffDirectoryPage(),
+      const VisitorDirectoryPage(),
+      const DependantDirectoryPage(),
+      const ContractorDirectoryPage(),
+    ];
+
+    final titles = <String>[
+      'Dashboard Overview',
+      'Staff Directory',
+      'Visitor Directory',
+      'Dependant Directory',
+      'Contractor Staff Directory',
+    ];
+
+    final subtitles = <String>[
+      'Summarized overview of staff enrollments',
+      'View all staff enrollment directory',
+      'View visitors and manage their biodata',
+      'View dependants and manage their biodata',
+      'View contractor staff and manage their biodata',
     ];
 
     return PopScope(
@@ -48,19 +69,14 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                _currentIndex == 0
-                    ? 'Dashboard Overview'.toUpperCase()
-                    : 'Staff Directory'.toUpperCase(),
+                titles[_currentIndex].toUpperCase(),
                 style: Theme.of(context).textTheme.titleMedium!.copyWith(
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
               ),
-      
               Text(
-                _currentIndex == 0
-                    ? 'Summarized overview of staff enrollments'
-                    : "View all staff enrollment directory",
+                subtitles[_currentIndex],
                 style: Theme.of(
                   context,
                 ).textTheme.bodyMedium?.copyWith(color: Colors.white),
@@ -76,12 +92,13 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.primary,
                 ),
+
                 currentAccountPicture: CircleAvatar(
                   backgroundColor: Colors.white,
                   child: Image.asset(
                     'assets/app_logo.png',
-                    width: 48,
-                    height: 48,
+                    width: 50,
+                    height: 50,
                     errorBuilder: (context, error, stackTrace) => const Icon(
                       Icons.admin_panel_settings,
                       color: AppColors.gold500,
@@ -90,16 +107,19 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   ),
                 ),
                 accountName: const Text(
-                  'Canteen Administrator',
+                  'Personnel Enrollmemt System',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 accountEmail: Text(adminState.email ?? ''),
               ),
-      
+
               // Navigation List Items
               ListTile(
-                leading: const Icon(Icons.dashboard_outlined),
-                title: const Text('Overview'),
+                leading: const Icon(Icons.dashboard_outlined, size: 35),
+                title: Text(
+                  'Overview',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
                 selected: _currentIndex == 0,
                 selectedColor: Theme.of(context).colorScheme.primary,
                 onTap: () {
@@ -110,29 +130,70 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.group),
-                title: const Text('Staff Directory'),
+                leading: const Icon(Icons.group, size: 35),
+                title: Text(
+                  'Staff Directory',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
                 selected: _currentIndex == 1,
                 selectedColor: Theme.of(context).colorScheme.primary,
                 onTap: () {
-                  setState(() {
-                    _currentIndex = 1;
-                  });
-                  Navigator.pop(context); // Close Drawer
+                  setState(() => _currentIndex = 1);
+                  Navigator.pop(context);
                 },
               ),
-      
+              ListTile(
+                leading: const Icon(Icons.person_outline, size: 35,),
+                title: Text(
+                  'Visitor Directory',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                selected: _currentIndex == 2,
+                selectedColor: Theme.of(context).colorScheme.primary,
+                onTap: () {
+                  setState(() => _currentIndex = 2);
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.family_restroom, size: 35),
+                title: Text(
+                  'Dependant Directory',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                selected: _currentIndex == 3,
+                selectedColor: Theme.of(context).colorScheme.primary,
+                onTap: () {
+                  setState(() => _currentIndex = 3);
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.engineering_outlined, size: 35),
+                title: Text(
+                  'Contractor Directory',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                selected: _currentIndex == 4,
+                selectedColor: Theme.of(context).colorScheme.primary,
+                onTap: () {
+                  setState(() => _currentIndex = 4);
+                  Navigator.pop(context);
+                },
+              ),
+
               const Spacer(),
               const Divider(),
-      
+
               // Logout Action
               ListTile(
-                leading: const Icon(Icons.logout, color: AppColors.error),
+                leading: const Icon(Icons.logout, color: AppColors.error,size: 30,),
                 title: const Text(
                   'Sign out',
                   style: TextStyle(
                     color: AppColors.error,
                     fontWeight: FontWeight.bold,
+                    fontSize: 18
                   ),
                 ),
                 onTap: () {

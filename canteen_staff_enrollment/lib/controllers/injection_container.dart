@@ -1,4 +1,7 @@
 import 'package:canteen_staff_enrollment/repos/biodata_service.dart';
+import 'package:canteen_staff_enrollment/repos/contractor_service.dart';
+import 'package:canteen_staff_enrollment/repos/dependant_service.dart';
+import 'package:canteen_staff_enrollment/repos/visitor_service.dart';
 import 'package:canteen_staff_enrollment/core/network/dio_client.dart';
 import 'package:canteen_staff_enrollment/core/network/network_api_dio.dart';
 import 'package:canteen_staff_enrollment/core/network/securestorage.dart';
@@ -38,6 +41,15 @@ Future<void> setupServiceLocator() async {
         networkAPI: getIt<NetworkAPI>(),
       ));
       getIt.registerLazySingleton<StaffService>(() => StaffService(
+        networkAPI: getIt<NetworkAPI>(),
+      ));
+  getIt.registerLazySingleton<ContractorService>(() => ContractorService(
+        networkAPI: getIt<NetworkAPI>(),
+      ));
+  getIt.registerLazySingleton<VisitorService>(() => VisitorService(
+        networkAPI: getIt<NetworkAPI>(),
+      ));
+  getIt.registerLazySingleton<DependantService>(() => DependantService(
         networkAPI: getIt<NetworkAPI>(),
       ));
 }

@@ -1,95 +1,147 @@
 import 'dart:developer';
 
+import 'package:canteen_staff_enrollment/views/app_buttons.widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../controllers/contractor_controller.dart';
+import '../../controllers/dependant_controller.dart';
 import '../../controllers/staff_controller.dart';
+import '../../controllers/visitor_controller.dart';
 import '../../core/theme/app_colors.dart';
 
 class OverviewPage extends ConsumerWidget {
   final VoidCallback onNavigateToStaff;
+  final VoidCallback onNavigateToVisitors;
+  final VoidCallback onNavigateToDependants;
+  final VoidCallback onNavigateToContractors;
 
-  const OverviewPage({super.key, required this.onNavigateToStaff});
+  const OverviewPage({
+    super.key,
+    required this.onNavigateToStaff,
+    required this.onNavigateToVisitors,
+    required this.onNavigateToDependants,
+    required this.onNavigateToContractors,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final staffAsync = ref.watch(staffListProvider);
+    final visitorAsync = ref.watch(visitorListProvider);
+    final dependantAsync = ref.watch(dependantListProvider);
+    final contractorAsync = ref.watch(contractorStaffListProvider);
 
     return Scaffold(
       body: RefreshIndicator(
-        onRefresh: () => ref.refresh(staffListProvider.future),
+        onRefresh: () => Future.wait([
+          ref.refresh(staffListProvider.future),
+          ref.refresh(visitorListProvider.future),
+          ref.refresh(dependantListProvider.future),
+          ref.refresh(contractorStaffListProvider.future),
+        ]),
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(15.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-             
-
-              staffAsync.when(
-                data: (staffList) {
-                  log(staffList.toString());
-
-                  final totalStaff = staffList.length;
-                  final enrolledStaff = staffList
-                      .where((s) => s.bioData != null && s.bioData!.isNotEmpty)
-                      .length;
-                  final pendingEnrollment = totalStaff - enrolledStaff;
-
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildStatsGrid(
-                        context,
-                        totalStaff,
-                        enrolledStaff,
-                        pendingEnrollment,
-                      ),
-                      const SizedBox(height: 32),
-                      _buildQuickActions(context),
-                    ],
-                  );
-                },
-                loading: () => const Center(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 60.0),
-                    child: CircularProgressIndicator(),
-                  ),
-                ),
-                error: (err, stack) => Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 60.0),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.error_outline,
-                          size: 48,
-                          color: AppColors.error,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Failed to load summary details: $err',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withValues(alpha: 0.7),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: () => ref.refresh(staffListProvider),
-                          child: const Text('Retry'),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+              _buildCombinedStats(context, ref, staffAsync, visitorAsync, dependantAsync, contractorAsync),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildCombinedStats(
+    BuildContext context,
+    WidgetRef ref,
+    AsyncValue<List> staffAsync,
+    AsyncValue<List> visitorAsync,
+    AsyncValue<List> dependantAsync,
+    AsyncValue<List> contractorAsync,
+  ) {
+    final isLoading = staffAsync.isLoading || visitorAsync.isLoading || dependantAsync.isLoading || contractorAsync.isLoading;
+    final hasError = staffAsync.hasError || visitorAsync.hasError || dependantAsync.hasError || contractorAsync.hasError;
+
+    if (isLoading) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 60.0),
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    if (hasError) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 60.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+              const SizedBox(height: 16),
+              Text(
+                'Failed to load summary details',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
+              ),
+              const SizedBox(height: 16),
+              PrimaryButton(
+                onPressed: () {
+                  ref.invalidate(staffListProvider);
+                  ref.invalidate(visitorListProvider);
+                  ref.invalidate(dependantListProvider);
+                  ref.invalidate(contractorStaffListProvider);
+                },
+                label: const Text('Retry', style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final staffList = staffAsync.value ?? [];
+    final visitorList = visitorAsync.value ?? [];
+    final dependantList = dependantAsync.value ?? [];
+    final contractorList = contractorAsync.value ?? [];
+
+
+    final totalPersonnel = staffList.length + visitorList.length + dependantList.length + contractorList.length;
+
+    final enrolledStaff = (staffList).where((s) {
+      final b = (s as dynamic).bioData;
+      return b != null && b.isNotEmpty;
+    }).length;
+
+    final enrolledVisitors = (visitorList).where((v) {
+      final b = (v as dynamic).bioData;
+      return b != null && b.isNotEmpty;
+    }).length;
+
+    final enrolledDependants = (dependantList).where((d) {
+      final b = (d as dynamic).bioData;
+      return b != null && b.isNotEmpty;
+    }).length;
+
+    final enrolledContractors = (contractorList).where((c) {
+      final b = (c as dynamic).bioData;
+      return b != null && b.isNotEmpty;
+    }).length;
+
+    final enrolledPersonnel = enrolledStaff + enrolledVisitors + enrolledDependants + enrolledContractors;
+    final pendingPersonnel = totalPersonnel - enrolledPersonnel;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildStatsGrid(context, totalPersonnel, enrolledPersonnel, pendingPersonnel),
+        const SizedBox(height: 20),
+        _buildQuickActions(context),
+      ],
     );
   }
 
@@ -103,15 +155,15 @@ class OverviewPage extends ConsumerWidget {
   ) {
     return GridView.count(
       crossAxisCount: 2,
-      crossAxisSpacing: 16,
-      mainAxisSpacing: 16,
+      crossAxisSpacing: 12,
+      mainAxisSpacing: 12,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      childAspectRatio: 1.3,
+      childAspectRatio: 1.5,
       children: [
         _buildStatCard(
           context: context,
-          title: 'Total Staff',
+          title: 'Total Personnel',
           value: total.toString(),
           icon: Icons.people_outline,
           gradient: const LinearGradient(
@@ -123,7 +175,7 @@ class OverviewPage extends ConsumerWidget {
         ),
         _buildStatCard(
           context: context,
-          title: 'Enrolled Staff',
+          title: 'Enrolled',
           value: enrolled.toString(),
           icon: Icons.fingerprint,
           gradient: const LinearGradient(
@@ -135,7 +187,7 @@ class OverviewPage extends ConsumerWidget {
         ),
         _buildStatCard(
           context: context,
-          title: 'Pending Staff',
+          title: 'Pending',
           value: pending.toString(),
           icon: Icons.pending_actions_outlined,
           gradient: const LinearGradient(
@@ -183,31 +235,37 @@ class OverviewPage extends ConsumerWidget {
           ),
         ],
       ),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Icon(icon, color: textColor.withValues(alpha: 0.8), size: 24),
-              Text(
-                title,
-                style: TextStyle(
-                  color: textColor.withValues(alpha: 0.8),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Icon(icon, color: textColor.withValues(alpha: 0.8), size: 24),
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: textColor.withValues(alpha: 0.8),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          Text(
-            value,
-            style: TextStyle(
-              color: textColor,
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
+          Padding(
+            padding: const EdgeInsets.all(10.0),
+            child: Text(
+              value,
+              style: TextStyle(
+                color: textColor,
+                fontSize: 25,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
@@ -231,14 +289,13 @@ class OverviewPage extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(height: 15,),
+         
           Text(
             'Quick Actions',
             style: Theme.of(
               context,
             ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 16),
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: CircleAvatar(
@@ -256,6 +313,42 @@ class OverviewPage extends ConsumerWidget {
             subtitle: const Text('View staff list and enroll fingerprints'),
             trailing: const Icon(Icons.chevron_right),
             onTap: onNavigateToStaff,
+          ),
+          const Divider(height: 4),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: CircleAvatar(
+              backgroundColor: AppColors.gold500.withValues(alpha: 0.15),
+              child: const Icon(Icons.person_outline, color: AppColors.gold600),
+            ),
+            title: const Text('Visitor Directory', style: TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: const Text('View visitors and manage their biodata'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: onNavigateToVisitors,
+          ),
+          const Divider(height: 4),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: CircleAvatar(
+              backgroundColor: Colors.teal.withValues(alpha: 0.15),
+              child: const Icon(Icons.family_restroom, color: Colors.teal),
+            ),
+            title: const Text('Dependant Directory', style: TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: const Text('View dependants and manage their biodata'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: onNavigateToDependants,
+          ),
+          const Divider(height: 4),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: CircleAvatar(
+              backgroundColor: Colors.indigo.withValues(alpha: 0.15),
+              child: const Icon(Icons.engineering_outlined, color: Colors.indigo),
+            ),
+            title: const Text('Contractor Staff Directory', style: TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: const Text('View contractor staff and manage their biodata'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: onNavigateToContractors,
           ),
         ],
       ),

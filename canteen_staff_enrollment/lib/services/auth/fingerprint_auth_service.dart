@@ -2,9 +2,12 @@ import 'dart:async';
 import 'dart:developer' as dev;
 import 'package:canteen_staff_enrollment/repos/biodata_service.dart';
 import 'package:canteen_staff_enrollment/controllers/injection_container.dart';
+import 'package:canteen_staff_enrollment/models/employee_type.enum.dart';
 import 'package:canteen_staff_enrollment/models/staff.model.dart';
 import 'package:canteen_staff_enrollment/services/pos/pos_fingerprint_service.dart';
 import 'package:logger/logger.dart';
+
+import '../../models/biodata.model.dart';
 
 class FingerprintAuthService {
   final PosFingerprintService _fingerprint;
@@ -57,7 +60,7 @@ class FingerprintAuthService {
 
   Future<bool> get isAvailable => _fingerprint.isAvailable();
 
-  Future<int?> enroll(int staffId, Finger finger) async {
+  Future<int?> enroll(int staffId, Finger finger, {EmployeeType employeeType = EmployeeType.permanent}) async {
     final result = await _fingerprint.capture();
     if (result == null || !result.success || result.templateBase64 == null) {
       _logger.w('Fingerprint enrollment capture failed');
@@ -65,14 +68,15 @@ class FingerprintAuthService {
     }
 
     final fingerprintId = DateTime.now().millisecondsSinceEpoch;
-    final now = DateTime.now().toIso8601String();
     final base64data = result.templateBase64 ?? "";
     // final encryptedData = await _encryptionService.encrypt(result.templateBase64!);
 
-    await _bioDataService.createBioData(staffId, [
+    await _bioDataService.createBioData(staffId, employeeType, [
       BioData(
         id: fingerprintId,
+        uuid: '',
         staffId: staffId,
+        employeeType: employeeType,
         finger: finger,
         data: base64data,
         isActive: true,
@@ -88,12 +92,15 @@ class FingerprintAuthService {
     required int staffId,
     required Finger finger,
     required String templateBase64,
+    EmployeeType employeeType = EmployeeType.permanent,
   }) async {
     final fingerprintId = DateTime.now().millisecondsSinceEpoch;
-    await _bioDataService.createBioData(staffId, [
+    await _bioDataService.createBioData(staffId, employeeType, [
       BioData(
         id: fingerprintId,
+        uuid: '',
         staffId: staffId,
+        employeeType: employeeType,
         finger: finger,
         data: templateBase64,
         isActive: true,

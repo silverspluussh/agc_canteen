@@ -112,36 +112,10 @@ class Staff {
       'departmentId': department?.id,
       'bioDataIds': bioData?.map((item) => item.id).toList(),
       'kitchensIds': kitchens?.map((item) => item.id).toList(),
-      'dependantsIds': dependants?.map((item) => item.id).toList(),
-
+      'dependantsIds': dependants?.map((item) => item.id).toList()
     };
   }
 
-  
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'emp_id': empId,
-      'first_name': firstName,
-      'last_name': lastName,
-      'company_id': companyId,
-      'job_title': jobTitle,
-      'emp_status': empStatus,
-      'employee_type': employeeType,
-      'start_date': startDate?.toIso8601String(),
-      'end_date': endDate?.toIso8601String(),
-      'allow_group_order': allowGroupOrder,
-      'max_order_count': maxOrderCount,
-      'shift_id': shiftId,
-      'total_dependant': totalDependant,
-      'card': card,
-      'no_of_dependant_assigned': noOfDependantAssigned,
-      'department': department?.toMap(),
-      'bioData': bioData?.map((item) => item.toMap()).toList(),
-      'kitchens': kitchens?.map((item) => item.toMap()).toList(),
-      'dependants': dependants?.map((item) => item.toMap()).toList(),
-    };
-  }
 
   Staff copyWith({
     int? id,

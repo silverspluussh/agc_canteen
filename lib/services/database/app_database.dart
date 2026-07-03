@@ -15,6 +15,7 @@ part 'app_database.g.dart';
     Staff,
     StaffKitchens,
     Dependants,
+    DependantKitchens,
     Cards,
     Users,
     UserKitchens,
@@ -24,7 +25,9 @@ part 'app_database.g.dart';
     GroupOrders,
     Contractors,
     ContractorStaffTable,
+    ContractorStaffKitchens,
     Visitors,
+    VisitorKitchens,
     BioDataEntries,
   ],
 )
@@ -32,7 +35,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -55,6 +58,9 @@ class AppDatabase extends _$AppDatabase {
       await delete(mealTypes).go();
       await delete(staff).go();
       await delete(staffKitchens).go();
+      await delete(contractorStaffKitchens).go();
+      await delete(dependantKitchens).go();
+      await delete(visitorKitchens).go();
       await delete(dependants).go();
       await delete(cards).go();
       await delete(users).go();
@@ -234,6 +240,9 @@ class AppDatabase extends _$AppDatabase {
     InsertMode mode = InsertMode.insert,
   }) async {
     await into(shifts).insert(shift, mode: mode);
+    if (mealTypeIds.isNotEmpty && mode == InsertMode.insertOrReplace) {
+      await deleteShiftMealTypesByShift(shift.id.value);
+    }
     for (final mt in mealTypeIds) {
       await into(shiftMealTypes).insert(
         ShiftMealTypesCompanion(
@@ -565,6 +574,105 @@ class AppDatabase extends _$AppDatabase {
     });
   }
 
+  // ─── DependantKitchens ─────────────────────────────────────
+
+  Future<void> insertDependantKitchen(DependantKitchensCompanion entry) =>
+      into(dependantKitchens).insert(entry);
+
+  Future<void> deleteDependantKitchen(int dependantId, int kitchenId) =>
+      (delete(dependantKitchens)
+            ..where((t) =>
+                t.dependantId.equals(dependantId) & t.kitchenId.equals(kitchenId)))
+          .go();
+
+  Future<void> deleteDependantKitchensByDependant(int dependantId) =>
+      (delete(dependantKitchens)..where((t) => t.dependantId.equals(dependantId))).go();
+
+  Future<List<DependantKitchen>> getDependantKitchens(int dependantId) =>
+      (select(dependantKitchens)..where((t) => t.dependantId.equals(dependantId))).get();
+
+  Future<List<int>> getDependantKitchenIds(int dependantId) async {
+    final rows = await getDependantKitchens(dependantId);
+    return rows.map((r) => r.kitchenId).toList();
+  }
+
+  Future<void> setDependantKitchens(int dependantId, List<int> kitchenIds) async {
+    await transaction(() async {
+      await deleteDependantKitchensByDependant(dependantId);
+      for (final kid in kitchenIds) {
+        await into(dependantKitchens).insert(
+          DependantKitchensCompanion(dependantId: Value(dependantId), kitchenId: Value(kid)),
+        );
+      }
+    });
+  }
+
+  // ─── ContractorStaffKitchens ───────────────────────────────
+
+  Future<void> insertContractorStaffKitchen(ContractorStaffKitchensCompanion entry) =>
+      into(contractorStaffKitchens).insert(entry);
+
+  Future<void> deleteContractorStaffKitchen(int contractorStaffId, int kitchenId) =>
+      (delete(contractorStaffKitchens)
+            ..where((t) =>
+                t.contractorStaffId.equals(contractorStaffId) & t.kitchenId.equals(kitchenId)))
+          .go();
+
+  Future<void> deleteContractorStaffKitchensByContractorStaff(int contractorStaffId) =>
+      (delete(contractorStaffKitchens)..where((t) => t.contractorStaffId.equals(contractorStaffId))).go();
+
+  Future<List<ContractorStaffKitchen>> getContractorStaffKitchens(int contractorStaffId) =>
+      (select(contractorStaffKitchens)..where((t) => t.contractorStaffId.equals(contractorStaffId))).get();
+
+  Future<List<int>> getContractorStaffKitchenIds(int contractorStaffId) async {
+    final rows = await getContractorStaffKitchens(contractorStaffId);
+    return rows.map((r) => r.kitchenId).toList();
+  }
+
+  Future<void> setContractorStaffKitchens(int contractorStaffId, List<int> kitchenIds) async {
+    await transaction(() async {
+      await deleteContractorStaffKitchensByContractorStaff(contractorStaffId);
+      for (final kid in kitchenIds) {
+        await into(contractorStaffKitchens).insert(
+          ContractorStaffKitchensCompanion(contractorStaffId: Value(contractorStaffId), kitchenId: Value(kid)),
+        );
+      }
+    });
+  }
+
+  // ─── VisitorKitchens ───────────────────────────────────────
+
+  Future<void> insertVisitorKitchen(VisitorKitchensCompanion entry) =>
+      into(visitorKitchens).insert(entry);
+
+  Future<void> deleteVisitorKitchen(int visitorId, int kitchenId) =>
+      (delete(visitorKitchens)
+            ..where((t) =>
+                t.visitorId.equals(visitorId) & t.kitchenId.equals(kitchenId)))
+          .go();
+
+  Future<void> deleteVisitorKitchensByVisitor(int visitorId) =>
+      (delete(visitorKitchens)..where((t) => t.visitorId.equals(visitorId))).go();
+
+  Future<List<VisitorKitchen>> getVisitorKitchens(int visitorId) =>
+      (select(visitorKitchens)..where((t) => t.visitorId.equals(visitorId))).get();
+
+  Future<List<int>> getVisitorKitchenIds(int visitorId) async {
+    final rows = await getVisitorKitchens(visitorId);
+    return rows.map((r) => r.kitchenId).toList();
+  }
+
+  Future<void> setVisitorKitchens(int visitorId, List<int> kitchenIds) async {
+    await transaction(() async {
+      await deleteVisitorKitchensByVisitor(visitorId);
+      for (final kid in kitchenIds) {
+        await into(visitorKitchens).insert(
+          VisitorKitchensCompanion(visitorId: Value(visitorId), kitchenId: Value(kid)),
+        );
+      }
+    });
+  }
+
   // ─── Dependants ────────────────────────────────────────────
 
   Future<void> insertDependant(
@@ -575,8 +683,13 @@ class AppDatabase extends _$AppDatabase {
   Future<void> updateDependant(int id, DependantsCompanion dependant) =>
       (update(dependants)..where((t) => t.id.equals(id))).write(dependant);
 
-  Future<void> deleteDependant(int id) =>
-      (delete(dependants)..where((t) => t.id.equals(id))).go();
+  Future<void> deleteDependant(int id) async {
+    await transaction(() async {
+      await deleteDependantKitchensByDependant(id);
+      await deleteBioDataByDependant(id);
+      await (delete(dependants)..where((t) => t.id.equals(id))).go();
+    });
+  }
 
   Future<void> deleteDependantsByStaff(int staffId) =>
       (delete(dependants)..where((t) => t.staffId.equals(staffId))).go();
@@ -603,6 +716,19 @@ class AppDatabase extends _$AppDatabase {
           syncUpdatedAt: Value(DateTime.now().toIso8601String()),
         ),
       );
+
+  Future<int> deleteDependantsNotIn(Set<int> keepIds) async {
+    if (keepIds.isEmpty) {
+      return (delete(dependants)..where((t) => t.syncStatus.equals(2))).go();
+    }
+    final toDelete = await (select(dependants)
+          ..where((t) => t.syncStatus.equals(2) & t.id.isNotIn(keepIds)))
+        .get();
+    for (final record in toDelete) {
+      await deleteDependant(record.id);
+    }
+    return toDelete.length;
+  }
 
   // ─── Cards ─────────────────────────────────────────────────
 
@@ -691,8 +817,13 @@ class AppDatabase extends _$AppDatabase {
       (update(contractorStaffTable)..where((t) => t.id.equals(id)))
           .write(cStaff);
 
-  Future<void> deleteContractorStaff(int id) =>
-      (delete(contractorStaffTable)..where((t) => t.id.equals(id))).go();
+  Future<void> deleteContractorStaff(int id) async {
+    await transaction(() async {
+      await deleteContractorStaffKitchensByContractorStaff(id);
+      await deleteBioDataByContractorStaff(id);
+      await (delete(contractorStaffTable)..where((t) => t.id.equals(id))).go();
+    });
+  }
 
   Future<void> deleteContractorStaffByContractor(int contractorId) =>
       (delete(contractorStaffTable)
@@ -727,6 +858,21 @@ class AppDatabase extends _$AppDatabase {
         ),
       );
 
+  Future<int> deleteContractorStaffNotIn(Set<int> keepIds) async {
+    if (keepIds.isEmpty) {
+      return (delete(contractorStaffTable)
+            ..where((t) => t.syncStatus.equals(2)))
+          .go();
+    }
+    final toDelete = await (select(contractorStaffTable)
+          ..where((t) => t.syncStatus.equals(2) & t.id.isNotIn(keepIds)))
+        .get();
+    for (final record in toDelete) {
+      await deleteContractorStaff(record.id);
+    }
+    return toDelete.length;
+  }
+
   // ─── Visitors ─────────────────────────────────────────────
 
   Future<void> insertVisitor(
@@ -737,8 +883,13 @@ class AppDatabase extends _$AppDatabase {
   Future<void> updateVisitor(int id, VisitorsCompanion visitor) =>
       (update(visitors)..where((t) => t.id.equals(id))).write(visitor);
 
-  Future<void> deleteVisitor(int id) =>
-      (delete(visitors)..where((t) => t.id.equals(id))).go();
+  Future<void> deleteVisitor(int id) async {
+    await transaction(() async {
+      await deleteVisitorKitchensByVisitor(id);
+      await deleteBioDataByVisitor(id);
+      await (delete(visitors)..where((t) => t.id.equals(id))).go();
+    });
+  }
 
   Future<List<Visitor>> getAllVisitors() => select(visitors).get();
   Future<Visitor?> getVisitor(int id) =>
@@ -759,6 +910,19 @@ class AppDatabase extends _$AppDatabase {
           syncUpdatedAt: Value(DateTime.now().toIso8601String()),
         ),
       );
+
+  Future<int> deleteVisitorsNotIn(Set<int> keepIds) async {
+    if (keepIds.isEmpty) {
+      return (delete(visitors)..where((t) => t.syncStatus.equals(2))).go();
+    }
+    final toDelete = await (select(visitors)
+          ..where((t) => t.syncStatus.equals(2) & t.id.isNotIn(keepIds)))
+        .get();
+    for (final record in toDelete) {
+      await deleteVisitor(record.id);
+    }
+    return toDelete.length;
+  }
 
   // ─── Users ─────────────────────────────────────────────────
 
@@ -973,6 +1137,15 @@ class AppDatabase extends _$AppDatabase {
   Future<void> deleteBioDataByStaff(int staffId) =>
       (delete(bioDataEntries)..where((t) => t.staffId.equals(staffId))).go();
 
+  Future<void> deleteBioDataByDependant(int dependantId) =>
+      (delete(bioDataEntries)..where((t) => t.dependantId.equals(dependantId))).go();
+
+  Future<void> deleteBioDataByContractorStaff(int contractorStaffId) =>
+      (delete(bioDataEntries)..where((t) => t.contractorStaffId.equals(contractorStaffId))).go();
+
+  Future<void> deleteBioDataByVisitor(int visitorId) =>
+      (delete(bioDataEntries)..where((t) => t.visitorId.equals(visitorId))).go();
+
   Future<List<BioDataEntry>> getAllBioData() => select(bioDataEntries).get();
 
   Future<BioDataEntry?> getBioData(int id) =>
@@ -1010,6 +1183,19 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> upsertBioData(BioDataEntriesCompanion entry) =>
       into(bioDataEntries).insert(entry, mode: InsertMode.insertOrReplace);
+
+  Future<int> deleteBioDataNotIn(Set<int> keepIds) async {
+    if (keepIds.isEmpty) {
+      return (delete(bioDataEntries)..where((t) => t.syncStatus.equals(2))).go();
+    }
+    final toDelete = await (select(bioDataEntries)
+          ..where((t) => t.syncStatus.equals(2) & t.id.isNotIn(keepIds)))
+        .get();
+    for (final record in toDelete) {
+      await deleteBioData(record.id);
+    }
+    return toDelete.length;
+  }
 
   // ─── ActivityLogs ──────────────────────────────────
 
@@ -1049,10 +1235,11 @@ class AppDatabase extends _$AppDatabase {
 
   Future<int> getActivityLogCount() => activityLogs.count().getSingle();
 
-  /// Returns the next ASG-prefixed order code (ASG0001, ASG0002, ...)
+  /// Returns the next order code in the format ASG{typeChar}{posId}-{kitchenId}-{seq}
   /// by scanning existing [orders] and [group_orders] for the highest
-  /// numeric suffix and incrementing it.
-  Future<String> nextOrderCode() async {
+  /// numeric suffix for the given POS and kitchen, and incrementing it.
+  Future<String> nextOrderCode(String typeChar, int posId, int kitchenId) async {
+    final prefix = 'ASG$typeChar$posId-$kitchenId-';
     int maxCode = 0;
 
     int? parseMax(List<QueryRow> rows) {
@@ -1062,12 +1249,12 @@ class AppDatabase extends _$AppDatabase {
     }
 
     final orderRows = await customSelect(
-      'SELECT MAX(CAST(SUBSTR(order_code, 4) AS INTEGER)) FROM orders WHERE order_code LIKE ?',
-      variables: [Variable<String>('ASG%')],
+      'SELECT MAX(CAST(SUBSTR(order_code, ?) AS INTEGER)) FROM orders WHERE order_code LIKE ?',
+      variables: [Variable<int>(prefix.length + 1), Variable<String>('$prefix%')],
     ).get();
     final groupOrderRows = await customSelect(
-      'SELECT MAX(CAST(SUBSTR(order_code, 4) AS INTEGER)) FROM group_orders WHERE order_code LIKE ?',
-      variables: [Variable<String>('ASG%')],
+      'SELECT MAX(CAST(SUBSTR(order_code, ?) AS INTEGER)) FROM group_orders WHERE order_code LIKE ?',
+      variables: [Variable<int>(prefix.length + 1), Variable<String>('$prefix%')],
     ).get();
 
     final orderMax = parseMax(orderRows) ?? 0;
@@ -1075,6 +1262,6 @@ class AppDatabase extends _$AppDatabase {
     maxCode = orderMax > groupMax ? orderMax : groupMax;
 
     final next = maxCode + 1;
-    return 'ASG${next.toString().padLeft(4, '0')}';
+    return '$prefix${next.toString().padLeft(4, '0')}';
   }
 }

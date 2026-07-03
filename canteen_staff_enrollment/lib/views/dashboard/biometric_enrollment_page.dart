@@ -1,18 +1,29 @@
 import 'dart:convert';
-import 'dart:developer' as dev;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../controllers/enrollment_controller.dart';
-import '../../controllers/providers.dart';
-import '../../controllers/staff_controller.dart';
-import '../../models/staff.model.dart';
+import '../../models/biodata.model.dart';
+import '../../models/employee_type.enum.dart';
 import '../../core/theme/app_colors.dart';
 import '../app_buttons.widget.dart';
 
 class BiometricEnrollmentPage extends ConsumerStatefulWidget {
-  final Staff staff;
+  final int referenceId;
+  final EmployeeType employeeType;
+  final String displayName;
+  final String? subtitle;
+  final List<BioData>? existingBioData;
+  final VoidCallback? onEnrolled;
 
-  const BiometricEnrollmentPage({super.key, required this.staff});
+  const BiometricEnrollmentPage({
+    super.key,
+    required this.referenceId,
+    required this.employeeType,
+    required this.displayName,
+    this.subtitle,
+    this.existingBioData,
+    this.onEnrolled,
+  });
 
   @override
   ConsumerState<BiometricEnrollmentPage> createState() =>
@@ -28,32 +39,16 @@ class _BiometricEnrollmentPageState
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(enrollmentProvider.notifier).reset();
-      _initFingerprintDevice();
     });
-  }
-
-  Future<void> _initFingerprintDevice() async {
-    try {
-      final posAuth = ref.read(posAuthProvider);
-      await posAuth.init();
-      dev.log('[BiometricEnrollmentPage] Fingerprint device initialized',
-          name: 'POS_AUTH');
-    } catch (e) {
-      dev.log('[BiometricEnrollmentPage] Fingerprint init failed: $e',
-          name: 'POS_AUTH');
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     final enrollmentState = ref.watch(enrollmentProvider);
 
-    // Listen for enrollment state changes to trigger UI side-effects (e.g. snackbars or pop back)
     ref.listen(enrollmentProvider, (previous, next) {
       if (next.step == EnrollmentStep.enrolled) {
-        ref.invalidate(staffListProvider);
-        ref.invalidate(staffBiodataProvider(widget.staff.id));
-        ref.invalidate(allBiodataProvider);
+        widget.onEnrolled?.call();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Fingerprint enrolled successfully!'),
@@ -80,22 +75,18 @@ class _BiometricEnrollmentPageState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Staff Details Header Card
-            _buildStaffHeaderCard(context),
+            _buildHeaderCard(context),
             const SizedBox(height: 24),
-
-            // Select Finger Section
             Text(
               'Select Finger to Enroll',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             _buildFingerSelector(context),
             const SizedBox(height: 32),
-
-            // Enrollment Interactive Panel
             _buildEnrollmentControlPanel(context, enrollmentState),
           ],
         ),
@@ -103,7 +94,7 @@ class _BiometricEnrollmentPageState
     );
   }
 
-  Widget _buildStaffHeaderCard(BuildContext context) {
+  Widget _buildHeaderCard(BuildContext context) {
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
@@ -112,9 +103,10 @@ class _BiometricEnrollmentPageState
           children: [
             CircleAvatar(
               radius: 28,
-              backgroundColor: Theme.of(
-                context,
-              ).colorScheme.primary.withValues(alpha: 0.1),
+              backgroundColor: Theme.of(context)
+                  .colorScheme
+                  .primary
+                  .withValues(alpha: 0.1),
               child: Icon(
                 Icons.person,
                 size: 28,
@@ -127,31 +119,22 @@ class _BiometricEnrollmentPageState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '${widget.staff.firstName} ${widget.staff.lastName}',
+                    widget.displayName,
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Employee ID: ${widget.staff.empId}',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.6),
-                    ),
-                  ),
-                  if (widget.staff.department != null) ...[
-                    const SizedBox(height: 2),
+                  if (widget.subtitle != null) ...[
+                    const SizedBox(height: 4),
                     Text(
-                      'Department: ${widget.staff.department?.name}',
+                      widget.subtitle!,
                       style: TextStyle(
-                        fontSize: 13,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.5),
+                        fontSize: 14,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.6),
                       ),
                     ),
                   ],
@@ -165,7 +148,7 @@ class _BiometricEnrollmentPageState
   }
 
   Widget _buildFingerSelector(BuildContext context) {
-    final existingBio = widget.staff.bioData ?? [];
+    final existingBio = widget.existingBioData ?? [];
 
     return Wrap(
       spacing: 8.0,
@@ -231,12 +214,13 @@ class _BiometricEnrollmentPageState
           color: Theme.of(context).colorScheme.primary,
           title: 'Ready to Capture',
           description:
-              'Press the button below and place the staff member\'s selected finger on the scanner sensor.',
+              'Press the button below and place the finger on the scanner sensor.',
           actionButton: PrimaryButton(
             onPressed: () {
               ref
                   .read(enrollmentProvider.notifier)
-                  .startEnrollment(widget.staff.id, _selectedFinger);
+                  .startEnrollment(widget.referenceId, _selectedFinger,
+                      employeeType: widget.employeeType);
             },
             label: const Text(
               'Start Capture',
@@ -311,9 +295,7 @@ class _BiometricEnrollmentPageState
               const SizedBox(height: 12),
               OutlineButton(
                 onPressed: () {
-                  ref
-                      .read(enrollmentProvider.notifier)
-                      .reset(); // Discards the current scan
+                  ref.read(enrollmentProvider.notifier).reset();
                 },
                 label: const Text('Discard Scan'),
               ),
@@ -337,7 +319,7 @@ class _BiometricEnrollmentPageState
           icon: Icons.check_circle,
           color: const Color(0xFF2E7D32),
           title: 'Enrolled Successfully!',
-          description: 'Staff biometrics saved in database.',
+          description: 'Biometrics saved in database.',
         );
 
       case EnrollmentStep.error:
@@ -389,8 +371,7 @@ class _BiometricEnrollmentPageState
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color:
-            Theme.of(context).cardTheme.color ??
+        color: Theme.of(context).cardTheme.color ??
             Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: color.withValues(alpha: 0.3), width: 1.5),
@@ -401,9 +382,7 @@ class _BiometricEnrollmentPageState
             imageWidget
           else if (isSpinning)
             RotationTransition(
-              turns: const AlwaysStoppedAnimation(
-                0.2,
-              ), // Simple static rotation or custom animation
+              turns: const AlwaysStoppedAnimation(0.2),
               child: AnimatedRotation(
                 turns: 1.0,
                 duration: const Duration(seconds: 1),
@@ -423,9 +402,10 @@ class _BiometricEnrollmentPageState
             description,
             style: TextStyle(
               fontSize: 14,
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.7),
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: 0.7),
             ),
             textAlign: TextAlign.center,
           ),

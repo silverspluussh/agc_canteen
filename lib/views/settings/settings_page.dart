@@ -1,4 +1,3 @@
-import 'dart:developer';
 
 import 'package:adaptive_theme/adaptive_theme.dart';
 import 'package:agc_canteen/views/widgets/app_buttons.widget.dart';
@@ -14,8 +13,6 @@ import '../../core/di/securestorage.dart';
 import '../../main.dart';
 import '../../services/database/activity_log_service.dart';
 import '../../services/database/app_database.dart';
-import '../../services/sync_services/remote_data_sync_service.dart';
-import 'pos_selection_dialog.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -352,62 +349,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     }
   }
 
-  Future<void> _refreshRemoteData() async {
-    final syncService = getIt<RemoteDataSyncService>();
-    final alreadyRegistered = await syncService.isPosDeviceRegistered;
-
-    if (!alreadyRegistered && mounted) {
-      final selected = await showDialog<bool>(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => const PosSelectionDialog(),
-      );
-      if (selected != true || !mounted) return;
-    }
-
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.showSnackBar(
-      const SnackBar(
-        content: Row(
-          children: [
-            SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Colors.white,
-              ),
-            ),
-            SizedBox(width: 12),
-            Text('Pulling remote data...'),
-          ],
-        ),
-        duration: Duration(seconds: 30),
-      ),
-    );
-    try {
-      await syncService.syncAll();
-      if (mounted) {
-        messenger.hideCurrentSnackBar();
-        messenger.showSnackBar(
-          const SnackBar(
-            content: Text('Remote data refreshed successfully'),
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-    } catch (_) {
-      if (mounted) {
-        messenger.hideCurrentSnackBar();
-        messenger.showSnackBar(
-          const SnackBar(
-            content: Text('Failed to refresh remote data'),
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-    }
-  }
+  
 
   @override
   Widget build(BuildContext context) {
@@ -452,20 +394,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             onTap: () => Navigator.of(context).pushNamed('/sync'),
           ),
 
-          _SettingsTile(
-            icon: Icons.cloud_download_rounded,
-            title: 'Refresh Remote Data',
-            subtitle: 'Pull latest staff, meals, menu & meal types from server',
-            onTap: _refreshRemoteData,
-          ),
+        
           // ── Account ────────────────────────────────────────────────────────
           _SectionHeader(label: l10n.account),
 
           _SettingsTile(
             icon: Icons.group_outlined,
-            title: l10n.staffManagement, // "Staff Management"
-            subtitle: l10n
-                .manageStaffSubtitle, // "Register and remove fingerprints for staff access"
+            title: "Personnel Management", // "Staff Management"
+            subtitle: "View and enroll personnel bio data", // "Register and remove fingerprints for staff access"
             onTap: () => Navigator.of(context).pushNamed('/staff'),
           ),
           //POS managment

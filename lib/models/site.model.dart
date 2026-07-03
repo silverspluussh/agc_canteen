@@ -24,7 +24,7 @@ class Site {
       id: map['id'] as int,
       name: map['name'] as String,
       location: map['location'] as String?,
-      noOfEmployees: (map['no_of_employees'] as num?)?.toInt() ?? 0,
+      noOfEmployees: int.tryParse((map['no_of_employees'] ?? '').toString()) ?? 0,
       isActive: map['is_active'] as bool,
       startDate: map['start_date'] != null
           ? DateTime.parse(map['start_date'] as String)

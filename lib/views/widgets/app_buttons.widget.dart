@@ -10,9 +10,11 @@ class PrimaryButton extends StatelessWidget {
     this.prefixChild,
     this.color,
     this.width,
-    this.height
+    this.height,
+    this.noShadow
 
   });
+  final bool? noShadow;
   final double? width ;
   final double? height ;
   final  void Function()? onPressed ;
@@ -27,16 +29,20 @@ class PrimaryButton extends StatelessWidget {
             width: width ?? double.infinity,
       height: height?? 55,
       decoration: BoxDecoration(
-        color: color ?? Theme.of(context).colorScheme.primary,
+        color: color?.withValues(alpha:0.4 ) ?? Theme.of(context).colorScheme.primary,
         borderRadius: BorderRadius.circular(30),
+        border: Border.all(
+          color: color?? Theme.of(context).colorScheme.primary
+        ),
         boxShadow: [
-          BoxShadow(
+          if(noShadow == null)
+       BoxShadow(
             color: AppColors.gold800,
             blurStyle: BlurStyle.solid,
             offset: const Offset(0,7),
             blurRadius: 4,
-    
-          ),
+
+          ) 
         ]
       ),
       child: MaterialButton(

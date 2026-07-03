@@ -1,39 +1,46 @@
+import 'package:agc_canteen/models/kitchen.model.dart';
 import 'package:agc_canteen/models/staff.model.dart';
 
-class Contractor{
-   final int id;
-        final String name;
-        final String status;
-        final int noOfStaffs;
-        final int companyId;
-        final int departmentId;
-        final String company;
-        final String department;
+class Contractor {
+  final int id;
+  final String name;
+  final String status;
+  final int noOfStaffs;
+  final int companyId;
+  final int departmentId;
+  final String company;
+  final String department;
+  final List<Kitchen>? kitchens;
 
-        const Contractor({
-          required this.id,
-          required this.name,
-          required this.noOfStaffs,
-          required this.companyId,
-          required this.department,
-          required this.company,
-          required this.departmentId,
-          required this.status
-        });
+  const Contractor({
+    required this.id,
+    required this.name,
+    required this.noOfStaffs,
+    required this.companyId,
+    required this.department,
+    required this.company,
+    required this.departmentId,
+    required this.status,
+    this.kitchens,
+  });
 
-        factory Contractor.fromMap(Map<String, dynamic> map) {
-          return Contractor(
-            id: map['id'] as int,
-            name: map['name'] as String,
-            status: map['status'] as String,
-            noOfStaffs: map['no_of_staffs'] as int,
-            companyId: map['company_id'] as int,
-            departmentId: map['department_id'] as int,
-            company: map['company'] as String,
-            department: map['department'] as String,
-          );
-        }
-     
+  factory Contractor.fromMap(Map<String, dynamic> map) {
+    return Contractor(
+      id: map['id'] as int,
+      name: map['name'] as String,
+      status: map['status'] as String,
+      noOfStaffs: map['no_of_staffs'] as int,
+      companyId: map['company_id'] as int,
+      departmentId: map['department_id'] as int,
+      company: map['company'] as String,
+      department: map['department'] as String,
+      kitchens: map['kitchens'] != null
+          ? (map['kitchens'] as List<dynamic>)
+                .map((item) => Kitchen.fromMap(item as Map<String, dynamic>))
+                .toList()
+          : null,
+    );
+  }
 }
 
 class ContractorStaff {
@@ -49,7 +56,8 @@ class ContractorStaff {
   final DateTime startDate;
   final DateTime endDate;
   final bool isCharged;
-  final List<BioData> bioData;
+  final List<BioData>? bioData;
+  final List<Kitchen>? kitchens;
 
   const ContractorStaff({
     required this.id,
@@ -64,7 +72,8 @@ class ContractorStaff {
     required this.startDate,
     required this.endDate,
     required this.isCharged,
-    this.bioData = const [],
+    this.kitchens,
+    this.bioData,
   });
 
   factory ContractorStaff.fromMap(Map<String, dynamic> map) {
@@ -81,9 +90,16 @@ class ContractorStaff {
       startDate: DateTime.parse(map['start_date'] as String),
       endDate: DateTime.parse(map['end_date'] as String),
       isCharged: map['is_charged'] as bool,
-      bioData: (map['bioData'] as List<dynamic>)
-          .map((item) => BioData.fromMap(item as Map<String, dynamic>))
-          .toList(),
+      bioData: map['bioData'] != null
+          ? (map['bioData'] as List<dynamic>)
+                .map((item) => BioData.fromMap(item as Map<String, dynamic>))
+                .toList()
+          : null,
+      kitchens: map['kitchens'] != null
+          ? (map['kitchens'] as List<dynamic>)
+                .map((item) => Kitchen.fromMap(item as Map<String, dynamic>))
+                .toList()
+          : null,
     );
   }
 
@@ -101,6 +117,7 @@ class ContractorStaff {
     DateTime? endDate,
     bool? isCharged,
     List<BioData>? bioData,
+    List<Kitchen>? kitchens,
   }) {
     return ContractorStaff(
       id: id ?? this.id,
@@ -116,6 +133,7 @@ class ContractorStaff {
       endDate: endDate ?? this.endDate,
       isCharged: isCharged ?? this.isCharged,
       bioData: bioData ?? this.bioData,
+      kitchens: kitchens ?? this.kitchens,
     );
   }
 }

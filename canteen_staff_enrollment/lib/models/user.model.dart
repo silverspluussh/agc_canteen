@@ -1,4 +1,3 @@
-import 'kitchen.model.dart';
 
 class User {
   final int id;
@@ -11,7 +10,6 @@ class User {
   final DateTime? lastLoginAt;
   final DateTime? actStartDate;
   final DateTime? actEndDate;
-  final List<Kitchen> kitchens;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -26,7 +24,6 @@ class User {
     this.lastLoginAt,
     this.actStartDate,
     this.actEndDate,
-    required this.kitchens,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -49,9 +46,6 @@ class User {
       actEndDate: map['act_end_date'] != null
           ? DateTime.parse(map['act_end_date'] as String)
           : null,
-      kitchens: (map['kitchens'] as List<dynamic>)
-          .map((item) => Kitchen.fromMap(item as Map<String, dynamic>))
-          .toList(),
       createdAt: DateTime.parse(map['created_at'] as String),
       updatedAt: DateTime.parse(map['updated_at'] as String),
     );
@@ -69,7 +63,6 @@ class User {
       'last_login_at': lastLoginAt?.toIso8601String(),
       'act_start_date': actStartDate?.toIso8601String(),
       'act_end_date': actEndDate?.toIso8601String(),
-      'kitchens': kitchens.map((item) => item.toMap()).toList(),
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
@@ -86,7 +79,6 @@ class User {
     DateTime? lastLoginAt,
     DateTime? actStartDate,
     DateTime? actEndDate,
-    List<Kitchen>? kitchens,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -101,7 +93,6 @@ class User {
       lastLoginAt: lastLoginAt ?? this.lastLoginAt,
       actStartDate: actStartDate ?? this.actStartDate,
       actEndDate: actEndDate ?? this.actEndDate,
-      kitchens: kitchens ?? this.kitchens,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

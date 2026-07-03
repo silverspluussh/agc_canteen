@@ -12,7 +12,6 @@ import '../database/activity_log_service.dart';
 enum AdminAuthStatus {
   unauthenticated,
   loading,
-  awaitingOtp,
   authenticated,
   authenticatedOffline,
   error,
@@ -30,19 +29,12 @@ class AdminAuthResult {
       status == AdminAuthStatus.authenticated ||
       status == AdminAuthStatus.authenticatedOffline;
 
-  bool get needsOtp => status == AdminAuthStatus.awaitingOtp;
-
   factory AdminAuthResult.success(String token) =>
       AdminAuthResult(status: AdminAuthStatus.authenticated, token: token);
 
   factory AdminAuthResult.offline(String token) => AdminAuthResult(
     status: AdminAuthStatus.authenticatedOffline,
     token: token,
-  );
-
-  factory AdminAuthResult.awaitingOtp(String sessionToken) => AdminAuthResult(
-    status: AdminAuthStatus.awaitingOtp,
-    sessionToken: sessionToken,
   );
 
   factory AdminAuthResult.failure(String message) =>
@@ -92,14 +84,15 @@ class AdminAuthService {
 
   Future<AdminAuthResult> login(String email, String password) async {
     log(  'Attempting login for email: $email');
-    final lowerEmail = email.trim().toLowerCase();
+    final lowerEmail = email.trim();
 
     try {
       final responseData = await _networkAPI.postData(
         '/auth/login',
         data: {'email': lowerEmail, 'password': password},
 
-        builder: (data) => data,
+        builder: (data)  {
+          return data;},
       );
 
       final token =
@@ -113,14 +106,7 @@ class AdminAuthService {
           _extractToken(responseData, 'session_token');
 
       if (sessionToken != null && sessionToken.isNotEmpty && (token == null || token.isEmpty)) {
-        _logger.i('OTP sent to $lowerEmail — awaiting verification');
-        getIt<ActivityLogService>().log(
-          type: 'admin_login_otp_sent',
-          message: 'OTP sent to admin: $lowerEmail',
-          actorType: 'admin',
-          actorName: lowerEmail,
-        );
-        return AdminAuthResult.awaitingOtp(sessionToken);
+        return AdminAuthResult.failure('OTP required but OTP flow has been disabled');
       }
 
       if (token == null || token.isEmpty) {
@@ -168,59 +154,59 @@ class AdminAuthService {
     } 
   }
 
-  Future<AdminAuthResult> verifyOtp({
-    required String sessionToken,
-    required String otp,
-    required String email,
-    required String password,
-  }) async {
-    final lowerEmail = email.trim().toLowerCase();
+  // Future<AdminAuthResult> verifyOtp({
+  //   required String sessionToken,
+  //   required String otp,
+  //   required String email,
+  //   required String password,
+  // }) async {
+  //   final lowerEmail = email.trim().toLowerCase();
 
-    try {
-      final responseData = await _networkAPI.postData(
-        '/auth/verify-otp',
-        data: {'sessionToken': sessionToken, 'otp': otp},
-        builder: (data) => data,
-      );
+  //   try {
+  //     final responseData = await _networkAPI.postData(
+  //       '/auth/verify-otp',
+  //       data: {'sessionToken': sessionToken, 'otp': otp},
+  //       builder: (data) => data,
+  //     );
 
-      final token =
-          _extractToken(responseData, 'accessToken') ??
-          _extractToken(responseData, 'access_token') ??
-          _extractToken(responseData, 'token');
-      final refreshToken =
-          _extractToken(responseData, 'refreshToken') ??
-          _extractToken(responseData, 'refresh_token');
+  //     final token =
+  //         _extractToken(responseData, 'accessToken') ??
+  //         _extractToken(responseData, 'access_token') ??
+  //         _extractToken(responseData, 'token');
+  //     final refreshToken =
+  //         _extractToken(responseData, 'refreshToken') ??
+  //         _extractToken(responseData, 'refresh_token');
 
-      if (token == null || token.isEmpty) {
-        return AdminAuthResult.failure('Invalid server response: no token');
-      }
+  //     if (token == null || token.isEmpty) {
+  //       return AdminAuthResult.failure('Invalid server response: no token');
+  //     }
 
-      await _storage.writeSecureToken(token);
-      if (refreshToken != null && refreshToken.isNotEmpty) {
-        await _storage.writeSecureData('refresh_token', refreshToken);
-      }
-      await _storage.writeAdminCredentials(
-        lowerEmail,
-        _hashCredentials(lowerEmail, password),
-      );
+  //     await _storage.writeSecureToken(token);
+  //     if (refreshToken != null && refreshToken.isNotEmpty) {
+  //       await _storage.writeSecureData('refresh_token', refreshToken);
+  //     }
+  //     await _storage.writeAdminCredentials(
+  //       lowerEmail,
+  //       _hashCredentials(lowerEmail, password),
+  //     );
 
-      _logger.i('Admin verified OTP and logged in: $lowerEmail');
-      getIt<ActivityLogService>().log(
-        type: 'admin_login_otp_verified',
-        message: 'Admin verified OTP and logged in: $lowerEmail',
-        actorType: 'admin',
-        actorName: lowerEmail,
-        sourceTable: 'users',
-      );
-      return AdminAuthResult.success(token);
-    } on APIException catch (e) {
-      _logger.w('OTP verification error for $lowerEmail: ${e.message}');
-      return AdminAuthResult.failure(e.message);
-    } catch (e) {
-      _logger.e('Unexpected OTP verification error for $lowerEmail', error: e);
-      return AdminAuthResult.failure(e.toString());
-    }
-  }
+  //     _logger.i('Admin verified OTP and logged in: $lowerEmail');
+  //     getIt<ActivityLogService>().log(
+  //       type: 'admin_login_otp_verified',
+  //       message: 'Admin verified OTP and logged in: $lowerEmail',
+  //       actorType: 'admin',
+  //       actorName: lowerEmail,
+  //       sourceTable: 'users',
+  //     );
+  //     return AdminAuthResult.success(token);
+  //   } on APIException catch (e) {
+  //     _logger.w('OTP verification error for $lowerEmail: ${e.message}');
+  //     return AdminAuthResult.failure(e.message);
+  //   } catch (e) {
+  //     _logger.e('Unexpected OTP verification error for $lowerEmail', error: e);
+  //     return AdminAuthResult.failure(e.toString());
+  //   }
+  // }
 
   Future<String> fetchSecretKey() async {
     try {

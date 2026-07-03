@@ -3,6 +3,8 @@ import 'dart:developer';
 import 'package:canteen_staff_enrollment/views/app_buttons.widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:canteen_staff_enrollment/models/biodata.model.dart';
+import 'package:canteen_staff_enrollment/models/employee_type.enum.dart';
 
 import '../../controllers/staff_controller.dart';
 import '../../core/network/network_api_dio.dart';
@@ -48,6 +50,14 @@ class _StaffBiodataPageState extends ConsumerState<StaffBiodataPage>
   // ─── Helpers ──────────────────────────────────────────────────────────────
 
   int get _staffId => widget.staff.id;
+
+  ({int id, EmployeeType type}) get _biodataArgs {
+    final employeeType = EmployeeType.values.firstWhere(
+      (e) => e.name == widget.staff.employeeType,
+      orElse: () => EmployeeType.permanent,
+    );
+    return (id: _staffId, type: employeeType);
+  }
 
   String _fingerLabel(Finger finger) {
     switch (finger) {
@@ -161,7 +171,7 @@ class _StaffBiodataPageState extends ConsumerState<StaffBiodataPage>
     try {
       final service = StaffBioDataService(networkAPI: NetworkAPI());
       await service.deleteBioData(biodata.id);
-      ref.invalidate(staffBiodataProvider(_staffId));
+      ref.invalidate(staffBiodataProvider(_biodataArgs));
       ref.invalidate(staffListProvider);
       ref.invalidate(allBiodataProvider);
       messenger.showSnackBar(
@@ -270,7 +280,7 @@ class _StaffBiodataPageState extends ConsumerState<StaffBiodataPage>
       } else {
         await service.activateBioData(biodata.id);
       }
-      ref.invalidate(staffBiodataProvider(_staffId));
+      ref.invalidate(staffBiodataProvider(_biodataArgs));
       ref.invalidate(staffListProvider);
       ref.invalidate(allBiodataProvider);
       messenger.showSnackBar(
@@ -321,23 +331,34 @@ class _StaffBiodataPageState extends ConsumerState<StaffBiodataPage>
   // ─── Navigate to enrollment ────────────────────────────────────────────────
 
   Future<void> _goToEnrollment() async {
+    final employeeType = EmployeeType.values.firstWhere(
+      (e) => e.name == widget.staff.employeeType,
+      orElse: () => EmployeeType.permanent,
+    );
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => BiometricEnrollmentPage(staff: widget.staff),
+        builder: (_) => BiometricEnrollmentPage(
+          referenceId: widget.staff.id,
+          employeeType: employeeType,
+          displayName: widget.staff.fullname,
+          subtitle: 'Employee ID: ${widget.staff.empId}',
+          existingBioData: widget.staff.bioData,
+          onEnrolled: () {
+            ref.invalidate(staffBiodataProvider(_biodataArgs));
+            ref.invalidate(staffListProvider);
+            ref.invalidate(allBiodataProvider);
+          },
+        ),
       ),
     );
-    // Refresh biodata after enrollment
-    ref.invalidate(staffBiodataProvider(_staffId));
-    ref.invalidate(staffListProvider);
-    ref.invalidate(allBiodataProvider);
   }
 
   // ─── Build ────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
-    final biodataAsync = ref.watch(staffBiodataProvider(_staffId));
+    final biodataAsync = ref.watch(staffBiodataProvider(_biodataArgs));
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -366,10 +387,10 @@ class _StaffBiodataPageState extends ConsumerState<StaffBiodataPage>
         opacity: _fadeAnim,
         child: RefreshIndicator(
           onRefresh: () async {
-            ref.invalidate(staffBiodataProvider(_staffId));
+            ref.invalidate(staffBiodataProvider(_biodataArgs));
             ref.invalidate(staffListProvider);
             ref.invalidate(allBiodataProvider);
-            await ref.read(staffBiodataProvider(_staffId).future);
+            await ref.read(staffBiodataProvider(_biodataArgs).future);
           },
           child: CustomScrollView(
             slivers: [
@@ -431,7 +452,7 @@ class _StaffBiodataPageState extends ConsumerState<StaffBiodataPage>
     final staff = widget.staff;
     final theme = Theme.of(context);
     final initials =
-        '${staff.firstName.isNotEmpty ? staff.firstName[0] : ''}${staff.lastName.isNotEmpty ? staff.lastName[0] : ''}';
+        staff.fullname.isNotEmpty ? staff.fullname[0] : '';
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
@@ -473,7 +494,7 @@ class _StaffBiodataPageState extends ConsumerState<StaffBiodataPage>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${staff.firstName} ${staff.lastName}',
+                  staff.fullname,
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -484,10 +505,7 @@ class _StaffBiodataPageState extends ConsumerState<StaffBiodataPage>
                   const SizedBox(height: 2),
                   _infoRow(Icons.apartment_outlined, staff.department!.name),
                 ],
-                if (staff.level.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  _infoRow(Icons.work_outline, staff.level),
-                ],
+                
               ],
             ),
           ),
@@ -698,7 +716,7 @@ class _StaffBiodataPageState extends ConsumerState<StaffBiodataPage>
           ),
           const SizedBox(height: 20),
           ElevatedButton.icon(
-            onPressed: () => ref.invalidate(staffBiodataProvider(_staffId)),
+            onPressed: () => ref.invalidate(staffBiodataProvider(_biodataArgs)),
             icon: const Icon(Icons.refresh),
             label: const Text('Retry'),
           ),

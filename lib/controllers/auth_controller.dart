@@ -10,12 +10,13 @@ import '../services/database/activity_log_service.dart';
 import '../services/auth/pos_auth_service.dart';
 import '../services/database/app_database.dart';
 import '../services/print/print_service_manager.dart';
-import '../services/sync_services/sync_service.dart';
+import '../services/sync_services/sync_from_local_to_remote.dart';
 import 'providers.dart';
 
 enum AuthStep {
   unauthenticated,
   authenticating,
+  authenticated,
   placingOrder,
   completed,
   error,
@@ -23,7 +24,7 @@ enum AuthStep {
 
 class AuthState {
   final AuthStep step;
-  final StaffAuthResult? staff;
+  final AuthResult? staff;
   final String? error;
   final String? orderCode;
   final String? mealType;
@@ -40,7 +41,7 @@ class AuthState {
 
   AuthState copyWith({
     AuthStep? step,
-    StaffAuthResult? staff,
+    AuthResult? staff,
     String? error,
     String? orderCode,
     String? mealType,
@@ -59,6 +60,7 @@ class AuthState {
 
   bool get isUnauthenticated => step == AuthStep.unauthenticated;
   bool get isAuthenticating => step == AuthStep.authenticating;
+  bool get isStaffReady => step == AuthStep.authenticated;
   bool get isPlacingOrder => step == AuthStep.placingOrder;
   bool get isCompleted => step == AuthStep.completed;
   bool get hasError => step == AuthStep.error;
@@ -86,7 +88,7 @@ class AuthController extends Notifier<AuthState> {
 
       dev.log(
         '[AuthController] authenticateWithFingerprint returned: '
-        'result=${result.isAuthenticated ? "staffId=${result.staffId}, name=${result.firstName} ${result.lastName}" : "failure=${result.failureReason?.name}"}',
+        'result=${result.isAuthenticated ? "entityId=${result.entityId}, type=${result.entityType?.name}, name=${result.displayName}" : "failure=${result.failureReason?.name}"}',
         name: 'POS_AUTH',
       );
 
@@ -106,7 +108,7 @@ class AuthController extends Notifier<AuthState> {
         getIt<ActivityLogService>().log(
           type: 'staff_auth_failure',
           message: 'Staff authentication failed: ${reason?.name ?? "unknown"}',
-          actorType: 'staff',
+          actorType: 'Staff',
           metadata: {'reason': reason?.name},
         );
         state = state.copyWith(step: AuthStep.error, error: errorMessage);
@@ -121,10 +123,10 @@ class AuthController extends Notifier<AuthState> {
 
       getIt<ActivityLogService>().log(
         type: 'staff_auth_success',
-        message: 'Staff authenticated: ${result.firstName} ${result.lastName}',
-        actorType: 'staff',
-        actorId: result.staffId,
-        actorName: '${result.firstName} ${result.lastName}',
+        message: 'Authenticated: ${result.displayName}',
+        actorType: result.entityType?.entityName ?? 'Staff',
+        actorId: result.entityId,
+        actorName: result.displayName,
       );
 
       await _placeVoucherOrder(result);
@@ -138,36 +140,94 @@ class AuthController extends Notifier<AuthState> {
       getIt<ActivityLogService>().log(
         type: 'staff_auth_failure',
         message: 'Staff authentication error: $e',
-        actorType: 'staff',
+        actorType: 'Staff',
         metadata: {'reason': 'exception', 'error': e.toString()},
       );
       state = state.copyWith(step: AuthStep.error, error: e.toString());
     }
   }
 
-  Future<void> _placeVoucherOrder(StaffAuthResult staff) async {
+  /// Authenticates staff without placing an order — stops at [AuthStep.authenticated].
+  Future<void> authenticateOnly() async {
+    state = state.copyWith(step: AuthStep.authenticating, error: null);
+
+    try {
+      final posAuth = ref.read(posAuthProvider);
+      final result = await posAuth.authenticateWithFingerprint();
+
+      if (!result.isAuthenticated) {
+        final reason = result.failureReason;
+        final errorMessage = switch (reason) {
+          AuthFailureReason.notEnrolled =>
+            'Fingerprint not recognized.',
+          AuthFailureReason.notInKitchen =>
+            'Staff is not assigned to this kitchen.',
+          null => 'Authentication failed.',
+        };
+        state = state.copyWith(step: AuthStep.error, error: errorMessage);
+        return;
+      }
+
+      state = state.copyWith(step: AuthStep.authenticated, staff: result);
+
+      getIt<ActivityLogService>().log(
+        type: 'staff_auth_success',
+        message: 'Authenticated: ${result.displayName}',
+        actorType: result.entityType?.entityName ?? 'Staff',
+        actorId: result.entityId,
+        actorName: result.displayName,
+      );
+    } catch (e, st) {
+      dev.log('[AuthController] Auth exception: $e', name: 'POS_AUTH', error: e, stackTrace: st);
+      state = state.copyWith(step: AuthStep.error, error: e.toString());
+    }
+  }
+
+  Future<void> _placeVoucherOrder(AuthResult staff) async {
     state = state.copyWith(step: AuthStep.placingOrder);
 
     try {
       final db = getIt<AppDatabase>();
       final printer = getIt<PrintServiceManager>();
-      final sync = getIt<SyncService>();
+      final sync = getIt<LocalToRemoteSyncService>();
 
       final result = await _resolveCurrentMealType(db);
       if (result == null) {
         state = state.copyWith(
           step: AuthStep.error,
-          error: 'No meal type available at this time.',
+          error: 'No meals available at this time. Please try again later.',
         );
         return;
       }
-      final (mealType, price) = result;
+      final (mealTypeId, mealType, price) = result;
+
+      // Check shift meal restrictions for staff-type employees
+      if (staff.entityType != null && staff.entityType!.isStaffType) {
+        final staffData = await db.getStaff(staff.entityId!);
+        if (staffData != null && staffData.shiftId != null) {
+          final allowedMealTypeIds = await db.getShiftMealTypeIds(staffData.shiftId!);
+          if (allowedMealTypeIds.isNotEmpty && !allowedMealTypeIds.contains(mealTypeId)) {
+            final shiftName = (await db.getShift(staffData.shiftId!))?.name ?? 'assigned shift';
+            state = state.copyWith(
+              step: AuthStep.error,
+              error: 'This meal is not allowed for your $shiftName shift.',
+            );
+            return;
+          }
+        }
+      }
 
       final now = DateTime.now();
       final nowIso = now.toIso8601String();
       final orderId = DateTime.now().millisecondsSinceEpoch;
-      final orderCode = await db.nextOrderCode();
-      final staffName = '${staff.firstName} ${staff.lastName}';
+      final posDevices = await db.getAllPosDevices();
+      final posDevice = posDevices.firstOrNull;
+      final orderCode = await db.nextOrderCode(
+        staff.entityType?.entityName.substring(0, 1) ?? '',
+        posDevice!.id,
+        posDevice.kitchenId!,
+      );
+      final staffName = staff.displayName ?? 'Unknown';
 
       await db.insertOrder(
         OrdersCompanion(
@@ -180,10 +240,10 @@ class AuthController extends Notifier<AuthState> {
           total: Value(price),
           groupCount: const Value(1),
           description: Value(mealType),
-          orderedById: Value(staff.staffId!),
+          orderedById: Value(staff.entityId!),
           createdAt: Value(nowIso),
           updatedAt: Value(nowIso),
-          syncStatus: const Value(0),
+          syncStatus: const Value(0),        
           syncUpdatedAt: const Value.absent(),
         ),
       );
@@ -201,8 +261,8 @@ class AuthController extends Notifier<AuthState> {
       getIt<ActivityLogService>().log(
         type: 'order_placed',
         message: 'Voucher printed: $orderCode — $staffName ($mealType)',
-        actorType: 'staff',
-        actorId: staff.staffId,
+        actorType: staff.entityType?.entityName ?? 'Staff',
+        actorId: staff.entityId,
         actorName: staffName,
         sourceTable: 'orders',
         recordId: orderId.toString(),
@@ -213,7 +273,7 @@ class AuthController extends Notifier<AuthState> {
         },
       );
 
-      final pad = (int n) => n.toString().padLeft(2, '0');
+      String pad(int n) => n.toString().padLeft(2, '0');
       final timeLabel =
           '${pad(now.hour)}:${pad(now.minute)} '
           '${now.year}-${pad(now.month)}-${pad(now.day)}';
@@ -238,7 +298,7 @@ class AuthController extends Notifier<AuthState> {
     }
   }
 
-  Future<(String, double)?> _resolveCurrentMealType(AppDatabase db) async {
+  Future<(int, String, double)?> _resolveCurrentMealType(AppDatabase db) async {
     final mealTypes = await db.getAllMealTypes();
 
     final now = DateTime.now();
@@ -268,7 +328,7 @@ class AuthController extends Notifier<AuthState> {
         active = currentMinutes >= startMins || currentMinutes < endMins;
       }
 
-      if (active) return (mt.name.toLowerCase(), mt.price);
+      if (active) return (mt.id, mt.name.toLowerCase(), mt.price);
     }
     return null;
   }
@@ -280,7 +340,7 @@ class AuthController extends Notifier<AuthState> {
     required String mealType,
     required DateTime orderTime,
   }) async {
-    final pad = (int n) => n.toString().padLeft(2, '0');
+    String pad(int n) => n.toString().padLeft(2, '0');
     final date =
         '${orderTime.year}-${pad(orderTime.month)}-${pad(orderTime.day)} '
         '${pad(orderTime.hour)}:${pad(orderTime.minute)}';
@@ -291,8 +351,6 @@ class AuthController extends Notifier<AuthState> {
     void boldOn() => b.add(const [0x1B, 0x45, 0x01]);
     void boldOff() => b.add(const [0x1B, 0x45, 0x00]);
     void centerOn() => b.add(const [0x1B, 0x61, 0x01]);
-    void doubleOn() => b.add(const [0x1D, 0x21, 0x11]);
-    void doubleOff() => b.add(const [0x1D, 0x21, 0x00]);
 
     final mealLabel =
         mealType[0].toUpperCase() + mealType.substring(1).replaceAll('_', ' ');
@@ -303,9 +361,7 @@ class AuthController extends Notifier<AuthState> {
     ln('====================');
     centerOn();
     boldOn();
-    doubleOn();
     ln(orderCode);
-    doubleOff();
     boldOff();
     ln('Time:  $date');
     ln('Staff: $staffName');
@@ -323,10 +379,10 @@ class AuthController extends Notifier<AuthState> {
       final staff = state.staff!;
       getIt<ActivityLogService>().log(
         type: 'staff_sign_out',
-        message: 'Staff session reset: ${staff.firstName} ${staff.lastName}',
-        actorType: 'staff',
-        actorId: staff.staffId,
-        actorName: '${staff.firstName} ${staff.lastName}',
+        message: 'Session reset: ${staff.displayName}',
+        actorType: staff.entityType?.entityName ?? 'Staff',
+        actorId: staff.entityId,
+        actorName: staff.displayName,
       );
     }
     state = const AuthState();
@@ -334,6 +390,19 @@ class AuthController extends Notifier<AuthState> {
 
   void clearError() {
     state = state.copyWith(step: AuthStep.unauthenticated, error: null);
+  }
+
+  void setOrderDetails({
+    String? orderCode,
+    String? mealType,
+    String? orderTime,
+  }) {
+    state = state.copyWith(
+      step: AuthStep.completed,
+      orderCode: orderCode ?? state.orderCode,
+      mealType: mealType ?? state.mealType,
+      orderTime: orderTime ?? state.orderTime,
+    );
   }
 }
 

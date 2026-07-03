@@ -1,9 +1,9 @@
-import 'dart:developer';
 
 import 'package:canteen_staff_enrollment/core/network/api_exceptions_util.dart';
-
+import 'package:canteen_staff_enrollment/models/biodata.model.dart';
+import 'package:uuid/uuid.dart';
 import '../core/network/network_api_dio.dart';
-import '../models/staff.model.dart';
+import '../models/employee_type.enum.dart';
 
 class StaffBioDataService {
   final NetworkAPI networkAPI;
@@ -23,10 +23,10 @@ class StaffBioDataService {
     );
   }
 
-  Future<List<BioData>> getBioDatasByStaffId(int staffId) async {
+  Future<List<BioData>> getBioDatasByStaffId(int staffId, EmployeeType type) async {
     return await networkAPI.getData<List<BioData>>(
       '/hr/bio-data',
-      queryParameters: {"staffId": staffId},
+      queryParameters: {"referenceId": staffId, "employeeType": type.name},
       builder: (data) {
         if (data is List) {
           return data
@@ -38,9 +38,11 @@ class StaffBioDataService {
     );
   }
 
-  Future<bool> createBioData(int staffId, List<BioData> bioDatas) async {
+  Future<bool> createBioData(int referenceId, EmployeeType type, List<BioData> bioDatas) async {
     final payload = {
-      "staffId": staffId,
+      "uuid": Uuid().v4(),
+      "referenceId": referenceId,
+      "employeeType": type.name,
       "bioDatas": bioDatas.map((b) {
         return {"finger": b.finger.name, "data": b.data};
       }).toList(),
@@ -63,7 +65,7 @@ class StaffBioDataService {
         '/hr/bio-data/delete/$bioDataId',
         builder: (data) => true,
       );
-    } on APIException catch (e) {
+    } on APIException {
       rethrow;
     }
   }

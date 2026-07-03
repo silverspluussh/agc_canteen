@@ -23,6 +23,7 @@ class NetworkAPI {
         data: data,
       );
 
+
       switch (response.statusCode) {
         case 202:
         case 200:

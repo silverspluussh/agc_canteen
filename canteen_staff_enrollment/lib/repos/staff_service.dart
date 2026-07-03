@@ -19,13 +19,13 @@ class StaffService extends StaffCtrller {
       return await networkAPI.getData<List<Staff>>(
         '/hr/staffs',
         queryParameters: {
-          "staffId": staffId,
-          "status": status,
-          "company": company,
+      
           "kitchenId": kitchenId,
-          "limit": 10000,
+          "departmentId": department,
+        
         },
         builder: (data) {
+        
           if (data['data'] is List) {
             return (data['data'] as List)
                 .map((e) => Staff.fromMap(e as Map<String, dynamic>))
@@ -47,15 +47,15 @@ class StaffService extends StaffCtrller {
         '/hr/staff',
         queryParameters: {"id": staffId},
         builder: (data) {
-          if (data['data'] is List) {
-            return (data['data'] as List)
+          if (data['data']['data'] is List) {
+            return (data['data']['data'] as List)
                 .map<Staff>((e) => Staff.fromMap(e as Map<String, dynamic>))
                 .toList();
           }
           return [];
         },
       );
-    } catch (e, stack) {
+    } catch (e) {
       return [];
     }
   }

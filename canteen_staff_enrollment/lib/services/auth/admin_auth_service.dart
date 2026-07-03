@@ -10,7 +10,6 @@ import '../../core/network/network_api_dio.dart';
 enum AdminAuthStatus {
   unauthenticated,
   loading,
-  awaitingOtp,
   authenticated,
   authenticatedOffline,
   error,
@@ -28,19 +27,12 @@ class AdminAuthResult {
       status == AdminAuthStatus.authenticated ||
       status == AdminAuthStatus.authenticatedOffline;
 
-  bool get needsOtp => status == AdminAuthStatus.awaitingOtp;
-
   factory AdminAuthResult.success(String token) =>
       AdminAuthResult(status: AdminAuthStatus.authenticated, token: token);
 
   factory AdminAuthResult.offline(String token) => AdminAuthResult(
     status: AdminAuthStatus.authenticatedOffline,
     token: token,
-  );
-
-  factory AdminAuthResult.awaitingOtp(String sessionToken) => AdminAuthResult(
-    status: AdminAuthStatus.awaitingOtp,
-    sessionToken: sessionToken,
   );
 
   factory AdminAuthResult.failure(String message) =>
@@ -111,9 +103,7 @@ class AdminAuthService {
           _extractToken(responseData, 'session_token');
 
       if (sessionToken != null && sessionToken.isNotEmpty && (token == null || token.isEmpty)) {
-        _logger.i('OTP sent to $lowerEmail — awaiting verification');
-     
-        return AdminAuthResult.awaitingOtp(sessionToken);
+        return AdminAuthResult.failure('OTP required but OTP flow has been disabled');
       }
 
       if (token == null || token.isEmpty) {
@@ -153,54 +143,6 @@ class AdminAuthService {
       _logger.e('Unexpected login error for $lowerEmail', error: e);
       return AdminAuthResult.failure(e.toString());
     } 
-  }
-
-  Future<AdminAuthResult> verifyOtp({
-    required String sessionToken,
-    required String otp,
-    required String email,
-    required String password,
-  }) async {
-    final lowerEmail = email.trim().toLowerCase();
-
-    try {
-      final responseData = await _networkAPI.postData(
-        '/auth/verify-otp',
-        data: {'sessionToken': sessionToken, 'otp': otp},
-        builder: (data) => data,
-      );
-
-      final token =
-          _extractToken(responseData, 'accessToken') ??
-          _extractToken(responseData, 'access_token') ??
-          _extractToken(responseData, 'token');
-      final refreshToken =
-          _extractToken(responseData, 'refreshToken') ??
-          _extractToken(responseData, 'refresh_token');
-
-      if (token == null || token.isEmpty) {
-        return AdminAuthResult.failure('Invalid server response: no token');
-      }
-
-      await _storage.writeSecureToken(token);
-      if (refreshToken != null && refreshToken.isNotEmpty) {
-        await _storage.writeSecureData('refresh_token', refreshToken);
-      }
-      await _storage.writeAdminCredentials(
-        lowerEmail,
-        _hashCredentials(lowerEmail, password),
-      );
-
-      _logger.i('Admin verified OTP and logged in: $lowerEmail');
-     
-      return AdminAuthResult.success(token);
-    } on APIException catch (e) {
-      _logger.w('OTP verification error for $lowerEmail: ${e.message}');
-      return AdminAuthResult.failure(e.message);
-    } catch (e) {
-      _logger.e('Unexpected OTP verification error for $lowerEmail', error: e);
-      return AdminAuthResult.failure(e.toString());
-    }
   }
 
   Future<String> fetchSecretKey() async {
@@ -340,7 +282,6 @@ class AdminAuthService {
   }
 
   Future<void> logout() async {
-    final cachedEmail = await _storage.readAdminEmail();
     try {
       final token = await _storage.readSecureData('access_token');
       if (token != null && token.isNotEmpty) {

@@ -6,8 +6,7 @@ class Site {
   final bool isActive;
   final DateTime? startDate;
   final DateTime? endDate;
-  final DateTime createdAt;
-  final DateTime updatedAt;
+
 
   const Site({
     required this.id,
@@ -17,33 +16,23 @@ class Site {
     required this.isActive,
     this.startDate,
     this.endDate,
-    required this.createdAt,
-    required this.updatedAt,
+   
   });
 
   factory Site.fromMap(Map<String, dynamic> map) {
     return Site(
       id: map['id'] as int,
-      name: (map['name'] ?? '') as String,
+      name: map['name'] as String,
       location: map['location'] as String?,
-      noOfEmployees:
-          int.tryParse(
-            (map['no_of_employees'] ?? map['noOfEmployees'] ?? '').toString(),
-          ) ??
-          0,
-      isActive: map['is_active'] as bool? ?? map['isActive'] as bool? ?? true,
-      startDate: (map['start_date'] ?? map['startDate']) != null
-          ? DateTime.parse((map['start_date'] ?? map['startDate']) as String)
+      noOfEmployees: int.tryParse((map['no_of_employees'] ?? '').toString()) ?? 0,
+      isActive: map['is_active'] as bool,
+      startDate: map['start_date'] != null
+          ? DateTime.parse(map['start_date'] as String)
           : null,
-      endDate: (map['end_date'] ?? map['endDate']) != null
-          ? DateTime.parse((map['end_date'] ?? map['endDate']) as String)
+      endDate: map['end_date'] != null
+          ? DateTime.parse(map['end_date'] as String)
           : null,
-      createdAt: DateTime.parse(
-        (map['created_at'] ?? map['createdAt']) as String,
-      ),
-      updatedAt: DateTime.parse(
-        (map['updated_at'] ?? map['updatedAt']) as String,
-      ),
+
     );
   }
 
@@ -56,8 +45,7 @@ class Site {
       'is_active': isActive,
       'start_date': startDate?.toIso8601String(),
       'end_date': endDate?.toIso8601String(),
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
+     
     };
   }
 
@@ -80,8 +68,7 @@ class Site {
       isActive: isActive ?? this.isActive,
       startDate: startDate ?? this.startDate,
       endDate: endDate ?? this.endDate,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
+  
     );
   }
 }

@@ -1,59 +1,65 @@
+import 'package:agc_canteen/models/kitchen.model.dart';
+import 'package:agc_canteen/models/staff.model.dart';
+
 class Dependant {
   final int id;
-  final String firstName;
-  final String lastName;
+  final String fullname;
   final String status;
   final String? gender;
+  final int staffId;
+  final List<BioData>? bioData;
+  final List<Kitchen>? kitchens;
 
   const Dependant({
     required this.id,
-    required this.firstName,
-    required this.lastName,
-
+    required this.fullname,
+    this.bioData,
+    this.kitchens,
     required this.status,
-    this.gender,
+   required this.staffId,
+    this.gender
   });
 
   factory Dependant.fromMap(Map<String, dynamic> map) {
     return Dependant(
       id: map['id'] as int,
-      firstName: map['first_name'] as String,
-      lastName: map['last_name'] as String,
+      fullname: map['fullName'] as String,
       status: map['status'] as String,
       gender: map['gender'] as String?,
+      staffId: map['staffId'] as int,
+      bioData: map['bioData'] != null
+          ? (map['bioData'] as List<dynamic>)
+                .map((item) => BioData.fromMap(item as Map<String, dynamic>))
+                .toList()
+          : null,
+      kitchens: map['kitchens'] != null
+          ? (map['kitchens'] as List<dynamic>)
+                .map((item) => Kitchen.fromMap(item as Map<String, dynamic>))
+                .toList()
+          : null,
     );
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'first_name': firstName,
-      'last_name': lastName,
-      'status': status,
-      'gender': gender,
-    };
   }
 
   Dependant copyWith({
     int? id,
-    String? firstName,
-    String? lastName,
+    String? fullname,
     String? email,
     String? phone,
     String? status,
     String? gender,
-    DateTime? dob,
     String? relationship,
-    String? photoUrl,
-    DateTime? createdAt,
-    DateTime? updatedAt,
+   int? staffId,
+       List<BioData>? bioData,
+   List<Kitchen>? kitchens
   }) {
     return Dependant(
       id: id ?? this.id,
-      firstName: firstName ?? this.firstName,
-      lastName: lastName ?? this.lastName,
+      fullname: fullname ?? this.fullname,
       status: status ?? this.status,
       gender: gender ?? this.gender,
+      bioData: bioData ?? this.bioData,
+      kitchens: kitchens?? this.kitchens
+      , staffId: staffId ?? this.staffId
     );
   }
 }

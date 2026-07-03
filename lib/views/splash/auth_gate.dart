@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'dart:developer' as dev;
-import 'package:agc_canteen/views/auth/staff_auth_page.dart';
+import 'package:agc_canteen/views/auth/single_auth_pos.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../controllers/admin_auth_controller.dart';
 import '../../controllers/auth_controller.dart';
 import '../../core/di/injection_container.dart';
 import '../../services/pos/pos_device_service.dart';
-import '../../services/sync_services/remote_data_sync_service.dart';
+import '../../services/sync_services/sync_from_remote_to_local.dart';
 import '../auth/admin_login_page.dart';
 import '../settings/pos_selection_dialog.dart';
 
@@ -35,7 +35,7 @@ class _AuthGateState extends ConsumerState<AuthGate> {
     if (_syncStarted) return;
     _syncStarted = true;
 
-    final syncService = getIt<RemoteDataSyncService>();
+    final syncService = getIt<RemoteToLocalSyncService>();
     final alreadyRegistered = await syncService.isPosDeviceRegistered;
 
     if (!alreadyRegistered && mounted) {
@@ -94,7 +94,7 @@ class _AuthGateState extends ConsumerState<AuthGate> {
     }
 
     if (adminState.isAuthenticated) {
-      return const StaffAuthPage();
+      return const SingleAuthPosPage();
     }
 
     return const AdminLoginPage();
@@ -119,3 +119,6 @@ class _AuthGateState extends ConsumerState<AuthGate> {
     );
   }
 }
+
+
+// 

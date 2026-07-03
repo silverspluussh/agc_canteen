@@ -73,6 +73,4 @@ class PosDeviceService {
 
 
 
-
-  //update
 }

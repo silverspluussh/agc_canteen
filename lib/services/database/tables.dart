@@ -30,7 +30,7 @@ class Shifts extends Table {
   IntColumn get id => integer()();
   TextColumn get name => text()();
   IntColumn get hours => integer()();
-  IntColumn get companyId => integer().references(Sites, #id)();
+  IntColumn get companyId => integer().nullable()();
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();
   TextColumn get syncUpdatedAt => text().nullable()();
 
@@ -39,8 +39,8 @@ class Shifts extends Table {
 }
 
 class ShiftMealTypes extends Table {
-  IntColumn get shiftId => integer().references(Shifts, #id)();
-  IntColumn get mealTypeId => integer().references(MealTypes, #id)();
+  IntColumn get shiftId => integer()();
+  IntColumn get mealTypeId => integer()();
 
   @override
   Set<Column> get primaryKey => {shiftId, mealTypeId};
@@ -95,7 +95,7 @@ class Staff extends Table {
   TextColumn get empId => text()();
   TextColumn get firstName => text()();
   TextColumn get lastName => text()();
-  IntColumn get companyId => integer().nullable().references(Sites, #id)();
+  IntColumn get companyId => integer().nullable()();
   TextColumn get jobTitle => text().nullable()();
   TextColumn get empStatus => text().nullable()();
   TextColumn get employeeType => text()();
@@ -106,7 +106,7 @@ class Staff extends Table {
   IntColumn get shiftId => integer().nullable()();
   IntColumn get totalDependant => integer().nullable()();
   IntColumn get noOfDependantAssigned => integer().nullable()();
-  IntColumn get departmentId => integer().nullable().references(Departments, #id)();
+  IntColumn get departmentId => integer().nullable()();
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();
   TextColumn get syncUpdatedAt => text().nullable()();
 
@@ -115,8 +115,8 @@ class Staff extends Table {
 }
 
 class StaffKitchens extends Table {
-  IntColumn get staffId => integer().references(Staff, #id)();
-  IntColumn get kitchenId => integer().references(Kitchens, #id)();
+  IntColumn get staffId => integer()();
+  IntColumn get kitchenId => integer()();
 
   @override
   Set<Column> get primaryKey => {staffId, kitchenId};
@@ -124,11 +124,10 @@ class StaffKitchens extends Table {
 
 class Dependants extends Table {
   IntColumn get id => integer()();
-  TextColumn get firstName => text()();
-  TextColumn get lastName => text()();
+  TextColumn get fullname => text()();
   TextColumn get status => text()();
   TextColumn get gender => text().nullable()();
-  IntColumn get staffId => integer().references(Staff, #id)();
+  IntColumn get staffId => integer().nullable().references(Staff, #id)();
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();
   TextColumn get syncUpdatedAt => text().nullable()();
 
@@ -176,8 +175,8 @@ class Users extends Table {
 }
 
 class UserKitchens extends Table {
-  IntColumn get userId => integer().references(Users, #id)();
-  IntColumn get kitchenId => integer().references(Kitchens, #id)();
+  IntColumn get userId => integer()();
+  IntColumn get kitchenId => integer()();
 
   @override
   Set<Column> get primaryKey => {userId, kitchenId};
@@ -193,7 +192,7 @@ class Orders extends Table {
   RealColumn get total => real()();
   IntColumn get groupCount => integer()();
   TextColumn get description => text().nullable()();
-  IntColumn get orderedById => integer().references(Staff, #id)();
+  IntColumn get orderedById => integer()();
   TextColumn get createdAt => text()();
   TextColumn get updatedAt => text()();
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();
@@ -261,8 +260,10 @@ class Contractors extends Table {
   TextColumn get name => text()();
   TextColumn get status => text()();
   IntColumn get noOfStaffs => integer().withDefault(const Constant(0))();
-  IntColumn get companyId => integer().references(Sites, #id)();
-  IntColumn get departmentId => integer().references(Departments, #id)();
+  IntColumn get companyId => integer().nullable()();
+  IntColumn get departmentId => integer().nullable()();
+  TextColumn get company => text().nullable()();
+  TextColumn get department => text().nullable()();
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();
   TextColumn get syncUpdatedAt => text().nullable()();
 
@@ -274,9 +275,12 @@ class ContractorStaffTable extends Table {
   IntColumn get id => integer()();
   TextColumn get name => text()();
   TextColumn get gender => text().nullable()();
-  IntColumn get contractorId => integer().references(Contractors, #id)();
-  IntColumn get companyId => integer().references(Sites, #id)();
-  IntColumn get departmentId => integer().references(Departments, #id)();
+  IntColumn get contractorId => integer().nullable()();
+  TextColumn get contractorName => text().nullable()();
+  IntColumn get companyId => integer().nullable()();
+  TextColumn get company => text().nullable()();
+  IntColumn get departmentId => integer().nullable()();
+  TextColumn get department => text().nullable()();
   TextColumn get startDate => text()();
   TextColumn get endDate => text()();
   BoolColumn get isCharged => boolean().withDefault(const Constant(false))();
@@ -290,12 +294,13 @@ class ContractorStaffTable extends Table {
 class Visitors extends Table {
   IntColumn get id => integer()();
   TextColumn get name => text()();
-  TextColumn get phone => text().nullable()();
+  TextColumn get gender => text().nullable()();
+  TextColumn get startDate => text().nullable()();
+  TextColumn get endTime => text().nullable()();
+  IntColumn get companyId => integer().nullable()();
   TextColumn get company => text().nullable()();
-  TextColumn get purpose => text().nullable()();
-  TextColumn get visitDate => text()();
-  IntColumn get companyId => integer().nullable().references(Sites, #id)();
-  IntColumn get departmentId => integer().nullable().references(Departments, #id)();
+  IntColumn get departmentId => integer().nullable()();
+  TextColumn get department => text().nullable()();
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();
   TextColumn get syncUpdatedAt => text().nullable()();
 
@@ -305,7 +310,10 @@ class Visitors extends Table {
 
 class BioDataEntries extends Table {
   IntColumn get id => integer()();
-  IntColumn get staffId => integer().references(Staff, #id)();
+  IntColumn get staffId => integer().nullable().references(Staff, #id)();
+  IntColumn get dependantId => integer().nullable().references(Dependants, #id)();
+  IntColumn get contractorStaffId => integer().nullable().references(ContractorStaffTable, #id)();
+  IntColumn get visitorId => integer().nullable().references(Visitors, #id)();
   TextColumn get finger => text()();
   TextColumn get dataBase64 => text()();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
@@ -316,4 +324,28 @@ class BioDataEntries extends Table {
 
   @override
   Set<Column> get primaryKey => {id};
+}
+
+class ContractorStaffKitchens extends Table {
+  IntColumn get contractorStaffId => integer()();
+  IntColumn get kitchenId => integer()();
+
+  @override
+  Set<Column> get primaryKey => {contractorStaffId, kitchenId};
+}
+
+class DependantKitchens extends Table {
+  IntColumn get dependantId => integer()();
+  IntColumn get kitchenId => integer()();
+
+  @override
+  Set<Column> get primaryKey => {dependantId, kitchenId};
+}
+
+class VisitorKitchens extends Table {
+  IntColumn get visitorId => integer()();
+  IntColumn get kitchenId => integer()();
+
+  @override
+  Set<Column> get primaryKey => {visitorId, kitchenId};
 }

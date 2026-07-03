@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/employee_type.enum.dart';
 import '../models/staff.model.dart';
 import '../services/pos/pos_fingerprint_service.dart';
 import 'providers.dart';
+import 'package:canteen_staff_enrollment/models/biodata.model.dart';
 
 enum EnrollmentStep { idle, capturing, captured, storing, enrolled, error }
 
@@ -9,6 +11,7 @@ class EnrollmentState {
   final EnrollmentStep step;
   final int? staffId;
   final Finger? finger;
+  final EmployeeType? employeeType;
   final int? fingerprintId;
   final FingerprintResult? captureResult;
   final String? error;
@@ -17,6 +20,7 @@ class EnrollmentState {
     this.step = EnrollmentStep.idle,
     this.staffId,
     this.finger,
+    this.employeeType,
     this.fingerprintId,
     this.captureResult,
     this.error,
@@ -26,6 +30,7 @@ class EnrollmentState {
     EnrollmentStep? step,
     int? staffId,
     Finger? finger,
+    EmployeeType? employeeType,
     int? fingerprintId,
     FingerprintResult? captureResult,
     String? error,
@@ -34,6 +39,7 @@ class EnrollmentState {
       step: step ?? this.step,
       staffId: staffId ?? this.staffId,
       finger: finger ?? this.finger,
+      employeeType: employeeType ?? this.employeeType,
       fingerprintId: fingerprintId ?? this.fingerprintId,
       captureResult: captureResult ?? this.captureResult,
       error: error ?? this.error,
@@ -51,11 +57,12 @@ class EnrollmentController extends Notifier<EnrollmentState> {
   @override
   EnrollmentState build() => const EnrollmentState();
 
-  Future<void> startEnrollment(int staffId, Finger finger) async {
+  Future<void> startEnrollment(int staffId, Finger finger, {EmployeeType employeeType = EmployeeType.permanent}) async {
     state = state.copyWith(
       step: EnrollmentStep.capturing,
       staffId: staffId,
       finger: finger,
+      employeeType: employeeType,
       error: null,
     );
 
@@ -106,6 +113,7 @@ class EnrollmentController extends Notifier<EnrollmentState> {
         staffId: staffId,
         finger: state.finger!,
         templateBase64: captureResult.templateBase64!,
+        employeeType: state.employeeType ?? EmployeeType.permanent,
       );
 
       if (fpId == null) {

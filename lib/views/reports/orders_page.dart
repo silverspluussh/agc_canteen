@@ -508,7 +508,6 @@ class _OrderTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final o = order;
     final cs = Theme.of(context).colorScheme;
-    final l10n = AppLocalizations.of(context);
     final date = DateFormat('dd-MM-yy, hh:mm a').format(o.createdAt);
     final subtitle = o.staffName != null
         ? '$date  ·  ${_cap(o.mealType)}  ·   ${o.staffName}'

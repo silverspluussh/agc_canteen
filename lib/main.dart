@@ -15,6 +15,7 @@ import 'views/staff/staff_management_page.dart';
 import 'views/settings/sync_page.dart';
 import 'views/pos/pos_settings_page.dart';
 import 'views/pos/manual_order_page.dart';
+import 'views/auth/group_order_auth_pos.dart';
 
 final localeProvider = StateProvider<Locale>((ref) {
   return const Locale('en');
@@ -54,15 +55,22 @@ void runZoneGuarded(void Function() body) {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                    const Icon(
+                      Icons.error_outline,
+                      size: 64,
+                      color: Colors.red,
+                    ),
                     const SizedBox(height: 16),
                     const Text(
                       'App failed to start',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '$error',
+                      error.runtimeType.toString(),
                       textAlign: TextAlign.center,
                       style: const TextStyle(fontSize: 13, color: Colors.grey),
                     ),
@@ -136,6 +144,9 @@ Route<dynamic>? _onGenerateRoute(RouteSettings settings) {
       break;
     case '/create-manual-order':
       page = const ManualOrderPage();
+      break;
+    case '/group-order':
+      page = const GroupOrderAuthPos();
       break;
 
     default:

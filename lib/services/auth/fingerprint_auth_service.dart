@@ -1,7 +1,9 @@
- import 'dart:async';
+  import 'dart:async';
 import 'dart:developer' as dev;
+import 'package:flutter/services.dart';
+import 'package:agc_canteen/core/enums/employee_type.enum.dart';
 import 'package:agc_canteen/models/staff.model.dart';
- import 'package:agc_canteen/repositories/biodata.repo.dart';
+import 'package:agc_canteen/repositories/biodata.repo.dart';
 import 'package:drift/drift.dart';
 import 'package:logger/logger.dart';
 import '../database/app_database.dart';
@@ -40,9 +42,14 @@ class FingerprintAuthService {
         }
         dev.log('[FingerprintAuth] Fingerprint device init returned false (attempt $attempt/$maxRetries)',
             name: 'POS_AUTH');
-      } on Exception catch (e) {
-        dev.log('[FingerprintAuth] Fingerprint device init error (attempt $attempt/$maxRetries): $e',
+      } on PlatformException catch (e) {
+        dev.log('[FingerprintAuth] Fingerprint device init error (attempt $attempt/$maxRetries): ${e.code} — ${e.message}',
             name: 'POS_AUTH');
+        if (e.code == 'FINGER_INIT_ERROR' || (e.message?.contains('already in progress') ?? false)) {
+          dev.log('[FingerprintAuth] SDK init in progress, waiting...', name: 'POS_AUTH');
+          await Future.delayed(const Duration(seconds: 5));
+          continue;
+        }
       }
       if (attempt < maxRetries) {
         await Future.delayed(Duration(seconds: attempt));
@@ -54,12 +61,29 @@ class FingerprintAuthService {
   Future<bool> get isAvailable => _fingerprint.isAvailable();
 
   
-  Future<bool> hasFingerType(int staffId, Finger finger) async {
-    final fingerprints = await _db.getActiveBioDataByStaff(staffId);
+  Future<bool> hasFingerType(int entityId, Finger finger, {EmployeeType entityType = EmployeeType.permanent}) async {
+    final fingerprints = await _getActiveBioData(entityId, entityType: entityType);
     return fingerprints.any((f) => f.finger == finger.name);
   }
 
-  Future<int?> enroll(int staffId, Finger finger) async {
+  Future<List<BioDataEntry>> _getActiveBioData(int entityId, {required EmployeeType entityType}) async {
+    final all = await _db.getActiveBioData();
+    switch (entityType) {
+      case EmployeeType.permanent:
+      case EmployeeType.graduateTrainee:
+      case EmployeeType.nationalService:
+      case EmployeeType.intern:
+        return all.where((e) => e.staffId == entityId).toList();
+      case EmployeeType.dependent:
+        return all.where((e) => e.dependantId == entityId).toList();
+      case EmployeeType.contractor:
+        return all.where((e) => e.contractorStaffId == entityId).toList();
+      case EmployeeType.visitor:
+        return all.where((e) => e.visitorId == entityId).toList();
+    }
+  }
+
+  Future<int?> enroll(int entityId, Finger finger, {EmployeeType entityType = EmployeeType.permanent}) async {
     final result = await _fingerprint.capture();
     if (result == null || !result.success || result.templateBase64 == null) {
       _logger.w('Fingerprint enrollment capture failed');
@@ -71,43 +95,54 @@ class FingerprintAuthService {
     final base64data = result.templateBase64??"";
     // final encryptedData = await _encryptionService.encrypt(result.templateBase64!);
 
-    await _db.insertBioData(
-      BioDataEntriesCompanion(
-        id: Value(fingerprintId),
-        staffId: Value(staffId),
-        finger:  Value(finger.name),
-        dataBase64: Value(base64data),
-        isActive: const Value(true),
-        createdAt: Value(now),
-        updatedAt: Value(now),
-        syncStatus: const Value(0),
-        syncUpdatedAt: const Value.absent(),
-      ),
+    final companion = BioDataEntriesCompanion(
+      id: Value(fingerprintId),
+      finger: Value(finger.name),
+      dataBase64: Value(base64data),
+      isActive: const Value(true),
+      createdAt: Value(now),
+      updatedAt: Value(now),
+      syncStatus: const Value(0),
+      syncUpdatedAt: const Value.absent(),
     );
 
+    switch (entityType) {
+      case EmployeeType.permanent:
+      case EmployeeType.graduateTrainee:
+      case EmployeeType.nationalService:
+      case EmployeeType.intern:
+        await _db.insertBioData(companion.copyWith(staffId: Value(entityId)));
+      case EmployeeType.dependent:
+        await _db.insertBioData(companion.copyWith(dependantId: Value(entityId)));
+      case EmployeeType.contractor:
+        await _db.insertBioData(companion.copyWith(contractorStaffId: Value(entityId)));
+      case EmployeeType.visitor:
+        await _db.insertBioData(companion.copyWith(visitorId: Value(entityId)));
+    }
+
     unawaited(
-      _bioDataService.createBioData(staffId,[BioData(
+      _bioDataService.createBioData(entityId, entityType.name,[BioData(
         id: fingerprintId,
-        staffId: staffId,
+        staffId: entityId,
         finger: finger,
         data: base64data,
         isActive: true,
       )])
     );
 
-    _logger.i('Fingerprint enrolled: id=$fingerprintId staffId=$staffId');
+    _logger.i('Fingerprint enrolled: id=$fingerprintId entityId=$entityId type=${entityType.name}');
     getIt<ActivityLogService>().log(
       type: 'fingerprint_enrolled',
-      message: 'Fingerprint enrolled for staff: $staffId',
-      actorType: 'staff',
-      actorId: staffId,
+      message: 'Fingerprint enrolled for ${entityType.name}: $entityId',
+      actorType: entityType.name,
+      actorId: entityId,
       sourceTable: 'bio_data_entries',
       recordId: fingerprintId.toString(),
     );
     return fingerprintId;
   }
 
-  Future<int?> authenticate() async {
+  Future<BioDataEntry?> authenticate() async {
     dev.log('[FingerprintAuth] Starting fingerprint capture via hardware...',
         name: 'POS_AUTH');
     final result = await _fingerprint.capture();
@@ -162,7 +197,7 @@ class FingerprintAuthService {
           name: 'POS_AUTH');
       _logger.i(
           'Fingerprint matched: staffId=${bestMatch.staffId} score=$bestScore');
-      return bestMatch.staffId;
+      return bestMatch;
     }
 
     dev.log('[FingerprintAuth] NO MATCH: bestScore=$bestScore (threshold=$matchThreshold)',
@@ -172,8 +207,8 @@ class FingerprintAuthService {
   }
 
   /// Get all stored template IDs for a staff member.
-  Future<List<int>> getFingerprintsForStaff(int staffId) async {
-    final fingerprints = await _db.getActiveBioDataByStaff(staffId);
+  Future<List<int>> getFingerprintsForEntity(int entityId, {EmployeeType entityType = EmployeeType.permanent}) async {
+    final fingerprints = await _getActiveBioData(entityId, entityType: entityType);
     return fingerprints.map((t) => t.id).toList();
   }
 

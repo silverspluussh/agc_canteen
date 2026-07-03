@@ -1,34 +1,36 @@
 import 'dart:developer' as dev;
-import 'package:agc_canteen/main.dart';
-import 'package:agc_canteen/views/settings/settings_page.dart';
+import 'package:agc_canteen/core/theme/app_colors.dart';
+import 'package:agc_canteen/views/auth/group_order_auth_pos.dart';
 import 'package:agc_canteen/views/widgets/app_buttons.widget.dart';
-import 'package:avatar_glow/avatar_glow.dart';
+import 'package:agc_canteen/views/widgets/avatarglow.widget.dart';
+import 'package:agc_canteen/views/widgets/voucher_card.widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/svg.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../controllers/auth_controller.dart';
 import '../../controllers/providers.dart';
 import '../../core/di/injection_container.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../services/database/activity_log_service.dart';
 
-class StaffAuthPage extends ConsumerStatefulWidget {
-  const StaffAuthPage({super.key});
+class SingleAuthPosPage extends ConsumerStatefulWidget {
+  const SingleAuthPosPage({super.key});
 
   @override
-  ConsumerState<StaffAuthPage> createState() => _StaffAuthPageState();
+  ConsumerState<SingleAuthPosPage> createState() => _SinglePosAuthPageState();
 }
 
-class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
+class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
   bool _fingerprintReady = false;
   bool _fingerprintInitFailed = false;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _initFingerprint());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(authProvider.notifier).reset();
+      _initFingerprint();
+    });
   }
 
   Future<void> _initFingerprint() async {
@@ -208,19 +210,32 @@ class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
       canPop: false,
       child: Scaffold(
         appBar: AppBar(
-          backgroundColor: Colors.transparent,
+          backgroundColor: AppColors.gold600,
           automaticallyImplyLeading: false,
-          centerTitle: true,
+          centerTitle: false,
+          toolbarHeight: 70,
+          title: PrimaryButton(
+            noShadow: true,
+            width: 150,
+            height: 50,
+            color: Colors.white,
+            onPressed: () {
+              Navigator.pushNamed(context, GroupOrderAuthPos.routeID)
+                  .then((_) => ref.read(authProvider.notifier).reset());
+            },
+            prefixChild: Icon(Icons.group, color: Colors.white),
+            label: Text(
+              "Group Order",
+              style: TextStyle(fontWeight: FontWeight.bold,color: Colors.white),
+            ),
+          ),
 
           actions: [
             IconButton(
               onPressed: _showAdminCodeDialog,
-              icon: Icon(
-                Icons.settings,
-                size: 30,
-                color: Theme.of(context).colorScheme.primary,
-              ),
+              icon: Icon(Icons.settings, size: 30, color: Colors.white),
             ),
+            SizedBox(width: 20),
           ],
         ),
 
@@ -236,20 +251,15 @@ class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      SizedBox(height: 20),
-                      AvatarGlow(
-                        glowColor: Theme.of(context).colorScheme.primary,
 
-                        child: SvgPicture.asset(
-                          'assets/illustrations/pos_auth_finger.svg',
-                          width: 200,
-                          height: 200,
-                        ),
-                      ),
+                      Text("Generate Meal Voucher", style: Theme.of(context).textTheme.titleLarge!.copyWith(fontWeight: FontWeight.bold),),
+                                            const Spacer(),
+
+                   
+                      BiometricGlow(),
                       const Spacer(),
-
                       if (!_fingerprintReady && !_fingerprintInitFailed) ...[
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 10),
                         const LinearProgressIndicator(),
                         const SizedBox(height: 16),
                         const Text(
@@ -276,6 +286,7 @@ class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 18,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
@@ -312,10 +323,10 @@ class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
                               ),
                         ),
                         const SizedBox(height: 16),
-                        _VoucherCard(
+                        VoucherCard(
                           orderCode: state.orderCode!,
                           staffName:
-                              '${state.staff?.firstName ?? ""} ${state.staff?.lastName ?? ""}',
+                              '${state.staff?.displayName ?? ""}',
                           mealType: state.mealType ?? '',
                           orderTime: state.orderTime ?? '',
                         ),
@@ -332,30 +343,29 @@ class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
                               AppLocalizations.of(context).somethingWentWrong,
                           textAlign: TextAlign.center,
                           style: TextStyle(
+                            fontSize: 16,
                             color: Theme.of(context).colorScheme.error,
                           ),
                         ),
                         const SizedBox(height: 16),
-                        ElevatedButton.icon(
-                          onPressed: _startAuth,
-                          icon: const Icon(Icons.fingerprint, size: 30,),
-                          label: Text(
-                            AppLocalizations.of(context).retry,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                        PrimaryButton(
+                          width: 280,
+                          height: 60,
+                           prefixChild: const Icon(
+                            Icons.fingerprint,
+                            color: Colors.white,
+                            size: 35,
                           ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Theme.of(
-                              context,
-                            ).colorScheme.primary,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
+                          onPressed: 
+                            _startAuth,
+                          label:  Text(
+                            "Scan Finger",
+                            style: const TextStyle(fontWeight: FontWeight.bold,color: Colors.white),
                           ),
                         ),
+                        
                         const SizedBox(height: 10),
                       ],
-                      const SizedBox(height: 10),
                     ],
                   ),
                 ),
@@ -363,77 +373,6 @@ class _StaffAuthPageState extends ConsumerState<StaffAuthPage> {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _VoucherCard extends StatelessWidget {
-  final String orderCode;
-  final String staffName;
-  final String mealType;
-  final String orderTime;
-
-  const _VoucherCard({
-    required this.orderCode,
-    required this.staffName,
-    required this.mealType,
-    required this.orderTime,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final mealLabel =
-        mealType[0].toUpperCase() + mealType.substring(1).replaceAll('_', ' ');
-    return Card(
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'AGC CANTEEN',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              orderCode,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: cs.primary,
-              ),
-            ),
-            const Divider(height: 20),
-            _row(context, 'Time', orderTime),
-            _row(context, 'Staff', staffName),
-            _row(context, 'Meal', mealLabel),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _row(BuildContext context, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 60,
-            child: Text(
-              '$label:',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-              ),
-            ),
-          ),
-          Expanded(child: Text(value)),
-        ],
       ),
     );
   }

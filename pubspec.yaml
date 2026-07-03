@@ -63,29 +63,23 @@ flutter:
     - family: SF Pro Display
       fonts:
         - asset: assets/sf-pro-display/SFPRODISPLAYTHINITALIC.OTF
-          weight: 100
-          style: italic
+          weight: 100        
         - asset: assets/sf-pro-display/SFPRODISPLAYULTRALIGHTITALIC.OTF
-          weight: 200
-          style: italic
+          weight: 200        
         - asset: assets/sf-pro-display/SFPRODISPLAYLIGHTITALIC.OTF
-          weight: 300
-          style: italic
+          weight: 300        
         - asset: assets/sf-pro-display/SFPRODISPLAYREGULAR.OTF
           weight: 400
         - asset: assets/sf-pro-display/SFPRODISPLAYMEDIUM.OTF
           weight: 500
         - asset: assets/sf-pro-display/SFPRODISPLAYSEMIBOLDITALIC.OTF
-          weight: 600
-          style: italic
+          weight: 600         
         - asset: assets/sf-pro-display/SFPRODISPLAYBOLD.OTF
           weight: 700
         - asset: assets/sf-pro-display/SFPRODISPLAYHEAVYITALIC.OTF
-          weight: 800
-          style: italic
+          weight: 800       
         - asset: assets/sf-pro-display/SFPRODISPLAYBLACKITALIC.OTF
-          weight: 900
-          style: italic
+          weight: 900       
 
 flutter_icons:
   android: true
@@ -93,3 +87,4 @@ flutter_icons:
   adaptive_icon_background: "#ffffff"
   adaptive_icon_foreground: "assets/app_logo.png"
   
+

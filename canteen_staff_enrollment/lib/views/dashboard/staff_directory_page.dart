@@ -1,3 +1,4 @@
+import 'package:canteen_staff_enrollment/models/employee_type.enum.dart';
 import 'package:canteen_staff_enrollment/models/staff.model.dart';
 import 'package:canteen_staff_enrollment/models/staff_filter.model.dart';
 import 'package:canteen_staff_enrollment/views/app_buttons.widget.dart';
@@ -169,7 +170,7 @@ class StaffDirectoryPage extends ConsumerWidget {
                                         .primary
                                         .withValues(alpha: 0.1),
                                     child: Text(
-                                      '${staff.firstName.isNotEmpty ? staff.firstName[0] : ''}${staff.lastName.isNotEmpty ? staff.lastName[0] : ''}',
+                                      '${staff.fullname.isNotEmpty ? staff.fullname[0] : ''}',
                                       style: TextStyle(
                                         color: Theme.of(context)
                                             .colorScheme
@@ -187,11 +188,11 @@ class StaffDirectoryPage extends ConsumerWidget {
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          '${staff.firstName} ${staff.lastName}',
+                                          staff.fullname,
                                           style: const TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.bold,
-                                          ),
+                                          ),  
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
@@ -650,7 +651,7 @@ class _StaffActionSheet extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                '${staff.firstName} ${staff.lastName}',
+                staff.fullname,
                 style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -735,13 +736,24 @@ class _StaffActionSheet extends StatelessWidget {
             width: double.infinity,
             child: PrimaryButton(
               onPressed: () {
+                final employeeType = EmployeeType.values.firstWhere(
+                  (e) => e.name == staff.employeeType,
+                  orElse: () => EmployeeType.permanent,
+                );
                 Navigator.pop(context);
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => BiometricEnrollmentPage(staff: staff),
+                    builder: (_) => BiometricEnrollmentPage(
+                      referenceId: staff.id,
+                      employeeType: employeeType,
+                      displayName: staff.fullname,
+                      subtitle: 'Employee ID: ${staff.empId}',
+                      existingBioData: staff.bioData,
+                      onEnrolled: onNavigateBack,
+                    ),
                   ),
-                ).then((_) => onNavigateBack());
+                );
               },
               label: Text(
                 isEnrolled ? 'Add Fingerprint' : 'Enroll Staff',

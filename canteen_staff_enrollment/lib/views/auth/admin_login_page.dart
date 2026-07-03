@@ -2,7 +2,7 @@ import 'package:canteen_staff_enrollment/views/app_buttons.widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../controllers/admin_auth_controller.dart';
-import 'otp_verification_page.dart';
+
 
 class AdminLoginPage extends ConsumerStatefulWidget {
   const AdminLoginPage({super.key});
@@ -33,13 +33,7 @@ class _AdminLoginPageState extends ConsumerState<AdminLoginPage> {
   Widget build(BuildContext context) {
     final state = ref.watch(adminAuthProvider);
 
-    ref.listen(adminAuthProvider, (prev, next) {
-      if (next.isAwaitingOtp && !(prev?.isAwaitingOtp ?? false)) {
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const OtpVerificationPage()),
-        );
-      }
-    });
+
 
     return Scaffold(
       body: SafeArea(

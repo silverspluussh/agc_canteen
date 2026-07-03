@@ -1,10 +1,10 @@
-import 'package:agc_canteen/models/staff.model.dart';
-import 'package:agc_canteen/views/widgets/app_buttons.widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../controllers/providers.dart';
+import '../../core/enums/employee_type.enum.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../services/database/app_database.dart';
+import '../widgets/app_buttons.widget.dart';
 import 'fingerprint_enrollment_sheet.dart';
 
 class StaffManagementPage extends ConsumerStatefulWidget {
@@ -15,63 +15,154 @@ class StaffManagementPage extends ConsumerStatefulWidget {
       _StaffManagementPageState();
 }
 
-class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
-  List<_StaffWithFingerprint> _staffList = [];
-  bool _isLoading = true;
-
+class _StaffManagementPageState extends ConsumerState<StaffManagementPage>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabCtrl;
   final _searchCtrl = TextEditingController();
   String _query = '';
   bool? _fingerprintFilter;
 
+  final List<_EntityEntry> _staffEntries = [];
+  final List<_EntityEntry> _dependantEntries = [];
+  final List<_EntityEntry> _visitorEntries = [];
+  final List<_EntityEntry> _contractorStaffEntries = [];
+  bool _isLoading = true;
+
   @override
   void initState() {
     super.initState();
+    _tabCtrl = TabController(length: 4, vsync: this);
+    _tabCtrl.addListener(() => setState(() {}));
     _searchCtrl.addListener(
       () => setState(() => _query = _searchCtrl.text.trim().toLowerCase()),
     );
-    _loadStaffData();
+    _loadAll();
   }
 
   @override
   void dispose() {
+    _tabCtrl.dispose();
     _searchCtrl.dispose();
     super.dispose();
   }
 
-  Future<void> _loadStaffData() async {
+  Future<void> _loadAll() async {
     final db = ref.read(databaseProvider);
-    final staffList = await db.getAllStaff();
-    final allFingerprints = await db.getActiveBioData();
+    final allFps = await db.getActiveBioData();
 
-    final items = staffList.map((s) {
-      final staffFps = allFingerprints.where((f) => f.staffId == s.id).toList();
-      return _StaffWithFingerprint(
-        staff: s,
-        hasFingerprint: staffFps.isNotEmpty,
-        fingerprints: staffFps,
+    // Staff
+    final staffList = await db.getAllStaff();
+    _staffEntries
+      ..clear()
+      ..addAll(
+        staffList.map((s) {
+          final fps = allFps.where((f) => f.staffId == s.id).toList();
+          return _EntityEntry(
+            id: s.id,
+            displayName: '${s.firstName} ${s.lastName}',
+            entityType: EmployeeType.permanent,
+            initials:
+                '${s.firstName.isNotEmpty ? s.firstName[0] : ''}${s.lastName.isNotEmpty ? s.lastName[0] : ''}',
+            hasFingerprint: fps.isNotEmpty,
+            fingerprints: fps,
+          );
+        }),
       );
-    }).toList();
+
+    // Dependants
+    final depList = await db.getAllDependants();
+    _dependantEntries
+      ..clear()
+      ..addAll(
+        depList.map((d) {
+          final fps = allFps.where((f) => f.dependantId == d.id).toList();
+          final initials = d.fullname
+              .split(' ')
+              .map((p) => p.isNotEmpty ? p[0] : '')
+              .take(2)
+              .join();
+          return _EntityEntry(
+            id: d.id,
+            displayName: d.fullname,
+            entityType: EmployeeType.dependent,
+            initials: initials.isEmpty ? 'D' : initials,
+            hasFingerprint: fps.isNotEmpty,
+            fingerprints: fps,
+          );
+        }),
+      );
+
+    // Visitors
+    final visList = await db.getAllVisitors();
+    _visitorEntries
+      ..clear()
+      ..addAll(
+        visList.map((v) {
+          final fps = allFps.where((f) => f.visitorId == v.id).toList();
+          final initials = v.name.isNotEmpty ? v.name[0] : 'V';
+          return _EntityEntry(
+            id: v.id,
+            displayName: v.name,
+            entityType: EmployeeType.visitor,
+            initials: initials,
+            hasFingerprint: fps.isNotEmpty,
+            fingerprints: fps,
+          );
+        }),
+      );
+
+    // Contractor Staff
+    final csList = await db.getAllContractorStaff();
+    _contractorStaffEntries
+      ..clear()
+      ..addAll(
+        csList.map((c) {
+          final fps = allFps.where((f) => f.contractorStaffId == c.id).toList();
+          final initials = c.name.isNotEmpty ? c.name[0] : 'C';
+          return _EntityEntry(
+            id: c.id,
+            displayName: c.name,
+            entityType: EmployeeType.contractor,
+            initials: initials,
+            hasFingerprint: fps.isNotEmpty,
+            fingerprints: fps,
+          );
+        }),
+      );
 
     if (mounted) {
-      setState(() {
-        _staffList = items;
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _refreshStaffData() async {
+  Future<void> _refreshData() async {
     setState(() => _isLoading = true);
-    await _loadStaffData();
+    await _loadAll();
   }
 
-  List<_StaffWithFingerprint> get _filtered => _staffList.where((s) {
+  List<_EntityEntry> _currentEntries() {
+    switch (_tabCtrl.index) {
+      case 0:
+        return _staffEntries;
+      case 1:
+        return _dependantEntries;
+      case 2:
+        return _visitorEntries;
+      case 3:
+        return _contractorStaffEntries;
+      default:
+        return [];
+    }
+  }
+
+  List<_EntityEntry> get _filtered => _currentEntries().where((e) {
     final q = _query;
-    final name = '${s.staff.firstName} ${s.staff.lastName}'.toLowerCase();
     final matchQ =
-        q.isEmpty || name.contains(q) || s.staff.id.toString().contains(q);
+        q.isEmpty ||
+        e.displayName.toLowerCase().contains(q) ||
+        e.id.toString().contains(q);
     final matchF =
-        _fingerprintFilter == null || s.hasFingerprint == _fingerprintFilter;
+        _fingerprintFilter == null || e.hasFingerprint == _fingerprintFilter;
     return matchQ && matchF;
   }).toList();
 
@@ -153,7 +244,7 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
                     },
                     label: Text(
                       l10n.applyFilters,
-                      style: TextStyle(color: Colors.white),
+                      style: const TextStyle(color: Colors.white),
                     ),
                   ),
                 ],
@@ -170,14 +261,35 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
     final l10n = AppLocalizations.of(context);
     final colorScheme = Theme.of(context).colorScheme;
     final items = _filtered;
+    final currentAll = _currentEntries();
+    final registeredCount = currentAll.where((e) => e.hasFingerprint).length;
+
+    final tabLabels = [
+      "Staff",
+      'Dependant',
+      'Visitor',
+      'Contractor',
+    ];
 
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        leading: BackButton(color: Colors.white),
-        title: Text(l10n.staffManagement),
+        leading: const BackButton(color: Colors.white),
+        title: Text("Personnel Management", 
+        style: const TextStyle(color: Colors.white)
+        ),
         backgroundColor: colorScheme.primary,
         foregroundColor: colorScheme.onPrimary,
+        bottom: TabBar(
+          controller: _tabCtrl,
+          labelColor: colorScheme.onPrimary,
+          unselectedLabelColor: colorScheme.onPrimary.withValues(alpha: 0.6),
+          indicatorColor: colorScheme.onPrimary,
+          tabs: tabLabels.map((l) => Tab(
+
+        child: Text(l, style: const TextStyle(color: Colors.white),),
+          )).toList(),
+        ),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -209,16 +321,14 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
                 ),
                 if (items.isNotEmpty)
                   _SummaryStrip(
-                    '${items.length} ${l10n.staffManagement}',
-                    '${_staffList.where((s) => s.hasFingerprint).length} ${l10n.fingerprintRegistered}',
+                    '${items.length} ${tabLabels[_tabCtrl.index]}',
+                    '$registeredCount ${l10n.fingerprintRegistered}',
                   ),
                 Expanded(
                   child: items.isEmpty
                       ? _EmptyView(Icons.group_outlined, l10n.noResults)
                       : RefreshIndicator(
-                          onRefresh: () async {
-                            _loadStaffData();
-                          },
+                          onRefresh: () async => _loadAll(),
                           child: ListView.separated(
                             padding: const EdgeInsets.all(10),
                             itemCount: items.length,
@@ -226,17 +336,17 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
                                 const Divider(height: 10),
                             itemBuilder: (context, index) {
                               final entry = items[index];
-                              return _StaffCard(
+                              return _EntityCard(
                                 entry: entry,
                                 onAddFingerprint: () async {
                                   final result =
                                       await FingerprintEnrollmentSheet.show(
                                         context,
-                                        entry.staff,
+                                        entityId: entry.id,
+                                        displayName: entry.displayName,
+                                        entityType: entry.entityType,
                                       );
-                                  if (result == true) {
-                                    _refreshStaffData();
-                                  }
+                                  if (result == true) _refreshData();
                                 },
                                 onViewFingerprints: () =>
                                     _showFingerprintsSheet(entry),
@@ -250,7 +360,7 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
     );
   }
 
-  void _showFingerprintsSheet(_StaffWithFingerprint entry) {
+  void _showFingerprintsSheet(_EntityEntry entry) {
     final colorScheme = Theme.of(context).colorScheme;
     final fingerprints = entry.fingerprints;
 
@@ -286,7 +396,7 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        '${entry.staff.firstName} ${entry.staff.lastName}',
+                        entry.displayName,
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -365,11 +475,11 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
                       Navigator.pop(ctx);
                       final result = await FingerprintEnrollmentSheet.show(
                         context,
-                        entry.staff,
+                        entityId: entry.id,
+                        displayName: entry.displayName,
+                        entityType: entry.entityType,
                       );
-                      if (result == true) {
-                        _refreshStaffData();
-                      }
+                      if (result == true) _refreshData();
                     },
                     prefixChild: const Icon(Icons.add, color: Colors.white),
                     label: const Text(
@@ -405,7 +515,10 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
           DestructiveButton(
             width: 120,
             onPressed: () => Navigator.pop(ctx, true),
-            label: Text(l10n.delete, style: TextStyle(color: Colors.white)),
+            label: Text(
+              l10n.delete,
+              style: const TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -415,7 +528,7 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
 
     final authService = ref.read(fingerprintAuthProvider);
     await authService.deleteFingerprint(fp.id);
-    await _refreshStaffData();
+    await _refreshData();
     if (mounted) {
       ScaffoldMessenger.of(
         context,
@@ -450,24 +563,34 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
   }
 }
 
-class _StaffWithFingerprint {
-  final StaffData staff;
+// ── Data model ─────────────────────────────────────────────────────
+
+class _EntityEntry {
+  final int id;
+  final String displayName;
+  final EmployeeType entityType;
+  final String initials;
   bool hasFingerprint;
   List<BioDataEntry> fingerprints;
 
-  _StaffWithFingerprint({
-    required this.staff,
+  _EntityEntry({
+    required this.id,
+    required this.displayName,
+    required this.entityType,
+    required this.initials,
     required this.hasFingerprint,
     required this.fingerprints,
   });
 }
 
-class _StaffCard extends StatelessWidget {
-  final _StaffWithFingerprint entry;
+// ── Entity Card ────────────────────────────────────────────────────
+
+class _EntityCard extends StatelessWidget {
+  final _EntityEntry entry;
   final VoidCallback onAddFingerprint;
   final VoidCallback onViewFingerprints;
 
-  const _StaffCard({
+  const _EntityCard({
     required this.entry,
     required this.onAddFingerprint,
     required this.onViewFingerprints,
@@ -486,7 +609,7 @@ class _StaffCard extends StatelessWidget {
             radius: 15,
             backgroundColor: colorScheme.primaryContainer,
             child: Text(
-              '${entry.staff.firstName[0]}${entry.staff.lastName[0]}',
+              entry.initials,
               style: TextStyle(
                 color: colorScheme.primary,
                 fontWeight: FontWeight.w600,
@@ -500,7 +623,7 @@ class _StaffCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${entry.staff.firstName} ${entry.staff.lastName}',
+                  entry.displayName,
                   style: Theme.of(
                     context,
                   ).textTheme.labelLarge!.copyWith(fontWeight: FontWeight.w600),
@@ -539,8 +662,7 @@ class _StaffCard extends StatelessWidget {
               ],
             ),
           ),
-
-          SizedBox(width: 10),
+          const SizedBox(width: 10),
           if (entry.hasFingerprint)
             IconButton(
               icon: const Icon(Icons.delete_outline),

@@ -1,8 +1,16 @@
 import 'dart:async';
-import 'dart:developer';
 import 'package:adaptive_theme/adaptive_theme.dart';
 import 'package:canteen_staff_enrollment/auth_gate.dart';
 import 'package:canteen_staff_enrollment/controllers/injection_container.dart';
+import 'package:canteen_staff_enrollment/models/contractor.model.dart';
+import 'package:canteen_staff_enrollment/models/dependant.model.dart';
+import 'package:canteen_staff_enrollment/models/visitor.model.dart';
+import 'package:canteen_staff_enrollment/views/dashboard/contractor_biodata_page.dart';
+import 'package:canteen_staff_enrollment/views/dashboard/contractor_directory_page.dart';
+import 'package:canteen_staff_enrollment/views/dashboard/dependant_biodata_page.dart';
+import 'package:canteen_staff_enrollment/views/dashboard/dependant_directory_page.dart';
+import 'package:canteen_staff_enrollment/views/dashboard/visitor_biodata_page.dart';
+import 'package:canteen_staff_enrollment/views/dashboard/visitor_directory_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -26,7 +34,6 @@ void main() async => runZoneGuarded(() async {
 
 void runZoneGuarded(void Function() body) {
   runZonedGuarded(body, (error, stack) {
-    log('FATAL STARTUP ERROR: $error\n$stack');
     runApp(
       ProviderScope(
         child: MaterialApp(
@@ -95,6 +102,27 @@ Route<dynamic>? _onGenerateRoute(RouteSettings settings) {
       break;
     case '/sync':
       page = const SizedBox();
+      break;
+    case '/visitor-directory':
+      page = const VisitorDirectoryPage();
+      break;
+    case '/dependant-directory':
+      page = const DependantDirectoryPage();
+      break;
+    case '/contractor-directory':
+      page = const ContractorDirectoryPage();
+      break;
+    case '/visitor-biodata':
+      final visitor = settings.arguments as Visitor;
+      page = VisitorBiodataPage(visitor: visitor);
+      break;
+    case '/dependant-biodata':
+      final dependant = settings.arguments as Dependant;
+      page = DependantBiodataPage(dependant: dependant);
+      break;
+    case '/contractor-biodata':
+      final contractorStaff = settings.arguments as ContractorStaff;
+      page = ContractorBiodataPage(contractorStaff: contractorStaff);
       break;
     default:
       return null;

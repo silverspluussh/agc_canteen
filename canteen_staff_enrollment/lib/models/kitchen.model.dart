@@ -5,29 +5,26 @@ class Kitchen {
   final String name;
   final int minTierRequired;
   final String status;
-  final Site? company;
-  final DateTime createdAt;
-  final DateTime updatedAt;
+  final Site company;
+
 
   const Kitchen({
     required this.id,
     required this.name,
     required this.minTierRequired,
     required this.status,
-    this.company,
-    required this.createdAt,
-    required this.updatedAt,
+    required this.company,
+   
   });
 
   factory Kitchen.fromMap(Map<String, dynamic> map) {
     return Kitchen(
       id: map['id'] as int,
-      name: (map['name'] ?? '') as String,
-      minTierRequired: int.tryParse((map['minTierRequired'] ?? map['min_tier_required'] ?? '1').toString()) ?? 1,
-      status: (map['status'] ?? '') as String,
-      company: map['company'] != null ? Site.fromMap(map['company'] as Map<String, dynamic>) : null,
-      createdAt: DateTime.parse((map['createdAt'] ?? map['created_at']) as String),
-      updatedAt: DateTime.parse((map['updatedAt'] ?? map['updated_at']) as String),
+      name: map['name'] as String,
+      minTierRequired: int.tryParse((map['min_tier_required'] ?? '').toString()) ?? 1,
+      status: map['status'] as String,
+      company: Site.fromMap(map['company'] as Map<String, dynamic>),
+
     );
   }
 
@@ -37,9 +34,8 @@ class Kitchen {
       'name': name,
       'min_tier_required': minTierRequired,
       'status': status,
-      'company': company?.toMap(),
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
+      'company': company.toMap(),
+      
     };
   }
 
@@ -58,8 +54,7 @@ class Kitchen {
       minTierRequired: minTierRequired ?? this.minTierRequired,
       status: status ?? this.status,
       company: company ?? this.company,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
+   
     );
   }
 }

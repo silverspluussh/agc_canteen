@@ -126,6 +126,7 @@ class DeviceInfoService {
       'pos/profiles',
       queryParameters: {"model": deviceModel},
       builder: (data) {
+        print("POS Device Data: $data");
         if (data is List && data.isNotEmpty) {
           //log(data.first.toString());
           return PosDevice.fromMap(data.first as Map<String, dynamic>);

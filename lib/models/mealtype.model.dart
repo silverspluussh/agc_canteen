@@ -25,7 +25,7 @@ class MealTypeModel {
       status: map['status'] as String,
       beginTime: map['begin_time'] as String,
       endTime: map['end_time'] as String,
-      price: (map['price'] as num).toDouble(),
+      price: double.tryParse((map['price'] ?? '').toString()) ?? 0,
  
     );
   }

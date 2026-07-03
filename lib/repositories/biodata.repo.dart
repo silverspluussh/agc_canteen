@@ -1,4 +1,4 @@
-
+import 'package:uuid/uuid.dart';
 import '../core/network/network_api_dio.dart';
 import '../models/staff.model.dart';
 import '../services/database/app_database.dart';
@@ -29,11 +29,7 @@ class BioDataService {
         }
         return [];
         },
-      );
-
-    
-   
-    
+      );  
   }
 
   Future<List<BioData>> getBioDatasByStaffId(int staffId) async {
@@ -52,16 +48,18 @@ class BioDataService {
   }
 
   Future<bool> createBioData(
-    int staffId,
+    int referenceId,
+    String employeeType,
     List<BioData> bioDatas,
   ) async {
 
     final payload = {
-      "staffId": staffId,
-      "bioDatas": bioDatas
+      'uuid': const Uuid().v4(),
+      'referenceId': referenceId,
+      'employeeType': employeeType,
+      'bioDatas': bioDatas
           .map((b) {
-
-            return {"finger": b.finger.name, "data": b.data};
+            return {'finger': b.finger.name, 'data': b.data};
           })
           .toList(),
     };

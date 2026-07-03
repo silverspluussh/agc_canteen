@@ -7,7 +7,6 @@ enum AdminAuthStep {
   checking,
   unauthenticated,
   loading,
-  awaitingOtp,
   authenticated,
   authenticatedOffline,
   error,
@@ -51,7 +50,6 @@ class AdminAuthState {
   bool get isChecking => step == AdminAuthStep.checking;
   bool get isUnauthenticated => step == AdminAuthStep.unauthenticated;
   bool get isLoading => step == AdminAuthStep.loading;
-  bool get isAwaitingOtp => step == AdminAuthStep.awaitingOtp;
   bool get isAuthenticated =>
       step == AdminAuthStep.authenticated ||
       step == AdminAuthStep.authenticatedOffline;
@@ -94,7 +92,6 @@ class AdminAuthController extends Notifier<AdminAuthState> {
       case AdminAuthStatus.error:
         state = const AdminAuthState(step: AdminAuthStep.unauthenticated);
       case AdminAuthStatus.loading:
-      case AdminAuthStatus.awaitingOtp:
         break;
     }
   }
@@ -119,13 +116,6 @@ class AdminAuthController extends Notifier<AdminAuthState> {
           token: result.token,
         );
         //unawaited(getIt<RemoteDataSyncService>().syncAll());
-      case AdminAuthStatus.awaitingOtp:
-        state = AdminAuthState(
-          step: AdminAuthStep.awaitingOtp,
-          sessionToken: result.sessionToken,
-          email: email.trim().toLowerCase(),
-          password: password,
-        );
       case AdminAuthStatus.error:
         state = AdminAuthState(
           step: AdminAuthStep.error,
@@ -138,57 +128,16 @@ class AdminAuthController extends Notifier<AdminAuthState> {
     }
   }
 
-  Future<bool> verifyOtp(String otp) async {
-    final sessionToken = state.sessionToken;
-    final email = state.email;
-    final password = state.password;
-    if (sessionToken == null || email == null || password == null) return false;
-
-    state = const AdminAuthState(step: AdminAuthStep.loading);
-
-    final result = await _service.verifyOtp(
-      sessionToken: sessionToken,
-      otp: otp,
-      email: email,
-      password: password,
-    );
-
-    switch (result.status) {
-      case AdminAuthStatus.authenticated:
-        state = AdminAuthState(
-          step: AdminAuthStep.authenticated,
-          token: result.token,
-        );
-        unawaited(_service.fetchSecretKey());
-       // unawaited(getIt<RemoteDataSyncService>().syncAll());
-        return true;
-      case AdminAuthStatus.error:
-      default:
-        state = AdminAuthState(
-          step: AdminAuthStep.awaitingOtp,
-          errorMessage: result.message ?? 'OTP verification failed',
-          sessionToken: sessionToken,
-          email: email,
-          password: password,
-        );
-        return false;
-    }
-  }
-
   Future<void> logout() async {
     await _service.logout();
     state = const AdminAuthState(step: AdminAuthStep.unauthenticated);
   }
 
   void clearError() {
-    if (state.isAwaitingOtp) {
-      state = state.copyWith(step: AdminAuthStep.awaitingOtp, errorMessage: null);
-    } else {
-      state = AdminAuthState(
-        step: AdminAuthStep.unauthenticated,
-        token: state.token,
-      );
-    }
+    state = AdminAuthState(
+      step: AdminAuthStep.unauthenticated,
+      token: state.token,
+    );
   }
 }
 

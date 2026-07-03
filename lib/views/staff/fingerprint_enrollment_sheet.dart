@@ -1,24 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../controllers/providers.dart';
+import '../../core/enums/employee_type.enum.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../models/staff.model.dart';
-import '../../services/database/app_database.dart';
 import '../widgets/app_buttons.widget.dart';
 
 class FingerprintEnrollmentSheet extends ConsumerStatefulWidget {
   const FingerprintEnrollmentSheet({
-    required this.staff,
+    required this.entityId,
+    required this.displayName,
+    this.entityType = EmployeeType.permanent,
     super.key,
   });
 
-  final StaffData staff;
+  final int entityId;
+  final String displayName;
+  final EmployeeType entityType;
 
-  static Future<bool?> show(BuildContext context, StaffData staff) {
+  static Future<bool?> show(
+    BuildContext context, {
+    required int entityId,
+    required String displayName,
+    EmployeeType entityType = EmployeeType.permanent,
+  }) {
     return Navigator.of(context).push<bool>(
       MaterialPageRoute(
         fullscreenDialog: true,
-        builder: (_) => FingerprintEnrollmentSheet(staff: staff),
+        builder: (_) => FingerprintEnrollmentSheet(
+          entityId: entityId,
+          displayName: displayName,
+          entityType: entityType,
+        ),
       ),
     );
   }
@@ -51,29 +64,30 @@ class _FingerprintEnrollmentSheetState
   Future<void> _enroll() async {
     if (_selectedFinger == null) return;
 
-    final authService = ref.read(fingerprintAuthProvider);
-
-    final alreadyExists = await authService.hasFingerType(
-      widget.staff.id,
-      _selectedFinger!,
-    );
-    if (alreadyExists) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '${_fingerLabel(_selectedFinger!)} is already enrolled. Remove the existing one first.',
-            ),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      }
-      return;
-    }
-
-    setState(() => _isScanning = true);
-
     try {
+      final authService = ref.read(fingerprintAuthProvider);
+
+      final alreadyExists = await authService.hasFingerType(
+        widget.entityId,
+        _selectedFinger!,
+        entityType: widget.entityType,
+      );
+      if (alreadyExists) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                '${_fingerLabel(_selectedFinger!)} is already enrolled. Remove the existing one first.',
+              ),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+
+      setState(() => _isScanning = true);
+
       final isAvailable = await authService.isAvailable;
       if (!isAvailable) {
         if (mounted) {
@@ -86,8 +100,9 @@ class _FingerprintEnrollmentSheetState
       }
 
       final fingerprintId = await authService.enroll(
-        widget.staff.id,
+        widget.entityId,
         _selectedFinger!,
+        entityType: widget.entityType,
       );
 
       if (!mounted) return;
@@ -123,28 +138,22 @@ class _FingerprintEnrollmentSheetState
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final colorScheme = Theme.of(context).colorScheme;
-    final staff = widget.staff;
 
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.close),
-          onPressed:
-              _isScanning ? null : () => Navigator.of(context).pop(),
+          onPressed: _isScanning ? null : () => Navigator.of(context).pop(),
         ),
         title: Text(l10n.enrollFingerprint),
       ),
       body: _isScanning
-          ? _buildScanningView(colorScheme, staff)
-          : _buildSelectionView(l10n, colorScheme, staff),
+          ? _buildScanningView(colorScheme)
+          : _buildSelectionView(l10n, colorScheme),
     );
   }
 
-  Widget _buildSelectionView(
-    AppLocalizations l10n,
-    ColorScheme colorScheme,
-    StaffData staff,
-  ) {
+  Widget _buildSelectionView(AppLocalizations l10n, ColorScheme colorScheme) {
     return SafeArea(
       child: Center(
         child: SingleChildScrollView(
@@ -159,7 +168,7 @@ class _FingerprintEnrollmentSheetState
               ),
               const SizedBox(height: 24),
               Text(
-                '${staff.firstName} ${staff.lastName}',
+                widget.displayName,
                 style: const TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 22,
@@ -168,7 +177,7 @@ class _FingerprintEnrollmentSheetState
               const SizedBox(height: 32),
               Row(
                 children: [
-                  Text('Finger:', style: const TextStyle(fontSize: 16)),
+                  const Text('Finger:', style: TextStyle(fontSize: 16)),
                   const SizedBox(width: 16),
                   Expanded(
                     child: DropdownButtonFormField<Finger?>(
@@ -198,15 +207,13 @@ class _FingerprintEnrollmentSheetState
                   ),
                 ],
               ),
-            
               const SizedBox(height: 32),
               PrimaryButton(
                 onPressed: _selectedFinger == null ? null : _enroll,
-                prefixChild:
-                    const Icon(Icons.fingerprint, color: Colors.white),
+                prefixChild: const Icon(Icons.fingerprint, color: Colors.white),
                 label: Text(
                   l10n.enrollFingerprint,
-                  style: TextStyle(color: Colors.white),
+                  style: const TextStyle(color: Colors.white),
                 ),
               ),
             ],
@@ -216,7 +223,7 @@ class _FingerprintEnrollmentSheetState
     );
   }
 
-  Widget _buildScanningView(ColorScheme colorScheme, StaffData staff) {
+  Widget _buildScanningView(ColorScheme colorScheme) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -229,26 +236,16 @@ class _FingerprintEnrollmentSheetState
               child: CircularProgressIndicator(strokeWidth: 4),
             ),
             const SizedBox(height: 32),
-            Icon(
-              Icons.fingerprint,
-              size: 72,
-              color: colorScheme.primary,
-            ),
+            Icon(Icons.fingerprint, size: 72, color: colorScheme.primary),
             const SizedBox(height: 24),
             Text(
-              '${staff.firstName} ${staff.lastName}',
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 22,
-              ),
+              widget.displayName,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 22),
             ),
             const SizedBox(height: 12),
             Text(
               _selectedFinger != null ? _fingerLabel(_selectedFinger!) : '',
-              style: TextStyle(
-                fontSize: 16,
-                color: colorScheme.primary,
-              ),
+              style: TextStyle(fontSize: 16, color: colorScheme.primary),
             ),
             const SizedBox(height: 16),
             Text(

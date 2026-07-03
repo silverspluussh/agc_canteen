@@ -1,3 +1,4 @@
+import 'package:canteen_staff_enrollment/models/employee_type.enum.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import '../models/staff.model.dart';
@@ -5,6 +6,8 @@ import '../models/staff_filter.model.dart';
 import '../repos/biodata_service.dart';
 import '../repos/staff_service.dart';
 import 'injection_container.dart';
+import 'package:canteen_staff_enrollment/models/biodata.model.dart';
+
 
 final staffListProvider = FutureProvider<List<Staff>>((ref) async {
   final staffService = getIt<StaffService>();
@@ -13,10 +16,10 @@ final staffListProvider = FutureProvider<List<Staff>>((ref) async {
 
 final staffQueryProvider = StateProvider<String>((ref) => '');
 
-final staffBiodataProvider = FutureProvider.family<List<BioData>, int>(
-  (ref, int staffId) async {
+final staffBiodataProvider = FutureProvider.family<List<BioData>, ({int id, EmployeeType type})>(
+  (ref, args) async {
     final service = getIt<StaffBioDataService>();
-    return service.getBioDatasByStaffId(staffId);
+    return service.getBioDatasByStaffId(args.id, args.type);
   },
 );
 
@@ -25,7 +28,10 @@ final allBiodataProvider = FutureProvider<Map<int, int>>((ref) async {
   final all = await service.getAllBioDatas();
   final map = <int, int>{};
   for (final b in all) {
-    map[b.staffId] = (map[b.staffId] ?? 0) + 1;
+    final id = b.staffId;
+    if (id != null) {
+      map[id] = (map[id] ?? 0) + 1;
+    }
   }
   return map;
 });
@@ -94,7 +100,7 @@ final filteredStaffListProvider =
     var result = list;
     if (query.isNotEmpty) {
       result = result.where((staff) {
-        final name = '${staff.firstName} ${staff.lastName}'.toLowerCase();
+        final name = staff.fullname.toLowerCase();
         final empId = staff.empId.toLowerCase();
         return name.contains(query) || empId.contains(query);
       }).toList();

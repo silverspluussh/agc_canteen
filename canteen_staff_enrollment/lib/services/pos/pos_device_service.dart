@@ -1,5 +1,4 @@
 import 'package:canteen_staff_enrollment/core/network/network_api_dio.dart';
-import 'package:canteen_staff_enrollment/models/pos_device.model.dart';
 import 'package:flutter/services.dart';
 
 
@@ -47,20 +46,7 @@ class PosDeviceService {
 
 
 
-  //fetch
-   Future<List<PosDevice>> getAllBioDatas() async {
-    return await networkAPI.getData<List<PosDevice>>(
-      'hr/bio-data',
-      builder: (data) {
-        if (data is List) {
-          return data
-              .map((e) => PosDevice.fromMap(e as Map<String, dynamic>))
-              .toList();
-        }
-        return [];
-      },
-    );
-  }
+ 
 
 
 

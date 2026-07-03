@@ -37,8 +37,8 @@ class Order {
       status: map['status'] as String,
       orderType: map['order_type'] as String,
       mealType: map['meal_type'] as String,
-      total: (map['total'] as num).toDouble(),
-      groupCount: (map['group_count'] as num).toInt(),
+      total: double.tryParse((map['total'] ?? '').toString()) ?? 0,
+      groupCount: int.tryParse((map['group_count'] ?? '').toString()) ?? 0,
       description: map['description'] as String?,
       orderedBy: Staff.fromMap(map['ordered_by'] as Map<String, dynamic>),
       createdAt: DateTime.parse(map['created_at'] as String),
@@ -46,22 +46,7 @@ class Order {
     );
   }
 
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'uuid': uuid,
-      'order_code': orderCode,
-      'status': status,
-      'order_type': orderType,
-      'meal_type': mealType,
-      'total': total,
-      'group_count': groupCount,
-      'description': description,
-      'ordered_by': orderedBy.toMap(),
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
-    };
-  }
+ 
 
   Order copyWith({
     int? id,

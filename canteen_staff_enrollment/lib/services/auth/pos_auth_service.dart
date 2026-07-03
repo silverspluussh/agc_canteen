@@ -1,4 +1,5 @@
 import 'dart:developer' as dev;
+import 'package:canteen_staff_enrollment/models/biodata.model.dart';
 import 'package:canteen_staff_enrollment/models/staff.model.dart';
 import 'fingerprint_auth_service.dart';
 

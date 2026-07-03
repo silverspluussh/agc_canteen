@@ -10,7 +10,7 @@ import '../../services/database/app_database.dart';
 import '../../services/database/database_service.dart';
 import '../../repositories/biodata.repo.dart';
 import '../../repositories/orders.repo.dart';
-import '../../services/sync_services/remote_data_sync_service.dart';
+import '../../services/sync_services/sync_from_remote_to_local.dart';
 import '../../services/pos/pos_card_service.dart';
 import '../../services/pos/pos_device_service.dart';
 import '../../services/pos/device_info_service.dart';
@@ -18,7 +18,7 @@ import '../../services/pos/pos_fingerprint_service.dart';
 import '../../services/print/print_service_manager.dart';
 import '../../services/pos/pos_scanner_service.dart';
 // import '../../services/encryption_service.dart';
-import '../../services/sync_services/sync_service.dart';
+import '../../services/sync_services/sync_from_local_to_remote.dart';
 import '../network/dio_client.dart';
 import '../network/network_api_dio.dart';
 import 'securestorage.dart';
@@ -61,7 +61,7 @@ Future<void> setupServiceLocator() async {
         fingerprintAuth: getIt<FingerprintAuthService>(),
       ));
 
-  getIt.registerLazySingleton<SyncService>(() => SyncService(
+  getIt.registerLazySingleton<LocalToRemoteSyncService>(() => LocalToRemoteSyncService(
         db: getIt<AppDatabase>(),
         networkAPI: getIt<NetworkAPI>(),
         connectivity: getIt<Connectivity>(),
@@ -81,7 +81,7 @@ Future<void> setupServiceLocator() async {
         db: getIt<AppDatabase>(),
       ));
 
-  getIt.registerLazySingleton<RemoteDataSyncService>(() => RemoteDataSyncService(
+  getIt.registerLazySingleton<RemoteToLocalSyncService>(() => RemoteToLocalSyncService(
         networkAPI: getIt<NetworkAPI>(),
         db: getIt<AppDatabase>(),
       ));

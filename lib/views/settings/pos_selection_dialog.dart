@@ -1,6 +1,8 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import '../../core/di/injection_container.dart';
-import '../../services/sync_services/remote_data_sync_service.dart';
+import '../../services/sync_services/sync_from_remote_to_local.dart';
 
 class PosSelectionDialog extends StatefulWidget {
   const PosSelectionDialog({super.key});
@@ -23,7 +25,7 @@ class _PosSelectionDialogState extends State<PosSelectionDialog> {
 
   Future<void> _fetchProfiles() async {
     try {
-      final service = getIt<RemoteDataSyncService>();
+      final service = getIt<RemoteToLocalSyncService>();
       final profiles = await service.fetchAllPosProfiles();
       if (mounted) {
         setState(() {
@@ -44,14 +46,15 @@ class _PosSelectionDialogState extends State<PosSelectionDialog> {
   Future<void> _selectProfile(Map<String, dynamic> profile) async {
     setState(() => _saving = true);
     try {
-      final service = getIt<RemoteDataSyncService>();
+      log('pos map data $profile');
+      final service = getIt<RemoteToLocalSyncService>();
       await service.saveSelectedPosProfile(profile);
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
       if (mounted) {
         setState(() {
           _saving = false;
-          _error = 'Failed to save: $e';
+          _error = 'POS device selection failed: Contact IT for support.';
         });
       }
     }
@@ -129,8 +132,8 @@ class _PosSelectionDialogState extends State<PosSelectionDialog> {
               const Icon(Icons.devices_other, size: 56, color: Colors.grey),
               const SizedBox(height: 16),
               const Text(
-                'No POS device profiles found on the server.\n'
-                'Please register a device first.',
+                'No POS device profiles found.\n'
+                'Please register a device first or contact IT for support.',
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
@@ -158,7 +161,7 @@ class _PosSelectionDialogState extends State<PosSelectionDialog> {
           padding: const EdgeInsets.all(16),
           color: theme.colorScheme.primaryContainer.withOpacity(0.3),
           child: Text(
-            'Multiple devices found. Select the one assigned to this terminal.',
+            'Select a POS device from the list below to continue.',
             style: theme.textTheme.bodyLarge,
           ),
         ),
@@ -170,13 +173,14 @@ class _PosSelectionDialogState extends State<PosSelectionDialog> {
             itemBuilder: (context, index) {
               final profile = _profiles[index];
               final name = profile['name'] as String? ?? 'Unknown';
-              final serial = profile['serialNumber'] as String? ?? '—';
-              final model = profile['model'] as String? ?? '—';
               final kitchen = profile['kitchen'] as Map<String, dynamic>?;
               final kitchenName = kitchen?['name'] as String? ?? '—';
 
               return ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 4,
+                ),
                 leading: Container(
                   width: 44,
                   height: 44,
@@ -192,17 +196,16 @@ class _PosSelectionDialogState extends State<PosSelectionDialog> {
                 ),
                 title: Text(
                   name,
-                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 4),
-                    Text('Kitchen: $kitchenName'),
-                    Text('Model: $model  ·  S/N: $serial'),
-                  ],
+                subtitle: Text(
+                  'Kitchen: $kitchenName',
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-                isThreeLine: true,
                 trailing: _saving
                     ? const SizedBox(
                         width: 20,
