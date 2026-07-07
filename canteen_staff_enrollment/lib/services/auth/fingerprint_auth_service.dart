@@ -6,6 +6,7 @@ import 'package:canteen_staff_enrollment/models/employee_type.enum.dart';
 import 'package:canteen_staff_enrollment/models/staff.model.dart';
 import 'package:canteen_staff_enrollment/services/pos/pos_fingerprint_service.dart';
 import 'package:logger/logger.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../models/biodata.model.dart';
 
@@ -74,7 +75,7 @@ class FingerprintAuthService {
     await _bioDataService.createBioData(staffId, employeeType, [
       BioData(
         id: fingerprintId,
-        uuid: '',
+        uuid: Uuid().v4(),
         staffId: staffId,
         employeeType: employeeType,
         finger: finger,
@@ -98,7 +99,7 @@ class FingerprintAuthService {
     await _bioDataService.createBioData(staffId, employeeType, [
       BioData(
         id: fingerprintId,
-        uuid: '',
+        uuid: Uuid().v4(),
         staffId: staffId,
         employeeType: employeeType,
         finger: finger,

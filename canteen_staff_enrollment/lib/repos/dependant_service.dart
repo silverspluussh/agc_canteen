@@ -10,7 +10,6 @@ class DependantService {
   Future<List<Dependant>> getAllDependants(
     {String? kitchenId, String? departmentId}
   ) async {
-    print('Fetching dependants with kitchenId: $kitchenId, departmentId: $departmentId'); // Debugging line
     try {
       return await networkAPI.getData<List<Dependant>>(
         '/hr/dependants',

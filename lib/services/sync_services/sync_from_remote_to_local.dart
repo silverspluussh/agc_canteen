@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:agc_canteen/models/sync.model.dart';
 import 'package:drift/drift.dart';
+import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 import '../../core/network/network_api_dio.dart';
 import '../database/app_database.dart';
@@ -104,6 +105,7 @@ class RemoteToLocalSyncService {
         builder: (data) => data,
       );
 
+print(responseData);
       List<dynamic>? staffList;
       if (responseData is List) {
         staffList = responseData;
@@ -232,6 +234,7 @@ class RemoteToLocalSyncService {
         queryParameters: {'active': 'true'},
       );
 
+print(responseData);
       List<dynamic>? mealTypesList;
       if (responseData is List) {
         mealTypesList = responseData;
@@ -328,6 +331,8 @@ class RemoteToLocalSyncService {
       );
 
       List<dynamic>? bioDataList;
+              
+
       if (responseData is List) {
         bioDataList = responseData;
       } else if (responseData is Map && responseData['data'] is List) {
@@ -352,10 +357,10 @@ class RemoteToLocalSyncService {
             if (id != null && id != 0) remoteIds.add(id);
           }
         }
-        final deleted = await _db.deleteBioDataNotIn(remoteIds);
+        final deleted = await _db.deleteStaffBioDataNotIn(remoteIds);
         if (deleted > 0) {
           _logger.i(
-            'RemoteToLocalSyncService: removed $deleted stale bio-data records',
+            'RemoteToLocalSyncService: removed $deleted stale staff bio-data records',
           );
         }
       });
@@ -421,6 +426,7 @@ class RemoteToLocalSyncService {
       '/pos/profiles',
       queryParameters: {'status': 'active'},
       builder: (d) {
+        print(d);
         return d;
       },
     );
@@ -664,6 +670,7 @@ class RemoteToLocalSyncService {
       );
 
       List<dynamic>? list;
+      print(responseData);
       if (responseData is List) {
         list = responseData;
       } else if (responseData is Map &&
@@ -801,6 +808,7 @@ class RemoteToLocalSyncService {
       );
 
       List<dynamic>? list;
+      print(responseData);
       if (responseData is List) {
         list = responseData;
       } else if (responseData is Map && responseData['data'] is List) {
@@ -918,6 +926,7 @@ class RemoteToLocalSyncService {
       );
 
       List<dynamic>? list;
+      print(responseData);
       if (responseData is List) {
         list = responseData;
       } else if (responseData is Map && responseData['shifts'] is List) {

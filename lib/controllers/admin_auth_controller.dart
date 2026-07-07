@@ -109,7 +109,7 @@ class AdminAuthController extends Notifier<AdminAuthState> {
           token: result.token,
         );
        
-        unawaited(_service.fetchSecretKey());
+        // unawaited(_service.fetchSecretKey());
       case AdminAuthStatus.authenticatedOffline:
         state = AdminAuthState(
           step: AdminAuthStep.authenticatedOffline,

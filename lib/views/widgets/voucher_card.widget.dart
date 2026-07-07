@@ -22,27 +22,27 @@ class VoucherCard extends StatelessWidget {
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(15),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text(
-              'AGC CANTEEN',
+              'ASG CANTEEN',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
             ),
             const SizedBox(height: 4),
             Text(
               orderCode,
               style: TextStyle(
-                fontSize: 19,
+                fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: cs.primary,
               ),
             ),
-            const Divider(height: 20),
-            _row(context, 'Time', orderTime),
-            _row(context, 'Staff', staffName),
-            _row(context, 'Meal', mealLabel),
+            const Divider(height: 10),
+            _row(context, 'Time:', orderTime),
+            _row(context, 'Staff:', staffName),
+            _row(context, 'Meal:', mealLabel),
           ],
         ),
       ),
@@ -60,6 +60,7 @@ class VoucherCard extends StatelessWidget {
               '$label:',
               style: TextStyle(
                 fontWeight: FontWeight.w600,
+                fontSize: 14,
                 color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
               ),
             ),

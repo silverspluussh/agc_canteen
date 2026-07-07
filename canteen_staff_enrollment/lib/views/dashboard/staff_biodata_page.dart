@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:canteen_staff_enrollment/models/biodata.model.dart';
 import 'package:canteen_staff_enrollment/models/employee_type.enum.dart';
 
-import '../../controllers/staff_controller.dart';
 import '../../core/network/network_api_dio.dart';
 import '../../core/theme/app_colors.dart';
 import '../../models/staff.model.dart';
@@ -30,10 +29,12 @@ class _StaffBiodataPageState extends ConsumerState<StaffBiodataPage>
   late final Animation<double> _fadeAnim;
 
   final Set<int> _togglingBiodataIds = {};
+  List<BioData> _bioDataList = [];
 
   @override
   void initState() {
     super.initState();
+    _bioDataList = widget.staff.bioData ?? [];
     _fadeCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 350),
@@ -47,17 +48,22 @@ class _StaffBiodataPageState extends ConsumerState<StaffBiodataPage>
     super.dispose();
   }
 
-  // ─── Helpers ──────────────────────────────────────────────────────────────
-
-  int get _staffId => widget.staff.id;
-
-  ({int id, EmployeeType type}) get _biodataArgs {
+  Future<void> _refreshBiodata() async {
     final employeeType = EmployeeType.values.firstWhere(
       (e) => e.name == widget.staff.employeeType,
       orElse: () => EmployeeType.permanent,
     );
-    return (id: _staffId, type: employeeType);
+    final service = StaffBioDataService(networkAPI: NetworkAPI());
+    final freshBioData = await service.getBioDatasByStaffId(
+      widget.staff.id,
+      employeeType,
+    );
+    if (mounted) {
+      setState(() => _bioDataList = freshBioData);
+    }
   }
+
+  // ─── Helpers ──────────────────────────────────────────────────────────────
 
   String _fingerLabel(Finger finger) {
     switch (finger) {
@@ -171,9 +177,7 @@ class _StaffBiodataPageState extends ConsumerState<StaffBiodataPage>
     try {
       final service = StaffBioDataService(networkAPI: NetworkAPI());
       await service.deleteBioData(biodata.id);
-      ref.invalidate(staffBiodataProvider(_biodataArgs));
-      ref.invalidate(staffListProvider);
-      ref.invalidate(allBiodataProvider);
+      await _refreshBiodata();
       messenger.showSnackBar(
         SnackBar(
           content: Row(
@@ -280,9 +284,7 @@ class _StaffBiodataPageState extends ConsumerState<StaffBiodataPage>
       } else {
         await service.activateBioData(biodata.id);
       }
-      ref.invalidate(staffBiodataProvider(_biodataArgs));
-      ref.invalidate(staffListProvider);
-      ref.invalidate(allBiodataProvider);
+      await _refreshBiodata();
       messenger.showSnackBar(
         SnackBar(
           content: Row(
@@ -335,30 +337,26 @@ class _StaffBiodataPageState extends ConsumerState<StaffBiodataPage>
       (e) => e.name == widget.staff.employeeType,
       orElse: () => EmployeeType.permanent,
     );
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => BiometricEnrollmentPage(
-          referenceId: widget.staff.id,
-          employeeType: employeeType,
-          displayName: widget.staff.fullname,
-          subtitle: 'Employee ID: ${widget.staff.empId}',
-          existingBioData: widget.staff.bioData,
-          onEnrolled: () {
-            ref.invalidate(staffBiodataProvider(_biodataArgs));
-            ref.invalidate(staffListProvider);
-            ref.invalidate(allBiodataProvider);
-          },
+    log(employeeType.name);
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => BiometricEnrollmentPage(
+            referenceId: widget.staff.id,
+            employeeType: employeeType,
+            displayName: widget.staff.fullname,
+            subtitle: 'Employee ID: ${widget.staff.empId}',
+            existingBioData: _bioDataList,
+            onEnrolled: _refreshBiodata,
+          ),
         ),
-      ),
-    );
+      );
   }
 
   // ─── Build ────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
-    final biodataAsync = ref.watch(staffBiodataProvider(_biodataArgs));
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -387,10 +385,9 @@ class _StaffBiodataPageState extends ConsumerState<StaffBiodataPage>
         opacity: _fadeAnim,
         child: RefreshIndicator(
           onRefresh: () async {
-            ref.invalidate(staffBiodataProvider(_biodataArgs));
-            ref.invalidate(staffListProvider);
-            ref.invalidate(allBiodataProvider);
-            await ref.read(staffBiodataProvider(_biodataArgs).future);
+            _bioDataList = widget.staff.bioData ?? [];
+            setState(() {});
+            await _refreshBiodata();
           },
           child: CustomScrollView(
             slivers: [
@@ -417,27 +414,18 @@ class _StaffBiodataPageState extends ConsumerState<StaffBiodataPage>
             ),
 
             // ── Biodata List ──────────────────────────────────────────────
-            biodataAsync.when(
-              loading: () => const SliverFillRemaining(
-                child: Center(child: CircularProgressIndicator()),
-              ),
-              error: (err, _) =>
-                  SliverFillRemaining(child: _buildErrorState(context, err)),
-              data: (list) {
-                if (list.isEmpty) {
-                  return SliverFillRemaining(child: _buildEmptyState(context));
-                }
-                return SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-                  sliver: SliverList.separated(
-                    separatorBuilder: (context, index) =>
-                        const SizedBox(height: 12),
-                    itemCount: list.length,
-                    itemBuilder: (ctx, i) =>
-                        _buildBiodataCard(ctx, list[i], isDark),
-                  ),
-                );
-              },
+            if (_bioDataList.isEmpty)
+              SliverFillRemaining(child: _buildEmptyState(context))
+            else
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+                sliver: SliverList.separated(
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 12),
+                  itemCount: _bioDataList.length,
+                  itemBuilder: (ctx, i) =>
+                      _buildBiodataCard(ctx, _bioDataList[i], isDark),
+                ),
               ),
             ],
           ),
@@ -693,34 +681,6 @@ class _StaffBiodataPageState extends ConsumerState<StaffBiodataPage>
             
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildErrorState(BuildContext context, Object err) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.error_outline, size: 48, color: AppColors.error),
-          const SizedBox(height: 16),
-          Text(
-            'Failed to load biodata',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            err.toString(),
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 12),
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton.icon(
-            onPressed: () => ref.invalidate(staffBiodataProvider(_biodataArgs)),
-            icon: const Icon(Icons.refresh),
-            label: const Text('Retry'),
-          ),
-        ],
       ),
     );
   }

@@ -29,6 +29,7 @@ class OverviewPage extends ConsumerWidget {
     final visitorAsync = ref.watch(visitorListProvider);
     final dependantAsync = ref.watch(dependantListProvider);
     final contractorAsync = ref.watch(contractorStaffListProvider);
+    final biodataCounts = ref.watch(allBiodataProvider).value ?? {};
 
     return Scaffold(
       body: RefreshIndicator(
@@ -37,6 +38,7 @@ class OverviewPage extends ConsumerWidget {
           ref.refresh(visitorListProvider.future),
           ref.refresh(dependantListProvider.future),
           ref.refresh(contractorStaffListProvider.future),
+          ref.refresh(allBiodataProvider.future),
         ]),
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -44,7 +46,7 @@ class OverviewPage extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildCombinedStats(context, ref, staffAsync, visitorAsync, dependantAsync, contractorAsync),
+              _buildCombinedStats(context, ref, staffAsync, visitorAsync, dependantAsync, contractorAsync, biodataCounts),
             ],
           ),
         ),
@@ -59,6 +61,7 @@ class OverviewPage extends ConsumerWidget {
     AsyncValue<List> visitorAsync,
     AsyncValue<List> dependantAsync,
     AsyncValue<List> contractorAsync,
+    Map<int, int> biodataCounts,
   ) {
     final isLoading = staffAsync.isLoading || visitorAsync.isLoading || dependantAsync.isLoading || contractorAsync.isLoading;
     final hasError = staffAsync.hasError || visitorAsync.hasError || dependantAsync.hasError || contractorAsync.hasError;
@@ -112,9 +115,8 @@ class OverviewPage extends ConsumerWidget {
 
     final totalPersonnel = staffList.length + visitorList.length + dependantList.length + contractorList.length;
 
-    final enrolledStaff = (staffList).where((s) {
-      final b = (s as dynamic).bioData;
-      return b != null && b.isNotEmpty;
+    final enrolledStaff = staffList.where((s) {
+      return (biodataCounts[(s as dynamic).id] ?? 0) > 0;
     }).length;
 
     final enrolledVisitors = (visitorList).where((v) {

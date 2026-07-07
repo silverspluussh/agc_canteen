@@ -102,7 +102,6 @@ class NetworkAPI {
         queryParameters: queryParameters,
         data: data,
       );
-      log(response.data.toString());
       switch (response.statusCode) {
         case 200:
         case 201:

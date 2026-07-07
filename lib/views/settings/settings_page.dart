@@ -303,6 +303,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     try {
       await getIt<AppDatabase>().clearAll();
       await getIt<SecureStorage>().clearSecureData();
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
     } catch (_) {}
 
     ref.invalidate(adminAuthProvider);
@@ -374,17 +376,17 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         children: [
           // ── Data ───────────────────────────────────────────────────────────
           _SectionHeader(label: l10n.data),
-          _SettingsTile(
-            icon: Icons.fastfood_rounded,
-            title: l10n.manualPosOrder,
-            subtitle: l10n.manualPosOrderSubtitle,
-            onTap: () =>
-                Navigator.of(context).pushNamed('/create-manual-order'),
-          ),
+          // _SettingsTile(
+          //   icon: Icons.fastfood_rounded,
+          //   title: l10n.manualPosOrder,
+          //   subtitle: l10n.manualPosOrderSubtitle,
+          //   onTap: () =>
+          //       Navigator.of(context).pushNamed('/create-manual-order'),
+          // ),
           _SettingsTile(
             icon: Icons.bar_chart_rounded,
-            title: l10n.orders,
-            subtitle: l10n.viewReportsSubtitle,
+            title: "Vouchers",
+            subtitle: "View generated vouchers",
             onTap: () => Navigator.of(context).pushNamed('/reports'),
           ),
           _SettingsTile(
@@ -395,8 +397,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ),
 
         
-          // ── Account ────────────────────────────────────────────────────────
-          _SectionHeader(label: l10n.account),
+        
 
           _SettingsTile(
             icon: Icons.group_outlined,
@@ -405,16 +406,17 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             onTap: () => Navigator.of(context).pushNamed('/staff'),
           ),
           //POS managment
-          _SettingsTile(
+         
+
+          // ── Preferences ────────────────────────────────────────────────────
+          _SectionHeader(label: l10n.preferences),
+           _SettingsTile(
             icon: Icons.device_hub_outlined,
             title: l10n.posSettings, // "POS Settings"
             subtitle: l10n
                 .managePosSubtitle, // "Manage POS devices and configurations"
             onTap: () => Navigator.of(context).pushNamed('/pos'),
           ),
-
-          // ── Preferences ────────────────────────────────────────────────────
-          _SectionHeader(label: l10n.preferences),
           _SettingsTile(
             icon: Icons.language_outlined,
             title: l10n.language,

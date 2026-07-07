@@ -95,6 +95,8 @@ class NetworkAPI {
         queryParameters: queryParameters,
         data: data,
       );
+
+      log( "Data ${response.data.toString()} statuscode ${response.statusCode}");
       switch (response.statusCode) {
         case 202:
         case 200:

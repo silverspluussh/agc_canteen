@@ -1197,6 +1197,16 @@ class AppDatabase extends _$AppDatabase {
     return toDelete.length;
   }
 
+  Future<int> deleteStaffBioDataNotIn(Set<int> keepIds) async {
+    final toDelete = await (select(bioDataEntries)
+          ..where((t) => t.staffId.isNotNull() & t.syncStatus.equals(2) & t.id.isNotIn(keepIds)))
+        .get();
+    for (final record in toDelete) {
+      await deleteBioData(record.id);
+    }
+    return toDelete.length;
+  }
+
   // ─── ActivityLogs ──────────────────────────────────
 
   Future<void> insertActivityLog(

@@ -1,21 +1,19 @@
-  import 'dart:async';
+import 'dart:async';
 import 'dart:developer' as dev;
 import 'package:flutter/services.dart';
 import 'package:agc_canteen/core/enums/employee_type.enum.dart';
 import 'package:agc_canteen/models/staff.model.dart';
-import 'package:agc_canteen/repositories/biodata.repo.dart';
 import 'package:drift/drift.dart';
 import 'package:logger/logger.dart';
 import '../database/app_database.dart';
 import '../pos/pos_fingerprint_service.dart';
 import '../database/activity_log_service.dart';
+import '../sync_services/sync_from_local_to_remote.dart';
 import '../../core/di/injection_container.dart';
 
 class FingerprintAuthService {
   final AppDatabase _db;
   final PosFingerprintService _fingerprint;
-   final BioDataService _bioDataService = getIt<BioDataService>();
-  // final EncryptionService _encryptionService = getIt<EncryptionService>();
   final Logger _logger;
 
   static const int matchThreshold = 80;
@@ -120,15 +118,7 @@ class FingerprintAuthService {
         await _db.insertBioData(companion.copyWith(visitorId: Value(entityId)));
     }
 
-    unawaited(
-      _bioDataService.createBioData(entityId, entityType.name,[BioData(
-        id: fingerprintId,
-        staffId: entityId,
-        finger: finger,
-        data: base64data,
-        isActive: true,
-      )])
-    );
+    unawaited(getIt<LocalToRemoteSyncService>().syncBioData());
 
     _logger.i('Fingerprint enrolled: id=$fingerprintId entityId=$entityId type=${entityType.name}');
     getIt<ActivityLogService>().log(

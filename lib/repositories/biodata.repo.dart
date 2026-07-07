@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:uuid/uuid.dart';
 import '../core/network/network_api_dio.dart';
 import '../models/staff.model.dart';
@@ -63,6 +65,7 @@ class BioDataService {
           })
           .toList(),
     };
+    log('Payload for createBioData: $payload'); // Log the payload
     return await networkAPI.postData<bool>(
       '/hr/bio-data/create-bulk',
       data: payload,
@@ -93,3 +96,6 @@ class BioDataService {
     );
   }
 }
+
+
+

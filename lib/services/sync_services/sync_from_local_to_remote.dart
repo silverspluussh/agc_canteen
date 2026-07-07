@@ -300,6 +300,7 @@ class LocalToRemoteSyncService {
     }
 
     return {
+      'orderCode': order.orderCode,
       'uuid': order.uuid,
       'employeeType': employeeType,
       'orderType': order.orderType,

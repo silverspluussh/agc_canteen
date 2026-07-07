@@ -17,6 +17,7 @@ import 'views/pos/pos_settings_page.dart';
 import 'views/pos/manual_order_page.dart';
 import 'views/auth/group_order_auth_pos.dart';
 
+
 final localeProvider = StateProvider<Locale>((ref) {
   return const Locale('en');
 });

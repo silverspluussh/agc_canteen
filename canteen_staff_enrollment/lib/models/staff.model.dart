@@ -33,7 +33,6 @@ class Staff {
   });
 
   factory Staff.fromMap(Map<String, dynamic> map) {
-    log("Staff.fromMap: $map");
     return Staff(
       id: map['id'] as int,
       empId: map['empId'] as String,

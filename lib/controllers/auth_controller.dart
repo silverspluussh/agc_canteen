@@ -357,7 +357,7 @@ class AuthController extends Notifier<AuthState> {
 
     centerOn();
     ln('====================');
-    ln('    AGC CANTEEN');
+    ln('    ASG CANTEEN');
     ln('====================');
     centerOn();
     boldOn();
@@ -377,13 +377,14 @@ class AuthController extends Notifier<AuthState> {
   void reset() {
     if (state.staff != null) {
       final staff = state.staff!;
-      getIt<ActivityLogService>().log(
+      unawaited( getIt<ActivityLogService>().log(
         type: 'staff_sign_out',
         message: 'Session reset: ${staff.displayName}',
         actorType: staff.entityType?.entityName ?? 'Staff',
         actorId: staff.entityId,
         actorName: staff.displayName,
-      );
+      ));
+     
     }
     state = const AuthState();
   }

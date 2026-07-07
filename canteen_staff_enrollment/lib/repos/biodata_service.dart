@@ -1,4 +1,3 @@
-
 import 'package:canteen_staff_enrollment/core/network/api_exceptions_util.dart';
 import 'package:canteen_staff_enrollment/models/biodata.model.dart';
 import 'package:uuid/uuid.dart';
@@ -9,36 +8,43 @@ class StaffBioDataService {
   final NetworkAPI networkAPI;
   StaffBioDataService({required this.networkAPI});
 
+  List<BioData> _parseBioDataList(dynamic data) {
+    final List<dynamic> rawList;
+    if (data is List) {
+      rawList = data;
+    } else if (data is Map && data['data'] is List) {
+      rawList = data['data'] as List<dynamic>;
+    } else {
+      return [];
+    }
+    return rawList
+        .map((e) => BioData.fromMap(e as Map<String, dynamic>))
+        .toList();
+  }
+
   Future<List<BioData>> getAllBioDatas() async {
     return await networkAPI.getData<List<BioData>>(
       '/hr/bio-data',
-      builder: (data) {
-        if (data is List) {
-          return data
-              .map((e) => BioData.fromMap(e as Map<String, dynamic>))
-              .toList();
-        }
-        return [];
-      },
+      builder: (data) => _parseBioDataList(data),
     );
   }
 
-  Future<List<BioData>> getBioDatasByStaffId(int staffId, EmployeeType type) async {
+  Future<List<BioData>> getBioDatasByStaffId(
+    int staffId,
+    EmployeeType type,
+  ) async {
     return await networkAPI.getData<List<BioData>>(
       '/hr/bio-data',
       queryParameters: {"referenceId": staffId, "employeeType": type.name},
-      builder: (data) {
-        if (data is List) {
-          return data
-              .map((e) => BioData.fromMap(e as Map<String, dynamic>))
-              .toList();
-        }
-        return [];
-      },
+      builder: (data) => _parseBioDataList(data),
     );
   }
 
-  Future<bool> createBioData(int referenceId, EmployeeType type, List<BioData> bioDatas) async {
+  Future<bool> createBioData(
+    int referenceId,
+    EmployeeType type,
+    List<BioData> bioDatas,
+  ) async {
     final payload = {
       "uuid": Uuid().v4(),
       "referenceId": referenceId,
@@ -51,7 +57,8 @@ class StaffBioDataService {
       '/hr/bio-data/create-bulk',
       data: payload,
       builder: (data) {
-        if (data != null) {
+      
+   if (data != null) {
           return true;
         }
         return false;

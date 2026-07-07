@@ -124,7 +124,7 @@ class _ReportsDashboardPageState extends ConsumerState<ReportsDashboardPage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: colorScheme.primary,
-        title: Text(l10n.reports),
+        title: Text("Vouchers Summary", style: const TextStyle(color: Colors.white)),
         centerTitle: true,
         elevation: 0,
         leading: BackButton(
@@ -206,7 +206,7 @@ class _ReportsDashboardPageState extends ConsumerState<ReportsDashboardPage> {
           _SummaryCard(
             icon: Icons.attach_money_rounded,
             label: AppLocalizations.of(context).totalRevenue,
-            value: 'GH₵ ${_currencyFormat.format(summary.totalRevenue)}',
+            value: '\$ ${_currencyFormat.format(summary.totalRevenue)}',
             color: Colors.green,
           ),
           _SummaryCard(
@@ -215,12 +215,7 @@ class _ReportsDashboardPageState extends ConsumerState<ReportsDashboardPage> {
             value: summary.totalMealTypes.toString(),
             color: Colors.purple,
           ),
-          _SummaryCard(
-            icon: Icons.people_rounded,
-            label: AppLocalizations.of(context).staffManagement,
-            value: summary.totalStaff.toString(),
-            color: Colors.indigo,
-          ),
+        
          
         ],
       ),
