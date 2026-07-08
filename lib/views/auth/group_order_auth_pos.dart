@@ -177,6 +177,7 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
           description:
               Value('[Group] $mealType (${i + 1}/$_groupCount)'),
           orderedById: Value(staff.staffId!),
+          employeeType: Value(staff.entityType!.name),
           createdAt: Value(nowIso),
           updatedAt: Value(nowIso),
           syncStatus: const Value(0),

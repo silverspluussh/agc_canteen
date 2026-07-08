@@ -6992,6 +6992,17 @@ class $OrdersTable extends Orders with TableInfo<$OrdersTable, Order> {
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _employeeTypeMeta = const VerificationMeta(
+    'employeeType',
+  );
+  @override
+  late final GeneratedColumn<String> employeeType = GeneratedColumn<String>(
+    'employee_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -7049,6 +7060,7 @@ class $OrdersTable extends Orders with TableInfo<$OrdersTable, Order> {
     groupCount,
     description,
     orderedById,
+    employeeType,
     createdAt,
     updatedAt,
     syncStatus,
@@ -7145,6 +7157,17 @@ class $OrdersTable extends Orders with TableInfo<$OrdersTable, Order> {
     } else if (isInserting) {
       context.missing(_orderedByIdMeta);
     }
+    if (data.containsKey('employee_type')) {
+      context.handle(
+        _employeeTypeMeta,
+        employeeType.isAcceptableOrUnknown(
+          data['employee_type']!,
+          _employeeTypeMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_employeeTypeMeta);
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -7225,6 +7248,10 @@ class $OrdersTable extends Orders with TableInfo<$OrdersTable, Order> {
         DriftSqlType.int,
         data['${effectivePrefix}ordered_by_id'],
       )!,
+      employeeType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}employee_type'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}created_at'],
@@ -7261,6 +7288,7 @@ class Order extends DataClass implements Insertable<Order> {
   final int groupCount;
   final String? description;
   final int orderedById;
+  final String employeeType;
   final String createdAt;
   final String updatedAt;
   final int syncStatus;
@@ -7276,6 +7304,7 @@ class Order extends DataClass implements Insertable<Order> {
     required this.groupCount,
     this.description,
     required this.orderedById,
+    required this.employeeType,
     required this.createdAt,
     required this.updatedAt,
     required this.syncStatus,
@@ -7296,6 +7325,7 @@ class Order extends DataClass implements Insertable<Order> {
       map['description'] = Variable<String>(description);
     }
     map['ordered_by_id'] = Variable<int>(orderedById);
+    map['employee_type'] = Variable<String>(employeeType);
     map['created_at'] = Variable<String>(createdAt);
     map['updated_at'] = Variable<String>(updatedAt);
     map['sync_status'] = Variable<int>(syncStatus);
@@ -7319,6 +7349,7 @@ class Order extends DataClass implements Insertable<Order> {
           ? const Value.absent()
           : Value(description),
       orderedById: Value(orderedById),
+      employeeType: Value(employeeType),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       syncStatus: Value(syncStatus),
@@ -7344,6 +7375,7 @@ class Order extends DataClass implements Insertable<Order> {
       groupCount: serializer.fromJson<int>(json['groupCount']),
       description: serializer.fromJson<String?>(json['description']),
       orderedById: serializer.fromJson<int>(json['orderedById']),
+      employeeType: serializer.fromJson<String>(json['employeeType']),
       createdAt: serializer.fromJson<String>(json['createdAt']),
       updatedAt: serializer.fromJson<String>(json['updatedAt']),
       syncStatus: serializer.fromJson<int>(json['syncStatus']),
@@ -7364,6 +7396,7 @@ class Order extends DataClass implements Insertable<Order> {
       'groupCount': serializer.toJson<int>(groupCount),
       'description': serializer.toJson<String?>(description),
       'orderedById': serializer.toJson<int>(orderedById),
+      'employeeType': serializer.toJson<String>(employeeType),
       'createdAt': serializer.toJson<String>(createdAt),
       'updatedAt': serializer.toJson<String>(updatedAt),
       'syncStatus': serializer.toJson<int>(syncStatus),
@@ -7382,6 +7415,7 @@ class Order extends DataClass implements Insertable<Order> {
     int? groupCount,
     Value<String?> description = const Value.absent(),
     int? orderedById,
+    String? employeeType,
     String? createdAt,
     String? updatedAt,
     int? syncStatus,
@@ -7397,6 +7431,7 @@ class Order extends DataClass implements Insertable<Order> {
     groupCount: groupCount ?? this.groupCount,
     description: description.present ? description.value : this.description,
     orderedById: orderedById ?? this.orderedById,
+    employeeType: employeeType ?? this.employeeType,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     syncStatus: syncStatus ?? this.syncStatus,
@@ -7422,6 +7457,9 @@ class Order extends DataClass implements Insertable<Order> {
       orderedById: data.orderedById.present
           ? data.orderedById.value
           : this.orderedById,
+      employeeType: data.employeeType.present
+          ? data.employeeType.value
+          : this.employeeType,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       syncStatus: data.syncStatus.present
@@ -7446,6 +7484,7 @@ class Order extends DataClass implements Insertable<Order> {
           ..write('groupCount: $groupCount, ')
           ..write('description: $description, ')
           ..write('orderedById: $orderedById, ')
+          ..write('employeeType: $employeeType, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('syncStatus: $syncStatus, ')
@@ -7466,6 +7505,7 @@ class Order extends DataClass implements Insertable<Order> {
     groupCount,
     description,
     orderedById,
+    employeeType,
     createdAt,
     updatedAt,
     syncStatus,
@@ -7485,6 +7525,7 @@ class Order extends DataClass implements Insertable<Order> {
           other.groupCount == this.groupCount &&
           other.description == this.description &&
           other.orderedById == this.orderedById &&
+          other.employeeType == this.employeeType &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.syncStatus == this.syncStatus &&
@@ -7502,6 +7543,7 @@ class OrdersCompanion extends UpdateCompanion<Order> {
   final Value<int> groupCount;
   final Value<String?> description;
   final Value<int> orderedById;
+  final Value<String> employeeType;
   final Value<String> createdAt;
   final Value<String> updatedAt;
   final Value<int> syncStatus;
@@ -7517,6 +7559,7 @@ class OrdersCompanion extends UpdateCompanion<Order> {
     this.groupCount = const Value.absent(),
     this.description = const Value.absent(),
     this.orderedById = const Value.absent(),
+    this.employeeType = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.syncStatus = const Value.absent(),
@@ -7533,6 +7576,7 @@ class OrdersCompanion extends UpdateCompanion<Order> {
     required int groupCount,
     this.description = const Value.absent(),
     required int orderedById,
+    required String employeeType,
     required String createdAt,
     required String updatedAt,
     this.syncStatus = const Value.absent(),
@@ -7545,6 +7589,7 @@ class OrdersCompanion extends UpdateCompanion<Order> {
        total = Value(total),
        groupCount = Value(groupCount),
        orderedById = Value(orderedById),
+       employeeType = Value(employeeType),
        createdAt = Value(createdAt),
        updatedAt = Value(updatedAt);
   static Insertable<Order> custom({
@@ -7558,6 +7603,7 @@ class OrdersCompanion extends UpdateCompanion<Order> {
     Expression<int>? groupCount,
     Expression<String>? description,
     Expression<int>? orderedById,
+    Expression<String>? employeeType,
     Expression<String>? createdAt,
     Expression<String>? updatedAt,
     Expression<int>? syncStatus,
@@ -7574,6 +7620,7 @@ class OrdersCompanion extends UpdateCompanion<Order> {
       if (groupCount != null) 'group_count': groupCount,
       if (description != null) 'description': description,
       if (orderedById != null) 'ordered_by_id': orderedById,
+      if (employeeType != null) 'employee_type': employeeType,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (syncStatus != null) 'sync_status': syncStatus,
@@ -7592,6 +7639,7 @@ class OrdersCompanion extends UpdateCompanion<Order> {
     Value<int>? groupCount,
     Value<String?>? description,
     Value<int>? orderedById,
+    Value<String>? employeeType,
     Value<String>? createdAt,
     Value<String>? updatedAt,
     Value<int>? syncStatus,
@@ -7608,6 +7656,7 @@ class OrdersCompanion extends UpdateCompanion<Order> {
       groupCount: groupCount ?? this.groupCount,
       description: description ?? this.description,
       orderedById: orderedById ?? this.orderedById,
+      employeeType: employeeType ?? this.employeeType,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       syncStatus: syncStatus ?? this.syncStatus,
@@ -7648,6 +7697,9 @@ class OrdersCompanion extends UpdateCompanion<Order> {
     if (orderedById.present) {
       map['ordered_by_id'] = Variable<int>(orderedById.value);
     }
+    if (employeeType.present) {
+      map['employee_type'] = Variable<String>(employeeType.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<String>(createdAt.value);
     }
@@ -7676,6 +7728,7 @@ class OrdersCompanion extends UpdateCompanion<Order> {
           ..write('groupCount: $groupCount, ')
           ..write('description: $description, ')
           ..write('orderedById: $orderedById, ')
+          ..write('employeeType: $employeeType, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('syncStatus: $syncStatus, ')
@@ -17626,6 +17679,7 @@ typedef $$OrdersTableCreateCompanionBuilder =
       required int groupCount,
       Value<String?> description,
       required int orderedById,
+      required String employeeType,
       required String createdAt,
       required String updatedAt,
       Value<int> syncStatus,
@@ -17643,6 +17697,7 @@ typedef $$OrdersTableUpdateCompanionBuilder =
       Value<int> groupCount,
       Value<String?> description,
       Value<int> orderedById,
+      Value<String> employeeType,
       Value<String> createdAt,
       Value<String> updatedAt,
       Value<int> syncStatus,
@@ -17705,6 +17760,11 @@ class $$OrdersTableFilterComposer
 
   ColumnFilters<int> get orderedById => $composableBuilder(
     column: $table.orderedById,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get employeeType => $composableBuilder(
+    column: $table.employeeType,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -17788,6 +17848,11 @@ class $$OrdersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get employeeType => $composableBuilder(
+    column: $table.employeeType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -17854,6 +17919,11 @@ class $$OrdersTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get employeeType => $composableBuilder(
+    column: $table.employeeType,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
@@ -17909,6 +17979,7 @@ class $$OrdersTableTableManager
                 Value<int> groupCount = const Value.absent(),
                 Value<String?> description = const Value.absent(),
                 Value<int> orderedById = const Value.absent(),
+                Value<String> employeeType = const Value.absent(),
                 Value<String> createdAt = const Value.absent(),
                 Value<String> updatedAt = const Value.absent(),
                 Value<int> syncStatus = const Value.absent(),
@@ -17924,6 +17995,7 @@ class $$OrdersTableTableManager
                 groupCount: groupCount,
                 description: description,
                 orderedById: orderedById,
+                employeeType: employeeType,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 syncStatus: syncStatus,
@@ -17941,6 +18013,7 @@ class $$OrdersTableTableManager
                 required int groupCount,
                 Value<String?> description = const Value.absent(),
                 required int orderedById,
+                required String employeeType,
                 required String createdAt,
                 required String updatedAt,
                 Value<int> syncStatus = const Value.absent(),
@@ -17956,6 +18029,7 @@ class $$OrdersTableTableManager
                 groupCount: groupCount,
                 description: description,
                 orderedById: orderedById,
+                employeeType: employeeType,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 syncStatus: syncStatus,

@@ -193,6 +193,7 @@ class Orders extends Table {
   IntColumn get groupCount => integer()();
   TextColumn get description => text().nullable()();
   IntColumn get orderedById => integer()();
+  TextColumn get employeeType => text()();
   TextColumn get createdAt => text()();
   TextColumn get updatedAt => text()();
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();

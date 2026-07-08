@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer';
 import 'package:agc_canteen/core/network/api_exceptions_util.dart';
 import 'package:agc_canteen/models/sync.model.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -103,6 +104,7 @@ class LocalToRemoteSyncService {
         }
         payloads.add(await _buildSingleOrderPayload(order));
       }
+      log('Pushing ${payloads.first} orders to remote server', name: 'LocalToRemoteSyncService');
       try {
         await _networkAPI.postData(
           '/pos/order/create-bulk',
@@ -287,22 +289,10 @@ class LocalToRemoteSyncService {
         .firstOrNull
         ?.id;
 
-    String employeeType = 'permanent';
-    final staff = await _db.getStaff(order.orderedById);
-    if (staff != null) {
-      employeeType = staff.employeeType;
-    } else if (await _db.getDependant(order.orderedById) != null) {
-      employeeType = 'dependent';
-    } else if (await _db.getContractorStaff(order.orderedById) != null) {
-      employeeType = 'contractor';
-    } else if (await _db.getVisitor(order.orderedById) != null) {
-      employeeType = 'visitor';
-    }
-
     return {
       'orderCode': order.orderCode,
       'uuid': order.uuid,
-      'employeeType': employeeType,
+      'employeeType': order.employeeType,
       'orderType': order.orderType,
       'mealTypeId': mealTypeId ?? 0,
       'total': order.total,

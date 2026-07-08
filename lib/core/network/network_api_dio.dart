@@ -102,6 +102,8 @@ class NetworkAPI {
         queryParameters: queryParameters,
         data: data,
       );
+
+      log('Response: ${response.data}', name: 'NetworkAPI.postData');
       switch (response.statusCode) {
         case 200:
         case 201:

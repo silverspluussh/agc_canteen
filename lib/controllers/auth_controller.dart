@@ -241,6 +241,7 @@ class AuthController extends Notifier<AuthState> {
           groupCount: const Value(1),
           description: Value(mealType),
           orderedById: Value(staff.entityId!),
+          employeeType: Value(staff.entityType!.name),
           createdAt: Value(nowIso),
           updatedAt: Value(nowIso),
           syncStatus: const Value(0),        

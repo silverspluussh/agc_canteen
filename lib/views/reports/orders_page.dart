@@ -98,10 +98,25 @@ final reportOrdersProvider = FutureProvider<List<_ReportOrder>>((ref) async {
   final orders = await db.getAllOrders();
   final groupOrders = await db.getAllGroupOrders();
   final staffList = await db.getAllStaff();
+  final visitorList = await db.getAllVisitors();
+  final dependantList = await db.getAllDependants();
+  final contractorList = await db.getAllContractorStaff();
 
-  String staffName(int id) {
-    final s = staffList.where((e) => e.id == id).firstOrNull;
-    return s != null ? '${s.firstName} ${s.lastName}' : id.toString();
+  String resolveName(int id, String employeeType) {
+    switch (employeeType) {
+      case 'visitor':
+        final v = visitorList.where((e) => e.id == id).firstOrNull;
+        return v?.name ?? id.toString();
+      case 'dependent':
+        final d = dependantList.where((e) => e.id == id).firstOrNull;
+        return d?.fullname ?? id.toString();
+      case 'contractor':
+        final c = contractorList.where((e) => e.id == id).firstOrNull;
+        return c?.name ?? id.toString();
+      default:
+        final s = staffList.where((e) => e.id == id).firstOrNull;
+        return s != null ? '${s.firstName} ${s.lastName}' : id.toString();
+    }
   }
 
   final results = <_ReportOrder>[];
@@ -117,7 +132,7 @@ final reportOrdersProvider = FutureProvider<List<_ReportOrder>>((ref) async {
       groupCount: o.groupCount,
       syncStatus: o.syncStatus,
       description: o.description,
-      staffName: staffName(o.orderedById),
+      staffName: resolveName(o.orderedById, o.employeeType),
       createdAt: DateTime.tryParse(o.createdAt) ?? DateTime.now(),
     ));
   }

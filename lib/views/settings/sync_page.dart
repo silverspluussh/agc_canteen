@@ -214,9 +214,24 @@ class _SyncPageState extends ConsumerState<SyncPage>
 
   Future<void> _viewUnsyncedOrders() async {
     final staff = await _db.getAllStaff();
-    String staffName(int id) {
-      final s = staff.where((e) => e.id == id).firstOrNull;
-      return s != null ? '${s.firstName} ${s.lastName}' : id.toString();
+    final visitors = await _db.getAllVisitors();
+    final dependants = await _db.getAllDependants();
+    final contractors = await _db.getAllContractorStaff();
+    String entityName(int id, String employeeType) {
+      switch (employeeType) {
+        case 'visitor':
+          final v = visitors.where((e) => e.id == id).firstOrNull;
+          return v?.name ?? id.toString();
+        case 'dependent':
+          final d = dependants.where((e) => e.id == id).firstOrNull;
+          return d?.fullname ?? id.toString();
+        case 'contractor':
+          final c = contractors.where((e) => e.id == id).firstOrNull;
+          return c?.name ?? id.toString();
+        default:
+          final s = staff.where((e) => e.id == id).firstOrNull;
+          return s != null ? '${s.firstName} ${s.lastName}' : id.toString();
+      }
     }
     if (!mounted) return;
 
@@ -273,7 +288,7 @@ class _SyncPageState extends ConsumerState<SyncPage>
                               style: const TextStyle(
                                   fontWeight: FontWeight.w600)),
                           subtitle: Text(
-                            '${o.mealType} · ${o.groupCount} item${o.groupCount != 1 ? 's' : ''} · ${staffName(o.orderedById)}',
+                            '${o.mealType} · ${o.groupCount} item${o.groupCount != 1 ? 's' : ''} · ${entityName(o.orderedById, o.employeeType)}',
                             style: const TextStyle(fontSize: 12),
                           ),
                         );
