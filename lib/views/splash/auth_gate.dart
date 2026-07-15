@@ -85,7 +85,7 @@ class _AuthGateState extends ConsumerState<AuthGate> {
 
     ref.listen(adminAuthProvider, (prev, next) {
       if (next.isAuthenticated && (prev == null || !prev.isAuthenticated)) {
-        _startSyncWithPosCheck();
+       _startSyncWithPosCheck();
       }
     });
 

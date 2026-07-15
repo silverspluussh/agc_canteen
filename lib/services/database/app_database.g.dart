@@ -5103,16 +5103,34 @@ class $CardsTable extends Cards with TableInfo<$CardsTable, Card> {
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _serialNumberMeta = const VerificationMeta(
-    'serialNumber',
-  );
+  static const VerificationMeta _tagIdMeta = const VerificationMeta('tagId');
   @override
-  late final GeneratedColumn<String> serialNumber = GeneratedColumn<String>(
-    'serial_number',
+  late final GeneratedColumn<String> tagId = GeneratedColumn<String>(
+    'tag_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _codeMeta = const VerificationMeta('code');
+  @override
+  late final GeneratedColumn<double> code = GeneratedColumn<double>(
+    'code',
     aliasedName,
     false,
-    type: DriftSqlType.string,
+    type: DriftSqlType.double,
     requiredDuringInsert: true,
+  );
+  static const VerificationMeta _reversedCodeMeta = const VerificationMeta(
+    'reversedCode',
+  );
+  @override
+  late final GeneratedColumn<double> reversedCode = GeneratedColumn<double>(
+    'reversed_code',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
   );
   static const VerificationMeta _statusMeta = const VerificationMeta('status');
   @override
@@ -5123,21 +5141,6 @@ class $CardsTable extends Cards with TableInfo<$CardsTable, Card> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _isEncodedMeta = const VerificationMeta(
-    'isEncoded',
-  );
-  @override
-  late final GeneratedColumn<bool> isEncoded = GeneratedColumn<bool>(
-    'is_encoded',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("is_encoded" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
-  );
   static const VerificationMeta _isAssignedMeta = const VerificationMeta(
     'isAssigned',
   );
@@ -5145,25 +5148,34 @@ class $CardsTable extends Cards with TableInfo<$CardsTable, Card> {
   late final GeneratedColumn<bool> isAssigned = GeneratedColumn<bool>(
     'is_assigned',
     aliasedName,
-    false,
+    true,
     type: DriftSqlType.bool,
     requiredDuringInsert: false,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
       'CHECK ("is_assigned" IN (0, 1))',
     ),
-    defaultValue: const Constant(false),
   );
-  static const VerificationMeta _totalScanCountMeta = const VerificationMeta(
-    'totalScanCount',
+  static const VerificationMeta _assignedToIdMeta = const VerificationMeta(
+    'assignedToId',
   );
   @override
-  late final GeneratedColumn<int> totalScanCount = GeneratedColumn<int>(
-    'total_scan_count',
+  late final GeneratedColumn<int> assignedToId = GeneratedColumn<int>(
+    'assigned_to_id',
     aliasedName,
-    false,
+    true,
     type: DriftSqlType.int,
     requiredDuringInsert: false,
-    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _assignedToTypeMeta = const VerificationMeta(
+    'assignedToType',
+  );
+  @override
+  late final GeneratedColumn<String> assignedToType = GeneratedColumn<String>(
+    'assigned_to_type',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
   );
   static const VerificationMeta _issuedDateMeta = const VerificationMeta(
     'issuedDate',
@@ -5176,52 +5188,16 @@ class $CardsTable extends Cards with TableInfo<$CardsTable, Card> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _expiryDateMeta = const VerificationMeta(
-    'expiryDate',
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
   );
   @override
-  late final GeneratedColumn<String> expiryDate = GeneratedColumn<String>(
-    'expiry_date',
+  late final GeneratedColumn<String> createdAt = GeneratedColumn<String>(
+    'created_at',
     aliasedName,
     true,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-  );
-  static const VerificationMeta _lastUsedAtMeta = const VerificationMeta(
-    'lastUsedAt',
-  );
-  @override
-  late final GeneratedColumn<String> lastUsedAt = GeneratedColumn<String>(
-    'last_used_at',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _uploadedAtMeta = const VerificationMeta(
-    'uploadedAt',
-  );
-  @override
-  late final GeneratedColumn<String> uploadedAt = GeneratedColumn<String>(
-    'uploaded_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _staffIdMeta = const VerificationMeta(
-    'staffId',
-  );
-  @override
-  late final GeneratedColumn<int> staffId = GeneratedColumn<int>(
-    'staff_id',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES staff (id)',
-    ),
   );
   static const VerificationMeta _syncStatusMeta = const VerificationMeta(
     'syncStatus',
@@ -5249,16 +5225,15 @@ class $CardsTable extends Cards with TableInfo<$CardsTable, Card> {
   @override
   List<GeneratedColumn> get $columns => [
     id,
-    serialNumber,
+    tagId,
+    code,
+    reversedCode,
     status,
-    isEncoded,
     isAssigned,
-    totalScanCount,
+    assignedToId,
+    assignedToType,
     issuedDate,
-    expiryDate,
-    lastUsedAt,
-    uploadedAt,
-    staffId,
+    createdAt,
     syncStatus,
     syncUpdatedAt,
   ];
@@ -5277,16 +5252,28 @@ class $CardsTable extends Cards with TableInfo<$CardsTable, Card> {
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     }
-    if (data.containsKey('serial_number')) {
+    if (data.containsKey('tag_id')) {
       context.handle(
-        _serialNumberMeta,
-        serialNumber.isAcceptableOrUnknown(
-          data['serial_number']!,
-          _serialNumberMeta,
-        ),
+        _tagIdMeta,
+        tagId.isAcceptableOrUnknown(data['tag_id']!, _tagIdMeta),
+      );
+    }
+    if (data.containsKey('code')) {
+      context.handle(
+        _codeMeta,
+        code.isAcceptableOrUnknown(data['code']!, _codeMeta),
       );
     } else if (isInserting) {
-      context.missing(_serialNumberMeta);
+      context.missing(_codeMeta);
+    }
+    if (data.containsKey('reversed_code')) {
+      context.handle(
+        _reversedCodeMeta,
+        reversedCode.isAcceptableOrUnknown(
+          data['reversed_code']!,
+          _reversedCodeMeta,
+        ),
+      );
     }
     if (data.containsKey('status')) {
       context.handle(
@@ -5296,24 +5283,27 @@ class $CardsTable extends Cards with TableInfo<$CardsTable, Card> {
     } else if (isInserting) {
       context.missing(_statusMeta);
     }
-    if (data.containsKey('is_encoded')) {
-      context.handle(
-        _isEncodedMeta,
-        isEncoded.isAcceptableOrUnknown(data['is_encoded']!, _isEncodedMeta),
-      );
-    }
     if (data.containsKey('is_assigned')) {
       context.handle(
         _isAssignedMeta,
         isAssigned.isAcceptableOrUnknown(data['is_assigned']!, _isAssignedMeta),
       );
     }
-    if (data.containsKey('total_scan_count')) {
+    if (data.containsKey('assigned_to_id')) {
       context.handle(
-        _totalScanCountMeta,
-        totalScanCount.isAcceptableOrUnknown(
-          data['total_scan_count']!,
-          _totalScanCountMeta,
+        _assignedToIdMeta,
+        assignedToId.isAcceptableOrUnknown(
+          data['assigned_to_id']!,
+          _assignedToIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('assigned_to_type')) {
+      context.handle(
+        _assignedToTypeMeta,
+        assignedToType.isAcceptableOrUnknown(
+          data['assigned_to_type']!,
+          _assignedToTypeMeta,
         ),
       );
     }
@@ -5323,33 +5313,10 @@ class $CardsTable extends Cards with TableInfo<$CardsTable, Card> {
         issuedDate.isAcceptableOrUnknown(data['issued_date']!, _issuedDateMeta),
       );
     }
-    if (data.containsKey('expiry_date')) {
+    if (data.containsKey('created_at')) {
       context.handle(
-        _expiryDateMeta,
-        expiryDate.isAcceptableOrUnknown(data['expiry_date']!, _expiryDateMeta),
-      );
-    }
-    if (data.containsKey('last_used_at')) {
-      context.handle(
-        _lastUsedAtMeta,
-        lastUsedAt.isAcceptableOrUnknown(
-          data['last_used_at']!,
-          _lastUsedAtMeta,
-        ),
-      );
-    }
-    if (data.containsKey('uploaded_at')) {
-      context.handle(
-        _uploadedAtMeta,
-        uploadedAt.isAcceptableOrUnknown(data['uploaded_at']!, _uploadedAtMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_uploadedAtMeta);
-    }
-    if (data.containsKey('staff_id')) {
-      context.handle(
-        _staffIdMeta,
-        staffId.isAcceptableOrUnknown(data['staff_id']!, _staffIdMeta),
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
       );
     }
     if (data.containsKey('sync_status')) {
@@ -5380,45 +5347,41 @@ class $CardsTable extends Cards with TableInfo<$CardsTable, Card> {
         DriftSqlType.int,
         data['${effectivePrefix}id'],
       )!,
-      serialNumber: attachedDatabase.typeMapping.read(
+      tagId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}serial_number'],
+        data['${effectivePrefix}tag_id'],
+      ),
+      code: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}code'],
       )!,
+      reversedCode: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}reversed_code'],
+      ),
       status: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}status'],
       )!,
-      isEncoded: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}is_encoded'],
-      )!,
       isAssigned: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_assigned'],
-      )!,
-      totalScanCount: attachedDatabase.typeMapping.read(
+      ),
+      assignedToId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
-        data['${effectivePrefix}total_scan_count'],
-      )!,
+        data['${effectivePrefix}assigned_to_id'],
+      ),
+      assignedToType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}assigned_to_type'],
+      ),
       issuedDate: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}issued_date'],
       ),
-      expiryDate: attachedDatabase.typeMapping.read(
+      createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}expiry_date'],
-      ),
-      lastUsedAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}last_used_at'],
-      ),
-      uploadedAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}uploaded_at'],
-      )!,
-      staffId: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}staff_id'],
+        data['${effectivePrefix}created_at'],
       ),
       syncStatus: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
@@ -5439,30 +5402,28 @@ class $CardsTable extends Cards with TableInfo<$CardsTable, Card> {
 
 class Card extends DataClass implements Insertable<Card> {
   final int id;
-  final String serialNumber;
+  final String? tagId;
+  final double code;
+  final double? reversedCode;
   final String status;
-  final bool isEncoded;
-  final bool isAssigned;
-  final int totalScanCount;
+  final bool? isAssigned;
+  final int? assignedToId;
+  final String? assignedToType;
   final String? issuedDate;
-  final String? expiryDate;
-  final String? lastUsedAt;
-  final String uploadedAt;
-  final int? staffId;
+  final String? createdAt;
   final int syncStatus;
   final String? syncUpdatedAt;
   const Card({
     required this.id,
-    required this.serialNumber,
+    this.tagId,
+    required this.code,
+    this.reversedCode,
     required this.status,
-    required this.isEncoded,
-    required this.isAssigned,
-    required this.totalScanCount,
+    this.isAssigned,
+    this.assignedToId,
+    this.assignedToType,
     this.issuedDate,
-    this.expiryDate,
-    this.lastUsedAt,
-    required this.uploadedAt,
-    this.staffId,
+    this.createdAt,
     required this.syncStatus,
     this.syncUpdatedAt,
   });
@@ -5470,23 +5431,28 @@ class Card extends DataClass implements Insertable<Card> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
-    map['serial_number'] = Variable<String>(serialNumber);
+    if (!nullToAbsent || tagId != null) {
+      map['tag_id'] = Variable<String>(tagId);
+    }
+    map['code'] = Variable<double>(code);
+    if (!nullToAbsent || reversedCode != null) {
+      map['reversed_code'] = Variable<double>(reversedCode);
+    }
     map['status'] = Variable<String>(status);
-    map['is_encoded'] = Variable<bool>(isEncoded);
-    map['is_assigned'] = Variable<bool>(isAssigned);
-    map['total_scan_count'] = Variable<int>(totalScanCount);
+    if (!nullToAbsent || isAssigned != null) {
+      map['is_assigned'] = Variable<bool>(isAssigned);
+    }
+    if (!nullToAbsent || assignedToId != null) {
+      map['assigned_to_id'] = Variable<int>(assignedToId);
+    }
+    if (!nullToAbsent || assignedToType != null) {
+      map['assigned_to_type'] = Variable<String>(assignedToType);
+    }
     if (!nullToAbsent || issuedDate != null) {
       map['issued_date'] = Variable<String>(issuedDate);
     }
-    if (!nullToAbsent || expiryDate != null) {
-      map['expiry_date'] = Variable<String>(expiryDate);
-    }
-    if (!nullToAbsent || lastUsedAt != null) {
-      map['last_used_at'] = Variable<String>(lastUsedAt);
-    }
-    map['uploaded_at'] = Variable<String>(uploadedAt);
-    if (!nullToAbsent || staffId != null) {
-      map['staff_id'] = Variable<int>(staffId);
+    if (!nullToAbsent || createdAt != null) {
+      map['created_at'] = Variable<String>(createdAt);
     }
     map['sync_status'] = Variable<int>(syncStatus);
     if (!nullToAbsent || syncUpdatedAt != null) {
@@ -5498,24 +5464,29 @@ class Card extends DataClass implements Insertable<Card> {
   CardsCompanion toCompanion(bool nullToAbsent) {
     return CardsCompanion(
       id: Value(id),
-      serialNumber: Value(serialNumber),
+      tagId: tagId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(tagId),
+      code: Value(code),
+      reversedCode: reversedCode == null && nullToAbsent
+          ? const Value.absent()
+          : Value(reversedCode),
       status: Value(status),
-      isEncoded: Value(isEncoded),
-      isAssigned: Value(isAssigned),
-      totalScanCount: Value(totalScanCount),
+      isAssigned: isAssigned == null && nullToAbsent
+          ? const Value.absent()
+          : Value(isAssigned),
+      assignedToId: assignedToId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(assignedToId),
+      assignedToType: assignedToType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(assignedToType),
       issuedDate: issuedDate == null && nullToAbsent
           ? const Value.absent()
           : Value(issuedDate),
-      expiryDate: expiryDate == null && nullToAbsent
+      createdAt: createdAt == null && nullToAbsent
           ? const Value.absent()
-          : Value(expiryDate),
-      lastUsedAt: lastUsedAt == null && nullToAbsent
-          ? const Value.absent()
-          : Value(lastUsedAt),
-      uploadedAt: Value(uploadedAt),
-      staffId: staffId == null && nullToAbsent
-          ? const Value.absent()
-          : Value(staffId),
+          : Value(createdAt),
       syncStatus: Value(syncStatus),
       syncUpdatedAt: syncUpdatedAt == null && nullToAbsent
           ? const Value.absent()
@@ -5530,16 +5501,15 @@ class Card extends DataClass implements Insertable<Card> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return Card(
       id: serializer.fromJson<int>(json['id']),
-      serialNumber: serializer.fromJson<String>(json['serialNumber']),
+      tagId: serializer.fromJson<String?>(json['tagId']),
+      code: serializer.fromJson<double>(json['code']),
+      reversedCode: serializer.fromJson<double?>(json['reversedCode']),
       status: serializer.fromJson<String>(json['status']),
-      isEncoded: serializer.fromJson<bool>(json['isEncoded']),
-      isAssigned: serializer.fromJson<bool>(json['isAssigned']),
-      totalScanCount: serializer.fromJson<int>(json['totalScanCount']),
+      isAssigned: serializer.fromJson<bool?>(json['isAssigned']),
+      assignedToId: serializer.fromJson<int?>(json['assignedToId']),
+      assignedToType: serializer.fromJson<String?>(json['assignedToType']),
       issuedDate: serializer.fromJson<String?>(json['issuedDate']),
-      expiryDate: serializer.fromJson<String?>(json['expiryDate']),
-      lastUsedAt: serializer.fromJson<String?>(json['lastUsedAt']),
-      uploadedAt: serializer.fromJson<String>(json['uploadedAt']),
-      staffId: serializer.fromJson<int?>(json['staffId']),
+      createdAt: serializer.fromJson<String?>(json['createdAt']),
       syncStatus: serializer.fromJson<int>(json['syncStatus']),
       syncUpdatedAt: serializer.fromJson<String?>(json['syncUpdatedAt']),
     );
@@ -5549,16 +5519,15 @@ class Card extends DataClass implements Insertable<Card> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
-      'serialNumber': serializer.toJson<String>(serialNumber),
+      'tagId': serializer.toJson<String?>(tagId),
+      'code': serializer.toJson<double>(code),
+      'reversedCode': serializer.toJson<double?>(reversedCode),
       'status': serializer.toJson<String>(status),
-      'isEncoded': serializer.toJson<bool>(isEncoded),
-      'isAssigned': serializer.toJson<bool>(isAssigned),
-      'totalScanCount': serializer.toJson<int>(totalScanCount),
+      'isAssigned': serializer.toJson<bool?>(isAssigned),
+      'assignedToId': serializer.toJson<int?>(assignedToId),
+      'assignedToType': serializer.toJson<String?>(assignedToType),
       'issuedDate': serializer.toJson<String?>(issuedDate),
-      'expiryDate': serializer.toJson<String?>(expiryDate),
-      'lastUsedAt': serializer.toJson<String?>(lastUsedAt),
-      'uploadedAt': serializer.toJson<String>(uploadedAt),
-      'staffId': serializer.toJson<int?>(staffId),
+      'createdAt': serializer.toJson<String?>(createdAt),
       'syncStatus': serializer.toJson<int>(syncStatus),
       'syncUpdatedAt': serializer.toJson<String?>(syncUpdatedAt),
     };
@@ -5566,30 +5535,30 @@ class Card extends DataClass implements Insertable<Card> {
 
   Card copyWith({
     int? id,
-    String? serialNumber,
+    Value<String?> tagId = const Value.absent(),
+    double? code,
+    Value<double?> reversedCode = const Value.absent(),
     String? status,
-    bool? isEncoded,
-    bool? isAssigned,
-    int? totalScanCount,
+    Value<bool?> isAssigned = const Value.absent(),
+    Value<int?> assignedToId = const Value.absent(),
+    Value<String?> assignedToType = const Value.absent(),
     Value<String?> issuedDate = const Value.absent(),
-    Value<String?> expiryDate = const Value.absent(),
-    Value<String?> lastUsedAt = const Value.absent(),
-    String? uploadedAt,
-    Value<int?> staffId = const Value.absent(),
+    Value<String?> createdAt = const Value.absent(),
     int? syncStatus,
     Value<String?> syncUpdatedAt = const Value.absent(),
   }) => Card(
     id: id ?? this.id,
-    serialNumber: serialNumber ?? this.serialNumber,
+    tagId: tagId.present ? tagId.value : this.tagId,
+    code: code ?? this.code,
+    reversedCode: reversedCode.present ? reversedCode.value : this.reversedCode,
     status: status ?? this.status,
-    isEncoded: isEncoded ?? this.isEncoded,
-    isAssigned: isAssigned ?? this.isAssigned,
-    totalScanCount: totalScanCount ?? this.totalScanCount,
+    isAssigned: isAssigned.present ? isAssigned.value : this.isAssigned,
+    assignedToId: assignedToId.present ? assignedToId.value : this.assignedToId,
+    assignedToType: assignedToType.present
+        ? assignedToType.value
+        : this.assignedToType,
     issuedDate: issuedDate.present ? issuedDate.value : this.issuedDate,
-    expiryDate: expiryDate.present ? expiryDate.value : this.expiryDate,
-    lastUsedAt: lastUsedAt.present ? lastUsedAt.value : this.lastUsedAt,
-    uploadedAt: uploadedAt ?? this.uploadedAt,
-    staffId: staffId.present ? staffId.value : this.staffId,
+    createdAt: createdAt.present ? createdAt.value : this.createdAt,
     syncStatus: syncStatus ?? this.syncStatus,
     syncUpdatedAt: syncUpdatedAt.present
         ? syncUpdatedAt.value
@@ -5598,30 +5567,25 @@ class Card extends DataClass implements Insertable<Card> {
   Card copyWithCompanion(CardsCompanion data) {
     return Card(
       id: data.id.present ? data.id.value : this.id,
-      serialNumber: data.serialNumber.present
-          ? data.serialNumber.value
-          : this.serialNumber,
+      tagId: data.tagId.present ? data.tagId.value : this.tagId,
+      code: data.code.present ? data.code.value : this.code,
+      reversedCode: data.reversedCode.present
+          ? data.reversedCode.value
+          : this.reversedCode,
       status: data.status.present ? data.status.value : this.status,
-      isEncoded: data.isEncoded.present ? data.isEncoded.value : this.isEncoded,
       isAssigned: data.isAssigned.present
           ? data.isAssigned.value
           : this.isAssigned,
-      totalScanCount: data.totalScanCount.present
-          ? data.totalScanCount.value
-          : this.totalScanCount,
+      assignedToId: data.assignedToId.present
+          ? data.assignedToId.value
+          : this.assignedToId,
+      assignedToType: data.assignedToType.present
+          ? data.assignedToType.value
+          : this.assignedToType,
       issuedDate: data.issuedDate.present
           ? data.issuedDate.value
           : this.issuedDate,
-      expiryDate: data.expiryDate.present
-          ? data.expiryDate.value
-          : this.expiryDate,
-      lastUsedAt: data.lastUsedAt.present
-          ? data.lastUsedAt.value
-          : this.lastUsedAt,
-      uploadedAt: data.uploadedAt.present
-          ? data.uploadedAt.value
-          : this.uploadedAt,
-      staffId: data.staffId.present ? data.staffId.value : this.staffId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       syncStatus: data.syncStatus.present
           ? data.syncStatus.value
           : this.syncStatus,
@@ -5635,16 +5599,15 @@ class Card extends DataClass implements Insertable<Card> {
   String toString() {
     return (StringBuffer('Card(')
           ..write('id: $id, ')
-          ..write('serialNumber: $serialNumber, ')
+          ..write('tagId: $tagId, ')
+          ..write('code: $code, ')
+          ..write('reversedCode: $reversedCode, ')
           ..write('status: $status, ')
-          ..write('isEncoded: $isEncoded, ')
           ..write('isAssigned: $isAssigned, ')
-          ..write('totalScanCount: $totalScanCount, ')
+          ..write('assignedToId: $assignedToId, ')
+          ..write('assignedToType: $assignedToType, ')
           ..write('issuedDate: $issuedDate, ')
-          ..write('expiryDate: $expiryDate, ')
-          ..write('lastUsedAt: $lastUsedAt, ')
-          ..write('uploadedAt: $uploadedAt, ')
-          ..write('staffId: $staffId, ')
+          ..write('createdAt: $createdAt, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('syncUpdatedAt: $syncUpdatedAt')
           ..write(')'))
@@ -5654,16 +5617,15 @@ class Card extends DataClass implements Insertable<Card> {
   @override
   int get hashCode => Object.hash(
     id,
-    serialNumber,
+    tagId,
+    code,
+    reversedCode,
     status,
-    isEncoded,
     isAssigned,
-    totalScanCount,
+    assignedToId,
+    assignedToType,
     issuedDate,
-    expiryDate,
-    lastUsedAt,
-    uploadedAt,
-    staffId,
+    createdAt,
     syncStatus,
     syncUpdatedAt,
   );
@@ -5672,93 +5634,86 @@ class Card extends DataClass implements Insertable<Card> {
       identical(this, other) ||
       (other is Card &&
           other.id == this.id &&
-          other.serialNumber == this.serialNumber &&
+          other.tagId == this.tagId &&
+          other.code == this.code &&
+          other.reversedCode == this.reversedCode &&
           other.status == this.status &&
-          other.isEncoded == this.isEncoded &&
           other.isAssigned == this.isAssigned &&
-          other.totalScanCount == this.totalScanCount &&
+          other.assignedToId == this.assignedToId &&
+          other.assignedToType == this.assignedToType &&
           other.issuedDate == this.issuedDate &&
-          other.expiryDate == this.expiryDate &&
-          other.lastUsedAt == this.lastUsedAt &&
-          other.uploadedAt == this.uploadedAt &&
-          other.staffId == this.staffId &&
+          other.createdAt == this.createdAt &&
           other.syncStatus == this.syncStatus &&
           other.syncUpdatedAt == this.syncUpdatedAt);
 }
 
 class CardsCompanion extends UpdateCompanion<Card> {
   final Value<int> id;
-  final Value<String> serialNumber;
+  final Value<String?> tagId;
+  final Value<double> code;
+  final Value<double?> reversedCode;
   final Value<String> status;
-  final Value<bool> isEncoded;
-  final Value<bool> isAssigned;
-  final Value<int> totalScanCount;
+  final Value<bool?> isAssigned;
+  final Value<int?> assignedToId;
+  final Value<String?> assignedToType;
   final Value<String?> issuedDate;
-  final Value<String?> expiryDate;
-  final Value<String?> lastUsedAt;
-  final Value<String> uploadedAt;
-  final Value<int?> staffId;
+  final Value<String?> createdAt;
   final Value<int> syncStatus;
   final Value<String?> syncUpdatedAt;
   const CardsCompanion({
     this.id = const Value.absent(),
-    this.serialNumber = const Value.absent(),
+    this.tagId = const Value.absent(),
+    this.code = const Value.absent(),
+    this.reversedCode = const Value.absent(),
     this.status = const Value.absent(),
-    this.isEncoded = const Value.absent(),
     this.isAssigned = const Value.absent(),
-    this.totalScanCount = const Value.absent(),
+    this.assignedToId = const Value.absent(),
+    this.assignedToType = const Value.absent(),
     this.issuedDate = const Value.absent(),
-    this.expiryDate = const Value.absent(),
-    this.lastUsedAt = const Value.absent(),
-    this.uploadedAt = const Value.absent(),
-    this.staffId = const Value.absent(),
+    this.createdAt = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.syncUpdatedAt = const Value.absent(),
   });
   CardsCompanion.insert({
     this.id = const Value.absent(),
-    required String serialNumber,
+    this.tagId = const Value.absent(),
+    required double code,
+    this.reversedCode = const Value.absent(),
     required String status,
-    this.isEncoded = const Value.absent(),
     this.isAssigned = const Value.absent(),
-    this.totalScanCount = const Value.absent(),
+    this.assignedToId = const Value.absent(),
+    this.assignedToType = const Value.absent(),
     this.issuedDate = const Value.absent(),
-    this.expiryDate = const Value.absent(),
-    this.lastUsedAt = const Value.absent(),
-    required String uploadedAt,
-    this.staffId = const Value.absent(),
+    this.createdAt = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.syncUpdatedAt = const Value.absent(),
-  }) : serialNumber = Value(serialNumber),
-       status = Value(status),
-       uploadedAt = Value(uploadedAt);
+  }) : code = Value(code),
+       status = Value(status);
   static Insertable<Card> custom({
     Expression<int>? id,
-    Expression<String>? serialNumber,
+    Expression<String>? tagId,
+    Expression<double>? code,
+    Expression<double>? reversedCode,
     Expression<String>? status,
-    Expression<bool>? isEncoded,
     Expression<bool>? isAssigned,
-    Expression<int>? totalScanCount,
+    Expression<int>? assignedToId,
+    Expression<String>? assignedToType,
     Expression<String>? issuedDate,
-    Expression<String>? expiryDate,
-    Expression<String>? lastUsedAt,
-    Expression<String>? uploadedAt,
-    Expression<int>? staffId,
+    Expression<String>? createdAt,
     Expression<int>? syncStatus,
     Expression<String>? syncUpdatedAt,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
-      if (serialNumber != null) 'serial_number': serialNumber,
+      if (tagId != null) 'tag_id': tagId,
+      if (code != null) 'code': code,
+      if (reversedCode != null) 'reversed_code': reversedCode,
       if (status != null) 'status': status,
-      if (isEncoded != null) 'is_encoded': isEncoded,
       if (isAssigned != null) 'is_assigned': isAssigned,
-      if (totalScanCount != null) 'total_scan_count': totalScanCount,
+      if (assignedToId != null) 'assigned_to_id': assignedToId,
+      if (assignedToType != null) 'assigned_to_type': assignedToType,
       if (issuedDate != null) 'issued_date': issuedDate,
-      if (expiryDate != null) 'expiry_date': expiryDate,
-      if (lastUsedAt != null) 'last_used_at': lastUsedAt,
-      if (uploadedAt != null) 'uploaded_at': uploadedAt,
-      if (staffId != null) 'staff_id': staffId,
+      if (createdAt != null) 'created_at': createdAt,
       if (syncStatus != null) 'sync_status': syncStatus,
       if (syncUpdatedAt != null) 'sync_updated_at': syncUpdatedAt,
     });
@@ -5766,31 +5721,29 @@ class CardsCompanion extends UpdateCompanion<Card> {
 
   CardsCompanion copyWith({
     Value<int>? id,
-    Value<String>? serialNumber,
+    Value<String?>? tagId,
+    Value<double>? code,
+    Value<double?>? reversedCode,
     Value<String>? status,
-    Value<bool>? isEncoded,
-    Value<bool>? isAssigned,
-    Value<int>? totalScanCount,
+    Value<bool?>? isAssigned,
+    Value<int?>? assignedToId,
+    Value<String?>? assignedToType,
     Value<String?>? issuedDate,
-    Value<String?>? expiryDate,
-    Value<String?>? lastUsedAt,
-    Value<String>? uploadedAt,
-    Value<int?>? staffId,
+    Value<String?>? createdAt,
     Value<int>? syncStatus,
     Value<String?>? syncUpdatedAt,
   }) {
     return CardsCompanion(
       id: id ?? this.id,
-      serialNumber: serialNumber ?? this.serialNumber,
+      tagId: tagId ?? this.tagId,
+      code: code ?? this.code,
+      reversedCode: reversedCode ?? this.reversedCode,
       status: status ?? this.status,
-      isEncoded: isEncoded ?? this.isEncoded,
       isAssigned: isAssigned ?? this.isAssigned,
-      totalScanCount: totalScanCount ?? this.totalScanCount,
+      assignedToId: assignedToId ?? this.assignedToId,
+      assignedToType: assignedToType ?? this.assignedToType,
       issuedDate: issuedDate ?? this.issuedDate,
-      expiryDate: expiryDate ?? this.expiryDate,
-      lastUsedAt: lastUsedAt ?? this.lastUsedAt,
-      uploadedAt: uploadedAt ?? this.uploadedAt,
-      staffId: staffId ?? this.staffId,
+      createdAt: createdAt ?? this.createdAt,
       syncStatus: syncStatus ?? this.syncStatus,
       syncUpdatedAt: syncUpdatedAt ?? this.syncUpdatedAt,
     );
@@ -5802,35 +5755,32 @@ class CardsCompanion extends UpdateCompanion<Card> {
     if (id.present) {
       map['id'] = Variable<int>(id.value);
     }
-    if (serialNumber.present) {
-      map['serial_number'] = Variable<String>(serialNumber.value);
+    if (tagId.present) {
+      map['tag_id'] = Variable<String>(tagId.value);
+    }
+    if (code.present) {
+      map['code'] = Variable<double>(code.value);
+    }
+    if (reversedCode.present) {
+      map['reversed_code'] = Variable<double>(reversedCode.value);
     }
     if (status.present) {
       map['status'] = Variable<String>(status.value);
     }
-    if (isEncoded.present) {
-      map['is_encoded'] = Variable<bool>(isEncoded.value);
-    }
     if (isAssigned.present) {
       map['is_assigned'] = Variable<bool>(isAssigned.value);
     }
-    if (totalScanCount.present) {
-      map['total_scan_count'] = Variable<int>(totalScanCount.value);
+    if (assignedToId.present) {
+      map['assigned_to_id'] = Variable<int>(assignedToId.value);
+    }
+    if (assignedToType.present) {
+      map['assigned_to_type'] = Variable<String>(assignedToType.value);
     }
     if (issuedDate.present) {
       map['issued_date'] = Variable<String>(issuedDate.value);
     }
-    if (expiryDate.present) {
-      map['expiry_date'] = Variable<String>(expiryDate.value);
-    }
-    if (lastUsedAt.present) {
-      map['last_used_at'] = Variable<String>(lastUsedAt.value);
-    }
-    if (uploadedAt.present) {
-      map['uploaded_at'] = Variable<String>(uploadedAt.value);
-    }
-    if (staffId.present) {
-      map['staff_id'] = Variable<int>(staffId.value);
+    if (createdAt.present) {
+      map['created_at'] = Variable<String>(createdAt.value);
     }
     if (syncStatus.present) {
       map['sync_status'] = Variable<int>(syncStatus.value);
@@ -5845,16 +5795,15 @@ class CardsCompanion extends UpdateCompanion<Card> {
   String toString() {
     return (StringBuffer('CardsCompanion(')
           ..write('id: $id, ')
-          ..write('serialNumber: $serialNumber, ')
+          ..write('tagId: $tagId, ')
+          ..write('code: $code, ')
+          ..write('reversedCode: $reversedCode, ')
           ..write('status: $status, ')
-          ..write('isEncoded: $isEncoded, ')
           ..write('isAssigned: $isAssigned, ')
-          ..write('totalScanCount: $totalScanCount, ')
+          ..write('assignedToId: $assignedToId, ')
+          ..write('assignedToType: $assignedToType, ')
           ..write('issuedDate: $issuedDate, ')
-          ..write('expiryDate: $expiryDate, ')
-          ..write('lastUsedAt: $lastUsedAt, ')
-          ..write('uploadedAt: $uploadedAt, ')
-          ..write('staffId: $staffId, ')
+          ..write('createdAt: $createdAt, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('syncUpdatedAt: $syncUpdatedAt')
           ..write(')'))
@@ -15246,25 +15195,6 @@ final class $$StaffTableReferences
     );
   }
 
-  static MultiTypedResultKey<$CardsTable, List<Card>> _cardsRefsTable(
-    _$AppDatabase db,
-  ) => MultiTypedResultKey.fromTable(
-    db.cards,
-    aliasName: $_aliasNameGenerator(db.staff.id, db.cards.staffId),
-  );
-
-  $$CardsTableProcessedTableManager get cardsRefs {
-    final manager = $$CardsTableTableManager(
-      $_db,
-      $_db.cards,
-    ).filter((f) => f.staffId.id.sqlEquals($_itemColumn<int>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(_cardsRefsTable($_db));
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-
   static MultiTypedResultKey<$BioDataEntriesTable, List<BioDataEntry>>
   _bioDataEntriesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
     db.bioDataEntries,
@@ -15398,31 +15328,6 @@ class $$StaffTableFilterComposer extends Composer<_$AppDatabase, $StaffTable> {
           }) => $$DependantsTableFilterComposer(
             $db: $db,
             $table: $db.dependants,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
-  Expression<bool> cardsRefs(
-    Expression<bool> Function($$CardsTableFilterComposer f) f,
-  ) {
-    final $$CardsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.cards,
-      getReferencedColumn: (t) => t.staffId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$CardsTableFilterComposer(
-            $db: $db,
-            $table: $db.cards,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -15662,31 +15567,6 @@ class $$StaffTableAnnotationComposer
     return f(composer);
   }
 
-  Expression<T> cardsRefs<T extends Object>(
-    Expression<T> Function($$CardsTableAnnotationComposer a) f,
-  ) {
-    final $$CardsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.cards,
-      getReferencedColumn: (t) => t.staffId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$CardsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.cards,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
   Expression<T> bioDataEntriesRefs<T extends Object>(
     Expression<T> Function($$BioDataEntriesTableAnnotationComposer a) f,
   ) {
@@ -15726,11 +15606,7 @@ class $$StaffTableTableManager
           $$StaffTableUpdateCompanionBuilder,
           (StaffData, $$StaffTableReferences),
           StaffData,
-          PrefetchHooks Function({
-            bool dependantsRefs,
-            bool cardsRefs,
-            bool bioDataEntriesRefs,
-          })
+          PrefetchHooks Function({bool dependantsRefs, bool bioDataEntriesRefs})
         > {
   $$StaffTableTableManager(_$AppDatabase db, $StaffTable table)
     : super(
@@ -15830,16 +15706,11 @@ class $$StaffTableTableManager
               )
               .toList(),
           prefetchHooksCallback:
-              ({
-                dependantsRefs = false,
-                cardsRefs = false,
-                bioDataEntriesRefs = false,
-              }) {
+              ({dependantsRefs = false, bioDataEntriesRefs = false}) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
                     if (dependantsRefs) db.dependants,
-                    if (cardsRefs) db.cards,
                     if (bioDataEntriesRefs) db.bioDataEntries,
                   ],
                   addJoins: null,
@@ -15860,19 +15731,6 @@ class $$StaffTableTableManager
                                 table,
                                 p0,
                               ).dependantsRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.staffId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
-                      if (cardsRefs)
-                        await $_getPrefetchedData<StaffData, $StaffTable, Card>(
-                          currentTable: table,
-                          referencedTable: $$StaffTableReferences
-                              ._cardsRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$StaffTableReferences(db, table, p0).cardsRefs,
                           referencedItemsForCurrentItem:
                               (item, referencedItems) => referencedItems.where(
                                 (e) => e.staffId == item.id,
@@ -15920,11 +15778,7 @@ typedef $$StaffTableProcessedTableManager =
       $$StaffTableUpdateCompanionBuilder,
       (StaffData, $$StaffTableReferences),
       StaffData,
-      PrefetchHooks Function({
-        bool dependantsRefs,
-        bool cardsRefs,
-        bool bioDataEntriesRefs,
-      })
+      PrefetchHooks Function({bool dependantsRefs, bool bioDataEntriesRefs})
     >;
 typedef $$StaffKitchensTableCreateCompanionBuilder =
     StaffKitchensCompanion Function({
@@ -16681,57 +16535,33 @@ typedef $$DependantKitchensTableProcessedTableManager =
 typedef $$CardsTableCreateCompanionBuilder =
     CardsCompanion Function({
       Value<int> id,
-      required String serialNumber,
+      Value<String?> tagId,
+      required double code,
+      Value<double?> reversedCode,
       required String status,
-      Value<bool> isEncoded,
-      Value<bool> isAssigned,
-      Value<int> totalScanCount,
+      Value<bool?> isAssigned,
+      Value<int?> assignedToId,
+      Value<String?> assignedToType,
       Value<String?> issuedDate,
-      Value<String?> expiryDate,
-      Value<String?> lastUsedAt,
-      required String uploadedAt,
-      Value<int?> staffId,
+      Value<String?> createdAt,
       Value<int> syncStatus,
       Value<String?> syncUpdatedAt,
     });
 typedef $$CardsTableUpdateCompanionBuilder =
     CardsCompanion Function({
       Value<int> id,
-      Value<String> serialNumber,
+      Value<String?> tagId,
+      Value<double> code,
+      Value<double?> reversedCode,
       Value<String> status,
-      Value<bool> isEncoded,
-      Value<bool> isAssigned,
-      Value<int> totalScanCount,
+      Value<bool?> isAssigned,
+      Value<int?> assignedToId,
+      Value<String?> assignedToType,
       Value<String?> issuedDate,
-      Value<String?> expiryDate,
-      Value<String?> lastUsedAt,
-      Value<String> uploadedAt,
-      Value<int?> staffId,
+      Value<String?> createdAt,
       Value<int> syncStatus,
       Value<String?> syncUpdatedAt,
     });
-
-final class $$CardsTableReferences
-    extends BaseReferences<_$AppDatabase, $CardsTable, Card> {
-  $$CardsTableReferences(super.$_db, super.$_table, super.$_typedResult);
-
-  static $StaffTable _staffIdTable(_$AppDatabase db) =>
-      db.staff.createAlias($_aliasNameGenerator(db.cards.staffId, db.staff.id));
-
-  $$StaffTableProcessedTableManager? get staffId {
-    final $_column = $_itemColumn<int>('staff_id');
-    if ($_column == null) return null;
-    final manager = $$StaffTableTableManager(
-      $_db,
-      $_db.staff,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_staffIdTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: [item]),
-    );
-  }
-}
 
 class $$CardsTableFilterComposer extends Composer<_$AppDatabase, $CardsTable> {
   $$CardsTableFilterComposer({
@@ -16746,8 +16576,18 @@ class $$CardsTableFilterComposer extends Composer<_$AppDatabase, $CardsTable> {
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get serialNumber => $composableBuilder(
-    column: $table.serialNumber,
+  ColumnFilters<String> get tagId => $composableBuilder(
+    column: $table.tagId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get code => $composableBuilder(
+    column: $table.code,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get reversedCode => $composableBuilder(
+    column: $table.reversedCode,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -16756,18 +16596,18 @@ class $$CardsTableFilterComposer extends Composer<_$AppDatabase, $CardsTable> {
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<bool> get isEncoded => $composableBuilder(
-    column: $table.isEncoded,
-    builder: (column) => ColumnFilters(column),
-  );
-
   ColumnFilters<bool> get isAssigned => $composableBuilder(
     column: $table.isAssigned,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<int> get totalScanCount => $composableBuilder(
-    column: $table.totalScanCount,
+  ColumnFilters<int> get assignedToId => $composableBuilder(
+    column: $table.assignedToId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get assignedToType => $composableBuilder(
+    column: $table.assignedToType,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -16776,18 +16616,8 @@ class $$CardsTableFilterComposer extends Composer<_$AppDatabase, $CardsTable> {
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get expiryDate => $composableBuilder(
-    column: $table.expiryDate,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get lastUsedAt => $composableBuilder(
-    column: $table.lastUsedAt,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get uploadedAt => $composableBuilder(
-    column: $table.uploadedAt,
+  ColumnFilters<String> get createdAt => $composableBuilder(
+    column: $table.createdAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -16800,29 +16630,6 @@ class $$CardsTableFilterComposer extends Composer<_$AppDatabase, $CardsTable> {
     column: $table.syncUpdatedAt,
     builder: (column) => ColumnFilters(column),
   );
-
-  $$StaffTableFilterComposer get staffId {
-    final $$StaffTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.staffId,
-      referencedTable: $db.staff,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$StaffTableFilterComposer(
-            $db: $db,
-            $table: $db.staff,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
 }
 
 class $$CardsTableOrderingComposer
@@ -16839,8 +16646,18 @@ class $$CardsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get serialNumber => $composableBuilder(
-    column: $table.serialNumber,
+  ColumnOrderings<String> get tagId => $composableBuilder(
+    column: $table.tagId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get code => $composableBuilder(
+    column: $table.code,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get reversedCode => $composableBuilder(
+    column: $table.reversedCode,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -16849,18 +16666,18 @@ class $$CardsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<bool> get isEncoded => $composableBuilder(
-    column: $table.isEncoded,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<bool> get isAssigned => $composableBuilder(
     column: $table.isAssigned,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<int> get totalScanCount => $composableBuilder(
-    column: $table.totalScanCount,
+  ColumnOrderings<int> get assignedToId => $composableBuilder(
+    column: $table.assignedToId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get assignedToType => $composableBuilder(
+    column: $table.assignedToType,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -16869,18 +16686,8 @@ class $$CardsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get expiryDate => $composableBuilder(
-    column: $table.expiryDate,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get lastUsedAt => $composableBuilder(
-    column: $table.lastUsedAt,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get uploadedAt => $composableBuilder(
-    column: $table.uploadedAt,
+  ColumnOrderings<String> get createdAt => $composableBuilder(
+    column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -16893,29 +16700,6 @@ class $$CardsTableOrderingComposer
     column: $table.syncUpdatedAt,
     builder: (column) => ColumnOrderings(column),
   );
-
-  $$StaffTableOrderingComposer get staffId {
-    final $$StaffTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.staffId,
-      referencedTable: $db.staff,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$StaffTableOrderingComposer(
-            $db: $db,
-            $table: $db.staff,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
 }
 
 class $$CardsTableAnnotationComposer
@@ -16930,24 +16714,32 @@ class $$CardsTableAnnotationComposer
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
-  GeneratedColumn<String> get serialNumber => $composableBuilder(
-    column: $table.serialNumber,
+  GeneratedColumn<String> get tagId =>
+      $composableBuilder(column: $table.tagId, builder: (column) => column);
+
+  GeneratedColumn<double> get code =>
+      $composableBuilder(column: $table.code, builder: (column) => column);
+
+  GeneratedColumn<double> get reversedCode => $composableBuilder(
+    column: $table.reversedCode,
     builder: (column) => column,
   );
 
   GeneratedColumn<String> get status =>
       $composableBuilder(column: $table.status, builder: (column) => column);
 
-  GeneratedColumn<bool> get isEncoded =>
-      $composableBuilder(column: $table.isEncoded, builder: (column) => column);
-
   GeneratedColumn<bool> get isAssigned => $composableBuilder(
     column: $table.isAssigned,
     builder: (column) => column,
   );
 
-  GeneratedColumn<int> get totalScanCount => $composableBuilder(
-    column: $table.totalScanCount,
+  GeneratedColumn<int> get assignedToId => $composableBuilder(
+    column: $table.assignedToId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get assignedToType => $composableBuilder(
+    column: $table.assignedToType,
     builder: (column) => column,
   );
 
@@ -16956,20 +16748,8 @@ class $$CardsTableAnnotationComposer
     builder: (column) => column,
   );
 
-  GeneratedColumn<String> get expiryDate => $composableBuilder(
-    column: $table.expiryDate,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<String> get lastUsedAt => $composableBuilder(
-    column: $table.lastUsedAt,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<String> get uploadedAt => $composableBuilder(
-    column: $table.uploadedAt,
-    builder: (column) => column,
-  );
+  GeneratedColumn<String> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
   GeneratedColumn<int> get syncStatus => $composableBuilder(
     column: $table.syncStatus,
@@ -16980,29 +16760,6 @@ class $$CardsTableAnnotationComposer
     column: $table.syncUpdatedAt,
     builder: (column) => column,
   );
-
-  $$StaffTableAnnotationComposer get staffId {
-    final $$StaffTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.staffId,
-      referencedTable: $db.staff,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$StaffTableAnnotationComposer(
-            $db: $db,
-            $table: $db.staff,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
 }
 
 class $$CardsTableTableManager
@@ -17016,9 +16773,9 @@ class $$CardsTableTableManager
           $$CardsTableAnnotationComposer,
           $$CardsTableCreateCompanionBuilder,
           $$CardsTableUpdateCompanionBuilder,
-          (Card, $$CardsTableReferences),
+          (Card, BaseReferences<_$AppDatabase, $CardsTable, Card>),
           Card,
-          PrefetchHooks Function({bool staffId})
+          PrefetchHooks Function()
         > {
   $$CardsTableTableManager(_$AppDatabase db, $CardsTable table)
     : super(
@@ -17034,110 +16791,63 @@ class $$CardsTableTableManager
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
-                Value<String> serialNumber = const Value.absent(),
+                Value<String?> tagId = const Value.absent(),
+                Value<double> code = const Value.absent(),
+                Value<double?> reversedCode = const Value.absent(),
                 Value<String> status = const Value.absent(),
-                Value<bool> isEncoded = const Value.absent(),
-                Value<bool> isAssigned = const Value.absent(),
-                Value<int> totalScanCount = const Value.absent(),
+                Value<bool?> isAssigned = const Value.absent(),
+                Value<int?> assignedToId = const Value.absent(),
+                Value<String?> assignedToType = const Value.absent(),
                 Value<String?> issuedDate = const Value.absent(),
-                Value<String?> expiryDate = const Value.absent(),
-                Value<String?> lastUsedAt = const Value.absent(),
-                Value<String> uploadedAt = const Value.absent(),
-                Value<int?> staffId = const Value.absent(),
+                Value<String?> createdAt = const Value.absent(),
                 Value<int> syncStatus = const Value.absent(),
                 Value<String?> syncUpdatedAt = const Value.absent(),
               }) => CardsCompanion(
                 id: id,
-                serialNumber: serialNumber,
+                tagId: tagId,
+                code: code,
+                reversedCode: reversedCode,
                 status: status,
-                isEncoded: isEncoded,
                 isAssigned: isAssigned,
-                totalScanCount: totalScanCount,
+                assignedToId: assignedToId,
+                assignedToType: assignedToType,
                 issuedDate: issuedDate,
-                expiryDate: expiryDate,
-                lastUsedAt: lastUsedAt,
-                uploadedAt: uploadedAt,
-                staffId: staffId,
+                createdAt: createdAt,
                 syncStatus: syncStatus,
                 syncUpdatedAt: syncUpdatedAt,
               ),
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
-                required String serialNumber,
+                Value<String?> tagId = const Value.absent(),
+                required double code,
+                Value<double?> reversedCode = const Value.absent(),
                 required String status,
-                Value<bool> isEncoded = const Value.absent(),
-                Value<bool> isAssigned = const Value.absent(),
-                Value<int> totalScanCount = const Value.absent(),
+                Value<bool?> isAssigned = const Value.absent(),
+                Value<int?> assignedToId = const Value.absent(),
+                Value<String?> assignedToType = const Value.absent(),
                 Value<String?> issuedDate = const Value.absent(),
-                Value<String?> expiryDate = const Value.absent(),
-                Value<String?> lastUsedAt = const Value.absent(),
-                required String uploadedAt,
-                Value<int?> staffId = const Value.absent(),
+                Value<String?> createdAt = const Value.absent(),
                 Value<int> syncStatus = const Value.absent(),
                 Value<String?> syncUpdatedAt = const Value.absent(),
               }) => CardsCompanion.insert(
                 id: id,
-                serialNumber: serialNumber,
+                tagId: tagId,
+                code: code,
+                reversedCode: reversedCode,
                 status: status,
-                isEncoded: isEncoded,
                 isAssigned: isAssigned,
-                totalScanCount: totalScanCount,
+                assignedToId: assignedToId,
+                assignedToType: assignedToType,
                 issuedDate: issuedDate,
-                expiryDate: expiryDate,
-                lastUsedAt: lastUsedAt,
-                uploadedAt: uploadedAt,
-                staffId: staffId,
+                createdAt: createdAt,
                 syncStatus: syncStatus,
                 syncUpdatedAt: syncUpdatedAt,
               ),
           withReferenceMapper: (p0) => p0
-              .map(
-                (e) =>
-                    (e.readTable(table), $$CardsTableReferences(db, table, e)),
-              )
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
-          prefetchHooksCallback: ({staffId = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (staffId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.staffId,
-                                referencedTable: $$CardsTableReferences
-                                    ._staffIdTable(db),
-                                referencedColumn: $$CardsTableReferences
-                                    ._staffIdTable(db)
-                                    .id,
-                              )
-                              as T;
-                    }
-
-                    return state;
-                  },
-              getPrefetchedDataCallback: (items) async {
-                return [];
-              },
-            );
-          },
+          prefetchHooksCallback: null,
         ),
       );
 }
@@ -17152,9 +16862,9 @@ typedef $$CardsTableProcessedTableManager =
       $$CardsTableAnnotationComposer,
       $$CardsTableCreateCompanionBuilder,
       $$CardsTableUpdateCompanionBuilder,
-      (Card, $$CardsTableReferences),
+      (Card, BaseReferences<_$AppDatabase, $CardsTable, Card>),
       Card,
-      PrefetchHooks Function({bool staffId})
+      PrefetchHooks Function()
     >;
 typedef $$UsersTableCreateCompanionBuilder =
     UsersCompanion Function({

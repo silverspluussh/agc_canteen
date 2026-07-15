@@ -3,6 +3,7 @@ import 'package:agc_canteen/core/enums/employee_type.enum.dart';
 import 'package:agc_canteen/models/staff.model.dart';
 import '../database/app_database.dart';
 import 'fingerprint_auth_service.dart';
+import 'nfc_auth_service.dart';
 
 enum AuthFailureReason { notEnrolled, notInKitchen }
 
@@ -44,12 +45,15 @@ class AuthResult {
 class PosAuthService {
   final AppDatabase _db;
   final FingerprintAuthService _fingerprintAuth;
+  final NfcAuthService _nfcAuth;
 
   PosAuthService({
     required AppDatabase db,
     required FingerprintAuthService fingerprintAuth,
+    required NfcAuthService nfcAuth,
   }) : _db = db,
-       _fingerprintAuth = fingerprintAuth;
+       _fingerprintAuth = fingerprintAuth,
+       _nfcAuth = nfcAuth;
 
   Future<bool> init() async {
     dev.log(
@@ -173,6 +177,76 @@ class PosAuthService {
       firstName: staff.firstName,
       lastName: staff.lastName,
     );
+  }
+
+  Future<AuthResult> authenticateWithNfc() async {
+    dev.log('[PosAuthService] authenticateWithNfc() — reading NFC card', name: 'POS_AUTH');
+    final card = await _nfcAuth.readCard();
+
+    if (card == null) {
+      return const AuthResult.failed(failureReason: AuthFailureReason.notEnrolled);
+    }
+
+    final assignedToId = card.assignedToId;
+    final assignedToType = card.assignedToType;
+
+    if (assignedToId == null || assignedToType == null) {
+      return const AuthResult.failed(failureReason: AuthFailureReason.notEnrolled);
+    }
+
+    final employeeType = EmployeeType.values.firstWhere(
+      (e) => e.name == assignedToType,
+      orElse: () => EmployeeType.permanent,
+    );
+
+    if (employeeType.isStaffType) {
+      final staff = await _db.getStaff(assignedToId);
+      if (staff != null) {
+        return AuthResult.authenticated(
+          entityId: staff.id,
+          entityType: employeeType,
+          displayName: '${staff.firstName} ${staff.lastName}',
+          staffId: staff.id,
+          firstName: staff.firstName,
+          lastName: staff.lastName,
+        );
+      }
+    }
+
+    if (employeeType == EmployeeType.dependent) {
+      final dep = await _db.getDependant(assignedToId);
+      if (dep != null) {
+        return AuthResult.authenticated(
+          entityId: dep.id,
+          entityType: EmployeeType.dependent,
+          displayName: dep.fullname,
+        );
+      }
+    }
+
+    if (employeeType == EmployeeType.contractor) {
+      final cs = await _db.getContractorStaff(assignedToId);
+      if (cs != null) {
+        return AuthResult.authenticated(
+          entityId: cs.id,
+          entityType: EmployeeType.contractor,
+          displayName: cs.name,
+        );
+      }
+    }
+
+    if (employeeType == EmployeeType.visitor) {
+      final visitor = await _db.getVisitor(assignedToId);
+      if (visitor != null) {
+        return AuthResult.authenticated(
+          entityId: visitor.id,
+          entityType: EmployeeType.visitor,
+          displayName: visitor.name,
+        );
+      }
+    }
+
+    return const AuthResult.failed(failureReason: AuthFailureReason.notInKitchen);
   }
 
   /// Enroll a new fingerprint for an entity.

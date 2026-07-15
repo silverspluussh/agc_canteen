@@ -7,6 +7,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../controllers/admin_auth_controller.dart';
 import '../../controllers/auth_controller.dart';
+import '../../controllers/auth_settings_controller.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../core/di/injection_container.dart';
 import '../../core/di/securestorage.dart';
@@ -32,6 +33,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   Future<void> _loadData() async {
+    await ref.read(authSettingsProvider.notifier).load();
     final storage = getIt<SecureStorage>();
     final email = await storage.readAdminEmail();
     final info = await PackageInfo.fromPlatform();
@@ -417,17 +419,45 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 .managePosSubtitle, // "Manage POS devices and configurations"
             onTap: () => Navigator.of(context).pushNamed('/pos'),
           ),
-          _SettingsTile(
-            icon: Icons.language_outlined,
-            title: l10n.language,
-            subtitle: l10n.changeLanguage,
-            onTap: _showLanguageDialog,
-          ),
+          // _SettingsTile(
+          //   icon: Icons.language_outlined,
+          //   title: l10n.language,
+          //   subtitle: l10n.changeLanguage,
+          //   onTap: _showLanguageDialog,
+          // ),
           _SettingsTile(
             icon: Icons.brightness_6_outlined,
             title: l10n.appearance,
             subtitle: l10n.appearanceSubtitle,
             onTap: _showThemeDialog,
+          ),
+
+          // ── Authentication ───────────────────────────────────────────
+          _SectionHeader(label: 'Authentication'),
+          SwitchListTile(
+            secondary: CircleAvatar(
+              backgroundColor: colorScheme.primaryContainer,
+              child: Icon(Icons.fingerprint, color: colorScheme.primary, size: 15),
+            ),
+            title: const Text('Enable Fingerprint'),
+            subtitle: const Text('Allow fingerprint login on auth pages'),
+            value: ref.watch(authSettingsProvider).enableFinger,
+            onChanged: (v) => ref.read(authSettingsProvider.notifier).setFingerEnabled(v),
+           activeThumbColor: Colors.green,
+            inactiveThumbColor: Colors.grey,
+          
+          ),
+          SwitchListTile(
+            secondary: CircleAvatar(
+              backgroundColor: colorScheme.primaryContainer,
+              child: Icon(Icons.nfc, color: colorScheme.primary, size: 15),
+            ),
+            title: const Text('Enable NFC'),
+            subtitle: const Text('Allow NFC card login on auth pages'),
+            value: ref.watch(authSettingsProvider).enableNfc,
+            activeThumbColor: Colors.green,
+            inactiveThumbColor: Colors.grey,
+            onChanged: (v) => ref.read(authSettingsProvider.notifier).setNfcEnabled(v),
           ),
 
           // ── System ─────────────────────────────────────────────────────────
@@ -450,6 +480,21 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               );
             },
           ),
+
+          // // ── Diagnostics ──────────────────────────────────────────
+          // _SectionHeader(label: 'Diagnostics'),
+          // _SettingsTile(
+          //   icon: Icons.credit_card_outlined,
+          //   title: 'Card Test',
+          //   subtitle: 'Test IC/PSAM smart card operations',
+          //   onTap: () => Navigator.of(context).pushNamed('/card-test'),
+          // ),
+          // _SettingsTile(
+          //   icon: Icons.nfc_outlined,
+          //   title: 'NFC Test',
+          //   subtitle: 'Test contactless NFC tag reading',
+          //   onTap: () => Navigator.of(context).pushNamed('/nfc-test'),
+          // ),
 
           const Divider(height: 32),
 

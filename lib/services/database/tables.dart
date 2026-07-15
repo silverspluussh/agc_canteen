@@ -137,16 +137,15 @@ class Dependants extends Table {
 
 class Cards extends Table {
   IntColumn get id => integer()();
-  TextColumn get serialNumber => text()();
+  TextColumn get tagId => text().nullable()();
+  RealColumn get code => real()();
+  RealColumn get reversedCode => real().nullable()();
   TextColumn get status => text()();
-  BoolColumn get isEncoded => boolean().withDefault(const Constant(false))();
-  BoolColumn get isAssigned => boolean().withDefault(const Constant(false))();
-  IntColumn get totalScanCount => integer().withDefault(const Constant(0))();
+  BoolColumn get isAssigned => boolean().nullable()();
+  IntColumn get assignedToId => integer().nullable()();
+  TextColumn get assignedToType => text().nullable()();
   TextColumn get issuedDate => text().nullable()();
-  TextColumn get expiryDate => text().nullable()();
-  TextColumn get lastUsedAt => text().nullable()();
-  TextColumn get uploadedAt => text()();
-  IntColumn get staffId => integer().nullable().references(Staff, #id)();
+  TextColumn get createdAt => text().nullable()();
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();
   TextColumn get syncUpdatedAt => text().nullable()();
 

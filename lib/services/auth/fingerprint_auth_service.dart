@@ -65,19 +65,18 @@ class FingerprintAuthService {
   }
 
   Future<List<BioDataEntry>> _getActiveBioData(int entityId, {required EmployeeType entityType}) async {
-    final all = await _db.getActiveBioData();
+    if (entityType.isStaffType) {
+      return _db.getActiveBioDataByStaff(entityId);
+    }
     switch (entityType) {
-      case EmployeeType.permanent:
-      case EmployeeType.graduateTrainee:
-      case EmployeeType.nationalService:
-      case EmployeeType.intern:
-        return all.where((e) => e.staffId == entityId).toList();
       case EmployeeType.dependent:
-        return all.where((e) => e.dependantId == entityId).toList();
+        return _db.getActiveBioDataByDependant(entityId);
       case EmployeeType.contractor:
-        return all.where((e) => e.contractorStaffId == entityId).toList();
+        return _db.getActiveBioDataByContractorStaff(entityId);
       case EmployeeType.visitor:
-        return all.where((e) => e.visitorId == entityId).toList();
+        return _db.getActiveBioDataByVisitor(entityId);
+      default:
+        return [];
     }
   }
 
@@ -147,47 +146,56 @@ class FingerprintAuthService {
     dev.log('[FingerprintAuth] Capture SUCCESS — templateBase64 length=${result.templateBase64!.length}',
         name: 'POS_AUTH');
 
-    final fingerprints = await _db.getActiveBioData();
+    final query = _db.selectOnly(_db.bioDataEntries)
+      ..addColumns([
+        _db.bioDataEntries.id,
+        _db.bioDataEntries.dataBase64,
+        _db.bioDataEntries.staffId,
+        _db.bioDataEntries.dependantId,
+        _db.bioDataEntries.contractorStaffId,
+        _db.bioDataEntries.visitorId,
+      ])
+      ..where(_db.bioDataEntries.isActive.equals(true));
+    final rows = await query.get();
 
-    dev.log('[FingerprintAuth] Got ${fingerprints.length} active fingerprint(s) from DB',
+    dev.log('[FingerprintAuth] Got ${rows.length} active fingerprint(s) from DB',
         name: 'POS_AUTH');
 
-    if (fingerprints.isEmpty) {
-        dev.log('[FingerprintAuth] No fingerprints stored in local DB — no match possible',
-            name: 'POS_AUTH');
+    if (rows.isEmpty) {
+      dev.log('[FingerprintAuth] No fingerprints stored in local DB — no match possible',
+          name: 'POS_AUTH');
       _logger.w('No fingerprints stored locally');
       return null;
     }
 
-    BioDataEntry? bestMatch;
+    int? bestId;
     int bestScore = -1;
 
-    for (final tpl in fingerprints) {
-      dev.log('[FingerprintAuth] Verifying against templateId=${tpl.id}, staffId=${tpl.staffId}',
+    for (final row in rows) {
+      final id = row.read(_db.bioDataEntries.id)!;
+      final dataBase64 = row.read(_db.bioDataEntries.dataBase64)!;
+      final staffId = row.read(_db.bioDataEntries.staffId);
+      dev.log('[FingerprintAuth] Verifying against templateId=$id, staffId=$staffId',
           name: 'POS_AUTH');
-      String templateData;
-      try {
-        // templateData = await _encryptionService.decrypt(tpl.dataBase64);
-              templateData = tpl.dataBase64;
-
-      } catch (_) {
-        templateData = tpl.dataBase64;
-      }
-      final score = await _fingerprint.verify(templateData);
-      dev.log('[FingerprintAuth] Verify result: score=$score for staffId=${tpl.staffId}',
+      final score = await _fingerprint.verify(dataBase64);
+      dev.log('[FingerprintAuth] Verify result: score=$score for staffId=$staffId',
           name: 'POS_AUTH');
       if (score != null && score > bestScore) {
         bestScore = score;
-        bestMatch = tpl;
+        bestId = id;
+        if (bestScore >= 95) break;
       }
     }
 
-    if (bestMatch != null && bestScore >= matchThreshold) {
-      dev.log('[FingerprintAuth] MATCH FOUND: staffId=${bestMatch.staffId}, score=$bestScore (threshold=$matchThreshold)',
-          name: 'POS_AUTH');
-      _logger.i(
-          'Fingerprint matched: staffId=${bestMatch.staffId} score=$bestScore');
-      return bestMatch;
+    if (bestId != null && bestScore >= matchThreshold) {
+      final bestMatch = await _db.getBioData(bestId);
+      if (bestMatch != null) {
+        dev.log('[FingerprintAuth] MATCH FOUND: staffId=${bestMatch.staffId}, score=$bestScore (threshold=$matchThreshold)',
+            name: 'POS_AUTH');
+        _logger.i(
+            'Fingerprint matched: staffId=${bestMatch.staffId} score=$bestScore');
+        return bestMatch;
+      }
     }
 
     dev.log('[FingerprintAuth] NO MATCH: bestScore=$bestScore (threshold=$matchThreshold)',

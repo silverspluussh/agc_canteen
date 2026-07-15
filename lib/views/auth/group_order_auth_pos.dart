@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:developer' as dev;
 import 'dart:typed_data';
 import 'package:agc_canteen/controllers/auth_controller.dart';
+import 'package:agc_canteen/controllers/auth_settings_controller.dart';
 import 'package:agc_canteen/controllers/providers.dart';
 import 'package:agc_canteen/core/theme/app_colors.dart';
 import 'package:agc_canteen/l10n/generated/app_localizations.dart';
@@ -41,15 +42,15 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
 
   void _increment() => setState(() => _groupCount++);
   void _decrement() => setState(() {
-        if (_groupCount > 1) _groupCount--;
-      });
+    if (_groupCount > 1) _groupCount--;
+  });
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_)  {_initFingerprint();
-        ref.read(authProvider.notifier).reset();
-
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initFingerprint();
+      ref.read(authProvider.notifier).reset();
     });
     ref.listenManual(authProvider, (prev, next) {
       if (prev != null && !prev.isStaffReady && next.isStaffReady) {
@@ -93,12 +94,81 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
     await ref.read(authProvider.notifier).authenticateOnly();
   }
 
+  List<Widget> _authButtons() {
+    final settings = ref.watch(authSettingsProvider);
+    final buttons = <Widget>[];
+
+    if (settings.enableFinger) {
+      buttons.add(
+        Expanded(
+          child: PosButton(
+            onPressed: _startAuth,
+            prefixChild: const Icon(
+              Icons.fingerprint,
+              color: Colors.white,
+              size: 35,
+            ),
+            label: Text(
+              AppLocalizations.of(context).biometricLogin,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (settings.enableNfc) {
+      if (buttons.isNotEmpty) {
+        buttons.add(const SizedBox(width: 12));
+      }
+      buttons.add(
+        Expanded(
+          child: PosButton(
+            color: AppColors.success,
+            onPressed: () async {
+              ref.read(authProvider.notifier).authenticateWithNfcOnly();
+            },
+            prefixChild: const Icon(
+              Icons.nfc,
+              color: Colors.white,
+              size: 35,
+            ),
+            label: const Text(
+              'Tap Card',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (buttons.isEmpty) return [];
+
+    return [
+      const SizedBox(height: 20),
+      Row(children: buttons),
+    ];
+  }
+
   Future<void> _placeGroupOrders(AuthResult staff) async {
-    setState(() { _isPlacingOrders = true; _ordersPlaced = 0; });
+    setState(() {
+      _isPlacingOrders = true;
+      _ordersPlaced = 0;
+    });
 
     final db = getIt<AppDatabase>();
 
-    final staffData = staff.staffId != null ? await db.getStaff(staff.staffId!) : null;
+    final staffData = staff.staffId != null
+        ? await db.getStaff(staff.staffId!)
+        : null;
 
     if (staffData == null || staffData.allowGroupOrder != true) {
       if (mounted) {
@@ -106,7 +176,9 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
         ref.read(authProvider.notifier).reset();
         ScaffoldMessenger.maybeOf(context)?.showSnackBar(
           const SnackBar(
-            content: Text('Group orders are not allowed for this staff member.'),
+            content: Text(
+              'Group orders are not allowed for this staff member.',
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -126,7 +198,11 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
 
     // Resolve current meal type
     final hour = now.hour;
-    final mealType = hour < 10 ? 'breakfast' : hour < 15 ? 'lunch' : 'dinner';
+    final mealType = hour < 10
+        ? 'breakfast'
+        : hour < 15
+        ? 'lunch'
+        : 'dinner';
     final matchedType = allTypes
         .where((t) => t.name.toLowerCase() == mealType)
         .firstOrNull;
@@ -165,24 +241,25 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
         final orderCode = '$prefix${(startNum + i).toString().padLeft(4, '0')}';
         if (i == 0) _orderCode = orderCode;
 
-        orders.add(OrdersCompanion(
-          id: Value(DateTime.now().millisecondsSinceEpoch + i),
-          uuid: Value(const Uuid().v4()),
-          orderCode: Value(orderCode),
-          status: const Value('completed'),
-          orderType: const Value('group'),
-          mealType: Value(mealType),
-          total: Value(price),
-          groupCount: const Value(1),
-          description:
-              Value('[Group] $mealType (${i + 1}/$_groupCount)'),
-          orderedById: Value(staff.staffId!),
-          employeeType: Value(staff.entityType!.name),
-          createdAt: Value(nowIso),
-          updatedAt: Value(nowIso),
-          syncStatus: const Value(0),
-          syncUpdatedAt: const Value.absent(),
-        ));
+        orders.add(
+          OrdersCompanion(
+            id: Value(DateTime.now().millisecondsSinceEpoch + i),
+            uuid: Value(const Uuid().v4()),
+            orderCode: Value(orderCode),
+            status: const Value('completed'),
+            orderType: const Value('group'),
+            mealType: Value(mealType),
+            total: Value(price),
+            groupCount: const Value(1),
+            description: Value('[Group] $mealType (${i + 1}/$_groupCount)'),
+            orderedById: Value(staff.staffId!),
+            employeeType: Value(staff.entityType!.name),
+            createdAt: Value(nowIso),
+            updatedAt: Value(nowIso),
+            syncStatus: const Value(0),
+            syncUpdatedAt: const Value.absent(),
+          ),
+        );
       }
 
       // Single transaction for all inserts
@@ -191,13 +268,15 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
           await db.insertOrder(orders[i]);
           setState(() => _ordersPlaced = i + 1);
 
-          unawaited(_printGroupReceipt(
-            orderCode: orders[i].orderCode.value,
-            mealType: mealType,
-            staffName: staffName,
-            index: i + 1,
-            total: _groupCount,
-          ));
+          unawaited(
+            _printGroupReceipt(
+              orderCode: orders[i].orderCode.value,
+              mealType: mealType,
+              staffName: staffName,
+              index: i + 1,
+              total: _groupCount,
+            ),
+          );
         }
       });
 
@@ -205,7 +284,8 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
 
       getIt<ActivityLogService>().log(
         type: 'group_order_placed',
-        message: 'Group order: $_groupCount vouchers ($mealType) for $staffName',
+        message:
+            'Group order: $_groupCount vouchers ($mealType) for $staffName',
         actorType: 'Staff',
         actorId: staff.staffId,
         actorName: staffName,
@@ -218,10 +298,13 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
         },
       );
 
-      _orderTime = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+      _orderTime =
+          '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
 
       if (mounted) {
-        ref.read(authProvider.notifier).setOrderDetails(
+        ref
+            .read(authProvider.notifier)
+            .setOrderDetails(
               orderCode: _orderCode,
               mealType: mealType,
               orderTime: _orderTime,
@@ -252,7 +335,8 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
       final printer = getIt<PrintServiceManager>();
       final now = DateTime.now();
       final pad = (int n) => n.toString().padLeft(2, '0');
-      final date = '${now.year}-${pad(now.month)}-${pad(now.day)} '
+      final date =
+          '${now.year}-${pad(now.month)}-${pad(now.day)} '
           '${pad(now.hour)}:${pad(now.minute)}';
 
       final b = BytesBuilder();
@@ -294,7 +378,7 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
     Size size = MediaQuery.sizeOf(context);
     return Scaffold(
       appBar: AppBar(
-          backgroundColor: AppColors.gold600,
+        backgroundColor: AppColors.gold600,
         automaticallyImplyLeading: false,
         centerTitle: true,
         toolbarHeight: 70,
@@ -315,8 +399,13 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                  Text("Generate Group Meal Vouchers", style: Theme.of(context).textTheme.titleLarge!.copyWith(fontWeight: FontWeight.bold),),
-                                            const Spacer(),
+                    Text(
+                      "Generate Group Meal Vouchers",
+                      style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Spacer(),
                     BiometricGlow(),
                     const SizedBox(height: 30),
 
@@ -339,28 +428,12 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
                       ),
                     ],
                     if (state.isUnauthenticated &&
-                          !state.isAuthenticating &&
-                          !state.hasError &&
-                          _fingerprintReady) ...[
+                        !state.isAuthenticating &&
+                        !state.hasError &&
+                        _fingerprintReady) ...[
                       const SizedBox(height: 20),
-                      PrimaryButton(
-                        width: 280,
-                        height: 60,
-                        onPressed: _startAuth,
-                        prefixChild: const Icon(
-                          Icons.fingerprint,
-                          color: Colors.white,
-                          size: 35,
-                        ),
-                        label: Text(
-                          AppLocalizations.of(context).biometricLogin,
-                          style:  TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold
-                          ),
-                        ),
-                      ),
+
+                      ..._authButtons(),
                     ],
                     if (state.isAuthenticating) ...[
                       const LinearProgressIndicator(),
@@ -423,17 +496,7 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      PrimaryButton(
-                        onPressed: _startAuth,
-                        prefixChild: const Icon(Icons.fingerprint, size: 30),
-                        label: Text(
-                          "Retry Scan",
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        width: 280,
-                        height: 60,
-                        
-                      ),
+                      ..._authButtons(),
                     ],
                   ],
                 ),

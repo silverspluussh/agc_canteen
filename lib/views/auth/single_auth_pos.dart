@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../controllers/auth_controller.dart';
+import '../../controllers/auth_settings_controller.dart';
 import '../../controllers/providers.dart';
 import '../../core/di/injection_container.dart';
 import '../../l10n/generated/app_localizations.dart';
@@ -70,6 +71,71 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
       name: 'POS_AUTH',
     );
     await ref.read(authProvider.notifier).authenticate();
+  }
+
+  List<Widget> _authButtons() {
+    final settings = ref.watch(authSettingsProvider);
+    final l10n = AppLocalizations.of(context);
+    final buttons = <Widget>[];
+
+    if (settings.enableFinger) {
+      buttons.add(
+        Expanded(
+          child: PosButton(
+            onPressed: _startAuth,
+            prefixChild: const Icon(
+              Icons.fingerprint,
+              color: Colors.white,
+              size: 35,
+            ),
+            label: Text(
+              l10n.biometricLogin,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (settings.enableNfc) {
+      if (buttons.isNotEmpty) {
+        buttons.add(const SizedBox(width: 12));
+      }
+      buttons.add(
+        Expanded(
+          child: PosButton(
+            color: AppColors.success,
+            onPressed: () async {
+              await ref.read(authProvider.notifier).authenticateWithNfc();
+            },
+            prefixChild: const Icon(
+              Icons.nfc,
+              color: Colors.white,
+              size: 35,
+            ),
+            label: const Text(
+              'Tap Card',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (buttons.isEmpty) return [];
+
+    return [
+      const SizedBox(height: 20),
+      Row(children: buttons),
+    ];
   }
 
   Future<void> _showAdminCodeDialog() async {
@@ -220,13 +286,18 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
             height: 50,
             color: Colors.white,
             onPressed: () {
-              Navigator.pushNamed(context, GroupOrderAuthPos.routeID)
-                  .then((_) => ref.read(authProvider.notifier).reset());
+              Navigator.pushNamed(
+                context,
+                GroupOrderAuthPos.routeID,
+              ).then((_) => ref.read(authProvider.notifier).reset());
             },
             prefixChild: Icon(Icons.group, color: Colors.white),
             label: Text(
               "Group Order",
-              style: TextStyle(fontWeight: FontWeight.bold,color: Colors.white),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
           ),
 
@@ -251,11 +322,14 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
+                      Text(
+                        "Generate Meal Voucher",
+                        style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Spacer(),
 
-                      Text("Generate Meal Voucher", style: Theme.of(context).textTheme.titleLarge!.copyWith(fontWeight: FontWeight.bold),),
-                                            const Spacer(),
-
-                   
                       BiometricGlow(),
                       const Spacer(),
                       if (!_fingerprintReady && !_fingerprintInitFailed) ...[
@@ -272,24 +346,8 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
                           !state.hasError &&
                           _fingerprintReady) ...[
                         const SizedBox(height: 20),
-                        PrimaryButton(
-                          width: 280,
-                          height: 60,
-                          onPressed: _startAuth,
-                          prefixChild: const Icon(
-                            Icons.fingerprint,
-                            color: Colors.white,
-                            size: 35,
-                          ),
-                          label: Text(
-                            AppLocalizations.of(context).biometricLogin,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
+
+                        ..._authButtons(),
                       ],
                       if (state.isAuthenticating) ...[
                         const LinearProgressIndicator(),
@@ -325,8 +383,7 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
                         const SizedBox(height: 16),
                         VoucherCard(
                           orderCode: state.orderCode!,
-                          staffName:
-                              '${state.staff?.displayName ?? ""}',
+                          staffName: state.staff?.displayName ?? "",
                           mealType: state.mealType ?? '',
                           orderTime: state.orderTime ?? '',
                         ),
@@ -348,23 +405,8 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        PrimaryButton(
-                          width: 280,
-                          height: 60,
-                           prefixChild: const Icon(
-                            Icons.fingerprint,
-                            color: Colors.white,
-                            size: 35,
-                          ),
-                          onPressed: 
-                            _startAuth,
-                          label:  Text(
-                            "Scan Finger",
-                            style: const TextStyle(fontWeight: FontWeight.bold,color: Colors.white),
-                          ),
-                        ),
+                         ..._authButtons(),
                         
-                        const SizedBox(height: 10),
                       ],
                     ],
                   ),

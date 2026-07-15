@@ -147,6 +147,92 @@ class AuthController extends Notifier<AuthState> {
     }
   }
 
+  /// Authenticates via NFC and places a voucher order.
+  Future<void> authenticateWithNfc() async {
+    state = state.copyWith(step: AuthStep.authenticating, error: null);
+
+    try {
+      final posAuth = ref.read(posAuthProvider);
+      final result = await posAuth.authenticateWithNfc();
+
+      if (!result.isAuthenticated) {
+        final reason = result.failureReason;
+        final errorMessage = switch (reason) {
+          AuthFailureReason.notEnrolled =>
+            'Card not recognized. Please register your NFC card.',
+          AuthFailureReason.notInKitchen =>
+            'This card is not assigned to any registered person.',
+          null => 'Authentication failed.',
+        };
+        getIt<ActivityLogService>().log(
+          type: 'nfc_auth_failure',
+          message: 'NFC auth failed: ${reason?.name ?? "unknown"}',
+          actorType: 'Staff',
+          metadata: {'reason': reason?.name},
+        );
+        state = state.copyWith(step: AuthStep.error, error: errorMessage);
+        return;
+      }
+
+      state = state.copyWith(staff: result);
+
+      getIt<ActivityLogService>().log(
+        type: 'nfc_auth_success',
+        message: 'NFC authenticated: ${result.displayName}',
+        actorType: result.entityType?.entityName ?? 'Staff',
+        actorId: result.entityId,
+        actorName: result.displayName,
+      );
+
+      await _placeNfcVoucherOrder(result);
+    } catch (e, st) {
+      dev.log('[AuthController] NFC auth exception: $e', name: 'POS_AUTH', error: e, stackTrace: st);
+      getIt<ActivityLogService>().log(
+        type: 'nfc_auth_failure',
+        message: 'NFC auth error: $e',
+        actorType: 'Staff',
+        metadata: {'reason': 'exception', 'error': e.toString()},
+      );
+      state = state.copyWith(step: AuthStep.error, error: e.toString());
+    }
+  }
+
+  /// Authenticates via NFC without placing an order — stops at [AuthStep.authenticated].
+  Future<void> authenticateWithNfcOnly() async {
+    state = state.copyWith(step: AuthStep.authenticating, error: null);
+
+    try {
+      final posAuth = ref.read(posAuthProvider);
+      final result = await posAuth.authenticateWithNfc();
+
+      if (!result.isAuthenticated) {
+        final reason = result.failureReason;
+        final errorMessage = switch (reason) {
+          AuthFailureReason.notEnrolled =>
+            'Card not recognized.',
+          AuthFailureReason.notInKitchen =>
+            'This card is not assigned to any registered person.',
+          null => 'Authentication failed.',
+        };
+        state = state.copyWith(step: AuthStep.error, error: errorMessage);
+        return;
+      }
+
+      state = state.copyWith(step: AuthStep.authenticated, staff: result);
+
+      getIt<ActivityLogService>().log(
+        type: 'nfc_auth_success',
+        message: 'NFC authenticated: ${result.displayName}',
+        actorType: result.entityType?.entityName ?? 'Staff',
+        actorId: result.entityId,
+        actorName: result.displayName,
+      );
+    } catch (e, st) {
+      dev.log('[AuthController] NFC auth exception: $e', name: 'POS_AUTH', error: e, stackTrace: st);
+      state = state.copyWith(step: AuthStep.error, error: e.toString());
+    }
+  }
+
   /// Authenticates staff without placing an order — stops at [AuthStep.authenticated].
   Future<void> authenticateOnly() async {
     state = state.copyWith(step: AuthStep.authenticating, error: null);
@@ -332,6 +418,117 @@ class AuthController extends Notifier<AuthState> {
       if (active) return (mt.id, mt.name.toLowerCase(), mt.price);
     }
     return null;
+  }
+
+  Future<void> _placeNfcVoucherOrder(AuthResult staff) async {
+    state = state.copyWith(step: AuthStep.placingOrder);
+
+    try {
+      final db = getIt<AppDatabase>();
+      final printer = getIt<PrintServiceManager>();
+      final sync = getIt<LocalToRemoteSyncService>();
+
+      final result = await _resolveCurrentMealType(db);
+      if (result == null) {
+        state = state.copyWith(
+          step: AuthStep.error,
+          error: 'No meals available at this time. Please try again later.',
+        );
+        return;
+      }
+      final (mealTypeId, mealType, price) = result;
+
+      // Check shift meal restrictions for staff-type employees
+      if (staff.entityType != null && staff.entityType!.isStaffType) {
+        final staffData = await db.getStaff(staff.entityId!);
+        if (staffData != null && staffData.shiftId != null) {
+          final allowedMealTypeIds = await db.getShiftMealTypeIds(staffData.shiftId!);
+          if (allowedMealTypeIds.isNotEmpty && !allowedMealTypeIds.contains(mealTypeId)) {
+            final shiftName = (await db.getShift(staffData.shiftId!))?.name ?? 'assigned shift';
+            state = state.copyWith(
+              step: AuthStep.error,
+              error: 'This meal is not allowed for your $shiftName shift.',
+            );
+            return;
+          }
+        }
+      }
+
+      final now = DateTime.now();
+      final nowIso = now.toIso8601String();
+      final orderId = DateTime.now().millisecondsSinceEpoch;
+      final posDevices = await db.getAllPosDevices();
+      final posDevice = posDevices.firstOrNull;
+      final orderCode = await db.nextOrderCode(
+        staff.entityType?.entityName.substring(0, 1) ?? '',
+        posDevice!.id,
+        posDevice.kitchenId!,
+      );
+      final staffName = staff.displayName ?? 'Unknown';
+
+      await db.insertOrder(
+        OrdersCompanion(
+          id: Value(orderId),
+          uuid: Value(const Uuid().v4()),
+          orderCode: Value(orderCode),
+          status: const Value('completed'),
+          orderType: const Value('single'),
+          mealType: Value(mealType),
+          total: Value(price),
+          groupCount: const Value(1),
+          description: Value(mealType),
+          orderedById: Value(staff.entityId!),
+          employeeType: Value(staff.entityType!.name),
+          createdAt: Value(nowIso),
+          updatedAt: Value(nowIso),
+          syncStatus: const Value(0),
+          syncUpdatedAt: const Value.absent(),
+        ),
+      );
+
+      unawaited(sync.syncSingleOrders());
+
+      await _printVoucher(
+        printer: printer,
+        orderCode: orderCode,
+        staffName: staffName,
+        mealType: mealType,
+        orderTime: now,
+      );
+
+      getIt<ActivityLogService>().log(
+        type: 'order_placed',
+        message: 'Voucher printed: $orderCode — $staffName ($mealType)',
+        actorType: staff.entityType?.entityName ?? 'Staff',
+        actorId: staff.entityId,
+        actorName: staffName,
+        sourceTable: 'orders',
+        recordId: orderId.toString(),
+        metadata: {
+          'order_code': orderCode,
+          'meal_type': mealType,
+          'order_type': 'voucher_nfc',
+        },
+      );
+
+      String pad(int n) => n.toString().padLeft(2, '0');
+      final timeLabel =
+          '${pad(now.hour)}:${pad(now.minute)} '
+          '${now.year}-${pad(now.month)}-${pad(now.day)}';
+
+      state = state.copyWith(
+        step: AuthStep.completed,
+        orderCode: orderCode,
+        mealType: mealType,
+        orderTime: timeLabel,
+      );
+    } catch (e, st) {
+      dev.log('[AuthController] Place NFC voucher order FAILED: $e', name: 'POS_AUTH', error: e, stackTrace: st);
+      state = state.copyWith(
+        step: AuthStep.error,
+        error: 'Failed to print voucher: $e',
+      );
+    }
   }
 
   Future<void> _printVoucher({

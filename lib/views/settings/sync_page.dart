@@ -39,6 +39,7 @@ class _SyncPageState extends ConsumerState<SyncPage>
   int _contractorStaffCount = 0;
   int _dependantCount = 0;
   int _shiftCount = 0;
+  int _cardCount = 0;
   bool _syncingDownload = false;
 
   int get _totalUploadPending => _unsyncedOrders + _unsyncedBioData;
@@ -49,7 +50,8 @@ class _SyncPageState extends ConsumerState<SyncPage>
       _visitorCount +
       _contractorStaffCount +
       _dependantCount +
-      _shiftCount;
+      _shiftCount +
+      _cardCount;
 
   @override
   void initState() {
@@ -97,6 +99,7 @@ class _SyncPageState extends ConsumerState<SyncPage>
     final cStaff = await _db.getAllContractorStaff();
     final dependants = await _db.getAllDependants();
     final shifts = await _db.getAllShifts();
+    final cards = await _db.getAllCards();
     if (mounted) {
       setState(() {
         _staffCount = staff.length;
@@ -106,6 +109,7 @@ class _SyncPageState extends ConsumerState<SyncPage>
         _contractorStaffCount = cStaff.length;
         _dependantCount = dependants.length;
         _shiftCount = shifts.length;
+        _cardCount = cards.length;
       });
     }
   }
@@ -478,6 +482,16 @@ class _SyncPageState extends ConsumerState<SyncPage>
             syncing: _syncingDownload,
             onSync: () => _syncDownload(
                 'Shifts', _downloadService.syncShiftsOnly),
+            onView: null,
+          ),
+          const SizedBox(height: 10),
+          _SyncStatCard(
+            icon: Icons.nfc,
+            label: 'NFC Cards',
+            count: _cardCount,
+            syncing: _syncingDownload,
+            onSync: () => _syncDownload(
+                'NFC Cards', _downloadService.syncCardsOnly),
             onView: null,
           ),
 

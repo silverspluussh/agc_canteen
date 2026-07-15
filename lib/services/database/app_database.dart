@@ -499,7 +499,7 @@ class AppDatabase extends _$AppDatabase {
     await transaction(() async {
       await deleteStaffKitchensByStaff(id);
       await deleteDependantsByStaff(id);
-      await deleteCardsByStaff(id);
+      await deleteCardsByAssignedTo(id);
       await deleteBioDataByStaff(id);
       await (delete(staff)..where((t) => t.id.equals(id))).go();
     });
@@ -743,15 +743,17 @@ class AppDatabase extends _$AppDatabase {
   Future<void> deleteCard(int id) =>
       (delete(cards)..where((t) => t.id.equals(id))).go();
 
-  Future<void> deleteCardsByStaff(int staffId) =>
-      (delete(cards)..where((t) => t.staffId.equals(staffId))).go();
+  Future<void> deleteCardsByAssignedTo(int assignedToId) =>
+      (delete(cards)..where((t) => t.assignedToId.equals(assignedToId))).go();
 
   Future<List<Card>> getAllCards() => select(cards).get();
   Future<Card?> getCard(int id) =>
       (select(cards)..where((t) => t.id.equals(id))).getSingleOrNull();
+  Future<Card?> getCardByTagId(String tagId) =>
+      (select(cards)..where((t) => t.tagId.equals(tagId))).getSingleOrNull();
 
-  Future<List<Card>> getCardsByStaff(int staffId) =>
-      (select(cards)..where((t) => t.staffId.equals(staffId))).get();
+  Future<List<Card>> getCardsByAssignedTo(int assignedToId) =>
+      (select(cards)..where((t) => t.assignedToId.equals(assignedToId))).get();
 
   Future<void> markCardSynced(int id) =>
       (update(cards)..where((t) => t.id.equals(id))).write(
@@ -1161,6 +1163,20 @@ class AppDatabase extends _$AppDatabase {
   Future<List<BioDataEntry>> getActiveBioData() => (select(
     bioDataEntries,
   )..where((t) => t.isActive.equals(true))).get();
+  Future<List<BioDataEntry>> getActiveBioDataByDependant(int dependantId) =>
+      (select(bioDataEntries)
+            ..where((t) => t.dependantId.equals(dependantId) & t.isActive.equals(true)))
+          .get();
+  Future<List<BioDataEntry>> getActiveBioDataByContractorStaff(
+          int contractorStaffId) =>
+      (select(bioDataEntries)
+            ..where(
+                (t) => t.contractorStaffId.equals(contractorStaffId) & t.isActive.equals(true)))
+          .get();
+  Future<List<BioDataEntry>> getActiveBioDataByVisitor(int visitorId) =>
+      (select(bioDataEntries)
+            ..where((t) => t.visitorId.equals(visitorId) & t.isActive.equals(true)))
+          .get();
 
   Future<List<BioDataEntry>> getUnsyncedBioData() =>
       (select(bioDataEntries)..where((t) => t.syncStatus.isNotValue(2))).get();

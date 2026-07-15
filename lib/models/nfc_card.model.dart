@@ -1,87 +1,85 @@
 class NfcCard {
   final int id;
-  final String serialNumber;
+  final String? tagId;
+  final double? code;
+  final double? reversedCode;
   final String status;
-  final bool isEncoded;
-  final bool isAssigned;
-  final int totalScanCount;
+  final bool? isAssigned;
+  final int? assignedToId;
+  final String? assignedToType;
   final DateTime? issuedDate;
-  final DateTime? expiryDate;
-  final DateTime? lastUsedAt;
-  final DateTime uploadedAt;
+  final DateTime? createdAt;
 
   const NfcCard({
     required this.id,
-    required this.serialNumber,
+     this.code,
+    this.reversedCode,
     required this.status,
-    required this.isEncoded,
-    required this.isAssigned,
-    required this.totalScanCount,
+    this.tagId,
+    this.isAssigned,
+    this.assignedToId,
+    this.assignedToType,
     this.issuedDate,
-    this.expiryDate,
-    this.lastUsedAt,
-    required this.uploadedAt,
+    this.createdAt,
   });
 
   factory NfcCard.fromMap(Map<String, dynamic> map) {
     return NfcCard(
       id: map['id'] as int,
-      serialNumber: map['serial_number'] as String,
+        tagId:  map['tagId'] as String?,
+      code: map['code'] as double?,
+      reversedCode: map['reversedCode'] as double?,
       status: map['status'] as String,
-      isEncoded: map['is_encoded'] as bool,
-      isAssigned: map['is_assigned'] as bool,
-      totalScanCount: map['total_scan_count'] as int,
-      issuedDate: map['issued_date'] != null
-          ? DateTime.parse(map['issued_date'] as String)
+      isAssigned: map['isAssigned'] as bool?,
+      assignedToId: map['assignedToId'] as int?,
+      assignedToType: map['assignedToType'] as String?,
+      issuedDate: map['issuedDate'] != null
+          ? DateTime.parse(map['issuedDate'] as String)
           : null,
-      expiryDate: map['expiry_date'] != null
-          ? DateTime.parse(map['expiry_date'] as String)
+      createdAt: map['createdAt'] != null
+          ? DateTime.parse(map['createdAt'] as String)
           : null,
-      lastUsedAt: map['last_used_at'] != null
-          ? DateTime.parse(map['last_used_at'] as String)
-          : null,
-      uploadedAt: DateTime.parse(map['uploaded_at'] as String),
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'serial_number': serialNumber,
+      'code': code,
+      'tagId': tagId,
+      'reversedCode': reversedCode,
       'status': status,
-      'is_encoded': isEncoded,
-      'is_assigned': isAssigned,
-      'total_scan_count': totalScanCount,
-      'issued_date': issuedDate?.toIso8601String(),
-      'expiry_date': expiryDate?.toIso8601String(),
-      'last_used_at': lastUsedAt?.toIso8601String(),
-      'uploaded_at': uploadedAt.toIso8601String(),
+      'isAssigned': isAssigned,
+      'assignedToId': assignedToId,
+      'assignedToType': assignedToType,
+      'issuedDate': issuedDate?.toIso8601String(),
+      'createdAt': createdAt?.toIso8601String(),
     };
   }
 
   NfcCard copyWith({
     int? id,
-    String? serialNumber,
+    String? tagId,
+    double? code,
+    double? reversedCode,
     String? status,
-    bool? isEncoded,
     bool? isAssigned,
-    int? totalScanCount,
+    int? assignedToId,
+    String? assignedToType,
     DateTime? issuedDate,
-    DateTime? expiryDate,
-    DateTime? lastUsedAt,
-    DateTime? uploadedAt,
+    DateTime? createdAt,
   }) {
     return NfcCard(
       id: id ?? this.id,
-      serialNumber: serialNumber ?? this.serialNumber,
+      tagId: tagId ?? this.tagId,
+      code: code ?? this.code,
+      reversedCode: reversedCode ?? this.reversedCode,
       status: status ?? this.status,
-      isEncoded: isEncoded ?? this.isEncoded,
       isAssigned: isAssigned ?? this.isAssigned,
-      totalScanCount: totalScanCount ?? this.totalScanCount,
+      assignedToId: assignedToId ?? this.assignedToId,
+      assignedToType: assignedToType ?? this.assignedToType,
       issuedDate: issuedDate ?? this.issuedDate,
-      expiryDate: expiryDate ?? this.expiryDate,
-      lastUsedAt: lastUsedAt ?? this.lastUsedAt,
-      uploadedAt: uploadedAt ?? this.uploadedAt,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 }

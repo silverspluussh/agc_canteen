@@ -23,6 +23,7 @@ class RemoteToLocalSyncService {
     _jobs.add(SyncJob(name: 'staff', execute: _syncStaff));
     _jobs.add(SyncJob(name: 'mealTypes', execute: _syncMealTypes));
     _jobs.add(SyncJob(name: 'bioData', execute: _syncBioData));
+    _jobs.add(SyncJob(name: 'cards', execute: _syncCards));
     _jobs.add(SyncJob(name: 'visitors', execute: _syncVisitors));
     _jobs.add(SyncJob(name: 'contractorStaff', execute: _syncContractorStaff));
     _jobs.add(SyncJob(name: 'dependants', execute: _syncDependants));
@@ -68,6 +69,10 @@ class RemoteToLocalSyncService {
     await _syncBioData();
   }
 
+  Future<void> syncCardsOnly() async {
+    await _syncCards();
+  }
+
   Future<void> syncVisitorsOnly() async {
     await _syncVisitors();
   }
@@ -105,7 +110,6 @@ class RemoteToLocalSyncService {
         builder: (data) => data,
       );
 
-print(responseData);
       List<dynamic>? staffList;
       if (responseData is List) {
         staffList = responseData;
@@ -234,7 +238,6 @@ print(responseData);
         queryParameters: {'active': 'true'},
       );
 
-print(responseData);
       List<dynamic>? mealTypesList;
       if (responseData is List) {
         mealTypesList = responseData;
@@ -408,6 +411,93 @@ print(responseData);
     } catch (e, stack) {
       _logger.e(
         'RemoteToLocalSyncService: failed to upsert bio-data: $e',
+        stackTrace: stack,
+      );
+    }
+  }
+
+  // ─── NFC Cards Sync ───────────────────────────────────────────
+
+  Future<bool> _syncCards() async {
+    try {
+      _logger.i('RemoteToLocalSyncService: fetching remote NFC cards...');
+
+      final responseData = await _networkAPI.getData(
+        '/hr/nfc-cards',
+        queryParameters: {'status': 'active'},
+        builder: (data) => data,
+      );
+
+      List<dynamic>? list;
+      if (responseData is List) {
+        list = responseData;
+      } else if (responseData is Map && responseData['data'] is List) {
+        list = responseData['data'] as List<dynamic>;
+      }
+
+      if (list == null || list.isEmpty) {
+        _logger.w('RemoteToLocalSyncService: no remote NFC cards available');
+        return false;
+      }
+      _logger.w("List length: ${list.length} : Data: $list");
+
+      _logger.i(
+        'RemoteToLocalSyncService: received ${list.length} remote NFC cards, upserting...',
+      );
+
+      await _db.transaction(() async {
+        final remoteIds = <int>{};
+        for (final item in list!) {
+          if (item is Map<String, dynamic>) {
+            await _upsertCardData(item);
+            final id = _safeParseInt(item['id']);
+            if (id != null && id != 0) remoteIds.add(id);
+          }
+        }
+      });
+
+      _logger.i('RemoteToLocalSyncService: NFC cards sync completed');
+      return true;
+    } catch (e) {
+      _logger.w(
+        'RemoteToLocalSyncService: NFC cards fetch failed ($e), keeping local data',
+      );
+      return false;
+    }
+  }
+
+  Future<void> _upsertCardData(Map<String, dynamic> map) async {
+    try {
+      final id = _safeParseInt(map['id']) ?? 0;
+      if (id == 0) return;
+
+      final now = DateTime.now().toIso8601String();
+
+      final companion = CardsCompanion(
+        id: Value(id),
+        tagId: Value.absentIfNull(map['tagId'] as String?),
+        code: Value(_safeParseDouble(map['code']) ?? 0),
+        reversedCode: Value.absentIfNull(
+          _safeParseDouble(map['reversedCode']),
+        ),
+        status: Value(map['status'] as String? ?? 'active'),
+        isAssigned: Value.absentIfNull(map['isAssigned'] as bool?),
+        assignedToId: Value.absentIfNull(
+          _safeParseInt(map['assignedToId']),
+        ),
+        assignedToType: Value.absentIfNull(
+          map['assignedToType'] as String?,
+        ),
+        issuedDate: Value.absentIfNull(map['issuedDate'] as String?),
+        createdAt: Value.absentIfNull(map['createdAt'] as String?),
+        syncStatus: const Value(2),
+        syncUpdatedAt: Value(now),
+      );
+
+      await _db.insertCard(companion, mode: InsertMode.insertOrReplace);
+    } catch (e, stack) {
+      _logger.e(
+        'RemoteToLocalSyncService: failed to upsert NFC card: $e',
         stackTrace: stack,
       );
     }

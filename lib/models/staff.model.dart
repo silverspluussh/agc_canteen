@@ -1,3 +1,5 @@
+import 'package:agc_canteen/models/nfc_card.model.dart';
+
 import 'company.model.dart';
 import 'dependant.model.dart';
 import 'kitchen.model.dart';
@@ -18,7 +20,7 @@ class Staff {
   final int? shiftId;
   final List<BioData>? bioData;
   final int? totalDependant;
-  final List<dynamic> card;
+  final List<NfcCard>? cards;
   final int? noOfDependantAssigned;
   final Department? department;
   final List<Kitchen>? kitchens;
@@ -40,7 +42,7 @@ class Staff {
     this.shiftId,
     this.bioData,
     this.totalDependant,
-    this.card = const [],
+    this.cards,
     this.noOfDependantAssigned,
     this.department,
     this.kitchens,
@@ -67,7 +69,11 @@ class Staff {
       maxOrderCount: map['max_order_count'] as int?,
       shiftId: map['shift_id'] as int?,
       totalDependant: map['total_dependant'] as int?,
-      card: (map['card'] as List<dynamic>?) ?? [],
+      cards: map['cards'] != null
+          ? (map['cards'] as List<dynamic>)
+              .map((item) => NfcCard.fromMap(item as Map<String, dynamic>))
+              .toList()
+          : null,
       noOfDependantAssigned: map['no_of_dependant_assigned'] as int?,
       bioData: map['bioData'] != null
           ? (map['bioData'] as List<dynamic>)
@@ -107,7 +113,7 @@ class Staff {
       'max_order_count': maxOrderCount,
       'shift_id': shiftId,
       'total_dependant': totalDependant,
-      'cardIds': card,
+      'cardIds': cards?.map((item) => item.id).toList(),
       'no_of_dependant_assigned': noOfDependantAssigned,
       'departmentId': department?.id,
       'bioDataIds': bioData?.map((item) => item.id).toList(),
@@ -132,7 +138,7 @@ class Staff {
     int? maxOrderCount,
     int? shiftId,
     int? totalDependant,
-    List<dynamic>? card,
+    List<NfcCard>? cards,
     int? noOfDependantAssigned,
     Department? department,
     List<BioData>? bioData,
@@ -154,7 +160,7 @@ class Staff {
       maxOrderCount: maxOrderCount ?? this.maxOrderCount,
       shiftId: shiftId ?? this.shiftId,
       totalDependant: totalDependant ?? this.totalDependant,
-      card: card ?? this.card,
+      cards: cards ?? this.cards,
       noOfDependantAssigned:
           noOfDependantAssigned ?? this.noOfDependantAssigned,
       department: department ?? this.department,

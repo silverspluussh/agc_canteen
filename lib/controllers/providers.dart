@@ -7,7 +7,9 @@ import '../services/pos/pos_device_service.dart';
 import '../services/pos/device_info_service.dart';
 import '../models/device_info.model.dart';
 import '../services/auth/fingerprint_auth_service.dart';
+import '../services/auth/nfc_auth_service.dart';
 import '../services/auth/pos_auth_service.dart';
+import '../services/nfc/nfc_service.dart';
 
 final databaseProvider = Provider<AppDatabase>((ref) {
   return DatabaseService.instance.db;
@@ -36,10 +38,21 @@ final fingerprintAuthProvider = Provider<FingerprintAuthService>((ref) {
   return FingerprintAuthService(db: db, fingerprint: device);
 });
 
+final nfcServiceProvider = Provider<NfcService>((ref) {
+  return NfcService();
+});
+
+final nfcAuthProvider = Provider<NfcAuthService>((ref) {
+  final db = ref.watch(databaseProvider);
+  final nfc = ref.watch(nfcServiceProvider);
+  return NfcAuthService(db: db, nfc: nfc);
+});
+
 final posAuthProvider = Provider<PosAuthService>((ref) {
   final db = ref.watch(databaseProvider);
   final fingerprint = ref.watch(fingerprintAuthProvider);
-  return PosAuthService(db: db, fingerprintAuth: fingerprint);
+  final nfcAuth = ref.watch(nfcAuthProvider);
+  return PosAuthService(db: db, fingerprintAuth: fingerprint, nfcAuth: nfcAuth);
 });
 
 final deviceInfoServiceProvider = Provider<DeviceInfoService>((ref) {

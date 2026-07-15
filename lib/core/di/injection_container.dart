@@ -4,7 +4,9 @@ import 'package:get_it/get_it.dart';
 
 import '../../services/auth/admin_auth_service.dart';
 import '../../services/auth/fingerprint_auth_service.dart';
+import '../../services/auth/nfc_auth_service.dart';
 import '../../services/auth/pos_auth_service.dart';
+import '../../services/nfc/nfc_service.dart';
 import '../../services/database/activity_log_service.dart';
 import '../../services/database/app_database.dart';
 import '../../services/database/database_service.dart';
@@ -56,9 +58,17 @@ Future<void> setupServiceLocator() async {
         fingerprint: getIt<PosFingerprintService>(),
       ));
 
+  getIt.registerLazySingleton<NfcService>(() => NfcService());
+
+  getIt.registerLazySingleton<NfcAuthService>(() => NfcAuthService(
+        db: getIt<AppDatabase>(),
+        nfc: getIt<NfcService>(),
+      ));
+
   getIt.registerLazySingleton<PosAuthService>(() => PosAuthService(
         db: getIt<AppDatabase>(),
         fingerprintAuth: getIt<FingerprintAuthService>(),
+        nfcAuth: getIt<NfcAuthService>(),
       ));
 
   getIt.registerLazySingleton<LocalToRemoteSyncService>(() => LocalToRemoteSyncService(
