@@ -25,6 +25,7 @@ class StaffBioDataService {
   Future<List<BioData>> getAllBioDatas() async {
     return await networkAPI.getData<List<BioData>>(
       '/hr/bio-data',
+     
       builder: (data) => _parseBioDataList(data),
     );
   }

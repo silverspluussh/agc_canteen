@@ -6,23 +6,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:canteen_staff_enrollment/models/biodata.model.dart';
 import 'package:canteen_staff_enrollment/models/employee_type.enum.dart';
 
-import '../../controllers/dependant_controller.dart';
+import '../../controllers/dependent_controller.dart';
 import '../../core/network/network_api_dio.dart';
 import '../../core/theme/app_colors.dart';
-import '../../models/dependant.model.dart';
+import '../../models/dependent.model.dart';
 import '../../repos/biodata_service.dart';
 import 'biometric_enrollment_page.dart';
 
-class DependantBiodataPage extends ConsumerStatefulWidget {
-  final Dependant dependant;
+class DependentBiodataPage extends ConsumerStatefulWidget {
+  final Dependent dependent;
 
-  const DependantBiodataPage({super.key, required this.dependant});
+  const DependentBiodataPage({super.key, required this.dependent});
 
   @override
-  ConsumerState<DependantBiodataPage> createState() => _DependantBiodataPageState();
+  ConsumerState<DependentBiodataPage> createState() => _DependentBiodataPageState();
 }
 
-class _DependantBiodataPageState extends ConsumerState<DependantBiodataPage>
+class _DependentBiodataPageState extends ConsumerState<DependentBiodataPage>
     with SingleTickerProviderStateMixin {
   late final AnimationController _fadeCtrl;
   late final Animation<double> _fadeAnim;
@@ -33,7 +33,7 @@ class _DependantBiodataPageState extends ConsumerState<DependantBiodataPage>
   @override
   void initState() {
     super.initState();
-    _bioDataList = widget.dependant.bioData ?? [];
+    _bioDataList = widget.dependent.bioData ?? [];
     _fadeCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 350),
@@ -48,9 +48,9 @@ class _DependantBiodataPageState extends ConsumerState<DependantBiodataPage>
   }
 
   Future<void> _refreshBiodata() async {
-    ref.invalidate(dependantListProvider);
-    final freshList = await ref.read(dependantListProvider.future);
-    final updated = freshList.where((d) => d.id == widget.dependant.id).firstOrNull;
+    ref.invalidate(dependentListProvider);
+    final freshList = await ref.read(dependentListProvider.future);
+    final updated = freshList.where((d) => d.id == widget.dependent.id).firstOrNull;
     if (updated != null && mounted) {
       setState(() => _bioDataList = updated.bioData ?? []);
     }
@@ -195,9 +195,9 @@ class _DependantBiodataPageState extends ConsumerState<DependantBiodataPage>
         content: Text(
           isCurrentlyActive
               ? 'Are you sure you want to deactivate the "$finger" biometric record? '
-                  'The dependant will not be able to use this finger for authentication.'
+                  'The dependent will not be able to use this finger for authentication.'
               : 'Are you sure you want to activate the "$finger" biometric record? '
-                  'The dependant will be able to use this finger for authentication.',
+                  'The dependent will be able to use this finger for authentication.',
           style: Theme.of(context).textTheme.bodyLarge,
         ),
         actionsAlignment: MainAxisAlignment.spaceBetween,
@@ -279,10 +279,10 @@ class _DependantBiodataPageState extends ConsumerState<DependantBiodataPage>
       context,
       MaterialPageRoute(
         builder: (_) => BiometricEnrollmentPage(
-          referenceId: widget.dependant.id,
+          referenceId: widget.dependent.id,
           employeeType: EmployeeType.dependent,
-          displayName: widget.dependant.fullname,
-          subtitle: 'Status: ${widget.dependant.status}',
+          displayName: widget.dependent.fullname,
+          subtitle: 'Status: ${widget.dependent.status}',
           existingBioData: _bioDataList,
           onEnrolled: _refreshBiodata,
         ),
@@ -299,7 +299,7 @@ class _DependantBiodataPageState extends ConsumerState<DependantBiodataPage>
       appBar: AppBar(
         backgroundColor: AppColors.gold600,
         leading: BackButton(color: Colors.white),
-        title: const Text('Dependant Biodata'),
+        title: const Text('Dependent Biodata'),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 8),
@@ -324,7 +324,7 @@ class _DependantBiodataPageState extends ConsumerState<DependantBiodataPage>
           },
           child: CustomScrollView(
             slivers: [
-              SliverToBoxAdapter(child: _buildDependantHeader(context, isDark)),
+              SliverToBoxAdapter(child: _buildDependentHeader(context, isDark)),
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 28, 20, 12),
@@ -358,8 +358,8 @@ class _DependantBiodataPageState extends ConsumerState<DependantBiodataPage>
     );
   }
 
-  Widget _buildDependantHeader(BuildContext context, bool isDark) {
-    final dependant = widget.dependant;
+  Widget _buildDependentHeader(BuildContext context, bool isDark) {
+    final dependent = widget.dependent;
     final theme = Theme.of(context);
 
     return Container(
@@ -385,7 +385,7 @@ class _DependantBiodataPageState extends ConsumerState<DependantBiodataPage>
             radius: 25,
             backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.15),
             child: Text(
-              dependant.fullname.isNotEmpty ? dependant.fullname[0].toUpperCase() : '?',
+              dependent.fullname.isNotEmpty ? dependent.fullname[0].toUpperCase() : '?',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
             ),
           ),
@@ -395,15 +395,15 @@ class _DependantBiodataPageState extends ConsumerState<DependantBiodataPage>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  dependant.fullname,
+                  dependent.fullname,
                   style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 4),
-                _infoRow(Icons.badge_outlined, 'Status: ${dependant.status}'),
+                _infoRow(Icons.badge_outlined, 'Status: ${dependent.status}'),
                 const SizedBox(height: 2),
-                if (dependant.gender != null) ...[
+                if (dependent.gender != null) ...[
                   const SizedBox(height: 2),
-                  _infoRow(Icons.wc_outlined, dependant.gender!),
+                  _infoRow(Icons.wc_outlined, dependent.gender!),
                 ],
               ],
             ),

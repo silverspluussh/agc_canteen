@@ -8,7 +8,7 @@ class BioData {
   bool isActive;
   int? staffId;
   EmployeeType employeeType;
-  int? dependantId;
+  int? dependentId;
   int? visitorId;
   int? contractorStaffId;
   int? createdBy;
@@ -24,7 +24,7 @@ class BioData {
     required this.isActive,
     required this.employeeType,
     this.staffId,
-    this.dependantId,
+    this.dependentId,
     this.visitorId,
     this.contractorStaffId,
     this.createdBy,
@@ -45,7 +45,7 @@ class BioData {
         orElse: () => EmployeeType.permanent,
       ),
       staffId: map['staffId'] as int?,
-      dependantId: map['dependantId'] as int?,
+      dependentId: map['dependentId'] as int?,
       visitorId: map['visitorId'] as int?,
       contractorStaffId: map['contractorStaffId'] as int?,
       createdBy: map['createdBy'] as int?,
@@ -68,7 +68,7 @@ class BioData {
       'isActive': isActive,
       'employeeType': employeeType.name,
       if (staffId != null) 'staffId': staffId,
-      if (dependantId != null) 'dependantId': dependantId,
+      if (dependentId != null) 'dependentId': dependentId,
       if (visitorId != null) 'visitorId': visitorId,
       if (contractorStaffId != null) 'contractorStaffId': contractorStaffId,
       if (createdBy != null) 'createdBy': createdBy,

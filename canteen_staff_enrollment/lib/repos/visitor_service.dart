@@ -15,8 +15,7 @@ class VisitorService {
     try {
       return await networkAPI.getData<List<Visitor>>(
         '/hr/visitors',
-        queryParameters: {
-        
+        queryParameters: {       
          if (departmentId != null)
          'departmentId': departmentId,
           if (kitchenId != null)

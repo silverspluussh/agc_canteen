@@ -3,12 +3,12 @@ import 'package:adaptive_theme/adaptive_theme.dart';
 import 'package:canteen_staff_enrollment/auth_gate.dart';
 import 'package:canteen_staff_enrollment/controllers/injection_container.dart';
 import 'package:canteen_staff_enrollment/models/contractor.model.dart';
-import 'package:canteen_staff_enrollment/models/dependant.model.dart';
+import 'package:canteen_staff_enrollment/models/dependent.model.dart';
 import 'package:canteen_staff_enrollment/models/visitor.model.dart';
 import 'package:canteen_staff_enrollment/views/dashboard/contractor_biodata_page.dart';
 import 'package:canteen_staff_enrollment/views/dashboard/contractor_directory_page.dart';
-import 'package:canteen_staff_enrollment/views/dashboard/dependant_biodata_page.dart';
-import 'package:canteen_staff_enrollment/views/dashboard/dependant_directory_page.dart';
+import 'package:canteen_staff_enrollment/views/dashboard/dependent_biodata_page.dart';
+import 'package:canteen_staff_enrollment/views/dashboard/dependent_directory_page.dart';
 import 'package:canteen_staff_enrollment/views/dashboard/visitor_biodata_page.dart';
 import 'package:canteen_staff_enrollment/views/dashboard/visitor_directory_page.dart';
 import 'package:flutter/material.dart';
@@ -106,8 +106,8 @@ Route<dynamic>? _onGenerateRoute(RouteSettings settings) {
     case '/visitor-directory':
       page = const VisitorDirectoryPage();
       break;
-    case '/dependant-directory':
-      page = const DependantDirectoryPage();
+    case '/dependent-directory':
+      page = const DependentDirectoryPage();
       break;
     case '/contractor-directory':
       page = const ContractorDirectoryPage();
@@ -116,9 +116,9 @@ Route<dynamic>? _onGenerateRoute(RouteSettings settings) {
       final visitor = settings.arguments as Visitor;
       page = VisitorBiodataPage(visitor: visitor);
       break;
-    case '/dependant-biodata':
-      final dependant = settings.arguments as Dependant;
-      page = DependantBiodataPage(dependant: dependant);
+    case '/dependent-biodata':
+      final dependent = settings.arguments as Dependent;
+      page = DependentBiodataPage(dependent: dependent);
       break;
     case '/contractor-biodata':
       final contractorStaff = settings.arguments as ContractorStaff;

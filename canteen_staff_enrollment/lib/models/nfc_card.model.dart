@@ -1,87 +1,183 @@
 class NfcCard {
   final int id;
-  final String serialNumber;
+  final String? code;
+  final String? tagId;
+  final String? reversedCode;
   final String status;
-  final bool isEncoded;
   final bool isAssigned;
-  final int totalScanCount;
+  final int? assignedToId;
+  final String? assignedToType;
+  final int? companyId;
   final DateTime? issuedDate;
-  final DateTime? expiryDate;
-  final DateTime? lastUsedAt;
-  final DateTime uploadedAt;
+  final int? createdBy;
+  final int? updatedBy;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+  final NfcCardAssignedTo? assignedTo;
 
   const NfcCard({
     required this.id,
-    required this.serialNumber,
+    this.code,
+    this.tagId,
+    this.reversedCode,
     required this.status,
-    required this.isEncoded,
     required this.isAssigned,
-    required this.totalScanCount,
+    this.assignedToId,
+    this.assignedToType,
+    this.companyId,
     this.issuedDate,
-    this.expiryDate,
-    this.lastUsedAt,
-    required this.uploadedAt,
+    this.createdBy,
+    this.updatedBy,
+    this.createdAt,
+    this.updatedAt,
+    this.assignedTo,
   });
 
   factory NfcCard.fromMap(Map<String, dynamic> map) {
     return NfcCard(
       id: map['id'] as int,
-      serialNumber: map['serial_number'] as String,
-      status: map['status'] as String,
-      isEncoded: map['is_encoded'] as bool,
-      isAssigned: map['is_assigned'] as bool,
-      totalScanCount: map['total_scan_count'] as int,
-      issuedDate: map['issued_date'] != null
-          ? DateTime.parse(map['issued_date'] as String)
+      code: map['code'] as String?,
+      tagId: map['tagId'] as String?,
+      reversedCode: map['reversedCode'] as String?,
+      status: map['status'] as String? ?? 'active',
+      isAssigned: map['isAssigned'] as bool? ?? false,
+      assignedToId: map['assignedToId'] as int?,
+      assignedToType: map['assignedToType'] as String?,
+      companyId: map['companyId'] as int?,
+      issuedDate: map['issuedDate'] != null
+          ? DateTime.parse(map['issuedDate'] as String)
           : null,
-      expiryDate: map['expiry_date'] != null
-          ? DateTime.parse(map['expiry_date'] as String)
+      createdBy: map['createdBy'] as int?,
+      updatedBy: map['updatedBy'] as int?,
+      createdAt: map['createdAt'] != null
+          ? DateTime.parse(map['createdAt'] as String)
           : null,
-      lastUsedAt: map['last_used_at'] != null
-          ? DateTime.parse(map['last_used_at'] as String)
+      updatedAt: map['updatedAt'] != null
+          ? DateTime.parse(map['updatedAt'] as String)
           : null,
-      uploadedAt: DateTime.parse(map['uploaded_at'] as String),
+      assignedTo: map['assignedTo'] != null
+          ? NfcCardAssignedTo.fromMap(
+              map['assignedTo'] as Map<String, dynamic>)
+          : null,
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'serial_number': serialNumber,
+      'code': code,
+      'tagId': tagId,
+      'reversedCode': reversedCode,
       'status': status,
-      'is_encoded': isEncoded,
-      'is_assigned': isAssigned,
-      'total_scan_count': totalScanCount,
-      'issued_date': issuedDate?.toIso8601String(),
-      'expiry_date': expiryDate?.toIso8601String(),
-      'last_used_at': lastUsedAt?.toIso8601String(),
-      'uploaded_at': uploadedAt.toIso8601String(),
+      'isAssigned': isAssigned,
+      'assignedToId': assignedToId,
+      'assignedToType': assignedToType,
+      'companyId': companyId,
+      'issuedDate': issuedDate?.toIso8601String(),
+      'createdBy': createdBy,
+      'updatedBy': updatedBy,
+      'createdAt': createdAt?.toIso8601String(),
+      'updatedAt': updatedAt?.toIso8601String(),
+      if (assignedTo != null) 'assignedTo': assignedTo!.toMap(),
     };
   }
 
   NfcCard copyWith({
     int? id,
-    String? serialNumber,
+    String? code,
+    String? tagId,
+    String? reversedCode,
     String? status,
-    bool? isEncoded,
     bool? isAssigned,
-    int? totalScanCount,
+    int? assignedToId,
+    String? assignedToType,
+    int? companyId,
     DateTime? issuedDate,
-    DateTime? expiryDate,
-    DateTime? lastUsedAt,
-    DateTime? uploadedAt,
+    int? createdBy,
+    int? updatedBy,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    NfcCardAssignedTo? assignedTo,
   }) {
     return NfcCard(
       id: id ?? this.id,
-      serialNumber: serialNumber ?? this.serialNumber,
+      code: code ?? this.code,
+      tagId: tagId ?? this.tagId,
+      reversedCode: reversedCode ?? this.reversedCode,
       status: status ?? this.status,
-      isEncoded: isEncoded ?? this.isEncoded,
       isAssigned: isAssigned ?? this.isAssigned,
-      totalScanCount: totalScanCount ?? this.totalScanCount,
+      assignedToId: assignedToId ?? this.assignedToId,
+      assignedToType: assignedToType ?? this.assignedToType,
+      companyId: companyId ?? this.companyId,
       issuedDate: issuedDate ?? this.issuedDate,
-      expiryDate: expiryDate ?? this.expiryDate,
-      lastUsedAt: lastUsedAt ?? this.lastUsedAt,
-      uploadedAt: uploadedAt ?? this.uploadedAt,
+      createdBy: createdBy ?? this.createdBy,
+      updatedBy: updatedBy ?? this.updatedBy,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      assignedTo: assignedTo ?? this.assignedTo,
     );
+  }
+}
+
+class NfcCardAssignedTo {
+  final int id;
+  final String name;
+  final String? code;
+  final String type;
+  final NfcCardAssignedCompany? company;
+
+  const NfcCardAssignedTo({
+    required this.id,
+    required this.name,
+    this.code,
+    required this.type,
+    this.company,
+  });
+
+  factory NfcCardAssignedTo.fromMap(Map<String, dynamic> map) {
+    return NfcCardAssignedTo(
+      id: map['id'] as int,
+      name: map['name'] as String,
+      code: map['code'] as String?,
+      type: map['type'] as String,
+      company: map['company'] != null
+          ? NfcCardAssignedCompany.fromMap(
+              map['company'] as Map<String, dynamic>)
+          : null,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'code': code,
+      'type': type,
+      if (company != null) 'company': company!.toMap(),
+    };
+  }
+}
+
+class NfcCardAssignedCompany {
+  final int id;
+  final String name;
+
+  const NfcCardAssignedCompany({
+    required this.id,
+    required this.name,
+  });
+
+  factory NfcCardAssignedCompany.fromMap(Map<String, dynamic> map) {
+    return NfcCardAssignedCompany(
+      id: map['id'] as int,
+      name: map['name'] as String,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+    };
   }
 }

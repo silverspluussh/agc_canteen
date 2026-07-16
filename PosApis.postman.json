@@ -2251,7 +2251,7 @@
                                 "method": "POST",
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n    \"uuid\": \"\",\n    \"referenceId\": 2,\n    \"employeeType\": \"staff\",\n    \"bioDatas\": [\n        {\n            \"finger\": \"index\",\n            \"data\": \"123456789\"\n        }\n    ]\n}\n//employeeType = dependant, staff, visitor, contractorstaff",
+                                    "raw": "{\n    \"uuid\": \"\",\n    \"referenceId\": 2,\n    \"employeeType\": \"staff\",\n    \"bioDatas\": [\n        {\n            \"finger\": \"index\",\n            \"data\": \"123456789\"\n        }\n    ]\n}\n//employeeType = dependent, staff, visitor, contractorstaff",
                                     "options": {
                                         "raw": {
                                             "language": "json"
@@ -3258,7 +3258,7 @@
                             }
                         },
                         {
-                            "name": "Dependant Order Report",
+                            "name": "Dependent Order Report",
                             "description": "",
                             "event": [],
                             "auth": {},
@@ -3281,10 +3281,10 @@
                                     }
                                 ],
                                 "url": {
-                                    "raw": "reports/dependant-order-report",
+                                    "raw": "reports/dependent-order-report",
                                     "path": [
                                         "reports",
-                                        "dependant-order-report"
+                                        "dependent-order-report"
                                     ],
                                     "host": [
                                         "{{baseUrl}}"
@@ -4694,7 +4694,7 @@
                                 "method": "POST",
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n    \"mealTypeId\": 1,\n    \"kitchenId\": 2,\n    \"employeeType\": \"staff\",\n    \"orderType\": \"single\",\n    \"isAlaCarte\": false,\n    \"description\": \"\",\n    \"quantity\": 1,\n    \"orderedBy\": 2,\n    \"total\": 50\n}\n\n//employeeType = dependant, visitor, contractorstaff, staff",
+                                    "raw": "{\n    \"mealTypeId\": 1,\n    \"kitchenId\": 2,\n    \"employeeType\": \"staff\",\n    \"orderType\": \"single\",\n    \"isAlaCarte\": false,\n    \"description\": \"\",\n    \"quantity\": 1,\n    \"orderedBy\": 2,\n    \"total\": 50\n}\n\n//employeeType = dependent, visitor, contractorstaff, staff",
                                     "options": {
                                         "raw": {
                                             "language": "json"
@@ -4745,7 +4745,7 @@
                                 "method": "POST",
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n    \"orderType\": \"single\",\n    \"employeeType\": \"staff\",\n    \"mealTypeId\": 0,\n    \"total\": 40,\n    \"orderedBy\": 1,\n    \"groupCount\": 5,\n    \"quantity\": 1,\n}\n\n//employeeType = dependant, visitor, contractorstaff, staff",
+                                    "raw": "{\n    \"orderType\": \"single\",\n    \"employeeType\": \"staff\",\n    \"mealTypeId\": 0,\n    \"total\": 40,\n    \"orderedBy\": 1,\n    \"groupCount\": 5,\n    \"quantity\": 1,\n}\n\n//employeeType = dependent, visitor, contractorstaff, staff",
                                     "options": {
                                         "raw": {
                                             "language": "json"
@@ -5789,7 +5789,7 @@
                                 "method": "POST",
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n    \"uuid\": \"\",\n    \"orderType\": \"single\",\n    \"employeeType\": \"staff\",\n    \"mealTypeId\": 1,\n    \"total\": 40,\n    \"orderedBy\": 1,\n    \"description\": \"\",\n    \"quantity\": 1,\n    \"isAlaCarte\": false,\n    \"posProfileId\": 1,\n    \"kitchenId\": 0,\n    \"createdAt\": \"\"\n}\n//employeeType = dependant, visitor, contractorstaff, staff",
+                                    "raw": "{\n    \"uuid\": \"\",\n    \"orderType\": \"single\",\n    \"employeeType\": \"staff\",\n    \"mealTypeId\": 1,\n    \"total\": 40,\n    \"orderedBy\": 1,\n    \"description\": \"\",\n    \"quantity\": 1,\n    \"isAlaCarte\": false,\n    \"posProfileId\": 1,\n    \"kitchenId\": 0,\n    \"createdAt\": \"\"\n}\n//employeeType = dependent, visitor, contractorstaff, staff",
                                     "options": {
                                         "raw": {
                                             "language": "json"
@@ -5840,7 +5840,7 @@
                                 "method": "POST",
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n    \"orders\": [\n        {\n            \"uuid\": \"{{$string.uuid}}\",\n            \"employeeType\": \"staff\",\n            \"orderType\": \"single\",\n            \"mealTypeId\": 2,\n            \"total\": 40,\n            \"orderedBy\": 1,\n            \"description\": \"\",\n            \"isAlaCarte\": false,\n            \"quantity\": 1,\n            \"posProfileId\": 4,\n            \"kitchenId\": 0,\n            \"createdAt\": \"\"\n        }\n    ]\n}\n\n//employeeType = dependant, visitor, contractorstaff, staff",
+                                    "raw": "{\n    \"orders\": [\n        {\n            \"uuid\": \"{{$string.uuid}}\",\n            \"employeeType\": \"staff\",\n            \"orderType\": \"single\",\n            \"mealTypeId\": 2,\n            \"total\": 40,\n            \"orderedBy\": 1,\n            \"description\": \"\",\n            \"isAlaCarte\": false,\n            \"quantity\": 1,\n            \"posProfileId\": 4,\n            \"kitchenId\": 0,\n            \"createdAt\": \"\"\n        }\n    ]\n}\n\n//employeeType = dependent, visitor, contractorstaff, staff",
                                     "options": {
                                         "raw": {
                                             "language": "json"
@@ -8727,7 +8727,7 @@
                             }
                         },
                         {
-                            "name": "Update Total Dependant",
+                            "name": "Update Total Dependent",
                             "description": "",
                             "event": [],
                             "auth": {},
@@ -8758,13 +8758,13 @@
                                     }
                                 ],
                                 "url": {
-                                    "raw": "hr/staff/update/:id/total-dependant",
+                                    "raw": "hr/staff/update/:id/total-dependent",
                                     "path": [
                                         "hr",
                                         "staff",
                                         "update",
                                         ":id",
-                                        "total-dependant"
+                                        "total-dependent"
                                     ],
                                     "host": [
                                         "{{baseUrl}}"
@@ -8910,7 +8910,7 @@
                     "auth": {}
                 },
                 {
-                    "name": "Dependant Service",
+                    "name": "Dependent Service",
                     "description": "",
                     "item": [
                         {
@@ -9003,10 +9003,10 @@
                                     }
                                 ],
                                 "url": {
-                                    "raw": "hr/dependant/create",
+                                    "raw": "hr/dependent/create",
                                     "path": [
                                         "hr",
-                                        "dependant",
+                                        "dependent",
                                         "create"
                                     ],
                                     "host": [
@@ -9046,10 +9046,10 @@
                                     }
                                 ],
                                 "url": {
-                                    "raw": "hr/dependant/:id",
+                                    "raw": "hr/dependent/:id",
                                     "path": [
                                         "hr",
-                                        "dependant",
+                                        "dependent",
                                         ":id"
                                     ],
                                     "host": [
@@ -9096,10 +9096,10 @@
                                     }
                                 ],
                                 "url": {
-                                    "raw": "hr/dependant/:id/all",
+                                    "raw": "hr/dependent/:id/all",
                                     "path": [
                                         "hr",
-                                        "dependant",
+                                        "dependent",
                                         ":id",
                                         "all"
                                     ],
@@ -9141,10 +9141,10 @@
                                     }
                                 ],
                                 "url": {
-                                    "raw": "hr/dependants",
+                                    "raw": "hr/dependents",
                                     "path": [
                                         "hr",
-                                        "dependants"
+                                        "dependents"
                                     ],
                                     "host": [
                                         "{{baseUrl}}"
@@ -9191,10 +9191,10 @@
                                     }
                                 ],
                                 "url": {
-                                    "raw": "hr/dependant/update/:id",
+                                    "raw": "hr/dependent/update/:id",
                                     "path": [
                                         "hr",
-                                        "dependant",
+                                        "dependent",
                                         "update",
                                         ":id"
                                     ],
@@ -9252,10 +9252,10 @@
                                     }
                                 ],
                                 "url": {
-                                    "raw": "hr/dependant/update/:id/photo",
+                                    "raw": "hr/dependent/update/:id/photo",
                                     "path": [
                                         "hr",
-                                        "dependant",
+                                        "dependent",
                                         "update",
                                         ":id",
                                         "photo"
@@ -9312,10 +9312,10 @@
                                     }
                                 ],
                                 "url": {
-                                    "raw": "hr/dependant/update/:id/status",
+                                    "raw": "hr/dependent/update/:id/status",
                                     "path": [
                                         "hr",
-                                        "dependant",
+                                        "dependent",
                                         "update",
                                         ":id",
                                         "status"
@@ -9364,10 +9364,10 @@
                                     }
                                 ],
                                 "url": {
-                                    "raw": "hr/dependant/delete/:id",
+                                    "raw": "hr/dependent/delete/:id",
                                     "path": [
                                         "hr",
-                                        "dependant",
+                                        "dependent",
                                         "delete",
                                         ":id"
                                     ],
@@ -10235,7 +10235,7 @@
                             }
                         },
                         {
-                            "name": "Dependant Orders by Department",
+                            "name": "Dependent Orders by Department",
                             "description": "",
                             "event": [],
                             "auth": {},
@@ -10303,7 +10303,7 @@
                             }
                         },
                         {
-                            "name": "Dependant Orders by Staff",
+                            "name": "Dependent Orders by Staff",
                             "description": "",
                             "event": [],
                             "auth": {},

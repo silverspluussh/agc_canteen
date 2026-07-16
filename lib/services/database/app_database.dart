@@ -14,8 +14,8 @@ part 'app_database.g.dart';
     MealTypes,
     Staff,
     StaffKitchens,
-    Dependants,
-    DependantKitchens,
+    Dependents,
+    DependentKitchens,
     Cards,
     Users,
     UserKitchens,
@@ -59,9 +59,9 @@ class AppDatabase extends _$AppDatabase {
       await delete(staff).go();
       await delete(staffKitchens).go();
       await delete(contractorStaffKitchens).go();
-      await delete(dependantKitchens).go();
+      await delete(dependentKitchens).go();
       await delete(visitorKitchens).go();
-      await delete(dependants).go();
+      await delete(dependents).go();
       await delete(cards).go();
       await delete(users).go();
       await delete(userKitchens).go();
@@ -498,7 +498,7 @@ class AppDatabase extends _$AppDatabase {
   Future<void> deleteStaff(int id) async {
     await transaction(() async {
       await deleteStaffKitchensByStaff(id);
-      await deleteDependantsByStaff(id);
+      await deleteDependentsByStaff(id);
       await deleteCardsByAssignedTo(id);
       await deleteBioDataByStaff(id);
       await (delete(staff)..where((t) => t.id.equals(id))).go();
@@ -574,34 +574,34 @@ class AppDatabase extends _$AppDatabase {
     });
   }
 
-  // ─── DependantKitchens ─────────────────────────────────────
+  // ─── DependentKitchens ─────────────────────────────────────
 
-  Future<void> insertDependantKitchen(DependantKitchensCompanion entry) =>
-      into(dependantKitchens).insert(entry);
+  Future<void> insertDependentKitchen(DependentKitchensCompanion entry) =>
+      into(dependentKitchens).insert(entry);
 
-  Future<void> deleteDependantKitchen(int dependantId, int kitchenId) =>
-      (delete(dependantKitchens)
+  Future<void> deleteDependentKitchen(int dependentId, int kitchenId) =>
+      (delete(dependentKitchens)
             ..where((t) =>
-                t.dependantId.equals(dependantId) & t.kitchenId.equals(kitchenId)))
+                t.dependentId.equals(dependentId) & t.kitchenId.equals(kitchenId)))
           .go();
 
-  Future<void> deleteDependantKitchensByDependant(int dependantId) =>
-      (delete(dependantKitchens)..where((t) => t.dependantId.equals(dependantId))).go();
+  Future<void> deleteDependentKitchensByDependent(int dependentId) =>
+      (delete(dependentKitchens)..where((t) => t.dependentId.equals(dependentId))).go();
 
-  Future<List<DependantKitchen>> getDependantKitchens(int dependantId) =>
-      (select(dependantKitchens)..where((t) => t.dependantId.equals(dependantId))).get();
+  Future<List<DependentKitchen>> getDependentKitchens(int dependentId) =>
+      (select(dependentKitchens)..where((t) => t.dependentId.equals(dependentId))).get();
 
-  Future<List<int>> getDependantKitchenIds(int dependantId) async {
-    final rows = await getDependantKitchens(dependantId);
+  Future<List<int>> getDependentKitchenIds(int dependentId) async {
+    final rows = await getDependentKitchens(dependentId);
     return rows.map((r) => r.kitchenId).toList();
   }
 
-  Future<void> setDependantKitchens(int dependantId, List<int> kitchenIds) async {
+  Future<void> setDependentKitchens(int dependentId, List<int> kitchenIds) async {
     await transaction(() async {
-      await deleteDependantKitchensByDependant(dependantId);
+      await deleteDependentKitchensByDependent(dependentId);
       for (final kid in kitchenIds) {
-        await into(dependantKitchens).insert(
-          DependantKitchensCompanion(dependantId: Value(dependantId), kitchenId: Value(kid)),
+        await into(dependentKitchens).insert(
+          DependentKitchensCompanion(dependentId: Value(dependentId), kitchenId: Value(kid)),
         );
       }
     });
@@ -673,59 +673,59 @@ class AppDatabase extends _$AppDatabase {
     });
   }
 
-  // ─── Dependants ────────────────────────────────────────────
+  // ─── Dependents ────────────────────────────────────────────
 
-  Future<void> insertDependant(
-    DependantsCompanion dependant, {
+  Future<void> insertDependent(
+    DependentsCompanion dependent, {
     InsertMode mode = InsertMode.insert,
-  }) => into(dependants).insert(dependant, mode: mode);
+  }) => into(dependents).insert(dependent, mode: mode);
 
-  Future<void> updateDependant(int id, DependantsCompanion dependant) =>
-      (update(dependants)..where((t) => t.id.equals(id))).write(dependant);
+  Future<void> updateDependent(int id, DependentsCompanion dependent) =>
+      (update(dependents)..where((t) => t.id.equals(id))).write(dependent);
 
-  Future<void> deleteDependant(int id) async {
+  Future<void> deleteDependent(int id) async {
     await transaction(() async {
-      await deleteDependantKitchensByDependant(id);
-      await deleteBioDataByDependant(id);
-      await (delete(dependants)..where((t) => t.id.equals(id))).go();
+      await deleteDependentKitchensByDependent(id);
+      await deleteBioDataByDependent(id);
+      await (delete(dependents)..where((t) => t.id.equals(id))).go();
     });
   }
 
-  Future<void> deleteDependantsByStaff(int staffId) =>
-      (delete(dependants)..where((t) => t.staffId.equals(staffId))).go();
+  Future<void> deleteDependentsByStaff(int staffId) =>
+      (delete(dependents)..where((t) => t.staffId.equals(staffId))).go();
 
-  Future<List<Dependant>> getAllDependants() => select(dependants).get();
-  Future<Dependant?> getDependant(int id) =>
-      (select(dependants)..where((t) => t.id.equals(id))).getSingleOrNull();
+  Future<List<Dependent>> getAllDependents() => select(dependents).get();
+  Future<Dependent?> getDependent(int id) =>
+      (select(dependents)..where((t) => t.id.equals(id))).getSingleOrNull();
 
-  Future<List<Dependant>> getDependantsByStaff(int staffId) =>
-      (select(dependants)..where((t) => t.staffId.equals(staffId))).get();
+  Future<List<Dependent>> getDependentsByStaff(int staffId) =>
+      (select(dependents)..where((t) => t.staffId.equals(staffId))).get();
 
-  Future<void> markDependantSynced(int id) =>
-      (update(dependants)..where((t) => t.id.equals(id))).write(
-        DependantsCompanion(
+  Future<void> markDependentSynced(int id) =>
+      (update(dependents)..where((t) => t.id.equals(id))).write(
+        DependentsCompanion(
           syncStatus: const Value(2),
           syncUpdatedAt: Value(DateTime.now().toIso8601String()),
         ),
       );
 
-  Future<void> markDependantFailed(int id) =>
-      (update(dependants)..where((t) => t.id.equals(id))).write(
-        DependantsCompanion(
+  Future<void> markDependentFailed(int id) =>
+      (update(dependents)..where((t) => t.id.equals(id))).write(
+        DependentsCompanion(
           syncStatus: const Value(3),
           syncUpdatedAt: Value(DateTime.now().toIso8601String()),
         ),
       );
 
-  Future<int> deleteDependantsNotIn(Set<int> keepIds) async {
+  Future<int> deleteDependentsNotIn(Set<int> keepIds) async {
     if (keepIds.isEmpty) {
-      return (delete(dependants)..where((t) => t.syncStatus.equals(2))).go();
+      return (delete(dependents)..where((t) => t.syncStatus.equals(2))).go();
     }
-    final toDelete = await (select(dependants)
+    final toDelete = await (select(dependents)
           ..where((t) => t.syncStatus.equals(2) & t.id.isNotIn(keepIds)))
         .get();
     for (final record in toDelete) {
-      await deleteDependant(record.id);
+      await deleteDependent(record.id);
     }
     return toDelete.length;
   }
@@ -1139,8 +1139,8 @@ class AppDatabase extends _$AppDatabase {
   Future<void> deleteBioDataByStaff(int staffId) =>
       (delete(bioDataEntries)..where((t) => t.staffId.equals(staffId))).go();
 
-  Future<void> deleteBioDataByDependant(int dependantId) =>
-      (delete(bioDataEntries)..where((t) => t.dependantId.equals(dependantId))).go();
+  Future<void> deleteBioDataByDependent(int dependentId) =>
+      (delete(bioDataEntries)..where((t) => t.dependentId.equals(dependentId))).go();
 
   Future<void> deleteBioDataByContractorStaff(int contractorStaffId) =>
       (delete(bioDataEntries)..where((t) => t.contractorStaffId.equals(contractorStaffId))).go();
@@ -1163,9 +1163,9 @@ class AppDatabase extends _$AppDatabase {
   Future<List<BioDataEntry>> getActiveBioData() => (select(
     bioDataEntries,
   )..where((t) => t.isActive.equals(true))).get();
-  Future<List<BioDataEntry>> getActiveBioDataByDependant(int dependantId) =>
+  Future<List<BioDataEntry>> getActiveBioDataByDependent(int dependentId) =>
       (select(bioDataEntries)
-            ..where((t) => t.dependantId.equals(dependantId) & t.isActive.equals(true)))
+            ..where((t) => t.dependentId.equals(dependentId) & t.isActive.equals(true)))
           .get();
   Future<List<BioDataEntry>> getActiveBioDataByContractorStaff(
           int contractorStaffId) =>

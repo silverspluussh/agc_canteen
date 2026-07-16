@@ -70,7 +70,7 @@ class FingerprintAuthService {
     }
     switch (entityType) {
       case EmployeeType.dependent:
-        return _db.getActiveBioDataByDependant(entityId);
+        return _db.getActiveBioDataByDependent(entityId);
       case EmployeeType.contractor:
         return _db.getActiveBioDataByContractorStaff(entityId);
       case EmployeeType.visitor:
@@ -110,7 +110,7 @@ class FingerprintAuthService {
       case EmployeeType.intern:
         await _db.insertBioData(companion.copyWith(staffId: Value(entityId)));
       case EmployeeType.dependent:
-        await _db.insertBioData(companion.copyWith(dependantId: Value(entityId)));
+        await _db.insertBioData(companion.copyWith(dependentId: Value(entityId)));
       case EmployeeType.contractor:
         await _db.insertBioData(companion.copyWith(contractorStaffId: Value(entityId)));
       case EmployeeType.visitor:
@@ -151,7 +151,7 @@ class FingerprintAuthService {
         _db.bioDataEntries.id,
         _db.bioDataEntries.dataBase64,
         _db.bioDataEntries.staffId,
-        _db.bioDataEntries.dependantId,
+        _db.bioDataEntries.dependentId,
         _db.bioDataEntries.contractorStaffId,
         _db.bioDataEntries.visitorId,
       ])

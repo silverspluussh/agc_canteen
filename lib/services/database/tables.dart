@@ -104,8 +104,8 @@ class Staff extends Table {
   BoolColumn get allowGroupOrder => boolean().nullable()();
   IntColumn get maxOrderCount => integer().nullable()();
   IntColumn get shiftId => integer().nullable()();
-  IntColumn get totalDependant => integer().nullable()();
-  IntColumn get noOfDependantAssigned => integer().nullable()();
+  IntColumn get totalDependent => integer().nullable()();
+  IntColumn get noOfDependentAssigned => integer().nullable()();
   IntColumn get departmentId => integer().nullable()();
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();
   TextColumn get syncUpdatedAt => text().nullable()();
@@ -122,7 +122,7 @@ class StaffKitchens extends Table {
   Set<Column> get primaryKey => {staffId, kitchenId};
 }
 
-class Dependants extends Table {
+class Dependents extends Table {
   IntColumn get id => integer()();
   TextColumn get fullname => text()();
   TextColumn get status => text()();
@@ -311,7 +311,7 @@ class Visitors extends Table {
 class BioDataEntries extends Table {
   IntColumn get id => integer()();
   IntColumn get staffId => integer().nullable().references(Staff, #id)();
-  IntColumn get dependantId => integer().nullable().references(Dependants, #id)();
+  IntColumn get dependentId => integer().nullable().references(Dependents, #id)();
   IntColumn get contractorStaffId => integer().nullable().references(ContractorStaffTable, #id)();
   IntColumn get visitorId => integer().nullable().references(Visitors, #id)();
   TextColumn get finger => text()();
@@ -334,12 +334,12 @@ class ContractorStaffKitchens extends Table {
   Set<Column> get primaryKey => {contractorStaffId, kitchenId};
 }
 
-class DependantKitchens extends Table {
-  IntColumn get dependantId => integer()();
+class DependentKitchens extends Table {
+  IntColumn get dependentId => integer()();
   IntColumn get kitchenId => integer()();
 
   @override
-  Set<Column> get primaryKey => {dependantId, kitchenId};
+  Set<Column> get primaryKey => {dependentId, kitchenId};
 }
 
 class VisitorKitchens extends Table {

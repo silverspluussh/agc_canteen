@@ -7,7 +7,7 @@ enum EmployeeType {
       };
 
   String get entityName => switch (this) {
-        permanent => 'Staff',
+        permanent => 'Permanent',
         graduateTrainee => 'Graduate Trainee',
         nationalService => 'National Service',
         intern => 'Intern',

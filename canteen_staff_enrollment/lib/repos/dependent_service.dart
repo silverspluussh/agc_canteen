@@ -1,64 +1,65 @@
 import 'dart:developer';
 
 import 'package:canteen_staff_enrollment/core/network/network_api_dio.dart';
-import 'package:canteen_staff_enrollment/models/dependant.model.dart';
+import 'package:canteen_staff_enrollment/models/dependent.model.dart';
 
-class DependantService {
+class DependentService {
   final NetworkAPI networkAPI;
-  DependantService({required this.networkAPI});
+  DependentService({required this.networkAPI});
 
-  Future<List<Dependant>> getAllDependants(
+  Future<List<Dependent>> getAllDependents(
     {String? kitchenId, String? departmentId}
   ) async {
     try {
-      return await networkAPI.getData<List<Dependant>>(
-        '/hr/dependants',
+      return await networkAPI.getData<List<Dependent>>(
+        '/hr/dependents',
         queryParameters: {
-      
+           
+                
           if (kitchenId != null) 'kitchenId': kitchenId,
           if (departmentId != null) 'departmentId': departmentId,
         },
         builder: (data) {
-          log('Raw data received for dependants: $data'); // Debugging line to check the structure of the data
+          log('Raw data received for dependents: $data');
           final list = data is List
               ? data
-              : (data['dependants'] is List ? data['dependants'] : null);
+              : (data['data'] is List ? data['data'] : null);
           if (list != null) {
             return (list as List)
-                .map((e) => Dependant.fromMap(e as Map<String, dynamic>))
+                .map((e) => Dependent.fromMap(e as Map<String, dynamic>))
                 .toList();
           }
           return [];
         },
       );
     } catch (e, stack) {
-      log('Error in getAllDependants: $e', error: e, stackTrace: stack);
+      log('Error in getAllDependents: $e', error: e, stackTrace: stack);
       rethrow;
     }
   }
 
-  Future<List<Dependant>> getDependantsByStaffId(
+  Future<List<Dependent>> getDependentsByStaffId(
     int staffId) async {
     try {
-      return await networkAPI.getData<List<Dependant>>(
-        '/hr/dependant/$staffId/all',
+      return await networkAPI.getData<List<Dependent>>(
+        '/hr/dependent/$staffId/all',
         queryParameters: {
           'staffId': staffId,
         },
         builder: (data) {
           final list = data is List
               ? data
-              : (data['dependants'] is List ? data['dependants'] : null);
+              : (data['data'] is List ? data['data'] : null);
           if (list != null) {
             return (list as List)
-                .map((e) => Dependant.fromMap(e as Map<String, dynamic>))
+                .map((e) => Dependent.fromMap(e as Map<String, dynamic>))
                 .toList();
           }
           return [];
         },
       );
     } catch (e, stack) {
-      log('Error in getDependantsByStaffId: $e', error: e, stackTrace: stack);
+      log('Error in getDependentsByStaffId: $e', error: e, stackTrace: stack);
       rethrow;
     }
   }

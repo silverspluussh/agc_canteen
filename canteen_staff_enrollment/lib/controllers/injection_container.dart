@@ -1,6 +1,7 @@
 import 'package:canteen_staff_enrollment/repos/biodata_service.dart';
 import 'package:canteen_staff_enrollment/repos/contractor_service.dart';
-import 'package:canteen_staff_enrollment/repos/dependant_service.dart';
+import 'package:canteen_staff_enrollment/repos/dependent_service.dart';
+import 'package:canteen_staff_enrollment/repos/nfc_card_service.dart';
 import 'package:canteen_staff_enrollment/repos/visitor_service.dart';
 import 'package:canteen_staff_enrollment/core/network/dio_client.dart';
 import 'package:canteen_staff_enrollment/core/network/network_api_dio.dart';
@@ -49,7 +50,10 @@ Future<void> setupServiceLocator() async {
   getIt.registerLazySingleton<VisitorService>(() => VisitorService(
         networkAPI: getIt<NetworkAPI>(),
       ));
-  getIt.registerLazySingleton<DependantService>(() => DependantService(
+  getIt.registerLazySingleton<DependentService>(() => DependentService(
+        networkAPI: getIt<NetworkAPI>(),
+      ));
+  getIt.registerLazySingleton<NfcCardService>(() => NfcCardService(
         networkAPI: getIt<NetworkAPI>(),
       ));
 }

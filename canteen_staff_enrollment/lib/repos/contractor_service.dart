@@ -39,7 +39,6 @@ class ContractorService {
     try {
       return await networkAPI.getData<List<ContractorStaff>>(
         '/hr/contractor-staffs',
-  
         builder: (data) {
           final list = data is List
               ? data

@@ -104,11 +104,11 @@ class PosAuthService {
       }
     }
 
-    if (match.dependantId != null) {
-      final dep = await _db.getDependant(match.dependantId!);
+    if (match.dependentId != null) {
+      final dep = await _db.getDependent(match.dependentId!);
       if (dep != null) {
         dev.log(
-          '[PosAuthService] Dependant found: ${dep.fullname} (id=${dep.id})',
+          '[PosAuthService] Dependent found: ${dep.fullname} (id=${dep.id})',
           name: 'POS_AUTH',
         );
         return AuthResult.authenticated(
@@ -214,7 +214,7 @@ class PosAuthService {
     }
 
     if (employeeType == EmployeeType.dependent) {
-      final dep = await _db.getDependant(assignedToId);
+      final dep = await _db.getDependent(assignedToId);
       if (dep != null) {
         return AuthResult.authenticated(
           entityId: dep.id,

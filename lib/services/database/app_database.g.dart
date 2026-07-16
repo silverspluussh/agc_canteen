@@ -3296,22 +3296,22 @@ class $StaffTable extends Staff with TableInfo<$StaffTable, StaffData> {
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _totalDependantMeta = const VerificationMeta(
-    'totalDependant',
+  static const VerificationMeta _totalDependentMeta = const VerificationMeta(
+    'totalDependent',
   );
   @override
-  late final GeneratedColumn<int> totalDependant = GeneratedColumn<int>(
-    'total_dependant',
+  late final GeneratedColumn<int> totalDependent = GeneratedColumn<int>(
+    'total_dependent',
     aliasedName,
     true,
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _noOfDependantAssignedMeta =
-      const VerificationMeta('noOfDependantAssigned');
+  static const VerificationMeta _noOfDependentAssignedMeta =
+      const VerificationMeta('noOfDependentAssigned');
   @override
-  late final GeneratedColumn<int> noOfDependantAssigned = GeneratedColumn<int>(
-    'no_of_dependant_assigned',
+  late final GeneratedColumn<int> noOfDependentAssigned = GeneratedColumn<int>(
+    'no_of_dependent_assigned',
     aliasedName,
     true,
     type: DriftSqlType.int,
@@ -3366,8 +3366,8 @@ class $StaffTable extends Staff with TableInfo<$StaffTable, StaffData> {
     allowGroupOrder,
     maxOrderCount,
     shiftId,
-    totalDependant,
-    noOfDependantAssigned,
+    totalDependent,
+    noOfDependentAssigned,
     departmentId,
     syncStatus,
     syncUpdatedAt,
@@ -3476,21 +3476,21 @@ class $StaffTable extends Staff with TableInfo<$StaffTable, StaffData> {
         shiftId.isAcceptableOrUnknown(data['shift_id']!, _shiftIdMeta),
       );
     }
-    if (data.containsKey('total_dependant')) {
+    if (data.containsKey('total_dependent')) {
       context.handle(
-        _totalDependantMeta,
-        totalDependant.isAcceptableOrUnknown(
-          data['total_dependant']!,
-          _totalDependantMeta,
+        _totalDependentMeta,
+        totalDependent.isAcceptableOrUnknown(
+          data['total_dependent']!,
+          _totalDependentMeta,
         ),
       );
     }
-    if (data.containsKey('no_of_dependant_assigned')) {
+    if (data.containsKey('no_of_dependent_assigned')) {
       context.handle(
-        _noOfDependantAssignedMeta,
-        noOfDependantAssigned.isAcceptableOrUnknown(
-          data['no_of_dependant_assigned']!,
-          _noOfDependantAssignedMeta,
+        _noOfDependentAssignedMeta,
+        noOfDependentAssigned.isAcceptableOrUnknown(
+          data['no_of_dependent_assigned']!,
+          _noOfDependentAssignedMeta,
         ),
       );
     }
@@ -3579,13 +3579,13 @@ class $StaffTable extends Staff with TableInfo<$StaffTable, StaffData> {
         DriftSqlType.int,
         data['${effectivePrefix}shift_id'],
       ),
-      totalDependant: attachedDatabase.typeMapping.read(
+      totalDependent: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
-        data['${effectivePrefix}total_dependant'],
+        data['${effectivePrefix}total_dependent'],
       ),
-      noOfDependantAssigned: attachedDatabase.typeMapping.read(
+      noOfDependentAssigned: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
-        data['${effectivePrefix}no_of_dependant_assigned'],
+        data['${effectivePrefix}no_of_dependent_assigned'],
       ),
       departmentId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
@@ -3622,8 +3622,8 @@ class StaffData extends DataClass implements Insertable<StaffData> {
   final bool? allowGroupOrder;
   final int? maxOrderCount;
   final int? shiftId;
-  final int? totalDependant;
-  final int? noOfDependantAssigned;
+  final int? totalDependent;
+  final int? noOfDependentAssigned;
   final int? departmentId;
   final int syncStatus;
   final String? syncUpdatedAt;
@@ -3641,8 +3641,8 @@ class StaffData extends DataClass implements Insertable<StaffData> {
     this.allowGroupOrder,
     this.maxOrderCount,
     this.shiftId,
-    this.totalDependant,
-    this.noOfDependantAssigned,
+    this.totalDependent,
+    this.noOfDependentAssigned,
     this.departmentId,
     required this.syncStatus,
     this.syncUpdatedAt,
@@ -3679,11 +3679,11 @@ class StaffData extends DataClass implements Insertable<StaffData> {
     if (!nullToAbsent || shiftId != null) {
       map['shift_id'] = Variable<int>(shiftId);
     }
-    if (!nullToAbsent || totalDependant != null) {
-      map['total_dependant'] = Variable<int>(totalDependant);
+    if (!nullToAbsent || totalDependent != null) {
+      map['total_dependent'] = Variable<int>(totalDependent);
     }
-    if (!nullToAbsent || noOfDependantAssigned != null) {
-      map['no_of_dependant_assigned'] = Variable<int>(noOfDependantAssigned);
+    if (!nullToAbsent || noOfDependentAssigned != null) {
+      map['no_of_dependent_assigned'] = Variable<int>(noOfDependentAssigned);
     }
     if (!nullToAbsent || departmentId != null) {
       map['department_id'] = Variable<int>(departmentId);
@@ -3726,12 +3726,12 @@ class StaffData extends DataClass implements Insertable<StaffData> {
       shiftId: shiftId == null && nullToAbsent
           ? const Value.absent()
           : Value(shiftId),
-      totalDependant: totalDependant == null && nullToAbsent
+      totalDependent: totalDependent == null && nullToAbsent
           ? const Value.absent()
-          : Value(totalDependant),
-      noOfDependantAssigned: noOfDependantAssigned == null && nullToAbsent
+          : Value(totalDependent),
+      noOfDependentAssigned: noOfDependentAssigned == null && nullToAbsent
           ? const Value.absent()
-          : Value(noOfDependantAssigned),
+          : Value(noOfDependentAssigned),
       departmentId: departmentId == null && nullToAbsent
           ? const Value.absent()
           : Value(departmentId),
@@ -3761,9 +3761,9 @@ class StaffData extends DataClass implements Insertable<StaffData> {
       allowGroupOrder: serializer.fromJson<bool?>(json['allowGroupOrder']),
       maxOrderCount: serializer.fromJson<int?>(json['maxOrderCount']),
       shiftId: serializer.fromJson<int?>(json['shiftId']),
-      totalDependant: serializer.fromJson<int?>(json['totalDependant']),
-      noOfDependantAssigned: serializer.fromJson<int?>(
-        json['noOfDependantAssigned'],
+      totalDependent: serializer.fromJson<int?>(json['totalDependent']),
+      noOfDependentAssigned: serializer.fromJson<int?>(
+        json['noOfDependentAssigned'],
       ),
       departmentId: serializer.fromJson<int?>(json['departmentId']),
       syncStatus: serializer.fromJson<int>(json['syncStatus']),
@@ -3787,8 +3787,8 @@ class StaffData extends DataClass implements Insertable<StaffData> {
       'allowGroupOrder': serializer.toJson<bool?>(allowGroupOrder),
       'maxOrderCount': serializer.toJson<int?>(maxOrderCount),
       'shiftId': serializer.toJson<int?>(shiftId),
-      'totalDependant': serializer.toJson<int?>(totalDependant),
-      'noOfDependantAssigned': serializer.toJson<int?>(noOfDependantAssigned),
+      'totalDependent': serializer.toJson<int?>(totalDependent),
+      'noOfDependentAssigned': serializer.toJson<int?>(noOfDependentAssigned),
       'departmentId': serializer.toJson<int?>(departmentId),
       'syncStatus': serializer.toJson<int>(syncStatus),
       'syncUpdatedAt': serializer.toJson<String?>(syncUpdatedAt),
@@ -3809,8 +3809,8 @@ class StaffData extends DataClass implements Insertable<StaffData> {
     Value<bool?> allowGroupOrder = const Value.absent(),
     Value<int?> maxOrderCount = const Value.absent(),
     Value<int?> shiftId = const Value.absent(),
-    Value<int?> totalDependant = const Value.absent(),
-    Value<int?> noOfDependantAssigned = const Value.absent(),
+    Value<int?> totalDependent = const Value.absent(),
+    Value<int?> noOfDependentAssigned = const Value.absent(),
     Value<int?> departmentId = const Value.absent(),
     int? syncStatus,
     Value<String?> syncUpdatedAt = const Value.absent(),
@@ -3832,12 +3832,12 @@ class StaffData extends DataClass implements Insertable<StaffData> {
         ? maxOrderCount.value
         : this.maxOrderCount,
     shiftId: shiftId.present ? shiftId.value : this.shiftId,
-    totalDependant: totalDependant.present
-        ? totalDependant.value
-        : this.totalDependant,
-    noOfDependantAssigned: noOfDependantAssigned.present
-        ? noOfDependantAssigned.value
-        : this.noOfDependantAssigned,
+    totalDependent: totalDependent.present
+        ? totalDependent.value
+        : this.totalDependent,
+    noOfDependentAssigned: noOfDependentAssigned.present
+        ? noOfDependentAssigned.value
+        : this.noOfDependentAssigned,
     departmentId: departmentId.present ? departmentId.value : this.departmentId,
     syncStatus: syncStatus ?? this.syncStatus,
     syncUpdatedAt: syncUpdatedAt.present
@@ -3865,12 +3865,12 @@ class StaffData extends DataClass implements Insertable<StaffData> {
           ? data.maxOrderCount.value
           : this.maxOrderCount,
       shiftId: data.shiftId.present ? data.shiftId.value : this.shiftId,
-      totalDependant: data.totalDependant.present
-          ? data.totalDependant.value
-          : this.totalDependant,
-      noOfDependantAssigned: data.noOfDependantAssigned.present
-          ? data.noOfDependantAssigned.value
-          : this.noOfDependantAssigned,
+      totalDependent: data.totalDependent.present
+          ? data.totalDependent.value
+          : this.totalDependent,
+      noOfDependentAssigned: data.noOfDependentAssigned.present
+          ? data.noOfDependentAssigned.value
+          : this.noOfDependentAssigned,
       departmentId: data.departmentId.present
           ? data.departmentId.value
           : this.departmentId,
@@ -3899,8 +3899,8 @@ class StaffData extends DataClass implements Insertable<StaffData> {
           ..write('allowGroupOrder: $allowGroupOrder, ')
           ..write('maxOrderCount: $maxOrderCount, ')
           ..write('shiftId: $shiftId, ')
-          ..write('totalDependant: $totalDependant, ')
-          ..write('noOfDependantAssigned: $noOfDependantAssigned, ')
+          ..write('totalDependent: $totalDependent, ')
+          ..write('noOfDependentAssigned: $noOfDependentAssigned, ')
           ..write('departmentId: $departmentId, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('syncUpdatedAt: $syncUpdatedAt')
@@ -3923,8 +3923,8 @@ class StaffData extends DataClass implements Insertable<StaffData> {
     allowGroupOrder,
     maxOrderCount,
     shiftId,
-    totalDependant,
-    noOfDependantAssigned,
+    totalDependent,
+    noOfDependentAssigned,
     departmentId,
     syncStatus,
     syncUpdatedAt,
@@ -3946,8 +3946,8 @@ class StaffData extends DataClass implements Insertable<StaffData> {
           other.allowGroupOrder == this.allowGroupOrder &&
           other.maxOrderCount == this.maxOrderCount &&
           other.shiftId == this.shiftId &&
-          other.totalDependant == this.totalDependant &&
-          other.noOfDependantAssigned == this.noOfDependantAssigned &&
+          other.totalDependent == this.totalDependent &&
+          other.noOfDependentAssigned == this.noOfDependentAssigned &&
           other.departmentId == this.departmentId &&
           other.syncStatus == this.syncStatus &&
           other.syncUpdatedAt == this.syncUpdatedAt);
@@ -3967,8 +3967,8 @@ class StaffCompanion extends UpdateCompanion<StaffData> {
   final Value<bool?> allowGroupOrder;
   final Value<int?> maxOrderCount;
   final Value<int?> shiftId;
-  final Value<int?> totalDependant;
-  final Value<int?> noOfDependantAssigned;
+  final Value<int?> totalDependent;
+  final Value<int?> noOfDependentAssigned;
   final Value<int?> departmentId;
   final Value<int> syncStatus;
   final Value<String?> syncUpdatedAt;
@@ -3986,8 +3986,8 @@ class StaffCompanion extends UpdateCompanion<StaffData> {
     this.allowGroupOrder = const Value.absent(),
     this.maxOrderCount = const Value.absent(),
     this.shiftId = const Value.absent(),
-    this.totalDependant = const Value.absent(),
-    this.noOfDependantAssigned = const Value.absent(),
+    this.totalDependent = const Value.absent(),
+    this.noOfDependentAssigned = const Value.absent(),
     this.departmentId = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.syncUpdatedAt = const Value.absent(),
@@ -4006,8 +4006,8 @@ class StaffCompanion extends UpdateCompanion<StaffData> {
     this.allowGroupOrder = const Value.absent(),
     this.maxOrderCount = const Value.absent(),
     this.shiftId = const Value.absent(),
-    this.totalDependant = const Value.absent(),
-    this.noOfDependantAssigned = const Value.absent(),
+    this.totalDependent = const Value.absent(),
+    this.noOfDependentAssigned = const Value.absent(),
     this.departmentId = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.syncUpdatedAt = const Value.absent(),
@@ -4029,8 +4029,8 @@ class StaffCompanion extends UpdateCompanion<StaffData> {
     Expression<bool>? allowGroupOrder,
     Expression<int>? maxOrderCount,
     Expression<int>? shiftId,
-    Expression<int>? totalDependant,
-    Expression<int>? noOfDependantAssigned,
+    Expression<int>? totalDependent,
+    Expression<int>? noOfDependentAssigned,
     Expression<int>? departmentId,
     Expression<int>? syncStatus,
     Expression<String>? syncUpdatedAt,
@@ -4049,9 +4049,9 @@ class StaffCompanion extends UpdateCompanion<StaffData> {
       if (allowGroupOrder != null) 'allow_group_order': allowGroupOrder,
       if (maxOrderCount != null) 'max_order_count': maxOrderCount,
       if (shiftId != null) 'shift_id': shiftId,
-      if (totalDependant != null) 'total_dependant': totalDependant,
-      if (noOfDependantAssigned != null)
-        'no_of_dependant_assigned': noOfDependantAssigned,
+      if (totalDependent != null) 'total_dependent': totalDependent,
+      if (noOfDependentAssigned != null)
+        'no_of_dependent_assigned': noOfDependentAssigned,
       if (departmentId != null) 'department_id': departmentId,
       if (syncStatus != null) 'sync_status': syncStatus,
       if (syncUpdatedAt != null) 'sync_updated_at': syncUpdatedAt,
@@ -4072,8 +4072,8 @@ class StaffCompanion extends UpdateCompanion<StaffData> {
     Value<bool?>? allowGroupOrder,
     Value<int?>? maxOrderCount,
     Value<int?>? shiftId,
-    Value<int?>? totalDependant,
-    Value<int?>? noOfDependantAssigned,
+    Value<int?>? totalDependent,
+    Value<int?>? noOfDependentAssigned,
     Value<int?>? departmentId,
     Value<int>? syncStatus,
     Value<String?>? syncUpdatedAt,
@@ -4092,9 +4092,9 @@ class StaffCompanion extends UpdateCompanion<StaffData> {
       allowGroupOrder: allowGroupOrder ?? this.allowGroupOrder,
       maxOrderCount: maxOrderCount ?? this.maxOrderCount,
       shiftId: shiftId ?? this.shiftId,
-      totalDependant: totalDependant ?? this.totalDependant,
-      noOfDependantAssigned:
-          noOfDependantAssigned ?? this.noOfDependantAssigned,
+      totalDependent: totalDependent ?? this.totalDependent,
+      noOfDependentAssigned:
+          noOfDependentAssigned ?? this.noOfDependentAssigned,
       departmentId: departmentId ?? this.departmentId,
       syncStatus: syncStatus ?? this.syncStatus,
       syncUpdatedAt: syncUpdatedAt ?? this.syncUpdatedAt,
@@ -4143,12 +4143,12 @@ class StaffCompanion extends UpdateCompanion<StaffData> {
     if (shiftId.present) {
       map['shift_id'] = Variable<int>(shiftId.value);
     }
-    if (totalDependant.present) {
-      map['total_dependant'] = Variable<int>(totalDependant.value);
+    if (totalDependent.present) {
+      map['total_dependent'] = Variable<int>(totalDependent.value);
     }
-    if (noOfDependantAssigned.present) {
-      map['no_of_dependant_assigned'] = Variable<int>(
-        noOfDependantAssigned.value,
+    if (noOfDependentAssigned.present) {
+      map['no_of_dependent_assigned'] = Variable<int>(
+        noOfDependentAssigned.value,
       );
     }
     if (departmentId.present) {
@@ -4179,8 +4179,8 @@ class StaffCompanion extends UpdateCompanion<StaffData> {
           ..write('allowGroupOrder: $allowGroupOrder, ')
           ..write('maxOrderCount: $maxOrderCount, ')
           ..write('shiftId: $shiftId, ')
-          ..write('totalDependant: $totalDependant, ')
-          ..write('noOfDependantAssigned: $noOfDependantAssigned, ')
+          ..write('totalDependent: $totalDependent, ')
+          ..write('noOfDependentAssigned: $noOfDependentAssigned, ')
           ..write('departmentId: $departmentId, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('syncUpdatedAt: $syncUpdatedAt')
@@ -4406,12 +4406,12 @@ class StaffKitchensCompanion extends UpdateCompanion<StaffKitchen> {
   }
 }
 
-class $DependantsTable extends Dependants
-    with TableInfo<$DependantsTable, Dependant> {
+class $DependentsTable extends Dependents
+    with TableInfo<$DependentsTable, Dependent> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $DependantsTable(this.attachedDatabase, [this._alias]);
+  $DependentsTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<int> id = GeneratedColumn<int>(
@@ -4501,10 +4501,10 @@ class $DependantsTable extends Dependants
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
-  static const String $name = 'dependants';
+  static const String $name = 'dependents';
   @override
   VerificationContext validateIntegrity(
-    Insertable<Dependant> instance, {
+    Insertable<Dependent> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
@@ -4561,9 +4561,9 @@ class $DependantsTable extends Dependants
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
-  Dependant map(Map<String, dynamic> data, {String? tablePrefix}) {
+  Dependent map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return Dependant(
+    return Dependent(
       id: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}id'],
@@ -4596,12 +4596,12 @@ class $DependantsTable extends Dependants
   }
 
   @override
-  $DependantsTable createAlias(String alias) {
-    return $DependantsTable(attachedDatabase, alias);
+  $DependentsTable createAlias(String alias) {
+    return $DependentsTable(attachedDatabase, alias);
   }
 }
 
-class Dependant extends DataClass implements Insertable<Dependant> {
+class Dependent extends DataClass implements Insertable<Dependent> {
   final int id;
   final String fullname;
   final String status;
@@ -4609,7 +4609,7 @@ class Dependant extends DataClass implements Insertable<Dependant> {
   final int? staffId;
   final int syncStatus;
   final String? syncUpdatedAt;
-  const Dependant({
+  const Dependent({
     required this.id,
     required this.fullname,
     required this.status,
@@ -4637,8 +4637,8 @@ class Dependant extends DataClass implements Insertable<Dependant> {
     return map;
   }
 
-  DependantsCompanion toCompanion(bool nullToAbsent) {
-    return DependantsCompanion(
+  DependentsCompanion toCompanion(bool nullToAbsent) {
+    return DependentsCompanion(
       id: Value(id),
       fullname: Value(fullname),
       status: Value(status),
@@ -4655,12 +4655,12 @@ class Dependant extends DataClass implements Insertable<Dependant> {
     );
   }
 
-  factory Dependant.fromJson(
+  factory Dependent.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return Dependant(
+    return Dependent(
       id: serializer.fromJson<int>(json['id']),
       fullname: serializer.fromJson<String>(json['fullname']),
       status: serializer.fromJson<String>(json['status']),
@@ -4684,7 +4684,7 @@ class Dependant extends DataClass implements Insertable<Dependant> {
     };
   }
 
-  Dependant copyWith({
+  Dependent copyWith({
     int? id,
     String? fullname,
     String? status,
@@ -4692,7 +4692,7 @@ class Dependant extends DataClass implements Insertable<Dependant> {
     Value<int?> staffId = const Value.absent(),
     int? syncStatus,
     Value<String?> syncUpdatedAt = const Value.absent(),
-  }) => Dependant(
+  }) => Dependent(
     id: id ?? this.id,
     fullname: fullname ?? this.fullname,
     status: status ?? this.status,
@@ -4703,8 +4703,8 @@ class Dependant extends DataClass implements Insertable<Dependant> {
         ? syncUpdatedAt.value
         : this.syncUpdatedAt,
   );
-  Dependant copyWithCompanion(DependantsCompanion data) {
-    return Dependant(
+  Dependent copyWithCompanion(DependentsCompanion data) {
+    return Dependent(
       id: data.id.present ? data.id.value : this.id,
       fullname: data.fullname.present ? data.fullname.value : this.fullname,
       status: data.status.present ? data.status.value : this.status,
@@ -4721,7 +4721,7 @@ class Dependant extends DataClass implements Insertable<Dependant> {
 
   @override
   String toString() {
-    return (StringBuffer('Dependant(')
+    return (StringBuffer('Dependent(')
           ..write('id: $id, ')
           ..write('fullname: $fullname, ')
           ..write('status: $status, ')
@@ -4746,7 +4746,7 @@ class Dependant extends DataClass implements Insertable<Dependant> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is Dependant &&
+      (other is Dependent &&
           other.id == this.id &&
           other.fullname == this.fullname &&
           other.status == this.status &&
@@ -4756,7 +4756,7 @@ class Dependant extends DataClass implements Insertable<Dependant> {
           other.syncUpdatedAt == this.syncUpdatedAt);
 }
 
-class DependantsCompanion extends UpdateCompanion<Dependant> {
+class DependentsCompanion extends UpdateCompanion<Dependent> {
   final Value<int> id;
   final Value<String> fullname;
   final Value<String> status;
@@ -4764,7 +4764,7 @@ class DependantsCompanion extends UpdateCompanion<Dependant> {
   final Value<int?> staffId;
   final Value<int> syncStatus;
   final Value<String?> syncUpdatedAt;
-  const DependantsCompanion({
+  const DependentsCompanion({
     this.id = const Value.absent(),
     this.fullname = const Value.absent(),
     this.status = const Value.absent(),
@@ -4773,7 +4773,7 @@ class DependantsCompanion extends UpdateCompanion<Dependant> {
     this.syncStatus = const Value.absent(),
     this.syncUpdatedAt = const Value.absent(),
   });
-  DependantsCompanion.insert({
+  DependentsCompanion.insert({
     this.id = const Value.absent(),
     required String fullname,
     required String status,
@@ -4783,7 +4783,7 @@ class DependantsCompanion extends UpdateCompanion<Dependant> {
     this.syncUpdatedAt = const Value.absent(),
   }) : fullname = Value(fullname),
        status = Value(status);
-  static Insertable<Dependant> custom({
+  static Insertable<Dependent> custom({
     Expression<int>? id,
     Expression<String>? fullname,
     Expression<String>? status,
@@ -4803,7 +4803,7 @@ class DependantsCompanion extends UpdateCompanion<Dependant> {
     });
   }
 
-  DependantsCompanion copyWith({
+  DependentsCompanion copyWith({
     Value<int>? id,
     Value<String>? fullname,
     Value<String>? status,
@@ -4812,7 +4812,7 @@ class DependantsCompanion extends UpdateCompanion<Dependant> {
     Value<int>? syncStatus,
     Value<String?>? syncUpdatedAt,
   }) {
-    return DependantsCompanion(
+    return DependentsCompanion(
       id: id ?? this.id,
       fullname: fullname ?? this.fullname,
       status: status ?? this.status,
@@ -4852,7 +4852,7 @@ class DependantsCompanion extends UpdateCompanion<Dependant> {
 
   @override
   String toString() {
-    return (StringBuffer('DependantsCompanion(')
+    return (StringBuffer('DependentsCompanion(')
           ..write('id: $id, ')
           ..write('fullname: $fullname, ')
           ..write('status: $status, ')
@@ -4865,18 +4865,18 @@ class DependantsCompanion extends UpdateCompanion<Dependant> {
   }
 }
 
-class $DependantKitchensTable extends DependantKitchens
-    with TableInfo<$DependantKitchensTable, DependantKitchen> {
+class $DependentKitchensTable extends DependentKitchens
+    with TableInfo<$DependentKitchensTable, DependentKitchen> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $DependantKitchensTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _dependantIdMeta = const VerificationMeta(
-    'dependantId',
+  $DependentKitchensTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _dependentIdMeta = const VerificationMeta(
+    'dependentId',
   );
   @override
-  late final GeneratedColumn<int> dependantId = GeneratedColumn<int>(
-    'dependant_id',
+  late final GeneratedColumn<int> dependentId = GeneratedColumn<int>(
+    'dependent_id',
     aliasedName,
     false,
     type: DriftSqlType.int,
@@ -4894,29 +4894,29 @@ class $DependantKitchensTable extends DependantKitchens
     requiredDuringInsert: true,
   );
   @override
-  List<GeneratedColumn> get $columns => [dependantId, kitchenId];
+  List<GeneratedColumn> get $columns => [dependentId, kitchenId];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
-  static const String $name = 'dependant_kitchens';
+  static const String $name = 'dependent_kitchens';
   @override
   VerificationContext validateIntegrity(
-    Insertable<DependantKitchen> instance, {
+    Insertable<DependentKitchen> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
-    if (data.containsKey('dependant_id')) {
+    if (data.containsKey('dependent_id')) {
       context.handle(
-        _dependantIdMeta,
-        dependantId.isAcceptableOrUnknown(
-          data['dependant_id']!,
-          _dependantIdMeta,
+        _dependentIdMeta,
+        dependentId.isAcceptableOrUnknown(
+          data['dependent_id']!,
+          _dependentIdMeta,
         ),
       );
     } else if (isInserting) {
-      context.missing(_dependantIdMeta);
+      context.missing(_dependentIdMeta);
     }
     if (data.containsKey('kitchen_id')) {
       context.handle(
@@ -4930,14 +4930,14 @@ class $DependantKitchensTable extends DependantKitchens
   }
 
   @override
-  Set<GeneratedColumn> get $primaryKey => {dependantId, kitchenId};
+  Set<GeneratedColumn> get $primaryKey => {dependentId, kitchenId};
   @override
-  DependantKitchen map(Map<String, dynamic> data, {String? tablePrefix}) {
+  DependentKitchen map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return DependantKitchen(
-      dependantId: attachedDatabase.typeMapping.read(
+    return DependentKitchen(
+      dependentId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
-        data['${effectivePrefix}dependant_id'],
+        data['${effectivePrefix}dependent_id'],
       )!,
       kitchenId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
@@ -4947,38 +4947,38 @@ class $DependantKitchensTable extends DependantKitchens
   }
 
   @override
-  $DependantKitchensTable createAlias(String alias) {
-    return $DependantKitchensTable(attachedDatabase, alias);
+  $DependentKitchensTable createAlias(String alias) {
+    return $DependentKitchensTable(attachedDatabase, alias);
   }
 }
 
-class DependantKitchen extends DataClass
-    implements Insertable<DependantKitchen> {
-  final int dependantId;
+class DependentKitchen extends DataClass
+    implements Insertable<DependentKitchen> {
+  final int dependentId;
   final int kitchenId;
-  const DependantKitchen({required this.dependantId, required this.kitchenId});
+  const DependentKitchen({required this.dependentId, required this.kitchenId});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    map['dependant_id'] = Variable<int>(dependantId);
+    map['dependent_id'] = Variable<int>(dependentId);
     map['kitchen_id'] = Variable<int>(kitchenId);
     return map;
   }
 
-  DependantKitchensCompanion toCompanion(bool nullToAbsent) {
-    return DependantKitchensCompanion(
-      dependantId: Value(dependantId),
+  DependentKitchensCompanion toCompanion(bool nullToAbsent) {
+    return DependentKitchensCompanion(
+      dependentId: Value(dependentId),
       kitchenId: Value(kitchenId),
     );
   }
 
-  factory DependantKitchen.fromJson(
+  factory DependentKitchen.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return DependantKitchen(
-      dependantId: serializer.fromJson<int>(json['dependantId']),
+    return DependentKitchen(
+      dependentId: serializer.fromJson<int>(json['dependentId']),
       kitchenId: serializer.fromJson<int>(json['kitchenId']),
     );
   }
@@ -4986,78 +4986,78 @@ class DependantKitchen extends DataClass
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
-      'dependantId': serializer.toJson<int>(dependantId),
+      'dependentId': serializer.toJson<int>(dependentId),
       'kitchenId': serializer.toJson<int>(kitchenId),
     };
   }
 
-  DependantKitchen copyWith({int? dependantId, int? kitchenId}) =>
-      DependantKitchen(
-        dependantId: dependantId ?? this.dependantId,
+  DependentKitchen copyWith({int? dependentId, int? kitchenId}) =>
+      DependentKitchen(
+        dependentId: dependentId ?? this.dependentId,
         kitchenId: kitchenId ?? this.kitchenId,
       );
-  DependantKitchen copyWithCompanion(DependantKitchensCompanion data) {
-    return DependantKitchen(
-      dependantId: data.dependantId.present
-          ? data.dependantId.value
-          : this.dependantId,
+  DependentKitchen copyWithCompanion(DependentKitchensCompanion data) {
+    return DependentKitchen(
+      dependentId: data.dependentId.present
+          ? data.dependentId.value
+          : this.dependentId,
       kitchenId: data.kitchenId.present ? data.kitchenId.value : this.kitchenId,
     );
   }
 
   @override
   String toString() {
-    return (StringBuffer('DependantKitchen(')
-          ..write('dependantId: $dependantId, ')
+    return (StringBuffer('DependentKitchen(')
+          ..write('dependentId: $dependentId, ')
           ..write('kitchenId: $kitchenId')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(dependantId, kitchenId);
+  int get hashCode => Object.hash(dependentId, kitchenId);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is DependantKitchen &&
-          other.dependantId == this.dependantId &&
+      (other is DependentKitchen &&
+          other.dependentId == this.dependentId &&
           other.kitchenId == this.kitchenId);
 }
 
-class DependantKitchensCompanion extends UpdateCompanion<DependantKitchen> {
-  final Value<int> dependantId;
+class DependentKitchensCompanion extends UpdateCompanion<DependentKitchen> {
+  final Value<int> dependentId;
   final Value<int> kitchenId;
   final Value<int> rowid;
-  const DependantKitchensCompanion({
-    this.dependantId = const Value.absent(),
+  const DependentKitchensCompanion({
+    this.dependentId = const Value.absent(),
     this.kitchenId = const Value.absent(),
     this.rowid = const Value.absent(),
   });
-  DependantKitchensCompanion.insert({
-    required int dependantId,
+  DependentKitchensCompanion.insert({
+    required int dependentId,
     required int kitchenId,
     this.rowid = const Value.absent(),
-  }) : dependantId = Value(dependantId),
+  }) : dependentId = Value(dependentId),
        kitchenId = Value(kitchenId);
-  static Insertable<DependantKitchen> custom({
-    Expression<int>? dependantId,
+  static Insertable<DependentKitchen> custom({
+    Expression<int>? dependentId,
     Expression<int>? kitchenId,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
-      if (dependantId != null) 'dependant_id': dependantId,
+      if (dependentId != null) 'dependent_id': dependentId,
       if (kitchenId != null) 'kitchen_id': kitchenId,
       if (rowid != null) 'rowid': rowid,
     });
   }
 
-  DependantKitchensCompanion copyWith({
-    Value<int>? dependantId,
+  DependentKitchensCompanion copyWith({
+    Value<int>? dependentId,
     Value<int>? kitchenId,
     Value<int>? rowid,
   }) {
-    return DependantKitchensCompanion(
-      dependantId: dependantId ?? this.dependantId,
+    return DependentKitchensCompanion(
+      dependentId: dependentId ?? this.dependentId,
       kitchenId: kitchenId ?? this.kitchenId,
       rowid: rowid ?? this.rowid,
     );
@@ -5066,8 +5066,8 @@ class DependantKitchensCompanion extends UpdateCompanion<DependantKitchen> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    if (dependantId.present) {
-      map['dependant_id'] = Variable<int>(dependantId.value);
+    if (dependentId.present) {
+      map['dependent_id'] = Variable<int>(dependentId.value);
     }
     if (kitchenId.present) {
       map['kitchen_id'] = Variable<int>(kitchenId.value);
@@ -5080,8 +5080,8 @@ class DependantKitchensCompanion extends UpdateCompanion<DependantKitchen> {
 
   @override
   String toString() {
-    return (StringBuffer('DependantKitchensCompanion(')
-          ..write('dependantId: $dependantId, ')
+    return (StringBuffer('DependentKitchensCompanion(')
+          ..write('dependentId: $dependentId, ')
           ..write('kitchenId: $kitchenId, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -12317,18 +12317,18 @@ class $BioDataEntriesTable extends BioDataEntries
       'REFERENCES staff (id)',
     ),
   );
-  static const VerificationMeta _dependantIdMeta = const VerificationMeta(
-    'dependantId',
+  static const VerificationMeta _dependentIdMeta = const VerificationMeta(
+    'dependentId',
   );
   @override
-  late final GeneratedColumn<int> dependantId = GeneratedColumn<int>(
-    'dependant_id',
+  late final GeneratedColumn<int> dependentId = GeneratedColumn<int>(
+    'dependent_id',
     aliasedName,
     true,
     type: DriftSqlType.int,
     requiredDuringInsert: false,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES dependants (id)',
+      'REFERENCES dependents (id)',
     ),
   );
   static const VerificationMeta _contractorStaffIdMeta = const VerificationMeta(
@@ -12443,7 +12443,7 @@ class $BioDataEntriesTable extends BioDataEntries
   List<GeneratedColumn> get $columns => [
     id,
     staffId,
-    dependantId,
+    dependentId,
     contractorStaffId,
     visitorId,
     finger,
@@ -12475,12 +12475,12 @@ class $BioDataEntriesTable extends BioDataEntries
         staffId.isAcceptableOrUnknown(data['staff_id']!, _staffIdMeta),
       );
     }
-    if (data.containsKey('dependant_id')) {
+    if (data.containsKey('dependent_id')) {
       context.handle(
-        _dependantIdMeta,
-        dependantId.isAcceptableOrUnknown(
-          data['dependant_id']!,
-          _dependantIdMeta,
+        _dependentIdMeta,
+        dependentId.isAcceptableOrUnknown(
+          data['dependent_id']!,
+          _dependentIdMeta,
         ),
       );
     }
@@ -12569,9 +12569,9 @@ class $BioDataEntriesTable extends BioDataEntries
         DriftSqlType.int,
         data['${effectivePrefix}staff_id'],
       ),
-      dependantId: attachedDatabase.typeMapping.read(
+      dependentId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
-        data['${effectivePrefix}dependant_id'],
+        data['${effectivePrefix}dependent_id'],
       ),
       contractorStaffId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
@@ -12621,7 +12621,7 @@ class $BioDataEntriesTable extends BioDataEntries
 class BioDataEntry extends DataClass implements Insertable<BioDataEntry> {
   final int id;
   final int? staffId;
-  final int? dependantId;
+  final int? dependentId;
   final int? contractorStaffId;
   final int? visitorId;
   final String finger;
@@ -12634,7 +12634,7 @@ class BioDataEntry extends DataClass implements Insertable<BioDataEntry> {
   const BioDataEntry({
     required this.id,
     this.staffId,
-    this.dependantId,
+    this.dependentId,
     this.contractorStaffId,
     this.visitorId,
     required this.finger,
@@ -12652,8 +12652,8 @@ class BioDataEntry extends DataClass implements Insertable<BioDataEntry> {
     if (!nullToAbsent || staffId != null) {
       map['staff_id'] = Variable<int>(staffId);
     }
-    if (!nullToAbsent || dependantId != null) {
-      map['dependant_id'] = Variable<int>(dependantId);
+    if (!nullToAbsent || dependentId != null) {
+      map['dependent_id'] = Variable<int>(dependentId);
     }
     if (!nullToAbsent || contractorStaffId != null) {
       map['contractor_staff_id'] = Variable<int>(contractorStaffId);
@@ -12679,9 +12679,9 @@ class BioDataEntry extends DataClass implements Insertable<BioDataEntry> {
       staffId: staffId == null && nullToAbsent
           ? const Value.absent()
           : Value(staffId),
-      dependantId: dependantId == null && nullToAbsent
+      dependentId: dependentId == null && nullToAbsent
           ? const Value.absent()
-          : Value(dependantId),
+          : Value(dependentId),
       contractorStaffId: contractorStaffId == null && nullToAbsent
           ? const Value.absent()
           : Value(contractorStaffId),
@@ -12708,7 +12708,7 @@ class BioDataEntry extends DataClass implements Insertable<BioDataEntry> {
     return BioDataEntry(
       id: serializer.fromJson<int>(json['id']),
       staffId: serializer.fromJson<int?>(json['staffId']),
-      dependantId: serializer.fromJson<int?>(json['dependantId']),
+      dependentId: serializer.fromJson<int?>(json['dependentId']),
       contractorStaffId: serializer.fromJson<int?>(json['contractorStaffId']),
       visitorId: serializer.fromJson<int?>(json['visitorId']),
       finger: serializer.fromJson<String>(json['finger']),
@@ -12726,7 +12726,7 @@ class BioDataEntry extends DataClass implements Insertable<BioDataEntry> {
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'staffId': serializer.toJson<int?>(staffId),
-      'dependantId': serializer.toJson<int?>(dependantId),
+      'dependentId': serializer.toJson<int?>(dependentId),
       'contractorStaffId': serializer.toJson<int?>(contractorStaffId),
       'visitorId': serializer.toJson<int?>(visitorId),
       'finger': serializer.toJson<String>(finger),
@@ -12742,7 +12742,7 @@ class BioDataEntry extends DataClass implements Insertable<BioDataEntry> {
   BioDataEntry copyWith({
     int? id,
     Value<int?> staffId = const Value.absent(),
-    Value<int?> dependantId = const Value.absent(),
+    Value<int?> dependentId = const Value.absent(),
     Value<int?> contractorStaffId = const Value.absent(),
     Value<int?> visitorId = const Value.absent(),
     String? finger,
@@ -12755,7 +12755,7 @@ class BioDataEntry extends DataClass implements Insertable<BioDataEntry> {
   }) => BioDataEntry(
     id: id ?? this.id,
     staffId: staffId.present ? staffId.value : this.staffId,
-    dependantId: dependantId.present ? dependantId.value : this.dependantId,
+    dependentId: dependentId.present ? dependentId.value : this.dependentId,
     contractorStaffId: contractorStaffId.present
         ? contractorStaffId.value
         : this.contractorStaffId,
@@ -12774,9 +12774,9 @@ class BioDataEntry extends DataClass implements Insertable<BioDataEntry> {
     return BioDataEntry(
       id: data.id.present ? data.id.value : this.id,
       staffId: data.staffId.present ? data.staffId.value : this.staffId,
-      dependantId: data.dependantId.present
-          ? data.dependantId.value
-          : this.dependantId,
+      dependentId: data.dependentId.present
+          ? data.dependentId.value
+          : this.dependentId,
       contractorStaffId: data.contractorStaffId.present
           ? data.contractorStaffId.value
           : this.contractorStaffId,
@@ -12802,7 +12802,7 @@ class BioDataEntry extends DataClass implements Insertable<BioDataEntry> {
     return (StringBuffer('BioDataEntry(')
           ..write('id: $id, ')
           ..write('staffId: $staffId, ')
-          ..write('dependantId: $dependantId, ')
+          ..write('dependentId: $dependentId, ')
           ..write('contractorStaffId: $contractorStaffId, ')
           ..write('visitorId: $visitorId, ')
           ..write('finger: $finger, ')
@@ -12820,7 +12820,7 @@ class BioDataEntry extends DataClass implements Insertable<BioDataEntry> {
   int get hashCode => Object.hash(
     id,
     staffId,
-    dependantId,
+    dependentId,
     contractorStaffId,
     visitorId,
     finger,
@@ -12837,7 +12837,7 @@ class BioDataEntry extends DataClass implements Insertable<BioDataEntry> {
       (other is BioDataEntry &&
           other.id == this.id &&
           other.staffId == this.staffId &&
-          other.dependantId == this.dependantId &&
+          other.dependentId == this.dependentId &&
           other.contractorStaffId == this.contractorStaffId &&
           other.visitorId == this.visitorId &&
           other.finger == this.finger &&
@@ -12852,7 +12852,7 @@ class BioDataEntry extends DataClass implements Insertable<BioDataEntry> {
 class BioDataEntriesCompanion extends UpdateCompanion<BioDataEntry> {
   final Value<int> id;
   final Value<int?> staffId;
-  final Value<int?> dependantId;
+  final Value<int?> dependentId;
   final Value<int?> contractorStaffId;
   final Value<int?> visitorId;
   final Value<String> finger;
@@ -12865,7 +12865,7 @@ class BioDataEntriesCompanion extends UpdateCompanion<BioDataEntry> {
   const BioDataEntriesCompanion({
     this.id = const Value.absent(),
     this.staffId = const Value.absent(),
-    this.dependantId = const Value.absent(),
+    this.dependentId = const Value.absent(),
     this.contractorStaffId = const Value.absent(),
     this.visitorId = const Value.absent(),
     this.finger = const Value.absent(),
@@ -12879,7 +12879,7 @@ class BioDataEntriesCompanion extends UpdateCompanion<BioDataEntry> {
   BioDataEntriesCompanion.insert({
     this.id = const Value.absent(),
     this.staffId = const Value.absent(),
-    this.dependantId = const Value.absent(),
+    this.dependentId = const Value.absent(),
     this.contractorStaffId = const Value.absent(),
     this.visitorId = const Value.absent(),
     required String finger,
@@ -12896,7 +12896,7 @@ class BioDataEntriesCompanion extends UpdateCompanion<BioDataEntry> {
   static Insertable<BioDataEntry> custom({
     Expression<int>? id,
     Expression<int>? staffId,
-    Expression<int>? dependantId,
+    Expression<int>? dependentId,
     Expression<int>? contractorStaffId,
     Expression<int>? visitorId,
     Expression<String>? finger,
@@ -12910,7 +12910,7 @@ class BioDataEntriesCompanion extends UpdateCompanion<BioDataEntry> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (staffId != null) 'staff_id': staffId,
-      if (dependantId != null) 'dependant_id': dependantId,
+      if (dependentId != null) 'dependent_id': dependentId,
       if (contractorStaffId != null) 'contractor_staff_id': contractorStaffId,
       if (visitorId != null) 'visitor_id': visitorId,
       if (finger != null) 'finger': finger,
@@ -12926,7 +12926,7 @@ class BioDataEntriesCompanion extends UpdateCompanion<BioDataEntry> {
   BioDataEntriesCompanion copyWith({
     Value<int>? id,
     Value<int?>? staffId,
-    Value<int?>? dependantId,
+    Value<int?>? dependentId,
     Value<int?>? contractorStaffId,
     Value<int?>? visitorId,
     Value<String>? finger,
@@ -12940,7 +12940,7 @@ class BioDataEntriesCompanion extends UpdateCompanion<BioDataEntry> {
     return BioDataEntriesCompanion(
       id: id ?? this.id,
       staffId: staffId ?? this.staffId,
-      dependantId: dependantId ?? this.dependantId,
+      dependentId: dependentId ?? this.dependentId,
       contractorStaffId: contractorStaffId ?? this.contractorStaffId,
       visitorId: visitorId ?? this.visitorId,
       finger: finger ?? this.finger,
@@ -12962,8 +12962,8 @@ class BioDataEntriesCompanion extends UpdateCompanion<BioDataEntry> {
     if (staffId.present) {
       map['staff_id'] = Variable<int>(staffId.value);
     }
-    if (dependantId.present) {
-      map['dependant_id'] = Variable<int>(dependantId.value);
+    if (dependentId.present) {
+      map['dependent_id'] = Variable<int>(dependentId.value);
     }
     if (contractorStaffId.present) {
       map['contractor_staff_id'] = Variable<int>(contractorStaffId.value);
@@ -13000,7 +13000,7 @@ class BioDataEntriesCompanion extends UpdateCompanion<BioDataEntry> {
     return (StringBuffer('BioDataEntriesCompanion(')
           ..write('id: $id, ')
           ..write('staffId: $staffId, ')
-          ..write('dependantId: $dependantId, ')
+          ..write('dependentId: $dependentId, ')
           ..write('contractorStaffId: $contractorStaffId, ')
           ..write('visitorId: $visitorId, ')
           ..write('finger: $finger, ')
@@ -13027,9 +13027,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $MealTypesTable mealTypes = $MealTypesTable(this);
   late final $StaffTable staff = $StaffTable(this);
   late final $StaffKitchensTable staffKitchens = $StaffKitchensTable(this);
-  late final $DependantsTable dependants = $DependantsTable(this);
-  late final $DependantKitchensTable dependantKitchens =
-      $DependantKitchensTable(this);
+  late final $DependentsTable dependents = $DependentsTable(this);
+  late final $DependentKitchensTable dependentKitchens =
+      $DependentKitchensTable(this);
   late final $CardsTable cards = $CardsTable(this);
   late final $UsersTable users = $UsersTable(this);
   late final $UserKitchensTable userKitchens = $UserKitchensTable(this);
@@ -13061,8 +13061,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     mealTypes,
     staff,
     staffKitchens,
-    dependants,
-    dependantKitchens,
+    dependents,
+    dependentKitchens,
     cards,
     users,
     userKitchens,
@@ -15145,8 +15145,8 @@ typedef $$StaffTableCreateCompanionBuilder =
       Value<bool?> allowGroupOrder,
       Value<int?> maxOrderCount,
       Value<int?> shiftId,
-      Value<int?> totalDependant,
-      Value<int?> noOfDependantAssigned,
+      Value<int?> totalDependent,
+      Value<int?> noOfDependentAssigned,
       Value<int?> departmentId,
       Value<int> syncStatus,
       Value<String?> syncUpdatedAt,
@@ -15166,8 +15166,8 @@ typedef $$StaffTableUpdateCompanionBuilder =
       Value<bool?> allowGroupOrder,
       Value<int?> maxOrderCount,
       Value<int?> shiftId,
-      Value<int?> totalDependant,
-      Value<int?> noOfDependantAssigned,
+      Value<int?> totalDependent,
+      Value<int?> noOfDependentAssigned,
       Value<int?> departmentId,
       Value<int> syncStatus,
       Value<String?> syncUpdatedAt,
@@ -15177,19 +15177,19 @@ final class $$StaffTableReferences
     extends BaseReferences<_$AppDatabase, $StaffTable, StaffData> {
   $$StaffTableReferences(super.$_db, super.$_table, super.$_typedResult);
 
-  static MultiTypedResultKey<$DependantsTable, List<Dependant>>
-  _dependantsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
-    db.dependants,
-    aliasName: $_aliasNameGenerator(db.staff.id, db.dependants.staffId),
+  static MultiTypedResultKey<$DependentsTable, List<Dependent>>
+  _dependentsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.dependents,
+    aliasName: $_aliasNameGenerator(db.staff.id, db.dependents.staffId),
   );
 
-  $$DependantsTableProcessedTableManager get dependantsRefs {
-    final manager = $$DependantsTableTableManager(
+  $$DependentsTableProcessedTableManager get dependentsRefs {
+    final manager = $$DependentsTableTableManager(
       $_db,
-      $_db.dependants,
+      $_db.dependents,
     ).filter((f) => f.staffId.id.sqlEquals($_itemColumn<int>('id')!));
 
-    final cache = $_typedResult.readTableOrNull(_dependantsRefsTable($_db));
+    final cache = $_typedResult.readTableOrNull(_dependentsRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -15287,13 +15287,13 @@ class $$StaffTableFilterComposer extends Composer<_$AppDatabase, $StaffTable> {
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<int> get totalDependant => $composableBuilder(
-    column: $table.totalDependant,
+  ColumnFilters<int> get totalDependent => $composableBuilder(
+    column: $table.totalDependent,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<int> get noOfDependantAssigned => $composableBuilder(
-    column: $table.noOfDependantAssigned,
+  ColumnFilters<int> get noOfDependentAssigned => $composableBuilder(
+    column: $table.noOfDependentAssigned,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -15312,22 +15312,22 @@ class $$StaffTableFilterComposer extends Composer<_$AppDatabase, $StaffTable> {
     builder: (column) => ColumnFilters(column),
   );
 
-  Expression<bool> dependantsRefs(
-    Expression<bool> Function($$DependantsTableFilterComposer f) f,
+  Expression<bool> dependentsRefs(
+    Expression<bool> Function($$DependentsTableFilterComposer f) f,
   ) {
-    final $$DependantsTableFilterComposer composer = $composerBuilder(
+    final $$DependentsTableFilterComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.id,
-      referencedTable: $db.dependants,
+      referencedTable: $db.dependents,
       getReferencedColumn: (t) => t.staffId,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$DependantsTableFilterComposer(
+          }) => $$DependentsTableFilterComposer(
             $db: $db,
-            $table: $db.dependants,
+            $table: $db.dependents,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -15437,13 +15437,13 @@ class $$StaffTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<int> get totalDependant => $composableBuilder(
-    column: $table.totalDependant,
+  ColumnOrderings<int> get totalDependent => $composableBuilder(
+    column: $table.totalDependent,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<int> get noOfDependantAssigned => $composableBuilder(
-    column: $table.noOfDependantAssigned,
+  ColumnOrderings<int> get noOfDependentAssigned => $composableBuilder(
+    column: $table.noOfDependentAssigned,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -15517,13 +15517,13 @@ class $$StaffTableAnnotationComposer
   GeneratedColumn<int> get shiftId =>
       $composableBuilder(column: $table.shiftId, builder: (column) => column);
 
-  GeneratedColumn<int> get totalDependant => $composableBuilder(
-    column: $table.totalDependant,
+  GeneratedColumn<int> get totalDependent => $composableBuilder(
+    column: $table.totalDependent,
     builder: (column) => column,
   );
 
-  GeneratedColumn<int> get noOfDependantAssigned => $composableBuilder(
-    column: $table.noOfDependantAssigned,
+  GeneratedColumn<int> get noOfDependentAssigned => $composableBuilder(
+    column: $table.noOfDependentAssigned,
     builder: (column) => column,
   );
 
@@ -15542,22 +15542,22 @@ class $$StaffTableAnnotationComposer
     builder: (column) => column,
   );
 
-  Expression<T> dependantsRefs<T extends Object>(
-    Expression<T> Function($$DependantsTableAnnotationComposer a) f,
+  Expression<T> dependentsRefs<T extends Object>(
+    Expression<T> Function($$DependentsTableAnnotationComposer a) f,
   ) {
-    final $$DependantsTableAnnotationComposer composer = $composerBuilder(
+    final $$DependentsTableAnnotationComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.id,
-      referencedTable: $db.dependants,
+      referencedTable: $db.dependents,
       getReferencedColumn: (t) => t.staffId,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$DependantsTableAnnotationComposer(
+          }) => $$DependentsTableAnnotationComposer(
             $db: $db,
-            $table: $db.dependants,
+            $table: $db.dependents,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -15606,7 +15606,7 @@ class $$StaffTableTableManager
           $$StaffTableUpdateCompanionBuilder,
           (StaffData, $$StaffTableReferences),
           StaffData,
-          PrefetchHooks Function({bool dependantsRefs, bool bioDataEntriesRefs})
+          PrefetchHooks Function({bool dependentsRefs, bool bioDataEntriesRefs})
         > {
   $$StaffTableTableManager(_$AppDatabase db, $StaffTable table)
     : super(
@@ -15634,8 +15634,8 @@ class $$StaffTableTableManager
                 Value<bool?> allowGroupOrder = const Value.absent(),
                 Value<int?> maxOrderCount = const Value.absent(),
                 Value<int?> shiftId = const Value.absent(),
-                Value<int?> totalDependant = const Value.absent(),
-                Value<int?> noOfDependantAssigned = const Value.absent(),
+                Value<int?> totalDependent = const Value.absent(),
+                Value<int?> noOfDependentAssigned = const Value.absent(),
                 Value<int?> departmentId = const Value.absent(),
                 Value<int> syncStatus = const Value.absent(),
                 Value<String?> syncUpdatedAt = const Value.absent(),
@@ -15653,8 +15653,8 @@ class $$StaffTableTableManager
                 allowGroupOrder: allowGroupOrder,
                 maxOrderCount: maxOrderCount,
                 shiftId: shiftId,
-                totalDependant: totalDependant,
-                noOfDependantAssigned: noOfDependantAssigned,
+                totalDependent: totalDependent,
+                noOfDependentAssigned: noOfDependentAssigned,
                 departmentId: departmentId,
                 syncStatus: syncStatus,
                 syncUpdatedAt: syncUpdatedAt,
@@ -15674,8 +15674,8 @@ class $$StaffTableTableManager
                 Value<bool?> allowGroupOrder = const Value.absent(),
                 Value<int?> maxOrderCount = const Value.absent(),
                 Value<int?> shiftId = const Value.absent(),
-                Value<int?> totalDependant = const Value.absent(),
-                Value<int?> noOfDependantAssigned = const Value.absent(),
+                Value<int?> totalDependent = const Value.absent(),
+                Value<int?> noOfDependentAssigned = const Value.absent(),
                 Value<int?> departmentId = const Value.absent(),
                 Value<int> syncStatus = const Value.absent(),
                 Value<String?> syncUpdatedAt = const Value.absent(),
@@ -15693,8 +15693,8 @@ class $$StaffTableTableManager
                 allowGroupOrder: allowGroupOrder,
                 maxOrderCount: maxOrderCount,
                 shiftId: shiftId,
-                totalDependant: totalDependant,
-                noOfDependantAssigned: noOfDependantAssigned,
+                totalDependent: totalDependent,
+                noOfDependentAssigned: noOfDependentAssigned,
                 departmentId: departmentId,
                 syncStatus: syncStatus,
                 syncUpdatedAt: syncUpdatedAt,
@@ -15706,31 +15706,31 @@ class $$StaffTableTableManager
               )
               .toList(),
           prefetchHooksCallback:
-              ({dependantsRefs = false, bioDataEntriesRefs = false}) {
+              ({dependentsRefs = false, bioDataEntriesRefs = false}) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
-                    if (dependantsRefs) db.dependants,
+                    if (dependentsRefs) db.dependents,
                     if (bioDataEntriesRefs) db.bioDataEntries,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
                     return [
-                      if (dependantsRefs)
+                      if (dependentsRefs)
                         await $_getPrefetchedData<
                           StaffData,
                           $StaffTable,
-                          Dependant
+                          Dependent
                         >(
                           currentTable: table,
                           referencedTable: $$StaffTableReferences
-                              ._dependantsRefsTable(db),
+                              ._dependentsRefsTable(db),
                           managerFromTypedResult: (p0) =>
                               $$StaffTableReferences(
                                 db,
                                 table,
                                 p0,
-                              ).dependantsRefs,
+                              ).dependentsRefs,
                           referencedItemsForCurrentItem:
                               (item, referencedItems) => referencedItems.where(
                                 (e) => e.staffId == item.id,
@@ -15778,7 +15778,7 @@ typedef $$StaffTableProcessedTableManager =
       $$StaffTableUpdateCompanionBuilder,
       (StaffData, $$StaffTableReferences),
       StaffData,
-      PrefetchHooks Function({bool dependantsRefs, bool bioDataEntriesRefs})
+      PrefetchHooks Function({bool dependentsRefs, bool bioDataEntriesRefs})
     >;
 typedef $$StaffKitchensTableCreateCompanionBuilder =
     StaffKitchensCompanion Function({
@@ -15923,8 +15923,8 @@ typedef $$StaffKitchensTableProcessedTableManager =
       StaffKitchen,
       PrefetchHooks Function()
     >;
-typedef $$DependantsTableCreateCompanionBuilder =
-    DependantsCompanion Function({
+typedef $$DependentsTableCreateCompanionBuilder =
+    DependentsCompanion Function({
       Value<int> id,
       required String fullname,
       required String status,
@@ -15933,8 +15933,8 @@ typedef $$DependantsTableCreateCompanionBuilder =
       Value<int> syncStatus,
       Value<String?> syncUpdatedAt,
     });
-typedef $$DependantsTableUpdateCompanionBuilder =
-    DependantsCompanion Function({
+typedef $$DependentsTableUpdateCompanionBuilder =
+    DependentsCompanion Function({
       Value<int> id,
       Value<String> fullname,
       Value<String> status,
@@ -15944,12 +15944,12 @@ typedef $$DependantsTableUpdateCompanionBuilder =
       Value<String?> syncUpdatedAt,
     });
 
-final class $$DependantsTableReferences
-    extends BaseReferences<_$AppDatabase, $DependantsTable, Dependant> {
-  $$DependantsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+final class $$DependentsTableReferences
+    extends BaseReferences<_$AppDatabase, $DependentsTable, Dependent> {
+  $$DependentsTableReferences(super.$_db, super.$_table, super.$_typedResult);
 
   static $StaffTable _staffIdTable(_$AppDatabase db) => db.staff.createAlias(
-    $_aliasNameGenerator(db.dependants.staffId, db.staff.id),
+    $_aliasNameGenerator(db.dependents.staffId, db.staff.id),
   );
 
   $$StaffTableProcessedTableManager? get staffId {
@@ -15970,8 +15970,8 @@ final class $$DependantsTableReferences
   _bioDataEntriesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
     db.bioDataEntries,
     aliasName: $_aliasNameGenerator(
-      db.dependants.id,
-      db.bioDataEntries.dependantId,
+      db.dependents.id,
+      db.bioDataEntries.dependentId,
     ),
   );
 
@@ -15979,7 +15979,7 @@ final class $$DependantsTableReferences
     final manager = $$BioDataEntriesTableTableManager(
       $_db,
       $_db.bioDataEntries,
-    ).filter((f) => f.dependantId.id.sqlEquals($_itemColumn<int>('id')!));
+    ).filter((f) => f.dependentId.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_bioDataEntriesRefsTable($_db));
     return ProcessedTableManager(
@@ -15988,9 +15988,9 @@ final class $$DependantsTableReferences
   }
 }
 
-class $$DependantsTableFilterComposer
-    extends Composer<_$AppDatabase, $DependantsTable> {
-  $$DependantsTableFilterComposer({
+class $$DependentsTableFilterComposer
+    extends Composer<_$AppDatabase, $DependentsTable> {
+  $$DependentsTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -16057,7 +16057,7 @@ class $$DependantsTableFilterComposer
       composer: this,
       getCurrentColumn: (t) => t.id,
       referencedTable: $db.bioDataEntries,
-      getReferencedColumn: (t) => t.dependantId,
+      getReferencedColumn: (t) => t.dependentId,
       builder:
           (
             joinBuilder, {
@@ -16076,9 +16076,9 @@ class $$DependantsTableFilterComposer
   }
 }
 
-class $$DependantsTableOrderingComposer
-    extends Composer<_$AppDatabase, $DependantsTable> {
-  $$DependantsTableOrderingComposer({
+class $$DependentsTableOrderingComposer
+    extends Composer<_$AppDatabase, $DependentsTable> {
+  $$DependentsTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -16139,9 +16139,9 @@ class $$DependantsTableOrderingComposer
   }
 }
 
-class $$DependantsTableAnnotationComposer
-    extends Composer<_$AppDatabase, $DependantsTable> {
-  $$DependantsTableAnnotationComposer({
+class $$DependentsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DependentsTable> {
+  $$DependentsTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -16200,7 +16200,7 @@ class $$DependantsTableAnnotationComposer
       composer: this,
       getCurrentColumn: (t) => t.id,
       referencedTable: $db.bioDataEntries,
-      getReferencedColumn: (t) => t.dependantId,
+      getReferencedColumn: (t) => t.dependentId,
       builder:
           (
             joinBuilder, {
@@ -16219,32 +16219,32 @@ class $$DependantsTableAnnotationComposer
   }
 }
 
-class $$DependantsTableTableManager
+class $$DependentsTableTableManager
     extends
         RootTableManager<
           _$AppDatabase,
-          $DependantsTable,
-          Dependant,
-          $$DependantsTableFilterComposer,
-          $$DependantsTableOrderingComposer,
-          $$DependantsTableAnnotationComposer,
-          $$DependantsTableCreateCompanionBuilder,
-          $$DependantsTableUpdateCompanionBuilder,
-          (Dependant, $$DependantsTableReferences),
-          Dependant,
+          $DependentsTable,
+          Dependent,
+          $$DependentsTableFilterComposer,
+          $$DependentsTableOrderingComposer,
+          $$DependentsTableAnnotationComposer,
+          $$DependentsTableCreateCompanionBuilder,
+          $$DependentsTableUpdateCompanionBuilder,
+          (Dependent, $$DependentsTableReferences),
+          Dependent,
           PrefetchHooks Function({bool staffId, bool bioDataEntriesRefs})
         > {
-  $$DependantsTableTableManager(_$AppDatabase db, $DependantsTable table)
+  $$DependentsTableTableManager(_$AppDatabase db, $DependentsTable table)
     : super(
         TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
-              $$DependantsTableFilterComposer($db: db, $table: table),
+              $$DependentsTableFilterComposer($db: db, $table: table),
           createOrderingComposer: () =>
-              $$DependantsTableOrderingComposer($db: db, $table: table),
+              $$DependentsTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
-              $$DependantsTableAnnotationComposer($db: db, $table: table),
+              $$DependentsTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
@@ -16254,7 +16254,7 @@ class $$DependantsTableTableManager
                 Value<int?> staffId = const Value.absent(),
                 Value<int> syncStatus = const Value.absent(),
                 Value<String?> syncUpdatedAt = const Value.absent(),
-              }) => DependantsCompanion(
+              }) => DependentsCompanion(
                 id: id,
                 fullname: fullname,
                 status: status,
@@ -16272,7 +16272,7 @@ class $$DependantsTableTableManager
                 Value<int?> staffId = const Value.absent(),
                 Value<int> syncStatus = const Value.absent(),
                 Value<String?> syncUpdatedAt = const Value.absent(),
-              }) => DependantsCompanion.insert(
+              }) => DependentsCompanion.insert(
                 id: id,
                 fullname: fullname,
                 status: status,
@@ -16285,7 +16285,7 @@ class $$DependantsTableTableManager
               .map(
                 (e) => (
                   e.readTable(table),
-                  $$DependantsTableReferences(db, table, e),
+                  $$DependentsTableReferences(db, table, e),
                 ),
               )
               .toList(),
@@ -16317,10 +16317,10 @@ class $$DependantsTableTableManager
                               state.withJoin(
                                     currentTable: table,
                                     currentColumn: table.staffId,
-                                    referencedTable: $$DependantsTableReferences
+                                    referencedTable: $$DependentsTableReferences
                                         ._staffIdTable(db),
                                     referencedColumn:
-                                        $$DependantsTableReferences
+                                        $$DependentsTableReferences
                                             ._staffIdTable(db)
                                             .id,
                                   )
@@ -16333,22 +16333,22 @@ class $$DependantsTableTableManager
                     return [
                       if (bioDataEntriesRefs)
                         await $_getPrefetchedData<
-                          Dependant,
-                          $DependantsTable,
+                          Dependent,
+                          $DependentsTable,
                           BioDataEntry
                         >(
                           currentTable: table,
-                          referencedTable: $$DependantsTableReferences
+                          referencedTable: $$DependentsTableReferences
                               ._bioDataEntriesRefsTable(db),
                           managerFromTypedResult: (p0) =>
-                              $$DependantsTableReferences(
+                              $$DependentsTableReferences(
                                 db,
                                 table,
                                 p0,
                               ).bioDataEntriesRefs,
                           referencedItemsForCurrentItem:
                               (item, referencedItems) => referencedItems.where(
-                                (e) => e.dependantId == item.id,
+                                (e) => e.dependentId == item.id,
                               ),
                           typedResults: items,
                         ),
@@ -16360,44 +16360,44 @@ class $$DependantsTableTableManager
       );
 }
 
-typedef $$DependantsTableProcessedTableManager =
+typedef $$DependentsTableProcessedTableManager =
     ProcessedTableManager<
       _$AppDatabase,
-      $DependantsTable,
-      Dependant,
-      $$DependantsTableFilterComposer,
-      $$DependantsTableOrderingComposer,
-      $$DependantsTableAnnotationComposer,
-      $$DependantsTableCreateCompanionBuilder,
-      $$DependantsTableUpdateCompanionBuilder,
-      (Dependant, $$DependantsTableReferences),
-      Dependant,
+      $DependentsTable,
+      Dependent,
+      $$DependentsTableFilterComposer,
+      $$DependentsTableOrderingComposer,
+      $$DependentsTableAnnotationComposer,
+      $$DependentsTableCreateCompanionBuilder,
+      $$DependentsTableUpdateCompanionBuilder,
+      (Dependent, $$DependentsTableReferences),
+      Dependent,
       PrefetchHooks Function({bool staffId, bool bioDataEntriesRefs})
     >;
-typedef $$DependantKitchensTableCreateCompanionBuilder =
-    DependantKitchensCompanion Function({
-      required int dependantId,
+typedef $$DependentKitchensTableCreateCompanionBuilder =
+    DependentKitchensCompanion Function({
+      required int dependentId,
       required int kitchenId,
       Value<int> rowid,
     });
-typedef $$DependantKitchensTableUpdateCompanionBuilder =
-    DependantKitchensCompanion Function({
-      Value<int> dependantId,
+typedef $$DependentKitchensTableUpdateCompanionBuilder =
+    DependentKitchensCompanion Function({
+      Value<int> dependentId,
       Value<int> kitchenId,
       Value<int> rowid,
     });
 
-class $$DependantKitchensTableFilterComposer
-    extends Composer<_$AppDatabase, $DependantKitchensTable> {
-  $$DependantKitchensTableFilterComposer({
+class $$DependentKitchensTableFilterComposer
+    extends Composer<_$AppDatabase, $DependentKitchensTable> {
+  $$DependentKitchensTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnFilters<int> get dependantId => $composableBuilder(
-    column: $table.dependantId,
+  ColumnFilters<int> get dependentId => $composableBuilder(
+    column: $table.dependentId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -16407,17 +16407,17 @@ class $$DependantKitchensTableFilterComposer
   );
 }
 
-class $$DependantKitchensTableOrderingComposer
-    extends Composer<_$AppDatabase, $DependantKitchensTable> {
-  $$DependantKitchensTableOrderingComposer({
+class $$DependentKitchensTableOrderingComposer
+    extends Composer<_$AppDatabase, $DependentKitchensTable> {
+  $$DependentKitchensTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnOrderings<int> get dependantId => $composableBuilder(
-    column: $table.dependantId,
+  ColumnOrderings<int> get dependentId => $composableBuilder(
+    column: $table.dependentId,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -16427,17 +16427,17 @@ class $$DependantKitchensTableOrderingComposer
   );
 }
 
-class $$DependantKitchensTableAnnotationComposer
-    extends Composer<_$AppDatabase, $DependantKitchensTable> {
-  $$DependantKitchensTableAnnotationComposer({
+class $$DependentKitchensTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DependentKitchensTable> {
+  $$DependentKitchensTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  GeneratedColumn<int> get dependantId => $composableBuilder(
-    column: $table.dependantId,
+  GeneratedColumn<int> get dependentId => $composableBuilder(
+    column: $table.dependentId,
     builder: (column) => column,
   );
 
@@ -16445,61 +16445,61 @@ class $$DependantKitchensTableAnnotationComposer
       $composableBuilder(column: $table.kitchenId, builder: (column) => column);
 }
 
-class $$DependantKitchensTableTableManager
+class $$DependentKitchensTableTableManager
     extends
         RootTableManager<
           _$AppDatabase,
-          $DependantKitchensTable,
-          DependantKitchen,
-          $$DependantKitchensTableFilterComposer,
-          $$DependantKitchensTableOrderingComposer,
-          $$DependantKitchensTableAnnotationComposer,
-          $$DependantKitchensTableCreateCompanionBuilder,
-          $$DependantKitchensTableUpdateCompanionBuilder,
+          $DependentKitchensTable,
+          DependentKitchen,
+          $$DependentKitchensTableFilterComposer,
+          $$DependentKitchensTableOrderingComposer,
+          $$DependentKitchensTableAnnotationComposer,
+          $$DependentKitchensTableCreateCompanionBuilder,
+          $$DependentKitchensTableUpdateCompanionBuilder,
           (
-            DependantKitchen,
+            DependentKitchen,
             BaseReferences<
               _$AppDatabase,
-              $DependantKitchensTable,
-              DependantKitchen
+              $DependentKitchensTable,
+              DependentKitchen
             >,
           ),
-          DependantKitchen,
+          DependentKitchen,
           PrefetchHooks Function()
         > {
-  $$DependantKitchensTableTableManager(
+  $$DependentKitchensTableTableManager(
     _$AppDatabase db,
-    $DependantKitchensTable table,
+    $DependentKitchensTable table,
   ) : super(
         TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
-              $$DependantKitchensTableFilterComposer($db: db, $table: table),
+              $$DependentKitchensTableFilterComposer($db: db, $table: table),
           createOrderingComposer: () =>
-              $$DependantKitchensTableOrderingComposer($db: db, $table: table),
+              $$DependentKitchensTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
-              $$DependantKitchensTableAnnotationComposer(
+              $$DependentKitchensTableAnnotationComposer(
                 $db: db,
                 $table: table,
               ),
           updateCompanionCallback:
               ({
-                Value<int> dependantId = const Value.absent(),
+                Value<int> dependentId = const Value.absent(),
                 Value<int> kitchenId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
-              }) => DependantKitchensCompanion(
-                dependantId: dependantId,
+              }) => DependentKitchensCompanion(
+                dependentId: dependentId,
                 kitchenId: kitchenId,
                 rowid: rowid,
               ),
           createCompanionCallback:
               ({
-                required int dependantId,
+                required int dependentId,
                 required int kitchenId,
                 Value<int> rowid = const Value.absent(),
-              }) => DependantKitchensCompanion.insert(
-                dependantId: dependantId,
+              }) => DependentKitchensCompanion.insert(
+                dependentId: dependentId,
                 kitchenId: kitchenId,
                 rowid: rowid,
               ),
@@ -16511,25 +16511,25 @@ class $$DependantKitchensTableTableManager
       );
 }
 
-typedef $$DependantKitchensTableProcessedTableManager =
+typedef $$DependentKitchensTableProcessedTableManager =
     ProcessedTableManager<
       _$AppDatabase,
-      $DependantKitchensTable,
-      DependantKitchen,
-      $$DependantKitchensTableFilterComposer,
-      $$DependantKitchensTableOrderingComposer,
-      $$DependantKitchensTableAnnotationComposer,
-      $$DependantKitchensTableCreateCompanionBuilder,
-      $$DependantKitchensTableUpdateCompanionBuilder,
+      $DependentKitchensTable,
+      DependentKitchen,
+      $$DependentKitchensTableFilterComposer,
+      $$DependentKitchensTableOrderingComposer,
+      $$DependentKitchensTableAnnotationComposer,
+      $$DependentKitchensTableCreateCompanionBuilder,
+      $$DependentKitchensTableUpdateCompanionBuilder,
       (
-        DependantKitchen,
+        DependentKitchen,
         BaseReferences<
           _$AppDatabase,
-          $DependantKitchensTable,
-          DependantKitchen
+          $DependentKitchensTable,
+          DependentKitchen
         >,
       ),
-      DependantKitchen,
+      DependentKitchen,
       PrefetchHooks Function()
     >;
 typedef $$CardsTableCreateCompanionBuilder =
@@ -20285,7 +20285,7 @@ typedef $$BioDataEntriesTableCreateCompanionBuilder =
     BioDataEntriesCompanion Function({
       Value<int> id,
       Value<int?> staffId,
-      Value<int?> dependantId,
+      Value<int?> dependentId,
       Value<int?> contractorStaffId,
       Value<int?> visitorId,
       required String finger,
@@ -20300,7 +20300,7 @@ typedef $$BioDataEntriesTableUpdateCompanionBuilder =
     BioDataEntriesCompanion Function({
       Value<int> id,
       Value<int?> staffId,
-      Value<int?> dependantId,
+      Value<int?> dependentId,
       Value<int?> contractorStaffId,
       Value<int?> visitorId,
       Value<String> finger,
@@ -20338,19 +20338,19 @@ final class $$BioDataEntriesTableReferences
     );
   }
 
-  static $DependantsTable _dependantIdTable(_$AppDatabase db) =>
-      db.dependants.createAlias(
-        $_aliasNameGenerator(db.bioDataEntries.dependantId, db.dependants.id),
+  static $DependentsTable _dependentIdTable(_$AppDatabase db) =>
+      db.dependents.createAlias(
+        $_aliasNameGenerator(db.bioDataEntries.dependentId, db.dependents.id),
       );
 
-  $$DependantsTableProcessedTableManager? get dependantId {
-    final $_column = $_itemColumn<int>('dependant_id');
+  $$DependentsTableProcessedTableManager? get dependentId {
+    final $_column = $_itemColumn<int>('dependent_id');
     if ($_column == null) return null;
-    final manager = $$DependantsTableTableManager(
+    final manager = $$DependentsTableTableManager(
       $_db,
-      $_db.dependants,
+      $_db.dependents,
     ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_dependantIdTable($_db));
+    final item = $_typedResult.readTableOrNull(_dependentIdTable($_db));
     if (item == null) return manager;
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: [item]),
@@ -20471,20 +20471,20 @@ class $$BioDataEntriesTableFilterComposer
     return composer;
   }
 
-  $$DependantsTableFilterComposer get dependantId {
-    final $$DependantsTableFilterComposer composer = $composerBuilder(
+  $$DependentsTableFilterComposer get dependentId {
+    final $$DependentsTableFilterComposer composer = $composerBuilder(
       composer: this,
-      getCurrentColumn: (t) => t.dependantId,
-      referencedTable: $db.dependants,
+      getCurrentColumn: (t) => t.dependentId,
+      referencedTable: $db.dependents,
       getReferencedColumn: (t) => t.id,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$DependantsTableFilterComposer(
+          }) => $$DependentsTableFilterComposer(
             $db: $db,
-            $table: $db.dependants,
+            $table: $db.dependents,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -20613,20 +20613,20 @@ class $$BioDataEntriesTableOrderingComposer
     return composer;
   }
 
-  $$DependantsTableOrderingComposer get dependantId {
-    final $$DependantsTableOrderingComposer composer = $composerBuilder(
+  $$DependentsTableOrderingComposer get dependentId {
+    final $$DependentsTableOrderingComposer composer = $composerBuilder(
       composer: this,
-      getCurrentColumn: (t) => t.dependantId,
-      referencedTable: $db.dependants,
+      getCurrentColumn: (t) => t.dependentId,
+      referencedTable: $db.dependents,
       getReferencedColumn: (t) => t.id,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$DependantsTableOrderingComposer(
+          }) => $$DependentsTableOrderingComposer(
             $db: $db,
-            $table: $db.dependants,
+            $table: $db.dependents,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -20746,20 +20746,20 @@ class $$BioDataEntriesTableAnnotationComposer
     return composer;
   }
 
-  $$DependantsTableAnnotationComposer get dependantId {
-    final $$DependantsTableAnnotationComposer composer = $composerBuilder(
+  $$DependentsTableAnnotationComposer get dependentId {
+    final $$DependentsTableAnnotationComposer composer = $composerBuilder(
       composer: this,
-      getCurrentColumn: (t) => t.dependantId,
-      referencedTable: $db.dependants,
+      getCurrentColumn: (t) => t.dependentId,
+      referencedTable: $db.dependents,
       getReferencedColumn: (t) => t.id,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$DependantsTableAnnotationComposer(
+          }) => $$DependentsTableAnnotationComposer(
             $db: $db,
-            $table: $db.dependants,
+            $table: $db.dependents,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -20832,7 +20832,7 @@ class $$BioDataEntriesTableTableManager
           BioDataEntry,
           PrefetchHooks Function({
             bool staffId,
-            bool dependantId,
+            bool dependentId,
             bool contractorStaffId,
             bool visitorId,
           })
@@ -20854,7 +20854,7 @@ class $$BioDataEntriesTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 Value<int?> staffId = const Value.absent(),
-                Value<int?> dependantId = const Value.absent(),
+                Value<int?> dependentId = const Value.absent(),
                 Value<int?> contractorStaffId = const Value.absent(),
                 Value<int?> visitorId = const Value.absent(),
                 Value<String> finger = const Value.absent(),
@@ -20867,7 +20867,7 @@ class $$BioDataEntriesTableTableManager
               }) => BioDataEntriesCompanion(
                 id: id,
                 staffId: staffId,
-                dependantId: dependantId,
+                dependentId: dependentId,
                 contractorStaffId: contractorStaffId,
                 visitorId: visitorId,
                 finger: finger,
@@ -20882,7 +20882,7 @@ class $$BioDataEntriesTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 Value<int?> staffId = const Value.absent(),
-                Value<int?> dependantId = const Value.absent(),
+                Value<int?> dependentId = const Value.absent(),
                 Value<int?> contractorStaffId = const Value.absent(),
                 Value<int?> visitorId = const Value.absent(),
                 required String finger,
@@ -20895,7 +20895,7 @@ class $$BioDataEntriesTableTableManager
               }) => BioDataEntriesCompanion.insert(
                 id: id,
                 staffId: staffId,
-                dependantId: dependantId,
+                dependentId: dependentId,
                 contractorStaffId: contractorStaffId,
                 visitorId: visitorId,
                 finger: finger,
@@ -20917,7 +20917,7 @@ class $$BioDataEntriesTableTableManager
           prefetchHooksCallback:
               ({
                 staffId = false,
-                dependantId = false,
+                dependentId = false,
                 contractorStaffId = false,
                 visitorId = false,
               }) {
@@ -20955,17 +20955,17 @@ class $$BioDataEntriesTableTableManager
                                   )
                                   as T;
                         }
-                        if (dependantId) {
+                        if (dependentId) {
                           state =
                               state.withJoin(
                                     currentTable: table,
-                                    currentColumn: table.dependantId,
+                                    currentColumn: table.dependentId,
                                     referencedTable:
                                         $$BioDataEntriesTableReferences
-                                            ._dependantIdTable(db),
+                                            ._dependentIdTable(db),
                                     referencedColumn:
                                         $$BioDataEntriesTableReferences
-                                            ._dependantIdTable(db)
+                                            ._dependentIdTable(db)
                                             .id,
                                   )
                                   as T;
@@ -21026,7 +21026,7 @@ typedef $$BioDataEntriesTableProcessedTableManager =
       BioDataEntry,
       PrefetchHooks Function({
         bool staffId,
-        bool dependantId,
+        bool dependentId,
         bool contractorStaffId,
         bool visitorId,
       })
@@ -21053,10 +21053,10 @@ class $AppDatabaseManager {
       $$StaffTableTableManager(_db, _db.staff);
   $$StaffKitchensTableTableManager get staffKitchens =>
       $$StaffKitchensTableTableManager(_db, _db.staffKitchens);
-  $$DependantsTableTableManager get dependants =>
-      $$DependantsTableTableManager(_db, _db.dependants);
-  $$DependantKitchensTableTableManager get dependantKitchens =>
-      $$DependantKitchensTableTableManager(_db, _db.dependantKitchens);
+  $$DependentsTableTableManager get dependents =>
+      $$DependentsTableTableManager(_db, _db.dependents);
+  $$DependentKitchensTableTableManager get dependentKitchens =>
+      $$DependentKitchensTableTableManager(_db, _db.dependentKitchens);
   $$CardsTableTableManager get cards =>
       $$CardsTableTableManager(_db, _db.cards);
   $$UsersTableTableManager get users =>

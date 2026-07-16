@@ -23,7 +23,7 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage>
   bool? _fingerprintFilter;
 
   final List<_EntityEntry> _staffEntries = [];
-  final List<_EntityEntry> _dependantEntries = [];
+  final List<_EntityEntry> _dependentEntries = [];
   final List<_EntityEntry> _visitorEntries = [];
   final List<_EntityEntry> _contractorStaffEntries = [];
   bool _isLoading = true;
@@ -69,13 +69,13 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage>
         }),
       );
 
-    // Dependants
-    final depList = await db.getAllDependants();
-    _dependantEntries
+    // Dependents
+    final depList = await db.getAllDependents();
+    _dependentEntries
       ..clear()
       ..addAll(
         depList.map((d) {
-          final fps = allFps.where((f) => f.dependantId == d.id).toList();
+          final fps = allFps.where((f) => f.dependentId == d.id).toList();
           final initials = d.fullname
               .split(' ')
               .map((p) => p.isNotEmpty ? p[0] : '')
@@ -145,7 +145,7 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage>
       case 0:
         return _staffEntries;
       case 1:
-        return _dependantEntries;
+        return _dependentEntries;
       case 2:
         return _visitorEntries;
       case 3:
@@ -266,7 +266,7 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage>
 
     final tabLabels = [
       "Staff",
-      'Dependant',
+      'Dependent',
       'Visitor',
       'Contractor',
     ];

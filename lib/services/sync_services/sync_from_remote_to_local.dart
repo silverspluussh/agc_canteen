@@ -26,7 +26,7 @@ class RemoteToLocalSyncService {
     _jobs.add(SyncJob(name: 'cards', execute: _syncCards));
     _jobs.add(SyncJob(name: 'visitors', execute: _syncVisitors));
     _jobs.add(SyncJob(name: 'contractorStaff', execute: _syncContractorStaff));
-    _jobs.add(SyncJob(name: 'dependants', execute: _syncDependants));
+    _jobs.add(SyncJob(name: 'dependents', execute: _syncDependents));
     _jobs.add(SyncJob(name: 'shifts', execute: _syncShifts));
   }
 
@@ -81,8 +81,8 @@ class RemoteToLocalSyncService {
     await _syncContractorStaff();
   }
 
-  Future<void> syncDependantsOnly() async {
-    await _syncDependants();
+  Future<void> syncDependentsOnly() async {
+    await _syncDependents();
   }
 
   Future<void> syncShiftsOnly() async {
@@ -391,8 +391,8 @@ class RemoteToLocalSyncService {
       final companion = BioDataEntriesCompanion(
         id: Value(intId),
         staffId: Value.absentIfNull(_safeParseInt(bioDataMap['staffId'])),
-        dependantId: Value.absentIfNull(
-          _safeParseInt(bioDataMap['dependantId']),
+        dependentId: Value.absentIfNull(
+          _safeParseInt(bioDataMap['dependentId']),
         ),
         contractorStaffId: Value.absentIfNull(
           _safeParseInt(bioDataMap['contractorStaffId']),
@@ -516,7 +516,6 @@ class RemoteToLocalSyncService {
       '/pos/profiles',
       queryParameters: {'status': 'active'},
       builder: (d) {
-        print(d);
         return d;
       },
     );
@@ -879,17 +878,17 @@ class RemoteToLocalSyncService {
     }
   }
 
-  // ─── Dependants Sync ───────────────────────────────────────
+  // ─── Dependents Sync ───────────────────────────────────────
 
-  Future<bool> _syncDependants() async {
+  Future<bool> _syncDependents() async {
     try {
-      _logger.i('RemoteToLocalSyncService: fetching remote dependants...');
+      _logger.i('RemoteToLocalSyncService: fetching remote dependents...');
       final posDevices = await _db.getAllPosDevices();
       final posKitchenId = posDevices.isNotEmpty
           ? posDevices.first.kitchenId
           : null;
       final responseData = await _networkAPI.getData(
-        '/hr/dependants',
+        '/hr/dependents',
         builder: (data) => data,
         queryParameters: {
           if (posKitchenId != null && posKitchenId != 0)
@@ -898,7 +897,6 @@ class RemoteToLocalSyncService {
       );
 
       List<dynamic>? list;
-      print(responseData);
       if (responseData is List) {
         list = responseData;
       } else if (responseData is Map && responseData['data'] is List) {
@@ -906,7 +904,7 @@ class RemoteToLocalSyncService {
       }
 
       if (list == null || list.isEmpty) {
-        _logger.w('RemoteToLocalSyncService: no remote dependants available');
+        _logger.w('RemoteToLocalSyncService: no remote dependents available');
         return false;
       }
 
@@ -914,34 +912,34 @@ class RemoteToLocalSyncService {
         final remoteIds = <int>{};
         for (final item in list!) {
           if (item is Map<String, dynamic>) {
-            await _upsertDependantData(item);
+            await _upsertDependentData(item);
             final id = _safeParseInt(item['id']);
             if (id != null && id != 0) remoteIds.add(id);
           }
         }
-        final deleted = await _db.deleteDependantsNotIn(remoteIds);
+        final deleted = await _db.deleteDependentsNotIn(remoteIds);
         if (deleted > 0) {
           _logger.i(
-            'RemoteToLocalSyncService: removed $deleted stale dependants',
+            'RemoteToLocalSyncService: removed $deleted stale dependents',
           );
         }
       });
 
-      _logger.i('RemoteToLocalSyncService: dependants sync completed');
+      _logger.i('RemoteToLocalSyncService: dependents sync completed');
       return true;
     } catch (e) {
-      _logger.w('RemoteToLocalSyncService: dependants fetch failed ($e)');
+      _logger.w('RemoteToLocalSyncService: dependents fetch failed ($e)');
       return false;
     }
   }
 
-  Future<void> _upsertDependantData(Map<String, dynamic> map) async {
+  Future<void> _upsertDependentData(Map<String, dynamic> map) async {
     try {
       final id = _safeParseInt(map['id']) ?? 0;
       if (id == 0) return;
 
       final now = DateTime.now().toIso8601String();
-      final companion = DependantsCompanion(
+      final companion = DependentsCompanion(
         id: Value(id),
         fullname: Value(map['fullName'] as String? ?? ''),
         status: Value(map['status'] as String? ?? 'active'),
@@ -951,19 +949,19 @@ class RemoteToLocalSyncService {
         syncUpdatedAt: Value(now),
       );
 
-      await _db.insertDependant(companion, mode: InsertMode.insertOrReplace);
+      await _db.insertDependent(companion, mode: InsertMode.insertOrReplace);
 
       // Upsert kitchens
       final depKitchens = map['kitchens'] as List<dynamic>?;
       if (depKitchens != null) {
-        await _db.deleteDependantKitchensByDependant(id);
+        await _db.deleteDependentKitchensByDependent(id);
         for (final kitchen in depKitchens) {
           if (kitchen is Map<String, dynamic>) {
             final kitchenId = _safeParseInt(kitchen['id']);
             if (kitchenId != null) {
-              await _db.insertDependantKitchen(
-                DependantKitchensCompanion(
-                  dependantId: Value(id),
+              await _db.insertDependentKitchen(
+                DependentKitchensCompanion(
+                  dependentId: Value(id),
                   kitchenId: Value(kitchenId),
                 ),
               );
@@ -975,7 +973,7 @@ class RemoteToLocalSyncService {
       // Upsert bioData
       final depBioData = map['bioData'] as List<dynamic>?;
       if (depBioData != null) {
-        await _db.deleteBioDataByDependant(id);
+        await _db.deleteBioDataByDependent(id);
         for (final bio in depBioData) {
           if (bio is Map<String, dynamic>) {
             final bioId = _safeParseInt(bio['id']) ?? 0;
@@ -983,7 +981,7 @@ class RemoteToLocalSyncService {
             await _db.upsertBioData(
               BioDataEntriesCompanion(
                 id: Value(bioId),
-                dependantId: Value(id),
+                dependentId: Value(id),
                 finger: Value(bio['finger']?.toString() ?? ''),
                 dataBase64: Value(bio['data']?.toString() ?? ''),
                 isActive: Value(bio['isActive'] as bool? ?? true),
@@ -998,7 +996,7 @@ class RemoteToLocalSyncService {
       }
     } catch (e, stack) {
       _logger.e(
-        'RemoteToLocalSyncService: failed to upsert dependant: $e',
+        'RemoteToLocalSyncService: failed to upsert dependent: $e',
         stackTrace: stack,
       );
     }
@@ -1016,7 +1014,6 @@ class RemoteToLocalSyncService {
       );
 
       List<dynamic>? list;
-      print(responseData);
       if (responseData is List) {
         list = responseData;
       } else if (responseData is Map && responseData['shifts'] is List) {

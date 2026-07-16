@@ -2,7 +2,7 @@ import 'dart:developer';
 
 import 'biodata.model.dart';
 import 'company.model.dart';
-import 'dependant.model.dart';
+import 'dependent.model.dart';
 import 'kitchen.model.dart';
 
 class Staff {
@@ -71,13 +71,13 @@ class Staff {
     bool? allowGroupOrder,
     int? maxOrderCount,
     int? shiftId,
-    int? totalDependant,
+    int? totalDependent,
     List<dynamic>? card,
-    int? noOfDependantAssigned,
+    int? noOfDependentAssigned,
     Department? department,
     List<BioData>? bioData,
     List<Kitchen>? kitchens,
-    List<Dependant>? dependants,
+    List<Dependent>? dependents,
   }) {
     return Staff(
       id: id ?? this.id,

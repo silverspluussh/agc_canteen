@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:developer';
 import 'package:agc_canteen/core/network/api_exceptions_util.dart';
 import 'package:agc_canteen/models/sync.model.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -104,7 +103,6 @@ class LocalToRemoteSyncService {
         }
         payloads.add(await _buildSingleOrderPayload(order));
       }
-      log('Pushing ${payloads.first} orders to remote server', name: 'LocalToRemoteSyncService');
       try {
         await _networkAPI.postData(
           '/pos/order/create-bulk',
@@ -159,15 +157,15 @@ class LocalToRemoteSyncService {
 
       // Group by entity type + entity ID
       final byStaff = <int, List<BioDataEntry>>{};
-      final byDependant = <int, List<BioDataEntry>>{};
+      final byDependent = <int, List<BioDataEntry>>{};
       final byContractorStaff = <int, List<BioDataEntry>>{};
       final byVisitor = <int, List<BioDataEntry>>{};
 
       for (final entry in unsynced) {
         if (entry.staffId != null) {
           byStaff.putIfAbsent(entry.staffId!, () => []).add(entry);
-        } else if (entry.dependantId != null) {
-          byDependant.putIfAbsent(entry.dependantId!, () => []).add(entry);
+        } else if (entry.dependentId != null) {
+          byDependent.putIfAbsent(entry.dependentId!, () => []).add(entry);
         } else if (entry.contractorStaffId != null) {
           byContractorStaff
               .putIfAbsent(entry.contractorStaffId!, () => [])
@@ -247,7 +245,7 @@ class LocalToRemoteSyncService {
         }
       }
 
-      await pushGroup(groups: byDependant, employeeType: 'dependent');
+      await pushGroup(groups: byDependent, employeeType: 'dependent');
       await pushGroup(groups: byContractorStaff, employeeType: 'contractor');
       await pushGroup(groups: byVisitor, employeeType: 'visitor');
 

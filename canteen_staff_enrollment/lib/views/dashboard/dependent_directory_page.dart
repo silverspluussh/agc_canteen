@@ -1,18 +1,18 @@
-import 'package:canteen_staff_enrollment/models/dependant.model.dart';
+import 'package:canteen_staff_enrollment/models/dependent.model.dart';
 import 'package:canteen_staff_enrollment/views/app_buttons.widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../controllers/dependant_controller.dart';
+import '../../controllers/dependent_controller.dart';
 import '../../core/theme/app_colors.dart';
-import 'dependant_biodata_page.dart';
+import 'dependent_biodata_page.dart';
 
-class DependantDirectoryPage extends ConsumerWidget {
-  const DependantDirectoryPage({super.key});
+class DependentDirectoryPage extends ConsumerWidget {
+  const DependentDirectoryPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final dependantAsync = ref.watch(filteredDependantListProvider);
-    final searchQuery = ref.watch(dependantQueryProvider);
+    final dependentAsync = ref.watch(filteredDependentListProvider);
+    final searchQuery = ref.watch(dependentQueryProvider);
 
     return Scaffold(
       body: Padding(
@@ -25,15 +25,15 @@ class DependantDirectoryPage extends ConsumerWidget {
                 Expanded(
                   child: TextField(
                     onChanged: (val) =>
-                        ref.read(dependantQueryProvider.notifier).state = val,
+                        ref.read(dependentQueryProvider.notifier).state = val,
                     decoration: InputDecoration(
-                      hintText: 'Search dependants by name...',
+                      hintText: 'Search dependents by name...',
                       prefixIcon: const Icon(Icons.search),
                       suffixIcon: searchQuery.isNotEmpty
                           ? IconButton(
                               icon: const Icon(Icons.clear),
                               onPressed: () =>
-                                  ref.read(dependantQueryProvider.notifier).state = '',
+                                  ref.read(dependentQueryProvider.notifier).state = '',
                             )
                           : null,
                     ),
@@ -45,12 +45,12 @@ class DependantDirectoryPage extends ConsumerWidget {
             Expanded(
               child: RefreshIndicator(
                 onRefresh: () async {
-                  ref.invalidate(dependantListProvider);
-                  await ref.read(dependantListProvider.future);
+                  ref.invalidate(dependentListProvider);
+                  await ref.read(dependentListProvider.future);
                 },
-                child: dependantAsync.when(
-                  data: (dependantList) {
-                    if (dependantList.isEmpty) {
+                child: dependentAsync.when(
+                  data: (dependentList) {
+                    if (dependentList.isEmpty) {
                       return Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -65,7 +65,7 @@ class DependantDirectoryPage extends ConsumerWidget {
                             ),
                             const SizedBox(height: 16),
                             const Text(
-                              'No dependants found',
+                              'No dependents found',
                               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                             ),
                           ],
@@ -74,11 +74,11 @@ class DependantDirectoryPage extends ConsumerWidget {
                     }
 
                     return ListView.separated(
-                      itemCount: dependantList.length,
+                      itemCount: dependentList.length,
                       separatorBuilder: (context, index) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
-                        final dependant = dependantList[index];
-                        final biodata = dependant.bioData ?? [];
+                        final dependent = dependentList[index];
+                        final biodata = dependent.bioData ?? [];
                         final isEnrolled = biodata.isNotEmpty;
 
                         return Card(
@@ -90,8 +90,8 @@ class DependantDirectoryPage extends ConsumerWidget {
                                 shape: const RoundedRectangleBorder(
                                   borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                                 ),
-                                builder: (_) => _DependantActionSheet(
-                                  dependant: dependant,
+                                builder: (_) => _DependentActionSheet(
+                                  dependent: dependent,
                                   isEnrolled: isEnrolled,
                                 ),
                               );
@@ -108,7 +108,7 @@ class DependantDirectoryPage extends ConsumerWidget {
                                         .primary
                                         .withValues(alpha: 0.1),
                                     child: Text(
-                                      dependant.fullname.isNotEmpty ? dependant.fullname[0].toUpperCase() : '?',
+                                      dependent.fullname.isNotEmpty ? dependent.fullname[0].toUpperCase() : '?',
                                       style: TextStyle(
                                         color: Theme.of(context).colorScheme.primary,
                                         fontWeight: FontWeight.bold,
@@ -121,12 +121,12 @@ class DependantDirectoryPage extends ConsumerWidget {
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          dependant.fullname,
+                                          dependent.fullname,
                                           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          'Status: ${dependant.status}',
+                                          'Status: ${dependent.status}',
                                           style: TextStyle(
                                             fontSize: 13,
                                             color: Theme.of(context)
@@ -212,10 +212,10 @@ class DependantDirectoryPage extends ConsumerWidget {
                       children: [
                         const Icon(Icons.error_outline, size: 48, color: AppColors.error),
                         const SizedBox(height: 16),
-                        Text('Failed to load dependants: $err'),
+                        Text('Failed to load dependents: $err'),
                         const SizedBox(height: 16),
                         ElevatedButton(
-                          onPressed: () => ref.refresh(dependantListProvider),
+                          onPressed: () => ref.refresh(dependentListProvider),
                           child: const Text('Retry'),
                         ),
                       ],
@@ -231,12 +231,12 @@ class DependantDirectoryPage extends ConsumerWidget {
   }
 }
 
-class _DependantActionSheet extends StatelessWidget {
-  final Dependant dependant;
+class _DependentActionSheet extends StatelessWidget {
+  final Dependent dependent;
   final bool isEnrolled;
 
-  const _DependantActionSheet({
-    required this.dependant,
+  const _DependentActionSheet({
+    required this.dependent,
     required this.isEnrolled,
   });
 
@@ -263,7 +263,7 @@ class _DependantActionSheet extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                dependant.fullname,
+                dependent.fullname,
                 style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
@@ -310,13 +310,13 @@ class _DependantActionSheet extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => DependantBiodataPage(dependant: dependant),
+                    builder: (_) => DependentBiodataPage(dependent: dependent),
                   ),
                 );
               },
               prefixChild: const Icon(Icons.person_outline, size: 18, color: AppColors.gold600),
               label: const Text(
-                'View Dependant Biodata',
+                'View Dependent Biodata',
                 style: TextStyle(color: AppColors.gold600, fontWeight: FontWeight.w500, fontSize: 16),
               ),
             ),

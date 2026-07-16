@@ -21,7 +21,7 @@ The AGC Canteen POS System is an Android-based Point of Sale application designe
 - **Fingerprint-based staff authentication** for meal eligibility verification
 - **Manual order placement** for staff without fingerprints (admin PIN fallback)
 - **Individual and group order processing** with real-time receipt printing
-- **Remote data synchronization** — pulls staff, meal types, bio-data, visitors, shifts, dependants, and contractor staff from the central server
+- **Remote data synchronization** — pulls staff, meal types, bio-data, visitors, shifts, dependents, and contractor staff from the central server
 - **Offline-first operation** — orders and fingerprint enrollments work without internet and sync when connectivity returns
 - **NFC card scanning** for staff identification
 - **Staff management** with fingerprint enrollment/deactivation
@@ -38,7 +38,7 @@ The AGC Canteen POS System is an Android-based Point of Sale application designe
    - Fetch staff records for your assigned kitchen
    - Download meal types and pricing
    - Pull existing biometric (fingerprint) data
-   - Sync visitors, shifts, dependants, and contractor staff
+   - Sync visitors, shifts, dependents, and contractor staff
 
 ### Printer Setup
 
@@ -164,7 +164,7 @@ Pulls fresh data from the server and replaces stale local records.
 | BioData | Fingerprint templates for your kitchen's staff |
 | Visitors | Visitor records |
 | Contractor Staff | Contractor personnel |
-| Dependants | Staff dependants |
+| Dependents | Staff dependents |
 | Shifts | Shift definitions |
 
 **Download All** fetches all entities in one operation.

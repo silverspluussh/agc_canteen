@@ -1,7 +1,7 @@
 import 'package:agc_canteen/models/nfc_card.model.dart';
 
 import 'company.model.dart';
-import 'dependant.model.dart';
+import 'dependent.model.dart';
 import 'kitchen.model.dart';
 
 class Staff {
@@ -19,12 +19,12 @@ class Staff {
   final int? maxOrderCount;
   final int? shiftId;
   final List<BioData>? bioData;
-  final int? totalDependant;
+  final int? totalDependent;
   final List<NfcCard>? cards;
-  final int? noOfDependantAssigned;
+  final int? noOfDependentAssigned;
   final Department? department;
   final List<Kitchen>? kitchens;
-  final List<Dependant>? dependants;
+  final List<Dependent>? dependents;
 
   const Staff({
     required this.id,
@@ -41,12 +41,12 @@ class Staff {
     this.maxOrderCount,
     this.shiftId,
     this.bioData,
-    this.totalDependant,
+    this.totalDependent,
     this.cards,
-    this.noOfDependantAssigned,
+    this.noOfDependentAssigned,
     this.department,
     this.kitchens,
-    this.dependants,
+    this.dependents,
   });
 
   factory Staff.fromMap(Map<String, dynamic> map) {
@@ -68,13 +68,13 @@ class Staff {
       allowGroupOrder: map['allow_group_order'] as bool?,
       maxOrderCount: map['max_order_count'] as int?,
       shiftId: map['shift_id'] as int?,
-      totalDependant: map['total_dependant'] as int?,
+      totalDependent: map['total_dependent'] as int?,
       cards: map['cards'] != null
           ? (map['cards'] as List<dynamic>)
               .map((item) => NfcCard.fromMap(item as Map<String, dynamic>))
               .toList()
           : null,
-      noOfDependantAssigned: map['no_of_dependant_assigned'] as int?,
+      noOfDependentAssigned: map['no_of_dependent_assigned'] as int?,
       bioData: map['bioData'] != null
           ? (map['bioData'] as List<dynamic>)
               .map((item) => BioData.fromMap(item as Map<String, dynamic>))
@@ -88,9 +88,9 @@ class Staff {
               .map((item) => Kitchen.fromMap(item as Map<String, dynamic>))
               .toList()
           : null,
-      dependants: map['dependants'] != null
-          ? (map['dependants'] as List<dynamic>)
-              .map((item) => Dependant.fromMap(item as Map<String, dynamic>))
+      dependents: map['dependents'] != null
+          ? (map['dependents'] as List<dynamic>)
+              .map((item) => Dependent.fromMap(item as Map<String, dynamic>))
               .toList()
           : null,
     );
@@ -112,13 +112,13 @@ class Staff {
       'allow_group_order': allowGroupOrder,
       'max_order_count': maxOrderCount,
       'shift_id': shiftId,
-      'total_dependant': totalDependant,
+      'total_dependent': totalDependent,
       'cardIds': cards?.map((item) => item.id).toList(),
-      'no_of_dependant_assigned': noOfDependantAssigned,
+      'no_of_dependent_assigned': noOfDependentAssigned,
       'departmentId': department?.id,
       'bioDataIds': bioData?.map((item) => item.id).toList(),
       'kitchensIds': kitchens?.map((item) => item.id).toList(),
-      'dependantsIds': dependants?.map((item) => item.id).toList()
+      'dependentsIds': dependents?.map((item) => item.id).toList()
     };
   }
 
@@ -137,13 +137,13 @@ class Staff {
     bool? allowGroupOrder,
     int? maxOrderCount,
     int? shiftId,
-    int? totalDependant,
+    int? totalDependent,
     List<NfcCard>? cards,
-    int? noOfDependantAssigned,
+    int? noOfDependentAssigned,
     Department? department,
     List<BioData>? bioData,
     List<Kitchen>? kitchens,
-    List<Dependant>? dependants,
+    List<Dependent>? dependents,
   }) {
     return Staff(
       id: id ?? this.id,
@@ -159,14 +159,14 @@ class Staff {
       allowGroupOrder: allowGroupOrder ?? this.allowGroupOrder,
       maxOrderCount: maxOrderCount ?? this.maxOrderCount,
       shiftId: shiftId ?? this.shiftId,
-      totalDependant: totalDependant ?? this.totalDependant,
+      totalDependent: totalDependent ?? this.totalDependent,
       cards: cards ?? this.cards,
-      noOfDependantAssigned:
-          noOfDependantAssigned ?? this.noOfDependantAssigned,
+      noOfDependentAssigned:
+          noOfDependentAssigned ?? this.noOfDependentAssigned,
       department: department ?? this.department,
       bioData: bioData ?? this.bioData,
       kitchens: kitchens ?? this.kitchens,
-      dependants: dependants ?? this.dependants,
+      dependents: dependents ?? this.dependents,
     );
   }
 }

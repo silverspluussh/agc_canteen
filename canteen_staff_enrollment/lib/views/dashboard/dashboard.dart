@@ -4,7 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../controllers/admin_auth_controller.dart';
 import '../../core/theme/app_colors.dart';
 import 'contractor_directory_page.dart';
-import 'dependant_directory_page.dart';
+import 'dependent_directory_page.dart';
+import 'nfc_card_directory_page.dart';
 import 'overview_page.dart';
 import 'staff_directory_page.dart';
 import 'visitor_directory_page.dart';
@@ -29,29 +30,32 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       OverviewPage(
         onNavigateToStaff: () => setState(() => _currentIndex = 1),
         onNavigateToVisitors: () => setState(() => _currentIndex = 2),
-        onNavigateToDependants: () => setState(() => _currentIndex = 3),
+        onNavigateToDependents: () => setState(() => _currentIndex = 3),
         onNavigateToContractors: () => setState(() => _currentIndex = 4),
       ),
       const StaffDirectoryPage(),
       const VisitorDirectoryPage(),
-      const DependantDirectoryPage(),
+      const DependentDirectoryPage(),
       const ContractorDirectoryPage(),
+      const NfcCardDirectoryPage(),
     ];
 
     final titles = <String>[
       'Dashboard Overview',
       'Staff Directory',
       'Visitor Directory',
-      'Dependant Directory',
+      'Dependent Directory',
       'Contractor Staff Directory',
+      'NFC Card Management',
     ];
 
     final subtitles = <String>[
       'Summarized overview of staff enrollments',
       'View all staff enrollment directory',
       'View visitors and manage their biodata',
-      'View dependants and manage their biodata',
+      'View dependents and manage their biodata',
       'View contractor staff and manage their biodata',
+      'Manage NFC cards, assign and track status',
     ];
 
     return PopScope(
@@ -158,7 +162,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               ListTile(
                 leading: const Icon(Icons.family_restroom, size: 35),
                 title: Text(
-                  'Dependant Directory',
+                  'Dependent Directory',
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 selected: _currentIndex == 3,
@@ -182,6 +186,19 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 },
               ),
 
+              ListTile(
+                leading: const Icon(Icons.credit_card_outlined, size: 35),
+                title: Text(
+                  'NFC Cards',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                selected: _currentIndex == 5,
+                selectedColor: Theme.of(context).colorScheme.primary,
+                onTap: () {
+                  setState(() => _currentIndex = 5);
+                  Navigator.pop(context);
+                },
+              ),
               const Spacer(),
               const Divider(),
 

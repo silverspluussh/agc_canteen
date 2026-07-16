@@ -99,7 +99,7 @@ final reportOrdersProvider = FutureProvider<List<_ReportOrder>>((ref) async {
   final groupOrders = await db.getAllGroupOrders();
   final staffList = await db.getAllStaff();
   final visitorList = await db.getAllVisitors();
-  final dependantList = await db.getAllDependants();
+  final dependentList = await db.getAllDependents();
   final contractorList = await db.getAllContractorStaff();
 
   String resolveName(int id, String employeeType) {
@@ -108,7 +108,7 @@ final reportOrdersProvider = FutureProvider<List<_ReportOrder>>((ref) async {
         final v = visitorList.where((e) => e.id == id).firstOrNull;
         return v?.name ?? id.toString();
       case 'dependent':
-        final d = dependantList.where((e) => e.id == id).firstOrNull;
+        final d = dependentList.where((e) => e.id == id).firstOrNull;
         return d?.fullname ?? id.toString();
       case 'contractor':
         final c = contractorList.where((e) => e.id == id).firstOrNull;

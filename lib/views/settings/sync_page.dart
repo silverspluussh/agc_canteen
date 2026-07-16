@@ -37,7 +37,7 @@ class _SyncPageState extends ConsumerState<SyncPage>
   int _bioDataCount = 0;
   int _visitorCount = 0;
   int _contractorStaffCount = 0;
-  int _dependantCount = 0;
+  int _dependentCount = 0;
   int _shiftCount = 0;
   int _cardCount = 0;
   bool _syncingDownload = false;
@@ -49,7 +49,7 @@ class _SyncPageState extends ConsumerState<SyncPage>
       _bioDataCount +
       _visitorCount +
       _contractorStaffCount +
-      _dependantCount +
+      _dependentCount +
       _shiftCount +
       _cardCount;
 
@@ -97,7 +97,7 @@ class _SyncPageState extends ConsumerState<SyncPage>
     final bioData = await _db.getAllBioData();
     final visitors = await _db.getAllVisitors();
     final cStaff = await _db.getAllContractorStaff();
-    final dependants = await _db.getAllDependants();
+    final dependents = await _db.getAllDependents();
     final shifts = await _db.getAllShifts();
     final cards = await _db.getAllCards();
     if (mounted) {
@@ -107,7 +107,7 @@ class _SyncPageState extends ConsumerState<SyncPage>
         _bioDataCount = bioData.length;
         _visitorCount = visitors.length;
         _contractorStaffCount = cStaff.length;
-        _dependantCount = dependants.length;
+        _dependentCount = dependents.length;
         _shiftCount = shifts.length;
         _cardCount = cards.length;
       });
@@ -219,7 +219,7 @@ class _SyncPageState extends ConsumerState<SyncPage>
   Future<void> _viewUnsyncedOrders() async {
     final staff = await _db.getAllStaff();
     final visitors = await _db.getAllVisitors();
-    final dependants = await _db.getAllDependants();
+    final dependents = await _db.getAllDependents();
     final contractors = await _db.getAllContractorStaff();
     String entityName(int id, String employeeType) {
       switch (employeeType) {
@@ -227,7 +227,7 @@ class _SyncPageState extends ConsumerState<SyncPage>
           final v = visitors.where((e) => e.id == id).firstOrNull;
           return v?.name ?? id.toString();
         case 'dependent':
-          final d = dependants.where((e) => e.id == id).firstOrNull;
+          final d = dependents.where((e) => e.id == id).firstOrNull;
           return d?.fullname ?? id.toString();
         case 'contractor':
           final c = contractors.where((e) => e.id == id).firstOrNull;
@@ -467,11 +467,11 @@ class _SyncPageState extends ConsumerState<SyncPage>
           const SizedBox(height: 10),
           _SyncStatCard(
             icon: Icons.family_restroom,
-            label: 'Dependants',
-            count: _dependantCount,
+            label: 'Dependents',
+            count: _dependentCount,
             syncing: _syncingDownload,
             onSync: () => _syncDownload(
-                'Dependants', _downloadService.syncDependantsOnly),
+                'Dependents', _downloadService.syncDependentsOnly),
             onView: null,
           ),
           const SizedBox(height: 10),

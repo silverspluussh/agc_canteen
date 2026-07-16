@@ -4,7 +4,7 @@ import 'package:canteen_staff_enrollment/views/app_buttons.widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../controllers/contractor_controller.dart';
-import '../../controllers/dependant_controller.dart';
+import '../../controllers/dependent_controller.dart';
 import '../../controllers/staff_controller.dart';
 import '../../controllers/visitor_controller.dart';
 import '../../core/theme/app_colors.dart';
@@ -12,14 +12,14 @@ import '../../core/theme/app_colors.dart';
 class OverviewPage extends ConsumerWidget {
   final VoidCallback onNavigateToStaff;
   final VoidCallback onNavigateToVisitors;
-  final VoidCallback onNavigateToDependants;
+  final VoidCallback onNavigateToDependents;
   final VoidCallback onNavigateToContractors;
 
   const OverviewPage({
     super.key,
     required this.onNavigateToStaff,
     required this.onNavigateToVisitors,
-    required this.onNavigateToDependants,
+    required this.onNavigateToDependents,
     required this.onNavigateToContractors,
   });
 
@@ -27,7 +27,7 @@ class OverviewPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final staffAsync = ref.watch(staffListProvider);
     final visitorAsync = ref.watch(visitorListProvider);
-    final dependantAsync = ref.watch(dependantListProvider);
+    final dependentAsync = ref.watch(dependentListProvider);
     final contractorAsync = ref.watch(contractorStaffListProvider);
     final biodataCounts = ref.watch(allBiodataProvider).value ?? {};
 
@@ -36,7 +36,7 @@ class OverviewPage extends ConsumerWidget {
         onRefresh: () => Future.wait([
           ref.refresh(staffListProvider.future),
           ref.refresh(visitorListProvider.future),
-          ref.refresh(dependantListProvider.future),
+          ref.refresh(dependentListProvider.future),
           ref.refresh(contractorStaffListProvider.future),
           ref.refresh(allBiodataProvider.future),
         ]),
@@ -46,7 +46,7 @@ class OverviewPage extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildCombinedStats(context, ref, staffAsync, visitorAsync, dependantAsync, contractorAsync, biodataCounts),
+              _buildCombinedStats(context, ref, staffAsync, visitorAsync, dependentAsync, contractorAsync, biodataCounts),
             ],
           ),
         ),
@@ -59,12 +59,12 @@ class OverviewPage extends ConsumerWidget {
     WidgetRef ref,
     AsyncValue<List> staffAsync,
     AsyncValue<List> visitorAsync,
-    AsyncValue<List> dependantAsync,
+    AsyncValue<List> dependentAsync,
     AsyncValue<List> contractorAsync,
     Map<int, int> biodataCounts,
   ) {
-    final isLoading = staffAsync.isLoading || visitorAsync.isLoading || dependantAsync.isLoading || contractorAsync.isLoading;
-    final hasError = staffAsync.hasError || visitorAsync.hasError || dependantAsync.hasError || contractorAsync.hasError;
+    final isLoading = staffAsync.isLoading || visitorAsync.isLoading || dependentAsync.isLoading || contractorAsync.isLoading;
+    final hasError = staffAsync.hasError || visitorAsync.hasError || dependentAsync.hasError || contractorAsync.hasError;
 
     if (isLoading) {
       return const Center(
@@ -96,7 +96,7 @@ class OverviewPage extends ConsumerWidget {
                 onPressed: () {
                   ref.invalidate(staffListProvider);
                   ref.invalidate(visitorListProvider);
-                  ref.invalidate(dependantListProvider);
+                  ref.invalidate(dependentListProvider);
                   ref.invalidate(contractorStaffListProvider);
                 },
                 label: const Text('Retry', style: TextStyle(color: Colors.white)),
@@ -109,11 +109,11 @@ class OverviewPage extends ConsumerWidget {
 
     final staffList = staffAsync.value ?? [];
     final visitorList = visitorAsync.value ?? [];
-    final dependantList = dependantAsync.value ?? [];
+    final dependentList = dependentAsync.value ?? [];
     final contractorList = contractorAsync.value ?? [];
 
 
-    final totalPersonnel = staffList.length + visitorList.length + dependantList.length + contractorList.length;
+    final totalPersonnel = staffList.length + visitorList.length + dependentList.length + contractorList.length;
 
     final enrolledStaff = staffList.where((s) {
       return (biodataCounts[(s as dynamic).id] ?? 0) > 0;
@@ -124,7 +124,7 @@ class OverviewPage extends ConsumerWidget {
       return b != null && b.isNotEmpty;
     }).length;
 
-    final enrolledDependants = (dependantList).where((d) {
+    final enrolledDependents = (dependentList).where((d) {
       final b = (d as dynamic).bioData;
       return b != null && b.isNotEmpty;
     }).length;
@@ -134,7 +134,7 @@ class OverviewPage extends ConsumerWidget {
       return b != null && b.isNotEmpty;
     }).length;
 
-    final enrolledPersonnel = enrolledStaff + enrolledVisitors + enrolledDependants + enrolledContractors;
+    final enrolledPersonnel = enrolledStaff + enrolledVisitors + enrolledDependents + enrolledContractors;
     final pendingPersonnel = totalPersonnel - enrolledPersonnel;
 
     return Column(
@@ -335,10 +335,10 @@ class OverviewPage extends ConsumerWidget {
               backgroundColor: Colors.teal.withValues(alpha: 0.15),
               child: const Icon(Icons.family_restroom, color: Colors.teal),
             ),
-            title: const Text('Dependant Directory', style: TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: const Text('View dependants and manage their biodata'),
+            title: const Text('Dependent Directory', style: TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: const Text('View dependents and manage their biodata'),
             trailing: const Icon(Icons.chevron_right),
-            onTap: onNavigateToDependants,
+            onTap: onNavigateToDependents,
           ),
           const Divider(height: 4),
           ListTile(
