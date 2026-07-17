@@ -48,7 +48,7 @@ class _AuthGateState extends ConsumerState<AuthGate> {
     }
 
     if (mounted) {
-      unawaited(syncService.syncAll());
+       unawaited(syncService.syncAll());
     }
   }
 

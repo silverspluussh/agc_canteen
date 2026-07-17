@@ -1,18 +1,64 @@
+import 'package:canteen_staff_enrollment/models/company.model.dart';
 import 'package:canteen_staff_enrollment/models/contractor.model.dart';
 import 'package:canteen_staff_enrollment/views/app_buttons.widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../controllers/contractor_controller.dart';
+import '../../controllers/providers.dart';
 import '../../core/theme/app_colors.dart';
 import 'contractor_biodata_page.dart';
 
-class ContractorDirectoryPage extends ConsumerWidget {
+class ContractorDirectoryPage extends ConsumerStatefulWidget {
   const ContractorDirectoryPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ContractorDirectoryPage> createState() => _ContractorDirectoryPageState();
+}
+
+class _ContractorDirectoryPageState extends ConsumerState<ContractorDirectoryPage> {
+  final _searchController = TextEditingController();
+  int? _selectedDepartmentId;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Widget _buildDepartmentFilter(AsyncValue<List<Department>> departmentsAsync) {
+    final departments = departmentsAsync.value ?? [];
+    return PopupMenuButton<int?>(
+      tooltip: 'Filter by department',
+      icon: Icon(
+        Icons.business_center,
+        color: _selectedDepartmentId != null
+            ? Theme.of(context).colorScheme.primary
+            : null,
+      ),
+      onSelected: (id) {
+        setState(() => _selectedDepartmentId = id);
+        ref.read(contractorStaffDeptFilterProvider.notifier).state = id?.toString();
+      },
+      itemBuilder: (context) => [
+        PopupMenuItem<int?>(
+          value: null,
+          child: Text('All Departments',
+              style: TextStyle(fontWeight: _selectedDepartmentId == null ? FontWeight.bold : null)),
+        ),
+        ...departments.map((d) => PopupMenuItem<int?>(
+              value: d.id,
+              child: Text(d.name,
+                  style: TextStyle(fontWeight: _selectedDepartmentId == d.id ? FontWeight.bold : null)),
+            )),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final staffAsync = ref.watch(filteredContractorStaffListProvider);
     final searchQuery = ref.watch(contractorStaffQueryProvider);
+    final departmentsAsync = ref.watch(departmentListProvider);
 
     return Scaffold(
       body: Padding(
@@ -24,21 +70,26 @@ class ContractorDirectoryPage extends ConsumerWidget {
               children: [
                 Expanded(
                   child: TextField(
+                    controller: _searchController,
                     onChanged: (val) =>
                         ref.read(contractorStaffQueryProvider.notifier).state = val,
                     decoration: InputDecoration(
                       hintText: 'Search contractor staff by name...',
                       prefixIcon: const Icon(Icons.search),
-                      suffixIcon: searchQuery.isNotEmpty
+                      suffixIcon: _searchController.text.isNotEmpty
                           ? IconButton(
                               icon: const Icon(Icons.clear),
-                              onPressed: () =>
-                                  ref.read(contractorStaffQueryProvider.notifier).state = '',
+                              onPressed: () {
+                                _searchController.clear();
+                                ref.read(contractorStaffQueryProvider.notifier).state = '';
+                              },
                             )
                           : null,
                     ),
                   ),
                 ),
+                const SizedBox(width: 8),
+                _buildDepartmentFilter(departmentsAsync),
               ],
             ),
             const SizedBox(height: 20),

@@ -13,22 +13,26 @@ class NfcCardService {
     String? searchTerm,
     String? status,
     String? kitchenId,
+    String? departmentId,
     String? startDate,
     String? endDate,
-    int? limit,
-    int? offset,
+    int limit = 2500,
   }) async {
     try {
       return await networkAPI.getData<List<NfcCard>>(
         '/hr/nfc-cards',
         queryParameters: {
-          "limit":"100",
-          "offset":"0",
-        
-       
+          "limit": limit,
+          if (assignedToType != null) 'assignedToType': assignedToType,
+          if (referenceId != null) 'referenceId': referenceId,
+          if (searchTerm != null && searchTerm.isNotEmpty) 'searchTerm': searchTerm,
+          if (status != null) 'status': status,
+          if (kitchenId != null) 'kitchenId': kitchenId,
+          if (departmentId != null) 'departmentId': departmentId,
+          if (startDate != null) 'startDate': startDate,
+          if (endDate != null) 'endDate': endDate,
         },
         builder: (data) {
-          log('getAllCards data: $data');
           final List<dynamic> rawList;
           if (data is List) {
             rawList = data;
@@ -52,8 +56,8 @@ class NfcCardService {
     try {
       return await networkAPI.getData<NfcCard>(
         '/hr/nfc-cards/$id/single',
-        builder: (data) =>
-            NfcCard.fromMap(data as Map<String, dynamic>),
+        queryParameters: {"limit": 2500},
+        builder: (data) => NfcCard.fromMap(data as Map<String, dynamic>),
       );
     } catch (e, stack) {
       log('Error in getCardById: $e', error: e, stackTrace: stack);

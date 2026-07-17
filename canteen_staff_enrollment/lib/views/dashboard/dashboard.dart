@@ -119,10 +119,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
               // Navigation List Items
               ListTile(
-                leading: const Icon(Icons.dashboard_outlined, size: 35),
+                leading: const Icon(Icons.dashboard_outlined, size: 20),
                 title: Text(
                   'Overview',
-                  style: Theme.of(context).textTheme.titleLarge,
+                  style: Theme.of(context).textTheme.titleSmall,
                 ),
                 selected: _currentIndex == 0,
                 selectedColor: Theme.of(context).colorScheme.primary,
@@ -134,10 +134,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.group, size: 35),
+                leading: const Icon(Icons.group, size: 20),
                 title: Text(
                   'Staff Directory',
-                  style: Theme.of(context).textTheme.titleLarge,
+                  style: Theme.of(context).textTheme.titleSmall,
                 ),
                 selected: _currentIndex == 1,
                 selectedColor: Theme.of(context).colorScheme.primary,
@@ -147,10 +147,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.person_outline, size: 35,),
+                leading: const Icon(Icons.person_outline, size: 20,),
                 title: Text(
                   'Visitor Directory',
-                  style: Theme.of(context).textTheme.titleLarge,
+                  style: Theme.of(context).textTheme.titleSmall,
                 ),
                 selected: _currentIndex == 2,
                 selectedColor: Theme.of(context).colorScheme.primary,
@@ -160,10 +160,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.family_restroom, size: 35),
+                leading: const Icon(Icons.family_restroom, size: 20),
                 title: Text(
                   'Dependent Directory',
-                  style: Theme.of(context).textTheme.titleLarge,
+                  style: Theme.of(context).textTheme.titleSmall,
                 ),
                 selected: _currentIndex == 3,
                 selectedColor: Theme.of(context).colorScheme.primary,
@@ -173,10 +173,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.engineering_outlined, size: 35),
+                leading: const Icon(Icons.engineering_outlined, size: 20),
                 title: Text(
                   'Contractor Directory',
-                  style: Theme.of(context).textTheme.titleLarge,
+                  style: Theme.of(context).textTheme.titleSmall,
                 ),
                 selected: _currentIndex == 4,
                 selectedColor: Theme.of(context).colorScheme.primary,
@@ -187,10 +187,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               ),
 
               ListTile(
-                leading: const Icon(Icons.credit_card_outlined, size: 35),
+                leading: const Icon(Icons.credit_card_outlined, size: 20),
                 title: Text(
                   'NFC Cards',
-                  style: Theme.of(context).textTheme.titleLarge,
+                  style: Theme.of(context).textTheme.titleSmall,
                 ),
                 selected: _currentIndex == 5,
                 selectedColor: Theme.of(context).colorScheme.primary,
@@ -204,13 +204,13 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
               // Logout Action
               ListTile(
-                leading: const Icon(Icons.logout, color: AppColors.error,size: 30,),
+                leading: const Icon(Icons.logout, color: AppColors.error,size: 25,),
                 title: const Text(
                   'Sign out',
                   style: TextStyle(
                     color: AppColors.error,
                     fontWeight: FontWeight.bold,
-                    fontSize: 18
+                    fontSize: 16
                   ),
                 ),
                 onTap: () {

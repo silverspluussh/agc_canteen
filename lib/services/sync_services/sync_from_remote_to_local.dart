@@ -104,6 +104,8 @@ class RemoteToLocalSyncService {
         '/hr/staffs',
         queryParameters: {
           'active': 'true',
+          'limit':2500,
+          'offset':0,
           if (posKitchenId != null && posKitchenId != 0)
             'kitchenId': posKitchenId,
         },
@@ -235,7 +237,8 @@ class RemoteToLocalSyncService {
       final responseData = await _networkAPI.getData(
         '/caterer/meal-types',
         builder: (data) => data,
-        queryParameters: {'active': 'true'},
+        queryParameters: {'active': 'true',  'limit':30,
+          'offset':0},
       );
 
       List<dynamic>? mealTypesList;
@@ -329,6 +332,8 @@ class RemoteToLocalSyncService {
           if (posKitchenId != null && posKitchenId != 0)
             'kitchenId': posKitchenId,
           'active': 'true',
+          'limit': 2500,
+          'offset': 0,
         },
         builder: (data) => data,
       );
@@ -420,11 +425,19 @@ class RemoteToLocalSyncService {
 
   Future<bool> _syncCards() async {
     try {
-      _logger.i('RemoteToLocalSyncService: fetching remote NFC cards...');
 
+      final posDevices = await _db.getAllPosDevices();
+      final posKitchenId = posDevices.isNotEmpty
+          ? posDevices.first.kitchenId
+          : null;
       final responseData = await _networkAPI.getData(
         '/hr/nfc-cards',
-        queryParameters: {'status': 'active'},
+        queryParameters: {
+          
+          'status': 'active', 'limit': 2500, 'offset': 0,
+           if (posKitchenId != null && posKitchenId != 0)
+            'kitchenId': posKitchenId       
+          },
         builder: (data) => data,
       );
 
@@ -439,7 +452,6 @@ class RemoteToLocalSyncService {
         _logger.w('RemoteToLocalSyncService: no remote NFC cards available');
         return false;
       }
-      _logger.w("List length: ${list.length} : Data: $list");
 
       _logger.i(
         'RemoteToLocalSyncService: received ${list.length} remote NFC cards, upserting...',
@@ -514,7 +526,7 @@ class RemoteToLocalSyncService {
     _logger.i('RemoteToLocalSyncService: fetching all POS device profiles...');
     final data = await _networkAPI.getData<dynamic>(
       '/pos/profiles',
-      queryParameters: {'status': 'active'},
+      queryParameters: {'status': 'active', 'limit': 100, 'offset': 0},
       builder: (d) {
         return d;
       },
@@ -621,6 +633,8 @@ class RemoteToLocalSyncService {
         builder: (data) => data,
         queryParameters: {
           'active': 'true',
+          'limit': 2500,
+          'offset': 0,
           if (posKitchenId != null && posKitchenId != 0)
             'kitchenId': posKitchenId,
         },
@@ -752,6 +766,8 @@ class RemoteToLocalSyncService {
         '/hr/contractor-staffs',
         queryParameters: {
           'active': 'true',
+          'limit': 2500,
+          'offset': 0,
           if (posKitchenId != null && posKitchenId != 0)
             'kitchenId': posKitchenId,
         },
@@ -891,8 +907,11 @@ class RemoteToLocalSyncService {
         '/hr/dependents',
         builder: (data) => data,
         queryParameters: {
+            'limit':2500,
+          'offset':0,
           if (posKitchenId != null && posKitchenId != 0)
             'kitchenId': posKitchenId,
+
         },
       );
 
@@ -1011,6 +1030,7 @@ class RemoteToLocalSyncService {
       final responseData = await _networkAPI.getData(
         '/hr/shifts',
         builder: (data) => data,
+        queryParameters: {'limit': 50, 'offset': 0},
       );
 
       List<dynamic>? list;

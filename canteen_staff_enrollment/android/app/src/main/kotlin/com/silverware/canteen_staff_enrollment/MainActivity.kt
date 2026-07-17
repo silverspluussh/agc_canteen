@@ -11,6 +11,7 @@ import com.silverware.canteen_staff_enrollment.plugins.PosPlugin
 import com.silverware.canteen_staff_enrollment.plugins.FingerprintPlugin
 import com.silverware.canteen_staff_enrollment.plugins.ScannerPlugin
 import com.silverware.canteen_staff_enrollment.plugins.CardPlugin
+import com.silverware.canteen_staff_enrollment.plugins.NfcPlugin
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 
@@ -30,6 +31,7 @@ class MainActivity : FlutterActivity() {
         flutterEngine.plugins.add(FingerprintPlugin())
         flutterEngine.plugins.add(ScannerPlugin())
         flutterEngine.plugins.add(CardPlugin())
+        flutterEngine.plugins.add(NfcPlugin())
     }
 
     private fun requestNeededPermissions() {

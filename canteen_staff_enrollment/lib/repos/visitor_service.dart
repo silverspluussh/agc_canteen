@@ -11,16 +11,18 @@ class VisitorService {
     String? status,
     String? departmentId,
     String? kitchenId,
+    String? searchTerm,
+    int limit = 2500,
   }) async {
     try {
       return await networkAPI.getData<List<Visitor>>(
         '/hr/visitors',
-        queryParameters: {       
-         if (departmentId != null)
-         'departmentId': departmentId,
-          if (kitchenId != null)
-          'kitchenId': kitchenId,
-            
+        queryParameters: {
+          "limit": limit,
+          if (departmentId != null) 'departmentId': departmentId,
+          if (kitchenId != null) 'kitchenId': kitchenId,
+          if (status != null) 'status': status,
+          if (searchTerm != null && searchTerm.isNotEmpty) 'searchTerm': searchTerm,
         },
         builder: (data) {
           final list = data is List

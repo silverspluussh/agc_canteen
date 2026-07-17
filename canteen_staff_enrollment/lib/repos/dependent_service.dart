@@ -7,17 +7,20 @@ class DependentService {
   final NetworkAPI networkAPI;
   DependentService({required this.networkAPI});
 
-  Future<List<Dependent>> getAllDependents(
-    {String? kitchenId, String? departmentId}
-  ) async {
+  Future<List<Dependent>> getAllDependents({
+    String? kitchenId,
+    String? departmentId,
+    String? searchTerm,
+    int limit = 2500,
+  }) async {
     try {
       return await networkAPI.getData<List<Dependent>>(
         '/hr/dependents',
         queryParameters: {
-           
-                
+          'limit': limit,
           if (kitchenId != null) 'kitchenId': kitchenId,
           if (departmentId != null) 'departmentId': departmentId,
+          if (searchTerm != null && searchTerm.isNotEmpty) 'searchTerm': searchTerm,
         },
         builder: (data) {
           log('Raw data received for dependents: $data');
@@ -38,14 +41,11 @@ class DependentService {
     }
   }
 
-  Future<List<Dependent>> getDependentsByStaffId(
-    int staffId) async {
+  Future<List<Dependent>> getDependentsByStaffId(int staffId) async {
     try {
       return await networkAPI.getData<List<Dependent>>(
         '/hr/dependent/$staffId/all',
-        queryParameters: {
-          'staffId': staffId,
-        },
+        queryParameters: {'staffId': staffId},
         builder: (data) {
           final list = data is List
               ? data

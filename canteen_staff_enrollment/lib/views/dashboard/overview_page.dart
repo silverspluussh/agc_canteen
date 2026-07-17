@@ -1,12 +1,7 @@
-import 'dart:developer';
-
 import 'package:canteen_staff_enrollment/views/app_buttons.widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../controllers/contractor_controller.dart';
-import '../../controllers/dependent_controller.dart';
-import '../../controllers/staff_controller.dart';
-import '../../controllers/visitor_controller.dart';
+import '../../controllers/providers.dart';
 import '../../core/theme/app_colors.dart';
 
 class OverviewPage extends ConsumerWidget {
@@ -25,129 +20,69 @@ class OverviewPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final staffAsync = ref.watch(staffListProvider);
-    final visitorAsync = ref.watch(visitorListProvider);
-    final dependentAsync = ref.watch(dependentListProvider);
-    final contractorAsync = ref.watch(contractorStaffListProvider);
-    final biodataCounts = ref.watch(allBiodataProvider).value ?? {};
+    final statsAsync = ref.watch(overviewStatsProvider);
 
     return Scaffold(
       body: RefreshIndicator(
-        onRefresh: () => Future.wait([
-          ref.refresh(staffListProvider.future),
-          ref.refresh(visitorListProvider.future),
-          ref.refresh(dependentListProvider.future),
-          ref.refresh(contractorStaffListProvider.future),
-          ref.refresh(allBiodataProvider.future),
-        ]),
+        onRefresh: () => ref.refresh(overviewStatsProvider.future),
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(15.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildCombinedStats(context, ref, staffAsync, visitorAsync, dependentAsync, contractorAsync, biodataCounts),
-            ],
+          child: statsAsync.when(
+            data: (stats) {
+              final total = stats['totalStaff']! +
+                  stats['totalVisitors']! +
+                  stats['totalDependents']! +
+                  stats['totalContractorStaff']!;
+
+              final enrolled = stats['enrolledStaff']! + stats['enrolledDependents']!;
+
+              final pending = total - enrolled;
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildStatsGrid(context, total, enrolled, pending),
+                  const SizedBox(height: 20),
+                  _buildQuickActions(context),
+                ],
+              );
+            },
+            loading: () => const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 60.0),
+                child: CircularProgressIndicator(),
+              ),
+            ),
+            error: (err, stack) => Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 60.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Failed to load summary details',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    PrimaryButton(
+                      onPressed: () => ref.invalidate(overviewStatsProvider),
+                      label: const Text('Retry', style: TextStyle(color: Colors.white)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
       ),
     );
   }
-
-  Widget _buildCombinedStats(
-    BuildContext context,
-    WidgetRef ref,
-    AsyncValue<List> staffAsync,
-    AsyncValue<List> visitorAsync,
-    AsyncValue<List> dependentAsync,
-    AsyncValue<List> contractorAsync,
-    Map<int, int> biodataCounts,
-  ) {
-    final isLoading = staffAsync.isLoading || visitorAsync.isLoading || dependentAsync.isLoading || contractorAsync.isLoading;
-    final hasError = staffAsync.hasError || visitorAsync.hasError || dependentAsync.hasError || contractorAsync.hasError;
-
-    if (isLoading) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 60.0),
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
-
-    if (hasError) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 60.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: AppColors.error),
-              const SizedBox(height: 16),
-              Text(
-                'Failed to load summary details',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-                ),
-              ),
-              const SizedBox(height: 16),
-              PrimaryButton(
-                onPressed: () {
-                  ref.invalidate(staffListProvider);
-                  ref.invalidate(visitorListProvider);
-                  ref.invalidate(dependentListProvider);
-                  ref.invalidate(contractorStaffListProvider);
-                },
-                label: const Text('Retry', style: TextStyle(color: Colors.white)),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    final staffList = staffAsync.value ?? [];
-    final visitorList = visitorAsync.value ?? [];
-    final dependentList = dependentAsync.value ?? [];
-    final contractorList = contractorAsync.value ?? [];
-
-
-    final totalPersonnel = staffList.length + visitorList.length + dependentList.length + contractorList.length;
-
-    final enrolledStaff = staffList.where((s) {
-      return (biodataCounts[(s as dynamic).id] ?? 0) > 0;
-    }).length;
-
-    final enrolledVisitors = (visitorList).where((v) {
-      final b = (v as dynamic).bioData;
-      return b != null && b.isNotEmpty;
-    }).length;
-
-    final enrolledDependents = (dependentList).where((d) {
-      final b = (d as dynamic).bioData;
-      return b != null && b.isNotEmpty;
-    }).length;
-
-    final enrolledContractors = (contractorList).where((c) {
-      final b = (c as dynamic).bioData;
-      return b != null && b.isNotEmpty;
-    }).length;
-
-    final enrolledPersonnel = enrolledStaff + enrolledVisitors + enrolledDependents + enrolledContractors;
-    final pendingPersonnel = totalPersonnel - enrolledPersonnel;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildStatsGrid(context, totalPersonnel, enrolledPersonnel, pendingPersonnel),
-        const SizedBox(height: 20),
-        _buildQuickActions(context),
-      ],
-    );
-  }
-
- 
 
   Widget _buildStatsGrid(
     BuildContext context,
@@ -291,7 +226,6 @@ class OverviewPage extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-         
           Text(
             'Quick Actions',
             style: Theme.of(

@@ -25,9 +25,6 @@ class StaffDirectoryPage extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-           
-
-            // Search + Filter Row
             Row(
               children: [
                 Expanded(
@@ -53,8 +50,7 @@ class StaffDirectoryPage extends ConsumerWidget {
                   isLabelVisible: filter.isActive,
                   label: Text(
                     '${filter.activeFilterCount}',
-                    style: const TextStyle(
-                        fontSize: 10, color: Colors.white),
+                    style: const TextStyle(fontSize: 10, color: Colors.white),
                   ),
                   child: IconButton(
                     onPressed: () {
@@ -80,15 +76,11 @@ class StaffDirectoryPage extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 20),
-
-            // Active filter chips
             if (filter.isActive)
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: _ActiveFilterChips(filter: filter),
               ),
-
-            // Staff List
             Expanded(
               child: RefreshIndicator(
                 onRefresh: () async {
@@ -136,7 +128,7 @@ class StaffDirectoryPage extends ConsumerWidget {
                         final fingerprintCount =
                             biodataCounts[staff.id] ?? 0;
                         final isEnrolled = fingerprintCount > 0;
-;                        return Card(
+                        return Card(
                           margin: EdgeInsets.zero,
                           child: InkWell(
                             onTap: () {
@@ -151,9 +143,9 @@ class StaffDirectoryPage extends ConsumerWidget {
                                   staff: staff,
                                   isEnrolled: isEnrolled,
                                   onNavigateBack: () {
-                                      ref.invalidate(staffListProvider);
-                                      ref.invalidate(allBiodataProvider);
-                                    },
+                                    ref.invalidate(staffListProvider);
+                                    ref.invalidate(allBiodataProvider);
+                                  },
                                 ),
                               );
                             },
@@ -162,7 +154,6 @@ class StaffDirectoryPage extends ConsumerWidget {
                               padding: const EdgeInsets.all(16.0),
                               child: Row(
                                 children: [
-                                  // Left Initial Circle
                                   CircleAvatar(
                                     radius: 24,
                                     backgroundColor: Theme.of(context)
@@ -180,19 +171,16 @@ class StaffDirectoryPage extends ConsumerWidget {
                                     ),
                                   ),
                                   const SizedBox(width: 16),
-
-                                  // Middle Name & ID
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           staff.fullname,
                                           style: const TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.bold,
-                                          ),  
+                                          ),
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
@@ -208,11 +196,8 @@ class StaffDirectoryPage extends ConsumerWidget {
                                       ],
                                     ),
                                   ),
-
-                                  // Right: enrollment badge + chevron
                                   Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.end,
+                                    crossAxisAlignment: CrossAxisAlignment.end,
                                     children: [
                                       Container(
                                         padding: const EdgeInsets.symmetric(
@@ -221,20 +206,15 @@ class StaffDirectoryPage extends ConsumerWidget {
                                         ),
                                         decoration: BoxDecoration(
                                           color: isEnrolled
-                                              ? const Color(0xFF2E7D32)
-                                                  .withValues(alpha: 0.1)
-                                              : const Color(0xFFE65100)
-                                                  .withValues(alpha: 0.1),
-                                          borderRadius:
-                                              BorderRadius.circular(20),
+                                              ? const Color(0xFF2E7D32).withValues(alpha: 0.1)
+                                              : const Color(0xFFE65100).withValues(alpha: 0.1),
+                                          borderRadius: BorderRadius.circular(20),
                                         ),
                                         child: Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
                                             Icon(
-                                              isEnrolled
-                                                  ? Icons.check_circle
-                                                  : Icons.pending,
+                                              isEnrolled ? Icons.check_circle : Icons.pending,
                                               size: 14,
                                               color: isEnrolled
                                                   ? const Color(0xFF2E7D32)
@@ -242,9 +222,7 @@ class StaffDirectoryPage extends ConsumerWidget {
                                             ),
                                             const SizedBox(width: 4),
                                             Text(
-                                              isEnrolled
-                                                  ? 'Enrolled'
-                                                  : 'Pending',
+                                              isEnrolled ? 'Enrolled' : 'Pending',
                                               style: TextStyle(
                                                 fontSize: 12,
                                                 fontWeight: FontWeight.w600,
@@ -288,23 +266,17 @@ class StaffDirectoryPage extends ConsumerWidget {
                       },
                     );
                   },
-                  loading: () => const Center(
-                      child: CircularProgressIndicator()),
+                  loading: () => const Center(child: CircularProgressIndicator()),
                   error: (err, stack) => Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(
-                          Icons.error_outline,
-                          size: 48,
-                          color: AppColors.error,
-                        ),
+                        const Icon(Icons.error_outline, size: 48, color: AppColors.error),
                         const SizedBox(height: 16),
                         Text('Failed to load staff list: $err'),
                         const SizedBox(height: 16),
                         ElevatedButton(
-                          onPressed: () =>
-                              ref.refresh(staffListProvider),
+                          onPressed: () => ref.refresh(staffListProvider),
                           child: const Text('Retry'),
                         ),
                       ],
@@ -319,8 +291,6 @@ class StaffDirectoryPage extends ConsumerWidget {
     );
   }
 }
-
-// ─── Active Filter Chips ────────────────────────────────────────────────────────
 
 class _ActiveFilterChips extends ConsumerWidget {
   final StaffFilter filter;
@@ -414,8 +384,6 @@ class _ActiveFilterChips extends ConsumerWidget {
   }
 }
 
-// ─── Filter Bottom Sheet ────────────────────────────────────────────────────────
-
 class _FilterSheet extends ConsumerWidget {
   const _FilterSheet();
 
@@ -433,7 +401,6 @@ class _FilterSheet extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-          // Drag handle
           Center(
             child: Container(
               width: 40,
@@ -448,7 +415,6 @@ class _FilterSheet extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 20),
-
           Text(
             'Filter Staff',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -456,8 +422,6 @@ class _FilterSheet extends ConsumerWidget {
                 ),
           ),
           const SizedBox(height: 20),
-
-          // Kitchen dropdown
           _buildDropdown(
             context: context,
             label: 'Kitchen',
@@ -470,8 +434,6 @@ class _FilterSheet extends ConsumerWidget {
             },
           ),
           const SizedBox(height: 16),
-
-          // Department dropdown
           _buildDropdown(
             context: context,
             label: 'Department',
@@ -484,8 +446,6 @@ class _FilterSheet extends ConsumerWidget {
             },
           ),
           const SizedBox(height: 16),
-
-          // Company dropdown
           _buildDropdown(
             context: context,
             label: 'Company',
@@ -498,8 +458,6 @@ class _FilterSheet extends ConsumerWidget {
             },
           ),
           const SizedBox(height: 16),
-
-          // Enrollment status dropdown
           DropdownButtonFormField<bool?>(
             value: filter.enrolled,
             decoration: InputDecoration(
@@ -532,8 +490,6 @@ class _FilterSheet extends ConsumerWidget {
             isExpanded: true,
           ),
           const SizedBox(height: 24),
-
-          // Clear + Apply row
           Row(
             children: [
               Expanded(
@@ -612,8 +568,6 @@ class _FilterSheet extends ConsumerWidget {
   }
 }
 
-// ─── Staff Action Sheet ─────────────────────────────────────────────────────────
-
 class _StaffActionSheet extends StatelessWidget {
   final Staff staff;
   final bool isEnrolled;
@@ -634,7 +588,6 @@ class _StaffActionSheet extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Drag handle
           Container(
             width: 40,
             height: 4,
@@ -644,8 +597,6 @@ class _StaffActionSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-
-          // Staff name & ID
           Row(
             spacing: 15,
             mainAxisAlignment: MainAxisAlignment.center,
@@ -701,10 +652,7 @@ class _StaffActionSheet extends StatelessWidget {
               color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
-
           const SizedBox(height: 24),
-
-          // View Staff Biodata button
           SizedBox(
             width: double.infinity,
             child: OutlineButton(
@@ -730,8 +678,6 @@ class _StaffActionSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-
-          // Enroll Staff / Add Fingerprint button
           SizedBox(
             width: double.infinity,
             child: PrimaryButton(

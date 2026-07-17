@@ -1,16 +1,20 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import '../core/network/network_api_dio.dart';
 import '../models/staff.model.dart';
 import '../models/staff_filter.model.dart';
 import '../repos/biodata_service.dart';
 import '../repos/staff_service.dart';
 import 'injection_container.dart';
-import 'package:flutter_riverpod/legacy.dart';
-
+import 'providers.dart';
 
 final staffListProvider = FutureProvider<List<Staff>>((ref) async {
+  final filter = ref.watch(staffFilterProvider);
   final staffService = getIt<StaffService>();
-  return await staffService.getAllStaffs();
+  return await staffService.getAllStaffs(
+    limit: 2500,
+    department: filter.departmentId?.toString(),
+  );
 });
 
 final staffQueryProvider = StateProvider<String>((ref) => '');
@@ -50,19 +54,8 @@ final availableKitchensProvider = Provider.autoDispose<List<MapEntry<int, String
 });
 
 final availableDepartmentsProvider = Provider.autoDispose<List<MapEntry<int, String>>>((ref) {
-  final staffAsync = ref.watch(staffListProvider);
-  return staffAsync.whenData((list) {
-    final seen = <int>{};
-    final result = <MapEntry<int, String>>[];
-    for (final staff in list) {
-      final dept = staff.department;
-      if (dept != null && seen.add(dept.id)) {
-        result.add(MapEntry(dept.id, dept.name));
-      }
-    }
-    result.sort((a, b) => a.value.compareTo(b.value));
-    return result;
-  }).value ?? [];
+  final deptsAsync = ref.watch(departmentListProvider);
+  return deptsAsync.value?.map((d) => MapEntry(d.id, d.name)).toList() ?? [];
 });
 
 final availableCompaniesProvider = Provider.autoDispose<List<MapEntry<int, String>>>((ref) {
@@ -85,7 +78,7 @@ final filteredStaffListProvider =
     Provider.autoDispose<AsyncValue<List<Staff>>>((ref) {
   final staffAsync = ref.watch(staffListProvider);
   final query = ref.watch(staffQueryProvider).trim().toLowerCase();
-    final filter = ref.watch(staffFilterProvider);
+  final filter = ref.watch(staffFilterProvider);
   final biodataCounts = ref.watch(allBiodataProvider).value ?? {};
 
   return staffAsync.whenData((list) {

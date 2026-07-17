@@ -6,7 +6,7 @@ import 'injection_container.dart';
 
 final contractorListProvider = FutureProvider<List<Contractor>>((ref) async {
   final service = getIt<ContractorService>();
-  return await service.getAllContractors();
+  return await service.getAllContractors(limit: 2500);
 });
 
 final contractorQueryProvider = StateProvider<String>((ref) => '');
@@ -24,13 +24,17 @@ final filteredContractorListProvider =
   });
 });
 
-final contractorStaffListProvider =
-    FutureProvider<List<ContractorStaff>>((ref) async {
+final contractorStaffDeptFilterProvider = StateProvider<String?>((ref) => null);
+
+final contractorStaffListProvider = FutureProvider<List<ContractorStaff>>((ref) async {
+  final deptId = ref.watch(contractorStaffDeptFilterProvider);
   final service = getIt<ContractorService>();
-  return await service.getAllContractorStaff();
+  return await service.getAllContractorStaff(limit: 2500, departmentId: deptId);
 });
 
 final contractorStaffQueryProvider = StateProvider<String>((ref) => '');
+
+final contractorStaffFilterProvider = StateProvider.family<String?, String>((ref, key) => null);
 
 final filteredContractorStaffListProvider =
     Provider.autoDispose<AsyncValue<List<ContractorStaff>>>((ref) {
@@ -38,9 +42,10 @@ final filteredContractorStaffListProvider =
   final query = ref.watch(contractorStaffQueryProvider).trim().toLowerCase();
 
   return staffAsync.whenData((list) {
-    if (query.isEmpty) return list;
-    return list
-        .where((s) => s.name.toLowerCase().contains(query))
-        .toList();
+    var result = list;
+    if (query.isNotEmpty) {
+      result = result.where((s) => s.name.toLowerCase().contains(query)).toList();
+    }
+    return result;
   });
 });

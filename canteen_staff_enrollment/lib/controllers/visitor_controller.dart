@@ -4,9 +4,12 @@ import '../models/visitor.model.dart';
 import '../repos/visitor_service.dart';
 import 'injection_container.dart';
 
+final visitorDeptFilterProvider = StateProvider<String?>((ref) => null);
+
 final visitorListProvider = FutureProvider<List<Visitor>>((ref) async {
+  final deptId = ref.watch(visitorDeptFilterProvider);
   final service = getIt<VisitorService>();
-  return await service.getAllVisitors();
+  return await service.getAllVisitors(limit: 2500, departmentId: deptId);
 });
 
 final visitorQueryProvider = StateProvider<String>((ref) => '');

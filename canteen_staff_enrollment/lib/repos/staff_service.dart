@@ -14,19 +14,22 @@ class StaffService extends StaffCtrller {
     String? company,
     String? department,
     String? kitchenId,
+    String? searchTerm,
+    int limit = 2500,
   }) async {
     try {
       return await networkAPI.getData<List<Staff>>(
         '/hr/staffs',
         queryParameters: {
-          
-      
-          "kitchenId": kitchenId,
-          "departmentId": department,
-        
+          "limit": limit,
+          if (staffId != null) "staffId": staffId,
+          if (status != null) "status": status,
+          if (company != null) "companyId": company,
+          if (department != null) "departmentId": department,
+          if (kitchenId != null) "kitchenId": kitchenId,
+          if (searchTerm != null && searchTerm.isNotEmpty) "searchTerm": searchTerm,
         },
         builder: (data) {
-        
           if (data['data'] is List) {
             return (data['data'] as List)
                 .map((e) => Staff.fromMap(e as Map<String, dynamic>))
@@ -48,8 +51,8 @@ class StaffService extends StaffCtrller {
         '/hr/staff',
         queryParameters: {"id": staffId},
         builder: (data) {
-          if (data['data']['data'] is List) {
-            return (data['data']['data'] as List)
+          if (data['data'] is List) {
+            return (data['data'] as List)
                 .map<Staff>((e) => Staff.fromMap(e as Map<String, dynamic>))
                 .toList();
           }
@@ -69,6 +72,8 @@ abstract class StaffCtrller {
     String? company,
     String? department,
     String? kitchenId,
+    String? searchTerm,
+    int limit = 2500,
   });
 
   Future<List<Staff>> getStaffById(String staffId);

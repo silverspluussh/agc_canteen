@@ -25,7 +25,7 @@ class StaffBioDataService {
   Future<List<BioData>> getAllBioDatas() async {
     return await networkAPI.getData<List<BioData>>(
       '/hr/bio-data',
-     
+      queryParameters: { "limit": 2500},
       builder: (data) => _parseBioDataList(data),
     );
   }
@@ -58,8 +58,7 @@ class StaffBioDataService {
       '/hr/bio-data/create-bulk',
       data: payload,
       builder: (data) {
-      
-   if (data != null) {
+        if (data != null) {
           return true;
         }
         return false;

@@ -4,9 +4,12 @@ import '../models/dependent.model.dart';
 import '../repos/dependent_service.dart';
 import 'injection_container.dart';
 
+final dependentDeptFilterProvider = StateProvider<String?>((ref) => null);
+
 final dependentListProvider = FutureProvider<List<Dependent>>((ref) async {
+  final deptId = ref.watch(dependentDeptFilterProvider);
   final service = getIt<DependentService>();
-  return await service.getAllDependents();
+  return await service.getAllDependents(limit: 2500, departmentId: deptId);
 });
 
 final dependentQueryProvider = StateProvider<String>((ref) => '');

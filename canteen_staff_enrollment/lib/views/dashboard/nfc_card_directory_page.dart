@@ -1,11 +1,17 @@
+import 'dart:async';
+
 import 'package:canteen_staff_enrollment/controllers/injection_container.dart';
 import 'package:canteen_staff_enrollment/controllers/nfc_card_controller.dart';
+import 'package:canteen_staff_enrollment/controllers/providers.dart';
 import 'package:canteen_staff_enrollment/core/theme/app_colors.dart';
+import 'package:canteen_staff_enrollment/models/company.model.dart';
 import 'package:canteen_staff_enrollment/models/employee_type.enum.dart';
 import 'package:canteen_staff_enrollment/models/nfc_card.model.dart';
 import 'package:canteen_staff_enrollment/repos/nfc_card_service.dart';
+import 'package:canteen_staff_enrollment/services/nfc/nfc_service.dart';
 import 'package:canteen_staff_enrollment/views/app_buttons.widget.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class NfcCardDirectoryPage extends ConsumerStatefulWidget {
@@ -18,14 +24,59 @@ class NfcCardDirectoryPage extends ConsumerStatefulWidget {
 
 class _NfcCardDirectoryPageState
     extends ConsumerState<NfcCardDirectoryPage> {
+  final _searchController = TextEditingController();
   bool _hasFilters = false;
   String? _statusFilter;
   String? _typeFilter;
+  int? _selectedDepartmentId;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Widget _buildDepartmentFilter(AsyncValue<List<Department>> departmentsAsync) {
+    final departments = departmentsAsync.value ?? [];
+    return PopupMenuButton<int?>(
+      tooltip: 'Filter by department',
+      icon: Icon(
+        Icons.business_center,
+        color: _selectedDepartmentId != null
+            ? Theme.of(context).colorScheme.primary
+            : null,
+      ),
+      onSelected: (id) {
+        setState(() {
+          _selectedDepartmentId = id;
+          _updateHasFilters();
+        });
+        ref.read(nfcCardDeptFilterProvider.notifier).state = id?.toString();
+      },
+      itemBuilder: (context) => [
+        PopupMenuItem<int?>(
+          value: null,
+          child: Text('All Departments',
+              style: TextStyle(fontWeight: _selectedDepartmentId == null ? FontWeight.bold : null)),
+        ),
+        ...departments.map((d) => PopupMenuItem<int?>(
+              value: d.id,
+              child: Text(d.name,
+                  style: TextStyle(fontWeight: _selectedDepartmentId == d.id ? FontWeight.bold : null)),
+            )),
+      ],
+    );
+  }
+
+  void _updateHasFilters() {
+    _hasFilters = _statusFilter != null || _typeFilter != null || _selectedDepartmentId != null;
+  }
 
   @override
   Widget build(BuildContext context) {
     final cardsAsync = ref.watch(filteredNfcCardListProvider);
     final searchQuery = ref.watch(nfcCardSearchQueryProvider);
+    final departmentsAsync = ref.watch(departmentListProvider);
 
     return Scaffold(
       body: Padding(
@@ -37,28 +88,37 @@ class _NfcCardDirectoryPageState
               children: [
                 Expanded(
                   child: TextField(
+                    controller: _searchController,
                     onChanged: (val) =>
-                        ref.read(nfcCardSearchQueryProvider.notifier).state =
-                            val,
+                        ref.read(nfcCardSearchQueryProvider.notifier).state = val,
                     decoration: InputDecoration(
                       hintText: 'Search by code...',
                       prefixIcon: const Icon(Icons.search),
-                      suffixIcon: searchQuery.isNotEmpty
+                      suffixIcon: _searchController.text.isNotEmpty
                           ? IconButton(
                               icon: const Icon(Icons.clear),
-                              onPressed: () => ref
-                                  .read(nfcCardSearchQueryProvider.notifier)
-                                  .state = '',
+                              onPressed: () {
+                                _searchController.clear();
+                                ref.read(nfcCardSearchQueryProvider.notifier).state = '';
+                              },
                             )
                           : null,
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 4),
+                IconButton(
+                  icon: const Icon(Icons.nfc),
+                  tooltip: 'Scan NFC Tag',
+                  onPressed: _showNfcScanner,
+                ),
+                const SizedBox(width: 4),
+                _buildDepartmentFilter(departmentsAsync),
+                const SizedBox(width: 4),
                 Badge(
                   isLabelVisible: _hasFilters,
                   label: Text(
-                    '${(_statusFilter != null ? 1 : 0) + (_typeFilter != null ? 1 : 0)}',
+                    '${(_statusFilter != null ? 1 : 0) + (_typeFilter != null ? 1 : 0) + (_selectedDepartmentId != null ? 1 : 0)}',
                     style:
                         const TextStyle(fontSize: 10, color: Colors.white),
                   ),
@@ -78,15 +138,10 @@ class _NfcCardDirectoryPageState
                             setState(() {
                               _statusFilter = status;
                               _typeFilter = type;
-                              _hasFilters =
-                                  status != null || type != null;
+                              _updateHasFilters();
                             });
-                            ref
-                                .read(nfcCardStatusFilterProvider.notifier)
-                                .state = status;
-                            ref
-                                .read(nfcCardTypeFilterProvider.notifier)
-                                .state = type;
+                            ref.read(nfcCardStatusFilterProvider.notifier).state = status;
+                            ref.read(nfcCardTypeFilterProvider.notifier).state = type;
                           },
                         ),
                       );
@@ -106,7 +161,7 @@ class _NfcCardDirectoryPageState
             if (_hasFilters)
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
-                child: _buildActiveFilterChips(),
+                child: _buildActiveFilterChips(departmentsAsync),
               ),
             Expanded(
               child: RefreshIndicator(
@@ -186,7 +241,6 @@ class _NfcCardDirectoryPageState
                                             .withValues(alpha: 0.1),
                                     child: Icon(
                                       Icons.credit_card,
-                                      
                                       color: card.status == 'active'
                                           ? AppColors.success
                                           : AppColors.error,
@@ -196,74 +250,60 @@ class _NfcCardDirectoryPageState
                                   const SizedBox(width: 16),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                           card.tagId ??card.code ?? '---',
+                                          card.tagId ?? card.code ?? '---',
                                           style: const TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.bold,
                                           ),
                                         ),
                                         const SizedBox(height: 4),
-                                      
                                         if (card.assignedTo != null)
                                           Padding(
-                                            padding:
-                                                const EdgeInsets.only(top: 4),
+                                            padding: const EdgeInsets.only(top: 4),
                                             child: Text(
                                               '${card.assignedTo!.name} (${card.assignedTo!.type})',
                                               style: TextStyle(
                                                 fontSize: 12,
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .primary,
+                                                color: Theme.of(context).colorScheme.primary,
                                               ),
                                             ),
-                                          ), 
-                                          if (card.assignedTo == null)
+                                          ),
+                                        if (card.assignedTo == null)
                                           Text("Not assigned",
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color:Colors.red,
-                                                fontStyle: FontStyle.italic,
-                                              ),
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.red,
+                                              fontStyle: FontStyle.italic,
                                             ),
-
+                                          ),
                                       ],
                                     ),
                                   ),
-                                
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 10,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: card.status == 'active'
-                                              ? const Color(0xFF2E7D32)
-                                                  .withValues(alpha: 0.1)
-                                              : const Color(0xFFD32F2F)
-                                                  .withValues(alpha: 0.1),
-                                          borderRadius:
-                                              BorderRadius.circular(20),
-                                        ),
-                                        child: Text(
-                                          card.status == 'active'
-                                              ? 'Active'
-                                              : 'Inactive',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600,
-                                            color: card.status == 'active'
-                                                ? const Color(0xFF2E7D32)
-                                                : const Color(0xFFD32F2F),
-                                          ),
-                                        ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: card.status == 'active'
+                                          ? const Color(0xFF2E7D32).withValues(alpha: 0.1)
+                                          : const Color(0xFFD32F2F).withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: Text(
+                                      card.status == 'active' ? 'Active' : 'Inactive',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: card.status == 'active'
+                                            ? const Color(0xFF2E7D32)
+                                            : const Color(0xFFD32F2F),
                                       ),
-                                     
-                                   
+                                    ),
+                                  ),
                                   const SizedBox(width: 8),
                                   Icon(
                                     Icons.chevron_right,
@@ -281,23 +321,17 @@ class _NfcCardDirectoryPageState
                       },
                     );
                   },
-                  loading: () => const Center(
-                      child: CircularProgressIndicator()),
+                  loading: () => const Center(child: CircularProgressIndicator()),
                   error: (err, stack) => Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(
-                          Icons.error_outline,
-                          size: 48,
-                          color: AppColors.error,
-                        ),
+                        const Icon(Icons.error_outline, size: 48, color: AppColors.error),
                         const SizedBox(height: 16),
                         Text('Failed to load NFC cards: $err'),
                         const SizedBox(height: 16),
                         ElevatedButton(
-                          onPressed: () =>
-                              ref.refresh(nfcCardListProvider),
+                          onPressed: () => ref.refresh(nfcCardListProvider),
                           child: const Text('Retry'),
                         ),
                       ],
@@ -317,7 +351,7 @@ class _NfcCardDirectoryPageState
     );
   }
 
-  Widget _buildActiveFilterChips() {
+  Widget _buildActiveFilterChips(AsyncValue<List<Department>> departmentsAsync) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
@@ -326,19 +360,14 @@ class _NfcCardDirectoryPageState
             Padding(
               padding: const EdgeInsets.only(right: 8),
               child: InputChip(
-                label: Text(
-                  'Status: $_statusFilter',
-                  style: const TextStyle(fontSize: 12),
-                ),
+                label: Text('Status: $_statusFilter', style: const TextStyle(fontSize: 12)),
                 deleteIcon: const Icon(Icons.close, size: 14),
                 onDeleted: () {
                   setState(() {
                     _statusFilter = null;
-                    _hasFilters = _typeFilter != null;
+                    _updateHasFilters();
                   });
-                  ref
-                      .read(nfcCardStatusFilterProvider.notifier)
-                      .state = null;
+                  ref.read(nfcCardStatusFilterProvider.notifier).state = null;
                 },
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 visualDensity: VisualDensity.compact,
@@ -348,19 +377,34 @@ class _NfcCardDirectoryPageState
             Padding(
               padding: const EdgeInsets.only(right: 8),
               child: InputChip(
+                label: Text('Type: $_typeFilter', style: const TextStyle(fontSize: 12)),
+                deleteIcon: const Icon(Icons.close, size: 14),
+                onDeleted: () {
+                  setState(() {
+                    _typeFilter = null;
+                    _updateHasFilters();
+                  });
+                  ref.read(nfcCardTypeFilterProvider.notifier).state = null;
+                },
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                visualDensity: VisualDensity.compact,
+              ),
+            ),
+          if (_selectedDepartmentId != null)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: InputChip(
                 label: Text(
-                  'Type: $_typeFilter',
+                  'Department: ${departmentsAsync.value?.where((d) => d.id == _selectedDepartmentId).firstOrNull?.name ?? ''}',
                   style: const TextStyle(fontSize: 12),
                 ),
                 deleteIcon: const Icon(Icons.close, size: 14),
                 onDeleted: () {
                   setState(() {
-                    _typeFilter = null;
-                    _hasFilters = _statusFilter != null;
+                    _selectedDepartmentId = null;
+                    _updateHasFilters();
                   });
-                  ref
-                      .read(nfcCardTypeFilterProvider.notifier)
-                      .state = null;
+                  ref.read(nfcCardDeptFilterProvider.notifier).state = null;
                 },
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 visualDensity: VisualDensity.compact,
@@ -374,17 +418,14 @@ class _NfcCardDirectoryPageState
                   setState(() {
                     _statusFilter = null;
                     _typeFilter = null;
+                    _selectedDepartmentId = null;
                     _hasFilters = false;
                   });
-                  ref
-                      .read(nfcCardStatusFilterProvider.notifier)
-                      .state = null;
-                  ref
-                      .read(nfcCardTypeFilterProvider.notifier)
-                      .state = null;
+                  ref.read(nfcCardStatusFilterProvider.notifier).state = null;
+                  ref.read(nfcCardTypeFilterProvider.notifier).state = null;
+                  ref.read(nfcCardDeptFilterProvider.notifier).state = null;
                 },
-                child: const Text('Clear all',
-                    style: TextStyle(fontSize: 12)),
+                child: const Text('Clear all', style: TextStyle(fontSize: 12)),
               ),
             ),
         ],
@@ -401,6 +442,33 @@ class _NfcCardDirectoryPageState
       ),
       builder: (_) => _CreateCardSheet(
         onCreated: () => ref.invalidate(nfcCardListProvider),
+      ),
+    );
+  }
+
+  void _showNfcScanner() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => _NfcScannerSheet(
+        onCreateCard: (tagId, reversedCode) {
+          Navigator.pop(context);
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            builder: (_) => _CreateCardSheet(
+              initialTagId: tagId,
+              initialReversedCode: reversedCode,
+              onCreated: () => ref.invalidate(nfcCardListProvider),
+            ),
+          );
+        },
       ),
     );
   }
@@ -555,12 +623,212 @@ class _NfcFilterSheetState extends State<_NfcFilterSheet> {
   }
 }
 
+// ─── NFC Scanner Sheet ───────────────────────────────────────────────────────
+
+class _NfcScannerSheet extends StatefulWidget {
+  final void Function(String tagId, String reversedCode) onCreateCard;
+
+  const _NfcScannerSheet({required this.onCreateCard});
+
+  @override
+  State<_NfcScannerSheet> createState() => _NfcScannerSheetState();
+}
+
+class _NfcScannerSheetState extends State<_NfcScannerSheet> {
+  final _nfcService = NfcService();
+  StreamSubscription<Map<String, dynamic>>? _subscription;
+  bool _isScanning = false;
+  bool _hasResult = false;
+  bool _nfcSupported = true;
+
+  String? _tagId;
+  String? _decimalId;
+  String? _reversedCode;
+
+  @override
+  void initState() {
+    super.initState();
+    _startScan();
+  }
+
+  Future<void> _startScan() async {
+    final supported = await _nfcService.supportNfc();
+    if (!mounted) return;
+    if (!supported) {
+      setState(() => _nfcSupported = false);
+      return;
+    }
+    setState(() => _isScanning = true);
+    _subscription = _nfcService.tagStream.listen(
+      (tag) {
+        final hex = tag['tagId'] as String? ?? '';
+        if (hex.isEmpty) return;
+        final reversed = NfcService.reverseHex(hex);
+        setState(() {
+          _tagId = hex;
+          _decimalId = NfcService.hexToDecimal(hex);
+          _reversedCode = reversed;
+          _isScanning = false;
+          _hasResult = true;
+        });
+      },
+      onError: (e) {
+        if (mounted) {
+          setState(() => _isScanning = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('NFC error: $e'), backgroundColor: AppColors.error),
+          );
+        }
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'Scan NFC Tag',
+            style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 24),
+          if (!_nfcSupported)
+            Column(
+              children: [
+                const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                const SizedBox(height: 12),
+                const Text('NFC is not supported on this device'),
+              ],
+            )
+          else if (_isScanning)
+            Column(
+              children: [
+                Icon(Icons.nfc, size: 64, color: theme.colorScheme.primary),
+                const SizedBox(height: 16),
+                const Text('Hold an NFC tag near the device...'),
+                const SizedBox(height: 16),
+                const CircularProgressIndicator(),
+              ],
+            )
+          else if (_hasResult)
+            _buildResult()
+          else
+            const Text('Failed to scan tag'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResult() {
+    final theme = Theme.of(context);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _copyField(theme, 'Tag ID', _tagId ?? ''),
+        // const SizedBox(height: 12),
+        // _copyField(theme, 'Tag ID (decimal)', _decimalId ?? ''),
+        // const SizedBox(height: 12),
+        // _copyField(theme, 'Reversed Code', _reversedCode ?? ''),
+        const SizedBox(height: 24),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () {
+                  setState(() {
+                    _isScanning = true;
+                    _hasResult = false;
+                  });
+                },
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('Scan Again'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: PrimaryButton(
+                onPressed: () => widget.onCreateCard(_tagId ?? '', _reversedCode ?? ''),
+                label: const Text('Create Card', style: TextStyle(color: Colors.white)),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _copyField(ThemeData theme, String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurface.withValues(alpha: 0.6))),
+                const SizedBox(height: 4),
+                SelectableText(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.copy, size: 20),
+            tooltip: 'Copy to clipboard',
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: value));
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Copied to clipboard'), duration: Duration(seconds: 1)),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 // ─── Create Card Sheet ────────────────────────────────────────────────────────
 
 class _CreateCardSheet extends StatefulWidget {
   final VoidCallback onCreated;
+  final String? initialTagId;
+  final String? initialReversedCode;
 
-  const _CreateCardSheet({required this.onCreated});
+  const _CreateCardSheet({
+    required this.onCreated,
+    this.initialTagId,
+    this.initialReversedCode,
+  });
 
   @override
   State<_CreateCardSheet> createState() => _CreateCardSheetState();
@@ -576,6 +844,17 @@ class _CreateCardSheetState extends State<_CreateCardSheet> {
 
   String? _assignedToType;
   bool _isCreating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialTagId != null) {
+      _tagIdCtrl.text = widget.initialTagId!;
+    }
+    if (widget.initialReversedCode != null) {
+      _reversedCodeCtrl.text = widget.initialReversedCode!;
+    }
+  }
 
   @override
   void dispose() {
@@ -625,32 +904,10 @@ class _CreateCardSheetState extends State<_CreateCardSheet> {
             ),
             const SizedBox(height: 20),
             TextFormField(
-              controller: _codeCtrl,
-              decoration: InputDecoration(
-                labelText: 'Code',
-                hintText: 'e.g. 14157161536',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
               controller: _tagIdCtrl,
               decoration: InputDecoration(
                 labelText: 'Tag ID',
                 hintText: 'e.g. TAG001',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _reversedCodeCtrl,
-              decoration: InputDecoration(
-                labelText: 'Reversed Code',
-                hintText: 'e.g. 63516175141',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -676,7 +933,7 @@ class _CreateCardSheetState extends State<_CreateCardSheet> {
                     );
                     if (date != null) {
                       _issuedDateCtrl.text =
-                          '${date.toIso8601String().split('T').first}T00:00:00.000Z';
+                          date.toIso8601String().split('T').first;
                     }
                   },
                 ),
@@ -687,8 +944,7 @@ class _CreateCardSheetState extends State<_CreateCardSheet> {
               value: _assignedToType,
               decoration: InputDecoration(
                 labelText: 'Assign To (optional)',
-                prefixIcon:
-                    const Icon(Icons.person_outline, size: 20),
+                prefixIcon: const Icon(Icons.person_outline, size: 20),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -706,8 +962,7 @@ class _CreateCardSheetState extends State<_CreateCardSheet> {
                       child: Text(e.entityName),
                     )),
               ],
-              onChanged: (val) =>
-                  setState(() => _assignedToType = val),
+              onChanged: (val) => setState(() => _assignedToType = val),
               isExpanded: true,
             ),
             if (_assignedToType != null) ...[
@@ -883,8 +1138,7 @@ class _NfcCardActionSheet extends StatelessWidget {
             Text(
               'Tag: ${card.tagId}',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color:
-                    theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
           if (card.assignedTo != null) ...[
@@ -899,8 +1153,7 @@ class _NfcCardActionSheet extends StatelessWidget {
             Text(
               'Not assigned',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color:
-                    theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                 fontStyle: FontStyle.italic,
               ),
             ),
@@ -925,26 +1178,26 @@ class _NfcCardActionSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-             if (!card.isAssigned)
-          SizedBox(
-            width: double.infinity,
-            child: OutlineButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _showAssignSheet(context);
-              },
-              prefixChild: const Icon(Icons.person_add_outlined,
-                  size: 18, color: AppColors.gold600),
-              label: const Text(
-                'Assign Card',
-                style: TextStyle(
-                  color: AppColors.gold600,
-                  fontWeight: FontWeight.w500,
-                  fontSize: 16,
+          if (!card.isAssigned)
+            SizedBox(
+              width: double.infinity,
+              child: OutlineButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _showAssignSheet(context);
+                },
+                prefixChild: const Icon(Icons.person_add_outlined,
+                    size: 18, color: AppColors.gold600),
+                label: const Text(
+                  'Assign Card',
+                  style: TextStyle(
+                    color: AppColors.gold600,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 16,
+                  ),
                 ),
               ),
             ),
-          ),
           if (card.isAssigned) ...[
             const SizedBox(height: 12),
             SizedBox(
@@ -967,8 +1220,6 @@ class _NfcCardActionSheet extends StatelessWidget {
               ),
             ),
           ],
-        
-         
           const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
@@ -1021,8 +1272,6 @@ class _NfcCardActionSheet extends StatelessWidget {
       ),
     );
   }
-
-
 
   void _confirmUnassign(BuildContext context) {
     showDialog(
@@ -1084,7 +1333,6 @@ class _NfcCardActionSheet extends StatelessWidget {
           ),
           DestructiveButton(
             width: 120,
-           
             onPressed: () async {
               Navigator.pop(ctx);
               try {
@@ -1110,10 +1358,7 @@ class _NfcCardActionSheet extends StatelessWidget {
                 }
               }
             },
-            label: const Text(
-              'Delete',
-              style: TextStyle(color: Colors.white),
-            ),
+            label: const Text('Delete', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -1238,8 +1483,7 @@ class _EditCardSheetState extends State<_EditCardSheet> {
                 onPressed: () async {
                   final date = await showDatePicker(
                     context: context,
-                    initialDate:
-                        widget.card.issuedDate ?? DateTime.now(),
+                    initialDate: widget.card.issuedDate ?? DateTime.now(),
                     firstDate: DateTime(2020),
                     lastDate: DateTime(2030),
                   );
@@ -1385,8 +1629,7 @@ class _AssignCardSheetState extends State<_AssignCardSheet> {
             value: _selectedType,
             decoration: InputDecoration(
               labelText: 'Employee Type',
-              prefixIcon:
-                  const Icon(Icons.person_outline, size: 20),
+              prefixIcon: const Icon(Icons.person_outline, size: 20),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -1452,7 +1695,7 @@ class _AssignCardSheetState extends State<_AssignCardSheet> {
     if (refId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please enter a valid Reference ID'),
+          content: Text('Please enter a valid reference ID'),
           backgroundColor: AppColors.warning,
         ),
       );
@@ -1462,10 +1705,7 @@ class _AssignCardSheetState extends State<_AssignCardSheet> {
     setState(() => _isAssigning = true);
     try {
       final service = getIt<NfcCardService>();
-      await service.updateCard(
-        widget.card.id,
-        code: widget.card.code,
-        tagId: widget.card.tagId,
+      await service.createCard(
         assignedToType: _selectedType,
         referenceId: refId,
       );
@@ -1483,7 +1723,7 @@ class _AssignCardSheetState extends State<_AssignCardSheet> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to assign: $e'),
+            content: Text('Failed to assign card: $e'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -1491,126 +1731,5 @@ class _AssignCardSheetState extends State<_AssignCardSheet> {
     } finally {
       if (mounted) setState(() => _isAssigning = false);
     }
-  }
-}
-
-// ─── Status Toggle Sheet ──────────────────────────────────────────────────────
-
-class _StatusSheet extends StatelessWidget {
-  final NfcCard card;
-  final VoidCallback onChanged;
-
-  const _StatusSheet({required this.card, required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    final currentStatus = card.status;
-    final newStatus =
-        currentStatus == 'active' ? 'inactive' : 'active';
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Theme.of(context)
-                  .colorScheme
-                  .onSurface
-                  .withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 20),
-          Icon(
-            currentStatus == 'active'
-                ? Icons.toggle_off_outlined
-                : Icons.toggle_on_outlined,
-            size: 64,
-            color: currentStatus == 'active'
-                ? AppColors.success
-                : AppColors.error,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Change status to "$newStatus"?',
-            style: Theme.of(context)
-                .textTheme
-                .titleMedium
-                ?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Card: ${card.code ?? card.tagId ?? '#${card.id}'}',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withValues(alpha: 0.6),
-                ),
-          ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text('Cancel'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: FilledButton(
-                  onPressed: () async {
-                    Navigator.pop(context);
-                    try {
-                      final service = getIt<NfcCardService>();
-                      await service.updateCardStatus(
-                          card.id, newStatus);
-                      onChanged();
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                                'Status changed to $newStatus'),
-                            backgroundColor: AppColors.success,
-                          ),
-                        );
-                      }
-                    } catch (e) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                                'Failed to update status: $e'),
-                            backgroundColor: AppColors.error,
-                          ),
-                        );
-                      }
-                    }
-                  },
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: Text('Set as $newStatus'),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
   }
 }
