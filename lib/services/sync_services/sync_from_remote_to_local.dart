@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 import 'package:agc_canteen/models/sync.model.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/material.dart';
@@ -20,6 +21,7 @@ class RemoteToLocalSyncService {
        _db = db,
        _logger = logger ?? Logger() {
     _jobs.add(SyncJob(name: 'posDevice', execute: _syncPosDevice));
+    _jobs.add(SyncJob(name: 'departments', execute: _syncDepartments));
     _jobs.add(SyncJob(name: 'staff', execute: _syncStaff));
     _jobs.add(SyncJob(name: 'mealTypes', execute: _syncMealTypes));
     _jobs.add(SyncJob(name: 'bioData', execute: _syncBioData));
@@ -89,6 +91,88 @@ class RemoteToLocalSyncService {
     await _syncShifts();
   }
 
+  Future<void> syncDepartmentsOnly() async {
+    await _syncDepartments();
+  }
+
+  // ─── Departments Sync ──────────────────────────────────────
+
+  Future<bool> _syncDepartments() async {
+    try {
+      _logger.i('RemoteToLocalSyncService: fetching remote departments...');
+
+      final responseData = await _networkAPI.getData(
+        '/hr/departments',
+        builder: (data) => data,
+        queryParameters: {'limit': 100, 'offset': 0},
+      );
+
+      List<dynamic>? list;
+      if (responseData is List) {
+        list = responseData;
+      } else if (responseData is Map && responseData['data'] is List) {
+        list = responseData['data'] as List<dynamic>;
+      }
+
+      if (list == null || list.isEmpty) {
+        _logger.w('RemoteToLocalSyncService: no remote departments available');
+        return false;
+      }
+
+      _logger.i(
+        'RemoteToLocalSyncService: received ${list.length} remote departments, upserting...',
+      );
+
+      await _db.transaction(() async {
+        final remoteIds = <int>{};
+        for (final item in list!) {
+          if (item is Map<String, dynamic>) {
+            await _upsertDepartmentData(item);
+            final id = _safeParseInt(item['id']);
+            if (id != null && id != 0) remoteIds.add(id);
+          }
+        }
+        final deleted = await _db.deleteDepartmentsNotIn(remoteIds);
+        if (deleted > 0) {
+          _logger.i(
+            'RemoteToLocalSyncService: removed $deleted stale department records',
+          );
+        }
+      });
+
+      _logger.i('RemoteToLocalSyncService: departments sync completed');
+      return true;
+    } catch (e) {
+      _logger.w(
+        'RemoteToLocalSyncService: departments fetch failed ($e), keeping local data',
+      );
+      return false;
+    }
+  }
+
+  Future<void> _upsertDepartmentData(Map<String, dynamic> map) async {
+    try {
+      final id = _safeParseInt(map['id']) ?? 0;
+      if (id == 0) return;
+
+      final now = DateTime.now().toIso8601String();
+
+      final companion = DepartmentsCompanion(
+        id: Value(id),
+        name: Value(map['name'] as String? ?? ''),
+        syncStatus: const Value(2),
+        syncUpdatedAt: Value(now),
+      );
+
+      await _db.insertDepartment(companion, mode: InsertMode.insertOrReplace);
+    } catch (e, stack) {
+      _logger.e(
+        'RemoteToLocalSyncService: failed to upsert department: $e',
+        stackTrace: stack,
+      );
+    }
+  }
+
   // ─── Staff Sync ────────────────────────────────────────────
 
   Future<bool> _syncStaff() async {
@@ -112,6 +196,7 @@ class RemoteToLocalSyncService {
         builder: (data) => data,
       );
 
+  
       List<dynamic>? staffList;
       if (responseData is List) {
         staffList = responseData;
@@ -210,6 +295,12 @@ class RemoteToLocalSyncService {
         ),
         empStatus: Value.absentIfNull(
           staffMap['emp_status'] as String? ?? staffMap['empStatus'] as String?,
+        ),
+        allowGroupOrder: Value.absentIfNull(
+          staffMap['allow_group_order'] as bool? ?? staffMap['allowGroupOrder'] as bool?,
+        ),
+        maxOrderCount: Value.absentIfNull(
+          staffMap['max_order_count'] as int? ?? staffMap['maxOrderCount'] as int?,
         ),
         syncStatus: const Value(2),
         syncUpdatedAt: Value(now),
@@ -406,6 +497,9 @@ class RemoteToLocalSyncService {
         finger: Value(bioDataMap['finger']?.toString() ?? ''),
         dataBase64: Value(bioDataMap['data']?.toString() ?? ''),
         isActive: Value(bioDataMap['isActive'] as bool? ?? true),
+        departmentId: Value.absentIfNull(_safeParseInt(bioDataMap['departmentId'])),
+        departmentName: Value.absentIfNull(bioDataMap['departmentName'] as String?),
+        personnelName: Value.absentIfNull(bioDataMap['personnelName'] as String?),
         createdAt: Value(bioDataMap['createdAt']?.toString() ?? now),
         updatedAt: Value(bioDataMap['updatedAt']?.toString() ?? now),
         syncStatus: const Value(2),
@@ -500,6 +594,9 @@ class RemoteToLocalSyncService {
         assignedToType: Value.absentIfNull(
           map['assignedToType'] as String?,
         ),
+        departmentId: Value.absentIfNull(_safeParseInt(map['departmentId'])),
+        departmentName: Value.absentIfNull(map['departmentName'] as String?),
+        personnelName: Value.absentIfNull(map['personnelName'] as String?),
         issuedDate: Value.absentIfNull(map['issuedDate'] as String?),
         createdAt: Value.absentIfNull(map['createdAt'] as String?),
         syncStatus: const Value(2),
@@ -733,6 +830,9 @@ class RemoteToLocalSyncService {
                 finger: Value(bio['finger']?.toString() ?? ''),
                 dataBase64: Value(bio['data']?.toString() ?? ''),
                 isActive: Value(bio['isActive'] as bool? ?? true),
+                departmentId: Value.absentIfNull(_safeParseInt(bio['departmentId'])),
+                departmentName: Value.absentIfNull(bio['departmentName'] as String?),
+                personnelName: Value.absentIfNull(bio['personnelName'] as String?),
                 createdAt: Value(bio['createdAt']?.toString() ?? now),
                 updatedAt: Value(bio['updatedAt']?.toString() ?? now),
                 syncStatus: const Value(2),
@@ -877,6 +977,9 @@ class RemoteToLocalSyncService {
                 finger: Value(bio['finger']?.toString() ?? ''),
                 dataBase64: Value(bio['data']?.toString() ?? ''),
                 isActive: Value(bio['isActive'] as bool? ?? true),
+                departmentId: Value.absentIfNull(_safeParseInt(bio['departmentId'])),
+                departmentName: Value.absentIfNull(bio['departmentName'] as String?),
+                personnelName: Value.absentIfNull(bio['personnelName'] as String?),
                 createdAt: Value(bio['createdAt']?.toString() ?? now),
                 updatedAt: Value(bio['updatedAt']?.toString() ?? now),
                 syncStatus: const Value(2),
@@ -1004,6 +1107,9 @@ class RemoteToLocalSyncService {
                 finger: Value(bio['finger']?.toString() ?? ''),
                 dataBase64: Value(bio['data']?.toString() ?? ''),
                 isActive: Value(bio['isActive'] as bool? ?? true),
+                departmentId: Value.absentIfNull(_safeParseInt(bio['departmentId'])),
+                departmentName: Value.absentIfNull(bio['departmentName'] as String?),
+                personnelName: Value.absentIfNull(bio['personnelName'] as String?),
                 createdAt: Value(bio['createdAt']?.toString() ?? now),
                 updatedAt: Value(bio['updatedAt']?.toString() ?? now),
                 syncStatus: const Value(2),

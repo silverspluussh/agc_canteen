@@ -70,12 +70,12 @@ class PosAuthService {
 
   Future<bool> get isFingerprintAvailable => _fingerprintAuth.isAvailable;
 
-  Future<AuthResult> authenticateWithFingerprint() async {
+  Future<AuthResult> authenticateWithFingerprint({int? departmentId}) async {
     dev.log(
-      '[PosAuthService] authenticateWithFingerprint() — calling fingerprintAuth.authenticate()',
+      '[PosAuthService] authenticateWithFingerprint(departmentId=$departmentId) — calling fingerprintAuth.authenticate()',
       name: 'POS_AUTH',
     );
-    final match = await _fingerprintAuth.authenticate();
+    final match = await _fingerprintAuth.authenticate(departmentId: departmentId);
     dev.log(
       '[PosAuthService] fingerprintAuth.authenticate() returned: match=$match',
       name: 'POS_AUTH',
@@ -86,75 +86,34 @@ class PosAuthService {
       );
     }
 
+    // Resolve entity type and ID directly from the matched bio_data_entry,
+    // which now carries personnelName, departmentId, and departmentName
+    // — no separate entity table query needed.
+    final displayName = match.personnelName;
+    final entityId = match.staffId ?? match.dependentId ?? match.contractorStaffId ?? match.visitorId;
+
+    if (entityId == null || displayName == null || displayName.isEmpty) {
+      return const AuthResult.failed(
+        failureReason: AuthFailureReason.notInKitchen,
+      );
+    }
+
+    final EmployeeType entityType;
     if (match.staffId != null) {
-      final staff = await _db.getStaff(match.staffId!);
-      if (staff != null) {
-        dev.log(
-          '[PosAuthService] Staff found: ${staff.firstName} ${staff.lastName} (id=${staff.id})',
-          name: 'POS_AUTH',
-        );
-        return AuthResult.authenticated(
-          entityId: staff.id,
-          entityType: EmployeeType.permanent,
-          displayName: '${staff.firstName} ${staff.lastName}',
-          staffId: staff.id,
-          firstName: staff.firstName,
-          lastName: staff.lastName,
-        );
-      }
+      entityType = EmployeeType.permanent;
+    } else if (match.dependentId != null) {
+      entityType = EmployeeType.dependent;
+    } else if (match.contractorStaffId != null) {
+      entityType = EmployeeType.contractor;
+    } else {
+      entityType = EmployeeType.visitor;
     }
 
-    if (match.dependentId != null) {
-      final dep = await _db.getDependent(match.dependentId!);
-      if (dep != null) {
-        dev.log(
-          '[PosAuthService] Dependent found: ${dep.fullname} (id=${dep.id})',
-          name: 'POS_AUTH',
-        );
-        return AuthResult.authenticated(
-          entityId: dep.id,
-          entityType: EmployeeType.dependent,
-          displayName: dep.fullname,
-        );
-      }
-    }
-
-    if (match.contractorStaffId != null) {
-      final cs = await _db.getContractorStaff(match.contractorStaffId!);
-      if (cs != null) {
-        dev.log(
-          '[PosAuthService] ContractorStaff found: ${cs.name} (id=${cs.id})',
-          name: 'POS_AUTH',
-        );
-        return AuthResult.authenticated(
-          entityId: cs.id,
-          entityType: EmployeeType.contractor,
-          displayName: cs.name,
-        );
-      }
-    }
-
-    if (match.visitorId != null) {
-      final visitor = await _db.getVisitor(match.visitorId!);
-      if (visitor != null) {
-        dev.log(
-          '[PosAuthService] Visitor found: ${visitor.name} (id=${visitor.id})',
-          name: 'POS_AUTH',
-        );
-        return AuthResult.authenticated(
-          entityId: visitor.id,
-          entityType: EmployeeType.visitor,
-          displayName: visitor.name,
-        );
-      }
-    }
-
-    dev.log(
-      '[PosAuthService] Entity NOT found in DB for matched bioData (id=${match.id})',
-      name: 'POS_AUTH',
-    );
-    return const AuthResult.failed(
-      failureReason: AuthFailureReason.notInKitchen,
+    return AuthResult.authenticated(
+      entityId: entityId,
+      entityType: entityType,
+      displayName: displayName,
+      staffId: entityId,
     );
   }
 
@@ -179,9 +138,9 @@ class PosAuthService {
     );
   }
 
-  Future<AuthResult> authenticateWithNfc() async {
-    dev.log('[PosAuthService] authenticateWithNfc() — reading NFC card', name: 'POS_AUTH');
-    final card = await _nfcAuth.readCard();
+  Future<AuthResult> authenticateWithNfc({int? departmentId}) async {
+    dev.log('[PosAuthService] authenticateWithNfc(departmentId=$departmentId) — reading NFC card', name: 'POS_AUTH');
+    final card = await _nfcAuth.readCard(departmentId: departmentId);
 
     if (card == null) {
       return const AuthResult.failed(failureReason: AuthFailureReason.notEnrolled);
@@ -194,59 +153,23 @@ class PosAuthService {
       return const AuthResult.failed(failureReason: AuthFailureReason.notEnrolled);
     }
 
+    // Use personnelName from the card directly — no entity table query needed.
+    final displayName = card.personnelName;
+    if (displayName == null || displayName.isEmpty) {
+      return const AuthResult.failed(failureReason: AuthFailureReason.notInKitchen);
+    }
+
     final employeeType = EmployeeType.values.firstWhere(
       (e) => e.name == assignedToType,
       orElse: () => EmployeeType.permanent,
     );
 
-    if (employeeType.isStaffType) {
-      final staff = await _db.getStaff(assignedToId);
-      if (staff != null) {
-        return AuthResult.authenticated(
-          entityId: staff.id,
-          entityType: employeeType,
-          displayName: '${staff.firstName} ${staff.lastName}',
-          staffId: staff.id,
-          firstName: staff.firstName,
-          lastName: staff.lastName,
-        );
-      }
-    }
-
-    if (employeeType == EmployeeType.dependent) {
-      final dep = await _db.getDependent(assignedToId);
-      if (dep != null) {
-        return AuthResult.authenticated(
-          entityId: dep.id,
-          entityType: EmployeeType.dependent,
-          displayName: dep.fullname,
-        );
-      }
-    }
-
-    if (employeeType == EmployeeType.contractor) {
-      final cs = await _db.getContractorStaff(assignedToId);
-      if (cs != null) {
-        return AuthResult.authenticated(
-          entityId: cs.id,
-          entityType: EmployeeType.contractor,
-          displayName: cs.name,
-        );
-      }
-    }
-
-    if (employeeType == EmployeeType.visitor) {
-      final visitor = await _db.getVisitor(assignedToId);
-      if (visitor != null) {
-        return AuthResult.authenticated(
-          entityId: visitor.id,
-          entityType: EmployeeType.visitor,
-          displayName: visitor.name,
-        );
-      }
-    }
-
-    return const AuthResult.failed(failureReason: AuthFailureReason.notInKitchen);
+    return AuthResult.authenticated(
+      entityId: assignedToId,
+      entityType: employeeType,
+      displayName: displayName,
+      staffId: assignedToId,
+    );
   }
 
   /// Enroll a new fingerprint for an entity.

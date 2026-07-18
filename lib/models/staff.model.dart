@@ -13,6 +13,7 @@ class Staff {
   final String? jobTitle;
   final String? empStatus;
   final String employeeType;
+  
   final DateTime? startDate;
   final DateTime? endDate;
   final bool? allowGroupOrder;
@@ -176,6 +177,9 @@ class BioData {
   Finger finger;
   String data;
   int staffId;
+  int? departmentId;
+  String? departmentName;
+  String? personnelName;
   bool isActive;
   DateTime? createdAt;
   DateTime? updatedAt;
@@ -186,6 +190,9 @@ class BioData {
     required this.data,
     required this.staffId,
     required this.isActive,
+    this.departmentId,
+    this.departmentName,
+    this.personnelName,
      this.createdAt,
      this.updatedAt
   });
@@ -197,6 +204,9 @@ class BioData {
       data: map['data'] as String,
       staffId: map['staffId'] as int,
       isActive: map['isActive'] as bool,
+      departmentId: map['departmentId'] as int?,
+      departmentName: map['departmentName'] as String?,
+      personnelName: map['personnelName'] as String?,
       createdAt: map['createdAt'] != null
           ? DateTime.tryParse(map['createdAt'] as String)
           : null,
@@ -214,6 +224,9 @@ class BioData {
       'data': data,
       'staffId': staffId,
       'isActive': isActive,
+      'departmentId': departmentId,
+      'departmentName': departmentName,
+      'personnelName': personnelName,
     };
   }
 
@@ -224,6 +237,9 @@ class BioData {
       'data': data,
       'staffId': staffId,
       'isActive': isActive,
+      'departmentId': departmentId,
+      'departmentName': departmentName,
+      'personnelName': personnelName,
       'sync_status': 0,
     };
   }

@@ -6,6 +6,9 @@ class NfcCard {
   final String status;
   final bool? isAssigned;
   final int? assignedToId;
+  final int? departmentId;
+  final String? departmentName;
+  final String? personnelName;
   final String? assignedToType;
   final DateTime? issuedDate;
   final DateTime? createdAt;
@@ -19,6 +22,9 @@ class NfcCard {
     this.isAssigned,
     this.assignedToId,
     this.assignedToType,
+    this.departmentId,
+    this.departmentName,
+    this.personnelName,
     this.issuedDate,
     this.createdAt,
   });
@@ -33,6 +39,9 @@ class NfcCard {
       isAssigned: map['isAssigned'] as bool?,
       assignedToId: map['assignedToId'] as int?,
       assignedToType: map['assignedToType'] as String?,
+      departmentId: map['departmentId'] as int?,
+      departmentName: map['departmentName'] as String?,
+      personnelName: map['personnelName'] as String?,
       issuedDate: map['issuedDate'] != null
           ? DateTime.parse(map['issuedDate'] as String)
           : null,
@@ -54,6 +63,9 @@ class NfcCard {
       'assignedToType': assignedToType,
       'issuedDate': issuedDate?.toIso8601String(),
       'createdAt': createdAt?.toIso8601String(),
+      'departmentId': departmentId,
+      'departmentName': departmentName,
+      'personnelName': personnelName,
     };
   }
 

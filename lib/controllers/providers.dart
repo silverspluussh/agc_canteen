@@ -63,3 +63,8 @@ final deviceInfoProvider = FutureProvider<DeviceInfo>((ref) async {
   final service = ref.watch(deviceInfoServiceProvider);
   return service.gatherDeviceInfo();
 });
+
+final departmentsProvider = FutureProvider<List<Department>>((ref) async {
+  final db = ref.watch(databaseProvider);
+  return db.getAllDepartments();
+});

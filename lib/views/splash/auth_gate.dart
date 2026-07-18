@@ -11,7 +11,6 @@ import '../../services/sync_services/sync_from_remote_to_local.dart';
 import '../auth/admin_login_page.dart';
 import '../settings/pos_selection_dialog.dart';
 
-
 class AuthGate extends ConsumerStatefulWidget {
   const AuthGate({super.key});
 
@@ -48,26 +47,39 @@ class _AuthGateState extends ConsumerState<AuthGate> {
     }
 
     if (mounted) {
-       unawaited(syncService.syncAll());
+      unawaited(syncService.syncDepartmentsOnly());
+      unawaited(syncService.syncMealTypesOnly());
+      unawaited(syncService.syncShiftsOnly());
+      //  unawaited(syncService.syncAll());
     }
   }
 
   Future<void> _initPosDevice() async {
-    dev.log('[AuthGate] Initializing POS device SDK on app start...',
-        name: 'POS_AUTH');
+    dev.log(
+      '[AuthGate] Initializing POS device SDK on app start...',
+      name: 'POS_AUTH',
+    );
     try {
       final deviceService = getIt<PosDeviceService>();
       final ok = await deviceService.init();
       if (ok) {
-        dev.log('[AuthGate] POS device SDK initialized successfully at startup',
-            name: 'POS_AUTH');
+        dev.log(
+          '[AuthGate] POS device SDK initialized successfully at startup',
+          name: 'POS_AUTH',
+        );
       } else {
-        dev.log('[AuthGate] POS device SDK init returned false at startup',
-            name: 'POS_AUTH');
+        dev.log(
+          '[AuthGate] POS device SDK init returned false at startup',
+          name: 'POS_AUTH',
+        );
       }
     } catch (e, st) {
-      dev.log('[AuthGate] POS device SDK init FAILED at startup: $e',
-          name: 'POS_AUTH', error: e, stackTrace: st);
+      dev.log(
+        '[AuthGate] POS device SDK init FAILED at startup: $e',
+        name: 'POS_AUTH',
+        error: e,
+        stackTrace: st,
+      );
     }
   }
 
@@ -85,7 +97,7 @@ class _AuthGateState extends ConsumerState<AuthGate> {
 
     ref.listen(adminAuthProvider, (prev, next) {
       if (next.isAuthenticated && (prev == null || !prev.isAuthenticated)) {
-       _startSyncWithPosCheck();
+        _startSyncWithPosCheck();
       }
     });
 
@@ -106,14 +118,12 @@ class _AuthGateState extends ConsumerState<AuthGate> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-                   Image.asset('assets/app_logo.png', width: 200, height: 200),
+            Image.asset('assets/app_logo.png', width: 200, height: 200),
             const SizedBox(height: 24),
-            const LinearProgressIndicator(
-              minHeight: 5,
-            
-            ),
+            const LinearProgressIndicator(minHeight: 5),
             const SizedBox(height: 16),
-            const Text('Loading...', style: TextStyle(fontSize: 20)),  ],
+            const Text('Loading...', style: TextStyle(fontSize: 20)),
+          ],
         ),
       ),
     );

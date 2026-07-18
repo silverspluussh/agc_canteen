@@ -70,9 +70,9 @@ class AuthController extends Notifier<AuthState> {
   @override
   AuthState build() => const AuthState();
 
-  Future<void> authenticate() async {
+  Future<void> authenticate({int? departmentId}) async {
     dev.log(
-      '[AuthController] authenticate() called — setting state to authenticating',
+      '[AuthController] authenticate(departmentId=$departmentId) called — setting state to authenticating',
       name: 'POS_AUTH',
     );
     state = state.copyWith(step: AuthStep.authenticating, error: null);
@@ -84,7 +84,7 @@ class AuthController extends Notifier<AuthState> {
         '[AuthController] Calling posAuth.authenticateWithFingerprint()',
         name: 'POS_AUTH',
       );
-      final result = await posAuth.authenticateWithFingerprint();
+      final result = await posAuth.authenticateWithFingerprint(departmentId: departmentId);
 
       dev.log(
         '[AuthController] authenticateWithFingerprint returned: '
@@ -148,12 +148,12 @@ class AuthController extends Notifier<AuthState> {
   }
 
   /// Authenticates via NFC and places a voucher order.
-  Future<void> authenticateWithNfc() async {
+  Future<void> authenticateWithNfc({int? departmentId}) async {
     state = state.copyWith(step: AuthStep.authenticating, error: null);
 
     try {
       final posAuth = ref.read(posAuthProvider);
-      final result = await posAuth.authenticateWithNfc();
+      final result = await posAuth.authenticateWithNfc(departmentId: departmentId);
 
       if (!result.isAuthenticated) {
         final reason = result.failureReason;
@@ -198,12 +198,12 @@ class AuthController extends Notifier<AuthState> {
   }
 
   /// Authenticates via NFC without placing an order — stops at [AuthStep.authenticated].
-  Future<void> authenticateWithNfcOnly() async {
+  Future<void> authenticateWithNfcOnly({int? departmentId}) async {
     state = state.copyWith(step: AuthStep.authenticating, error: null);
 
     try {
       final posAuth = ref.read(posAuthProvider);
-      final result = await posAuth.authenticateWithNfc();
+      final result = await posAuth.authenticateWithNfc(departmentId: departmentId);
 
       if (!result.isAuthenticated) {
         final reason = result.failureReason;
@@ -234,12 +234,12 @@ class AuthController extends Notifier<AuthState> {
   }
 
   /// Authenticates staff without placing an order — stops at [AuthStep.authenticated].
-  Future<void> authenticateOnly() async {
+  Future<void> authenticateOnly({int? departmentId}) async {
     state = state.copyWith(step: AuthStep.authenticating, error: null);
 
     try {
       final posAuth = ref.read(posAuthProvider);
-      final result = await posAuth.authenticateWithFingerprint();
+      final result = await posAuth.authenticateWithFingerprint(departmentId: departmentId);
 
       if (!result.isAuthenticated) {
         final reason = result.failureReason;

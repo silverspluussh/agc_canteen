@@ -40,6 +40,7 @@ class _SyncPageState extends ConsumerState<SyncPage>
   int _dependentCount = 0;
   int _shiftCount = 0;
   int _cardCount = 0;
+  int _departmentCount = 0;
   bool _syncingDownload = false;
 
   int get _totalUploadPending => _unsyncedOrders + _unsyncedBioData;
@@ -51,7 +52,8 @@ class _SyncPageState extends ConsumerState<SyncPage>
       _contractorStaffCount +
       _dependentCount +
       _shiftCount +
-      _cardCount;
+      _cardCount +
+      _departmentCount;
 
   @override
   void initState() {
@@ -100,6 +102,7 @@ class _SyncPageState extends ConsumerState<SyncPage>
     final dependents = await _db.getAllDependents();
     final shifts = await _db.getAllShifts();
     final cards = await _db.getAllCards();
+    final departments = await _db.getAllDepartments();
     if (mounted) {
       setState(() {
         _staffCount = staff.length;
@@ -110,6 +113,7 @@ class _SyncPageState extends ConsumerState<SyncPage>
         _dependentCount = dependents.length;
         _shiftCount = shifts.length;
         _cardCount = cards.length;
+        _departmentCount = departments.length;
       });
     }
   }
@@ -482,6 +486,16 @@ class _SyncPageState extends ConsumerState<SyncPage>
             syncing: _syncingDownload,
             onSync: () => _syncDownload(
                 'Shifts', _downloadService.syncShiftsOnly),
+            onView: null,
+          ),
+          const SizedBox(height: 10),
+          _SyncStatCard(
+            icon: Icons.business_outlined,
+            label: 'Departments',
+            count: _departmentCount,
+            syncing: _syncingDownload,
+            onSync: () => _syncDownload(
+                'Departments', _downloadService.syncDepartmentsOnly),
             onView: null,
           ),
           const SizedBox(height: 10),

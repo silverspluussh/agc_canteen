@@ -3,6 +3,7 @@ import 'package:agc_canteen/core/theme/app_colors.dart';
 import 'package:agc_canteen/views/auth/group_order_auth_pos.dart';
 import 'package:agc_canteen/views/widgets/app_buttons.widget.dart';
 import 'package:agc_canteen/views/widgets/avatarglow.widget.dart';
+import 'package:agc_canteen/views/widgets/department_dropdown.widget.dart';
 import 'package:agc_canteen/views/widgets/voucher_card.widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -24,6 +25,7 @@ class SingleAuthPosPage extends ConsumerStatefulWidget {
 class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
   bool _fingerprintReady = false;
   bool _fingerprintInitFailed = false;
+  int? _selectedDepartmentId;
 
   @override
   void initState() {
@@ -67,10 +69,10 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
 
   Future<void> _startAuth() async {
     dev.log(
-      '[StaffAuthPage] Scan button tapped — starting fingerprint auth',
+      '[StaffAuthPage] Scan button tapped — starting fingerprint auth (departmentId=$_selectedDepartmentId)',
       name: 'POS_AUTH',
     );
-    await ref.read(authProvider.notifier).authenticate();
+    await ref.read(authProvider.notifier).authenticate(departmentId: _selectedDepartmentId);
   }
 
   List<Widget> _authButtons() {
@@ -110,7 +112,7 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
           child: PosButton(
             color: AppColors.success,
             onPressed: () async {
-              await ref.read(authProvider.notifier).authenticateWithNfc();
+              await ref.read(authProvider.notifier).authenticateWithNfc(departmentId: _selectedDepartmentId);
             },
             prefixChild: const Icon(
               Icons.nfc,
@@ -328,6 +330,14 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+                      const SizedBox(height: 16),
+
+                      // Department selector
+                      DepartmentDropdown(
+                        value: _selectedDepartmentId,
+                        onChanged: (id) => setState(() => _selectedDepartmentId = id),
+                      ),
+
                       const Spacer(),
 
                       BiometricGlow(),

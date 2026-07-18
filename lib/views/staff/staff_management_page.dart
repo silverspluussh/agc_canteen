@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../controllers/providers.dart';
@@ -56,6 +58,7 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage>
       ..clear()
       ..addAll(
         staffList.map((s) {
+          log(s.toJsonString());
           final fps = allFps.where((f) => f.staffId == s.id).toList();
           return _EntityEntry(
             id: s.id,

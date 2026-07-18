@@ -17,8 +17,8 @@ class BiometricGlow extends StatelessWidget {
           shape: BoxShape.circle,
           border: Border.all(width: 1, color: AppColors.gold600),
         ),
-        width: 150,
-        height: 150,
+        width: 100,
+        height: 100,
         child: Center(
           child: AvatarGlow(
             glowColor: Theme.of(context).colorScheme.primary,
@@ -29,12 +29,12 @@ class BiometricGlow extends StatelessWidget {
                 shape: BoxShape.circle,
                 border: Border.all(width: 1, color: AppColors.gold600),
               ),
-              width: 100,
-              height: 100,
+              width: 70,
+              height: 70,
               child: Center(
                 child: Icon(
                   Icons.fingerprint,
-                  size: 80,
+                  size: 50,
                   color: AppColors.gold600,
                 ),
               ),

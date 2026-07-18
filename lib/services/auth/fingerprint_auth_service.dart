@@ -90,13 +90,29 @@ class FingerprintAuthService {
     final fingerprintId = DateTime.now().millisecondsSinceEpoch;
     final now = DateTime.now().toIso8601String();
     final base64data = result.templateBase64??"";
-    // final encryptedData = await _encryptionService.encrypt(result.templateBase64!);
+
+    // Look up department info for staff-type entities
+    int? departmentId;
+    String? departmentName;
+    String? personnelName;
+    if (entityType.isStaffType) {
+      final staff = await _db.getStaff(entityId);
+      if (staff != null) {
+        departmentId = staff.departmentId;
+        final dep = departmentId != null ? await _db.getDepartment(departmentId) : null;
+        departmentName = dep?.name;
+        personnelName = '${staff.firstName} ${staff.lastName}';
+      }
+    }
 
     final companion = BioDataEntriesCompanion(
       id: Value(fingerprintId),
       finger: Value(finger.name),
       dataBase64: Value(base64data),
       isActive: const Value(true),
+      departmentId: Value.absentIfNull(departmentId),
+      departmentName: Value.absentIfNull(departmentName),
+      personnelName: Value.absentIfNull(personnelName),
       createdAt: Value(now),
       updatedAt: Value(now),
       syncStatus: const Value(0),
@@ -131,7 +147,7 @@ class FingerprintAuthService {
     return fingerprintId;
   }
 
-  Future<BioDataEntry?> authenticate() async {
+  Future<BioDataEntry?> authenticate({int? departmentId}) async {
     dev.log('[FingerprintAuth] Starting fingerprint capture via hardware...',
         name: 'POS_AUTH');
     final result = await _fingerprint.capture();
@@ -156,6 +172,9 @@ class FingerprintAuthService {
         _db.bioDataEntries.visitorId,
       ])
       ..where(_db.bioDataEntries.isActive.equals(true));
+    if (departmentId != null) {
+      query.where(_db.bioDataEntries.departmentId.equals(departmentId));
+    }
     final rows = await query.get();
 
     dev.log('[FingerprintAuth] Got ${rows.length} active fingerprint(s) from DB',

@@ -21,7 +21,8 @@ class NfcAuthService {
 
   /// Waits for one NFC tag, looks up the card in the local DB,
   /// and returns the matching [Card] record (with assignedToId + assignedToType).
-  Future<Card?> readCard() async {
+  /// Optionally filters by [departmentId] to narrow the lookup.
+  Future<Card?> readCard({int? departmentId}) async {
     _pendingCompleter?.complete(null);
     dev.log('[NfcAuth] Waiting for NFC tap...', name: 'NFC_AUTH');
 
@@ -34,7 +35,7 @@ class NfcAuthService {
       (tag) async {
         final code = tag['tagId'] as String;
 
-        final match = await _db.getCardByTagId(code);
+        final match = await _db.getCardByTagId(code, departmentId: departmentId);
 
         if (match != null) {
           dev.log(

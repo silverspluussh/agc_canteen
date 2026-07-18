@@ -8,6 +8,7 @@ import 'package:agc_canteen/core/theme/app_colors.dart';
 import 'package:agc_canteen/l10n/generated/app_localizations.dart';
 import 'package:agc_canteen/views/widgets/app_buttons.widget.dart';
 import 'package:agc_canteen/views/widgets/avatarglow.widget.dart';
+import 'package:agc_canteen/views/widgets/department_dropdown.widget.dart';
 import 'package:agc_canteen/views/widgets/groupselector.widget.dart';
 import 'package:agc_canteen/views/widgets/voucher_card.widget.dart';
 import 'package:drift/drift.dart' hide Column;
@@ -32,6 +33,7 @@ class GroupOrderAuthPos extends ConsumerStatefulWidget {
 class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
   bool _fingerprintReady = false;
   bool _fingerprintInitFailed = false;
+  int? _selectedDepartmentId;
   int _groupCount = 1;
   bool _isPlacingOrders = false;
   int _ordersPlaced = 0;
@@ -39,6 +41,16 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
   String? _staffName;
   String? _mealType;
   String? _orderTime;
+
+  void _resetOrderState() {
+    _groupCount = 1;
+    _ordersPlaced = 0;
+    _orderCode = null;
+    _staffName = null;
+    _mealType = null;
+    _orderTime = null;
+    _isPlacingOrders = false;
+  }
 
   void _increment() => setState(() => _groupCount++);
   void _decrement() => setState(() {
@@ -55,6 +67,9 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
     ref.listenManual(authProvider, (prev, next) {
       if (prev != null && !prev.isStaffReady && next.isStaffReady) {
         _placeGroupOrders(next.staff!);
+      }
+      if (prev != null && !prev.isAuthenticating && next.isAuthenticating) {
+        setState(_resetOrderState);
       }
     });
   }
@@ -91,7 +106,7 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
   }
 
   Future<void> _startAuth() async {
-    await ref.read(authProvider.notifier).authenticateOnly();
+    await ref.read(authProvider.notifier).authenticateOnly(departmentId: _selectedDepartmentId);
   }
 
   List<Widget> _authButtons() {
@@ -130,7 +145,7 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
           child: PosButton(
             color: AppColors.success,
             onPressed: () async {
-              ref.read(authProvider.notifier).authenticateWithNfcOnly();
+              ref.read(authProvider.notifier).authenticateWithNfcOnly(departmentId: _selectedDepartmentId);
             },
             prefixChild: const Icon(
               Icons.nfc,
@@ -166,13 +181,13 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
 
     final db = getIt<AppDatabase>();
 
-    final staffData = staff.staffId != null
-        ? await db.getStaff(staff.staffId!)
+    final staffData = staff.entityId != null
+        ? await db.getStaff(staff.entityId!)
         : null;
 
     if (staffData == null || staffData.allowGroupOrder != true) {
       if (mounted) {
-        setState(() => _isPlacingOrders = false);
+        setState(_resetOrderState);
         ref.read(authProvider.notifier).reset();
         ScaffoldMessenger.maybeOf(context)?.showSnackBar(
           const SnackBar(
@@ -208,7 +223,7 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
         .firstOrNull;
     if (matchedType == null || matchedType.price <= 0) {
       if (!mounted) return;
-      setState(() => _isPlacingOrders = false);
+      setState(_resetOrderState);
       ref.read(authProvider.notifier).reset();
       ScaffoldMessenger.maybeOf(context)?.showSnackBar(
         SnackBar(
@@ -252,7 +267,7 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
             total: Value(price),
             groupCount: const Value(1),
             description: Value('[Group] $mealType (${i + 1}/$_groupCount)'),
-            orderedById: Value(staff.staffId!),
+            orderedById: Value(staff.entityId!),
             employeeType: Value(staff.entityType!.name),
             createdAt: Value(nowIso),
             updatedAt: Value(nowIso),
@@ -287,7 +302,7 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
         message:
             'Group order: $_groupCount vouchers ($mealType) for $staffName',
         actorType: 'Staff',
-        actorId: staff.staffId,
+        actorId: staff.entityId,
         actorName: staffName,
         sourceTable: 'orders',
         metadata: {
@@ -309,10 +324,11 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
               mealType: mealType,
               orderTime: _orderTime,
             );
+        setState(_resetOrderState);
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _isPlacingOrders = false);
+        setState(_resetOrderState);
         ref.read(authProvider.notifier).reset();
         ScaffoldMessenger.maybeOf(context)?.showSnackBar(
           SnackBar(
@@ -375,7 +391,6 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(authProvider);
-    Size size = MediaQuery.sizeOf(context);
     return Scaffold(
       appBar: AppBar(
         backgroundColor: AppColors.gold600,
@@ -388,121 +403,116 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
       ),
 
       body: SafeArea(
-        child: Stack(
-          children: [
-            SizedBox(
-              width: size.width,
-              height: size.height,
-              child: Padding(
-                padding: const EdgeInsets.all(15),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    Text(
-                      "Generate Group Meal Vouchers",
-                      style: Theme.of(context).textTheme.titleLarge!.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const Spacer(),
-                    BiometricGlow(),
-                    const SizedBox(height: 30),
-
-                    // ── Group count selector ──
-                    GroupCountSelector(
-                      count: _groupCount,
-                      onIncrement: _increment,
-                      onDecrement: _decrement,
-                    ),
-
-                    const Spacer(),
-
-                    if (!_fingerprintReady && !_fingerprintInitFailed) ...[
-                      const SizedBox(height: 10),
-                      const LinearProgressIndicator(),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Initializing biometrics...',
-                        style: TextStyle(fontSize: 16),
-                      ),
-                    ],
-                    if (state.isUnauthenticated &&
-                        !state.isAuthenticating &&
-                        !state.hasError &&
-                        _fingerprintReady) ...[
-                      const SizedBox(height: 20),
-
-                      ..._authButtons(),
-                    ],
-                    if (state.isAuthenticating) ...[
-                      const LinearProgressIndicator(),
-                      const SizedBox(height: 16),
-                      Text(
-                        AppLocalizations.of(context).scanning,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                    ],
-                    if (_isPlacingOrders && _ordersPlaced < _groupCount) ...[
-                      const LinearProgressIndicator(),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Printing voucher ${_ordersPlaced + 1} / $_groupCount...',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                    ],
-                    if (_ordersPlaced >= _groupCount &&
-                        _groupCount > 0 &&
-                        _orderCode != null) ...[
-                      const Icon(
-                        Icons.check_circle,
-                        color: Colors.green,
-                        size: 48,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '$_groupCount Vouchers Printed',
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green,
-                            ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Staff: ${_staffName ?? ""} · $_mealType',
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                      VoucherCard(
-                        orderCode: _orderCode!,
-                        staffName: _staffName ?? '',
-                        mealType: _mealType ?? '',
-                        orderTime: _orderTime ?? '',
-                      ),
-                    ],
-                    if (state.hasError) ...[
-                      Icon(
-                        Icons.error_outline,
-                        size: 48,
-                        color: Theme.of(context).colorScheme.error,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        state.error ??
-                            AppLocalizations.of(context).somethingWentWrong,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      ..._authButtons(),
-                    ],
-                  ],
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(15),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(height: 16),
+                Text(
+                  "Generate Group Meal Vouchers",
+                  style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
+                const SizedBox(height: 16),
+                   Text("Select Department",style: Theme.of(context).textTheme.titleLarge),
+          SizedBox(height: 15),
+                DepartmentDropdown(
+                  value: _selectedDepartmentId,
+                  onChanged: (id) => setState(() => _selectedDepartmentId = id),
+                ),
+                const SizedBox(height: 20),
+                // BiometricGlow(),
+                // const SizedBox(height: 16),
+
+                // ── Group count selector ──
+                GroupCountSelector(
+                  count: _groupCount,
+                  onIncrement: _increment,
+                  onDecrement: _decrement,
+                ),
+
+                const SizedBox(height: 32),
+
+                if (!_fingerprintReady && !_fingerprintInitFailed) ...[
+                  const SizedBox(height: 10),
+                  const LinearProgressIndicator(),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Initializing biometrics...',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                ],
+                if (state.isUnauthenticated &&
+                    !state.isAuthenticating &&
+                    !state.hasError &&
+                    _fingerprintReady) ...[
+                  const SizedBox(height: 20),
+
+                  ..._authButtons(),
+                ],
+                if (state.isAuthenticating) ...[
+                  const LinearProgressIndicator(),
+                  const SizedBox(height: 16),
+                  Text(
+                    AppLocalizations.of(context).scanning,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ],
+                if (_isPlacingOrders && _ordersPlaced < _groupCount) ...[
+                  const LinearProgressIndicator(),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Printing voucher ${_ordersPlaced + 1} / $_groupCount...',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ],
+                if (state.isCompleted && state.orderCode != null) ...[
+                  const Icon(
+                    Icons.check_circle,
+                    color: Colors.green,
+                    size: 48,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Vouchers Printed',
+                    style: Theme.of(context).textTheme.headlineSmall
+                        ?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green,
+                        ),
+                  ),
+                  const SizedBox(height: 16),
+                  VoucherCard(
+                    orderCode: state.orderCode!,
+                    staffName: state.staff?.displayName ?? '',
+                    mealType: state.mealType ?? '',
+                    orderTime: state.orderTime ?? '',
+                  ),
+                ],
+                if (state.hasError) ...[
+                  Icon(
+                    Icons.error_outline,
+                    size: 48,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    state.error ??
+                        AppLocalizations.of(context).somethingWentWrong,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ..._authButtons(),
+                ],
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

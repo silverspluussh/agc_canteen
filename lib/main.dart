@@ -13,8 +13,6 @@ import 'views/reports/reports_page.dart';
 import 'views/settings/settings_page.dart';
 import 'views/staff/staff_management_page.dart';
 import 'views/settings/sync_page.dart';
-import 'views/settings/card_test_page.dart';
-import 'views/settings/nfc_test_page.dart';
 import 'views/pos/pos_settings_page.dart';
 import 'views/pos/manual_order_page.dart';
 import 'views/auth/group_order_auth_pos.dart';

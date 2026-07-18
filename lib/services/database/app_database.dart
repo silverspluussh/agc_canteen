@@ -200,9 +200,6 @@ class AppDatabase extends _$AppDatabase {
   Future<Department?> getDepartment(int id) =>
       (select(departments)..where((t) => t.id.equals(id))).getSingleOrNull();
 
-  Future<List<Department>> getDepartmentsByCompany(int companyId) =>
-      (select(departments)..where((t) => t.companyId.equals(companyId))).get();
-
   Future<void> markDepartmentSynced(int id) =>
       (update(departments)..where((t) => t.id.equals(id))).write(
         DepartmentsCompanion(
@@ -749,8 +746,13 @@ class AppDatabase extends _$AppDatabase {
   Future<List<Card>> getAllCards() => select(cards).get();
   Future<Card?> getCard(int id) =>
       (select(cards)..where((t) => t.id.equals(id))).getSingleOrNull();
-  Future<Card?> getCardByTagId(String tagId) =>
-      (select(cards)..where((t) => t.tagId.equals(tagId))).getSingleOrNull();
+  Future<Card?> getCardByTagId(String tagId, {int? departmentId}) {
+    final query = select(cards)..where((t) => t.tagId.equals(tagId));
+    if (departmentId != null) {
+      query.where((t) => t.departmentId.equals(departmentId));
+    }
+    return query.getSingleOrNull();
+  }
 
   Future<List<Card>> getCardsByAssignedTo(int assignedToId) =>
       (select(cards)..where((t) => t.assignedToId.equals(assignedToId))).get();

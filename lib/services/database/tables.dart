@@ -18,7 +18,6 @@ class Sites extends Table {
 class Departments extends Table {
   IntColumn get id => integer()();
   TextColumn get name => text()();
-  IntColumn get companyId => integer().references(Sites, #id)();
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();
   TextColumn get syncUpdatedAt => text().nullable()();
 
@@ -144,6 +143,9 @@ class Cards extends Table {
   BoolColumn get isAssigned => boolean().nullable()();
   IntColumn get assignedToId => integer().nullable()();
   TextColumn get assignedToType => text().nullable()();
+  IntColumn get departmentId => integer().nullable()();
+  TextColumn get departmentName => text().nullable()();
+  TextColumn get personnelName => text().nullable()();
   TextColumn get issuedDate => text().nullable()();
   TextColumn get createdAt => text().nullable()();
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();
@@ -310,13 +312,16 @@ class Visitors extends Table {
 
 class BioDataEntries extends Table {
   IntColumn get id => integer()();
-  IntColumn get staffId => integer().nullable().references(Staff, #id)();
-  IntColumn get dependentId => integer().nullable().references(Dependents, #id)();
-  IntColumn get contractorStaffId => integer().nullable().references(ContractorStaffTable, #id)();
-  IntColumn get visitorId => integer().nullable().references(Visitors, #id)();
+  IntColumn get staffId => integer().nullable()();
+  IntColumn get dependentId => integer().nullable()();
+  IntColumn get contractorStaffId => integer().nullable()();
+  IntColumn get visitorId => integer().nullable()();
   TextColumn get finger => text()();
   TextColumn get dataBase64 => text()();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+  IntColumn get departmentId => integer().nullable()();
+  TextColumn get departmentName => text().nullable()();
+  TextColumn get personnelName => text().nullable()();
   TextColumn get createdAt => text()();
   TextColumn get updatedAt => text()();
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();

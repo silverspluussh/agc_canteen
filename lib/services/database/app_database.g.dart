@@ -585,20 +585,6 @@ class $DepartmentsTable extends Departments
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _companyIdMeta = const VerificationMeta(
-    'companyId',
-  );
-  @override
-  late final GeneratedColumn<int> companyId = GeneratedColumn<int>(
-    'company_id',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES sites (id)',
-    ),
-  );
   static const VerificationMeta _syncStatusMeta = const VerificationMeta(
     'syncStatus',
   );
@@ -623,13 +609,7 @@ class $DepartmentsTable extends Departments
     requiredDuringInsert: false,
   );
   @override
-  List<GeneratedColumn> get $columns => [
-    id,
-    name,
-    companyId,
-    syncStatus,
-    syncUpdatedAt,
-  ];
+  List<GeneratedColumn> get $columns => [id, name, syncStatus, syncUpdatedAt];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -652,14 +632,6 @@ class $DepartmentsTable extends Departments
       );
     } else if (isInserting) {
       context.missing(_nameMeta);
-    }
-    if (data.containsKey('company_id')) {
-      context.handle(
-        _companyIdMeta,
-        companyId.isAcceptableOrUnknown(data['company_id']!, _companyIdMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_companyIdMeta);
     }
     if (data.containsKey('sync_status')) {
       context.handle(
@@ -693,10 +665,6 @@ class $DepartmentsTable extends Departments
         DriftSqlType.string,
         data['${effectivePrefix}name'],
       )!,
-      companyId: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}company_id'],
-      )!,
       syncStatus: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}sync_status'],
@@ -717,13 +685,11 @@ class $DepartmentsTable extends Departments
 class Department extends DataClass implements Insertable<Department> {
   final int id;
   final String name;
-  final int companyId;
   final int syncStatus;
   final String? syncUpdatedAt;
   const Department({
     required this.id,
     required this.name,
-    required this.companyId,
     required this.syncStatus,
     this.syncUpdatedAt,
   });
@@ -732,7 +698,6 @@ class Department extends DataClass implements Insertable<Department> {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['name'] = Variable<String>(name);
-    map['company_id'] = Variable<int>(companyId);
     map['sync_status'] = Variable<int>(syncStatus);
     if (!nullToAbsent || syncUpdatedAt != null) {
       map['sync_updated_at'] = Variable<String>(syncUpdatedAt);
@@ -744,7 +709,6 @@ class Department extends DataClass implements Insertable<Department> {
     return DepartmentsCompanion(
       id: Value(id),
       name: Value(name),
-      companyId: Value(companyId),
       syncStatus: Value(syncStatus),
       syncUpdatedAt: syncUpdatedAt == null && nullToAbsent
           ? const Value.absent()
@@ -760,7 +724,6 @@ class Department extends DataClass implements Insertable<Department> {
     return Department(
       id: serializer.fromJson<int>(json['id']),
       name: serializer.fromJson<String>(json['name']),
-      companyId: serializer.fromJson<int>(json['companyId']),
       syncStatus: serializer.fromJson<int>(json['syncStatus']),
       syncUpdatedAt: serializer.fromJson<String?>(json['syncUpdatedAt']),
     );
@@ -771,7 +734,6 @@ class Department extends DataClass implements Insertable<Department> {
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'name': serializer.toJson<String>(name),
-      'companyId': serializer.toJson<int>(companyId),
       'syncStatus': serializer.toJson<int>(syncStatus),
       'syncUpdatedAt': serializer.toJson<String?>(syncUpdatedAt),
     };
@@ -780,13 +742,11 @@ class Department extends DataClass implements Insertable<Department> {
   Department copyWith({
     int? id,
     String? name,
-    int? companyId,
     int? syncStatus,
     Value<String?> syncUpdatedAt = const Value.absent(),
   }) => Department(
     id: id ?? this.id,
     name: name ?? this.name,
-    companyId: companyId ?? this.companyId,
     syncStatus: syncStatus ?? this.syncStatus,
     syncUpdatedAt: syncUpdatedAt.present
         ? syncUpdatedAt.value
@@ -796,7 +756,6 @@ class Department extends DataClass implements Insertable<Department> {
     return Department(
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
-      companyId: data.companyId.present ? data.companyId.value : this.companyId,
       syncStatus: data.syncStatus.present
           ? data.syncStatus.value
           : this.syncStatus,
@@ -811,7 +770,6 @@ class Department extends DataClass implements Insertable<Department> {
     return (StringBuffer('Department(')
           ..write('id: $id, ')
           ..write('name: $name, ')
-          ..write('companyId: $companyId, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('syncUpdatedAt: $syncUpdatedAt')
           ..write(')'))
@@ -819,15 +777,13 @@ class Department extends DataClass implements Insertable<Department> {
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, name, companyId, syncStatus, syncUpdatedAt);
+  int get hashCode => Object.hash(id, name, syncStatus, syncUpdatedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is Department &&
           other.id == this.id &&
           other.name == this.name &&
-          other.companyId == this.companyId &&
           other.syncStatus == this.syncStatus &&
           other.syncUpdatedAt == this.syncUpdatedAt);
 }
@@ -835,35 +791,29 @@ class Department extends DataClass implements Insertable<Department> {
 class DepartmentsCompanion extends UpdateCompanion<Department> {
   final Value<int> id;
   final Value<String> name;
-  final Value<int> companyId;
   final Value<int> syncStatus;
   final Value<String?> syncUpdatedAt;
   const DepartmentsCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
-    this.companyId = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.syncUpdatedAt = const Value.absent(),
   });
   DepartmentsCompanion.insert({
     this.id = const Value.absent(),
     required String name,
-    required int companyId,
     this.syncStatus = const Value.absent(),
     this.syncUpdatedAt = const Value.absent(),
-  }) : name = Value(name),
-       companyId = Value(companyId);
+  }) : name = Value(name);
   static Insertable<Department> custom({
     Expression<int>? id,
     Expression<String>? name,
-    Expression<int>? companyId,
     Expression<int>? syncStatus,
     Expression<String>? syncUpdatedAt,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (name != null) 'name': name,
-      if (companyId != null) 'company_id': companyId,
       if (syncStatus != null) 'sync_status': syncStatus,
       if (syncUpdatedAt != null) 'sync_updated_at': syncUpdatedAt,
     });
@@ -872,14 +822,12 @@ class DepartmentsCompanion extends UpdateCompanion<Department> {
   DepartmentsCompanion copyWith({
     Value<int>? id,
     Value<String>? name,
-    Value<int>? companyId,
     Value<int>? syncStatus,
     Value<String?>? syncUpdatedAt,
   }) {
     return DepartmentsCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
-      companyId: companyId ?? this.companyId,
       syncStatus: syncStatus ?? this.syncStatus,
       syncUpdatedAt: syncUpdatedAt ?? this.syncUpdatedAt,
     );
@@ -893,9 +841,6 @@ class DepartmentsCompanion extends UpdateCompanion<Department> {
     }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
-    }
-    if (companyId.present) {
-      map['company_id'] = Variable<int>(companyId.value);
     }
     if (syncStatus.present) {
       map['sync_status'] = Variable<int>(syncStatus.value);
@@ -911,7 +856,6 @@ class DepartmentsCompanion extends UpdateCompanion<Department> {
     return (StringBuffer('DepartmentsCompanion(')
           ..write('id: $id, ')
           ..write('name: $name, ')
-          ..write('companyId: $companyId, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('syncUpdatedAt: $syncUpdatedAt')
           ..write(')'))
@@ -5177,6 +5121,39 @@ class $CardsTable extends Cards with TableInfo<$CardsTable, Card> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _departmentIdMeta = const VerificationMeta(
+    'departmentId',
+  );
+  @override
+  late final GeneratedColumn<int> departmentId = GeneratedColumn<int>(
+    'department_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _departmentNameMeta = const VerificationMeta(
+    'departmentName',
+  );
+  @override
+  late final GeneratedColumn<String> departmentName = GeneratedColumn<String>(
+    'department_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _personnelNameMeta = const VerificationMeta(
+    'personnelName',
+  );
+  @override
+  late final GeneratedColumn<String> personnelName = GeneratedColumn<String>(
+    'personnel_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _issuedDateMeta = const VerificationMeta(
     'issuedDate',
   );
@@ -5232,6 +5209,9 @@ class $CardsTable extends Cards with TableInfo<$CardsTable, Card> {
     isAssigned,
     assignedToId,
     assignedToType,
+    departmentId,
+    departmentName,
+    personnelName,
     issuedDate,
     createdAt,
     syncStatus,
@@ -5307,6 +5287,33 @@ class $CardsTable extends Cards with TableInfo<$CardsTable, Card> {
         ),
       );
     }
+    if (data.containsKey('department_id')) {
+      context.handle(
+        _departmentIdMeta,
+        departmentId.isAcceptableOrUnknown(
+          data['department_id']!,
+          _departmentIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('department_name')) {
+      context.handle(
+        _departmentNameMeta,
+        departmentName.isAcceptableOrUnknown(
+          data['department_name']!,
+          _departmentNameMeta,
+        ),
+      );
+    }
+    if (data.containsKey('personnel_name')) {
+      context.handle(
+        _personnelNameMeta,
+        personnelName.isAcceptableOrUnknown(
+          data['personnel_name']!,
+          _personnelNameMeta,
+        ),
+      );
+    }
     if (data.containsKey('issued_date')) {
       context.handle(
         _issuedDateMeta,
@@ -5375,6 +5382,18 @@ class $CardsTable extends Cards with TableInfo<$CardsTable, Card> {
         DriftSqlType.string,
         data['${effectivePrefix}assigned_to_type'],
       ),
+      departmentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}department_id'],
+      ),
+      departmentName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}department_name'],
+      ),
+      personnelName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}personnel_name'],
+      ),
       issuedDate: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}issued_date'],
@@ -5409,6 +5428,9 @@ class Card extends DataClass implements Insertable<Card> {
   final bool? isAssigned;
   final int? assignedToId;
   final String? assignedToType;
+  final int? departmentId;
+  final String? departmentName;
+  final String? personnelName;
   final String? issuedDate;
   final String? createdAt;
   final int syncStatus;
@@ -5422,6 +5444,9 @@ class Card extends DataClass implements Insertable<Card> {
     this.isAssigned,
     this.assignedToId,
     this.assignedToType,
+    this.departmentId,
+    this.departmentName,
+    this.personnelName,
     this.issuedDate,
     this.createdAt,
     required this.syncStatus,
@@ -5447,6 +5472,15 @@ class Card extends DataClass implements Insertable<Card> {
     }
     if (!nullToAbsent || assignedToType != null) {
       map['assigned_to_type'] = Variable<String>(assignedToType);
+    }
+    if (!nullToAbsent || departmentId != null) {
+      map['department_id'] = Variable<int>(departmentId);
+    }
+    if (!nullToAbsent || departmentName != null) {
+      map['department_name'] = Variable<String>(departmentName);
+    }
+    if (!nullToAbsent || personnelName != null) {
+      map['personnel_name'] = Variable<String>(personnelName);
     }
     if (!nullToAbsent || issuedDate != null) {
       map['issued_date'] = Variable<String>(issuedDate);
@@ -5481,6 +5515,15 @@ class Card extends DataClass implements Insertable<Card> {
       assignedToType: assignedToType == null && nullToAbsent
           ? const Value.absent()
           : Value(assignedToType),
+      departmentId: departmentId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(departmentId),
+      departmentName: departmentName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(departmentName),
+      personnelName: personnelName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(personnelName),
       issuedDate: issuedDate == null && nullToAbsent
           ? const Value.absent()
           : Value(issuedDate),
@@ -5508,6 +5551,9 @@ class Card extends DataClass implements Insertable<Card> {
       isAssigned: serializer.fromJson<bool?>(json['isAssigned']),
       assignedToId: serializer.fromJson<int?>(json['assignedToId']),
       assignedToType: serializer.fromJson<String?>(json['assignedToType']),
+      departmentId: serializer.fromJson<int?>(json['departmentId']),
+      departmentName: serializer.fromJson<String?>(json['departmentName']),
+      personnelName: serializer.fromJson<String?>(json['personnelName']),
       issuedDate: serializer.fromJson<String?>(json['issuedDate']),
       createdAt: serializer.fromJson<String?>(json['createdAt']),
       syncStatus: serializer.fromJson<int>(json['syncStatus']),
@@ -5526,6 +5572,9 @@ class Card extends DataClass implements Insertable<Card> {
       'isAssigned': serializer.toJson<bool?>(isAssigned),
       'assignedToId': serializer.toJson<int?>(assignedToId),
       'assignedToType': serializer.toJson<String?>(assignedToType),
+      'departmentId': serializer.toJson<int?>(departmentId),
+      'departmentName': serializer.toJson<String?>(departmentName),
+      'personnelName': serializer.toJson<String?>(personnelName),
       'issuedDate': serializer.toJson<String?>(issuedDate),
       'createdAt': serializer.toJson<String?>(createdAt),
       'syncStatus': serializer.toJson<int>(syncStatus),
@@ -5542,6 +5591,9 @@ class Card extends DataClass implements Insertable<Card> {
     Value<bool?> isAssigned = const Value.absent(),
     Value<int?> assignedToId = const Value.absent(),
     Value<String?> assignedToType = const Value.absent(),
+    Value<int?> departmentId = const Value.absent(),
+    Value<String?> departmentName = const Value.absent(),
+    Value<String?> personnelName = const Value.absent(),
     Value<String?> issuedDate = const Value.absent(),
     Value<String?> createdAt = const Value.absent(),
     int? syncStatus,
@@ -5557,6 +5609,13 @@ class Card extends DataClass implements Insertable<Card> {
     assignedToType: assignedToType.present
         ? assignedToType.value
         : this.assignedToType,
+    departmentId: departmentId.present ? departmentId.value : this.departmentId,
+    departmentName: departmentName.present
+        ? departmentName.value
+        : this.departmentName,
+    personnelName: personnelName.present
+        ? personnelName.value
+        : this.personnelName,
     issuedDate: issuedDate.present ? issuedDate.value : this.issuedDate,
     createdAt: createdAt.present ? createdAt.value : this.createdAt,
     syncStatus: syncStatus ?? this.syncStatus,
@@ -5582,6 +5641,15 @@ class Card extends DataClass implements Insertable<Card> {
       assignedToType: data.assignedToType.present
           ? data.assignedToType.value
           : this.assignedToType,
+      departmentId: data.departmentId.present
+          ? data.departmentId.value
+          : this.departmentId,
+      departmentName: data.departmentName.present
+          ? data.departmentName.value
+          : this.departmentName,
+      personnelName: data.personnelName.present
+          ? data.personnelName.value
+          : this.personnelName,
       issuedDate: data.issuedDate.present
           ? data.issuedDate.value
           : this.issuedDate,
@@ -5606,6 +5674,9 @@ class Card extends DataClass implements Insertable<Card> {
           ..write('isAssigned: $isAssigned, ')
           ..write('assignedToId: $assignedToId, ')
           ..write('assignedToType: $assignedToType, ')
+          ..write('departmentId: $departmentId, ')
+          ..write('departmentName: $departmentName, ')
+          ..write('personnelName: $personnelName, ')
           ..write('issuedDate: $issuedDate, ')
           ..write('createdAt: $createdAt, ')
           ..write('syncStatus: $syncStatus, ')
@@ -5624,6 +5695,9 @@ class Card extends DataClass implements Insertable<Card> {
     isAssigned,
     assignedToId,
     assignedToType,
+    departmentId,
+    departmentName,
+    personnelName,
     issuedDate,
     createdAt,
     syncStatus,
@@ -5641,6 +5715,9 @@ class Card extends DataClass implements Insertable<Card> {
           other.isAssigned == this.isAssigned &&
           other.assignedToId == this.assignedToId &&
           other.assignedToType == this.assignedToType &&
+          other.departmentId == this.departmentId &&
+          other.departmentName == this.departmentName &&
+          other.personnelName == this.personnelName &&
           other.issuedDate == this.issuedDate &&
           other.createdAt == this.createdAt &&
           other.syncStatus == this.syncStatus &&
@@ -5656,6 +5733,9 @@ class CardsCompanion extends UpdateCompanion<Card> {
   final Value<bool?> isAssigned;
   final Value<int?> assignedToId;
   final Value<String?> assignedToType;
+  final Value<int?> departmentId;
+  final Value<String?> departmentName;
+  final Value<String?> personnelName;
   final Value<String?> issuedDate;
   final Value<String?> createdAt;
   final Value<int> syncStatus;
@@ -5669,6 +5749,9 @@ class CardsCompanion extends UpdateCompanion<Card> {
     this.isAssigned = const Value.absent(),
     this.assignedToId = const Value.absent(),
     this.assignedToType = const Value.absent(),
+    this.departmentId = const Value.absent(),
+    this.departmentName = const Value.absent(),
+    this.personnelName = const Value.absent(),
     this.issuedDate = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.syncStatus = const Value.absent(),
@@ -5683,6 +5766,9 @@ class CardsCompanion extends UpdateCompanion<Card> {
     this.isAssigned = const Value.absent(),
     this.assignedToId = const Value.absent(),
     this.assignedToType = const Value.absent(),
+    this.departmentId = const Value.absent(),
+    this.departmentName = const Value.absent(),
+    this.personnelName = const Value.absent(),
     this.issuedDate = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.syncStatus = const Value.absent(),
@@ -5698,6 +5784,9 @@ class CardsCompanion extends UpdateCompanion<Card> {
     Expression<bool>? isAssigned,
     Expression<int>? assignedToId,
     Expression<String>? assignedToType,
+    Expression<int>? departmentId,
+    Expression<String>? departmentName,
+    Expression<String>? personnelName,
     Expression<String>? issuedDate,
     Expression<String>? createdAt,
     Expression<int>? syncStatus,
@@ -5712,6 +5801,9 @@ class CardsCompanion extends UpdateCompanion<Card> {
       if (isAssigned != null) 'is_assigned': isAssigned,
       if (assignedToId != null) 'assigned_to_id': assignedToId,
       if (assignedToType != null) 'assigned_to_type': assignedToType,
+      if (departmentId != null) 'department_id': departmentId,
+      if (departmentName != null) 'department_name': departmentName,
+      if (personnelName != null) 'personnel_name': personnelName,
       if (issuedDate != null) 'issued_date': issuedDate,
       if (createdAt != null) 'created_at': createdAt,
       if (syncStatus != null) 'sync_status': syncStatus,
@@ -5728,6 +5820,9 @@ class CardsCompanion extends UpdateCompanion<Card> {
     Value<bool?>? isAssigned,
     Value<int?>? assignedToId,
     Value<String?>? assignedToType,
+    Value<int?>? departmentId,
+    Value<String?>? departmentName,
+    Value<String?>? personnelName,
     Value<String?>? issuedDate,
     Value<String?>? createdAt,
     Value<int>? syncStatus,
@@ -5742,6 +5837,9 @@ class CardsCompanion extends UpdateCompanion<Card> {
       isAssigned: isAssigned ?? this.isAssigned,
       assignedToId: assignedToId ?? this.assignedToId,
       assignedToType: assignedToType ?? this.assignedToType,
+      departmentId: departmentId ?? this.departmentId,
+      departmentName: departmentName ?? this.departmentName,
+      personnelName: personnelName ?? this.personnelName,
       issuedDate: issuedDate ?? this.issuedDate,
       createdAt: createdAt ?? this.createdAt,
       syncStatus: syncStatus ?? this.syncStatus,
@@ -5776,6 +5874,15 @@ class CardsCompanion extends UpdateCompanion<Card> {
     if (assignedToType.present) {
       map['assigned_to_type'] = Variable<String>(assignedToType.value);
     }
+    if (departmentId.present) {
+      map['department_id'] = Variable<int>(departmentId.value);
+    }
+    if (departmentName.present) {
+      map['department_name'] = Variable<String>(departmentName.value);
+    }
+    if (personnelName.present) {
+      map['personnel_name'] = Variable<String>(personnelName.value);
+    }
     if (issuedDate.present) {
       map['issued_date'] = Variable<String>(issuedDate.value);
     }
@@ -5802,6 +5909,9 @@ class CardsCompanion extends UpdateCompanion<Card> {
           ..write('isAssigned: $isAssigned, ')
           ..write('assignedToId: $assignedToId, ')
           ..write('assignedToType: $assignedToType, ')
+          ..write('departmentId: $departmentId, ')
+          ..write('departmentName: $departmentName, ')
+          ..write('personnelName: $personnelName, ')
           ..write('issuedDate: $issuedDate, ')
           ..write('createdAt: $createdAt, ')
           ..write('syncStatus: $syncStatus, ')
@@ -12313,9 +12423,6 @@ class $BioDataEntriesTable extends BioDataEntries
     true,
     type: DriftSqlType.int,
     requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES staff (id)',
-    ),
   );
   static const VerificationMeta _dependentIdMeta = const VerificationMeta(
     'dependentId',
@@ -12327,9 +12434,6 @@ class $BioDataEntriesTable extends BioDataEntries
     true,
     type: DriftSqlType.int,
     requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES dependents (id)',
-    ),
   );
   static const VerificationMeta _contractorStaffIdMeta = const VerificationMeta(
     'contractorStaffId',
@@ -12341,9 +12445,6 @@ class $BioDataEntriesTable extends BioDataEntries
     true,
     type: DriftSqlType.int,
     requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES contractor_staff_table (id)',
-    ),
   );
   static const VerificationMeta _visitorIdMeta = const VerificationMeta(
     'visitorId',
@@ -12355,9 +12456,6 @@ class $BioDataEntriesTable extends BioDataEntries
     true,
     type: DriftSqlType.int,
     requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES visitors (id)',
-    ),
   );
   static const VerificationMeta _fingerMeta = const VerificationMeta('finger');
   @override
@@ -12393,6 +12491,39 @@ class $BioDataEntriesTable extends BioDataEntries
       'CHECK ("is_active" IN (0, 1))',
     ),
     defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _departmentIdMeta = const VerificationMeta(
+    'departmentId',
+  );
+  @override
+  late final GeneratedColumn<int> departmentId = GeneratedColumn<int>(
+    'department_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _departmentNameMeta = const VerificationMeta(
+    'departmentName',
+  );
+  @override
+  late final GeneratedColumn<String> departmentName = GeneratedColumn<String>(
+    'department_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _personnelNameMeta = const VerificationMeta(
+    'personnelName',
+  );
+  @override
+  late final GeneratedColumn<String> personnelName = GeneratedColumn<String>(
+    'personnel_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
   );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
@@ -12449,6 +12580,9 @@ class $BioDataEntriesTable extends BioDataEntries
     finger,
     dataBase64,
     isActive,
+    departmentId,
+    departmentName,
+    personnelName,
     createdAt,
     updatedAt,
     syncStatus,
@@ -12519,6 +12653,33 @@ class $BioDataEntriesTable extends BioDataEntries
       context.handle(
         _isActiveMeta,
         isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta),
+      );
+    }
+    if (data.containsKey('department_id')) {
+      context.handle(
+        _departmentIdMeta,
+        departmentId.isAcceptableOrUnknown(
+          data['department_id']!,
+          _departmentIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('department_name')) {
+      context.handle(
+        _departmentNameMeta,
+        departmentName.isAcceptableOrUnknown(
+          data['department_name']!,
+          _departmentNameMeta,
+        ),
+      );
+    }
+    if (data.containsKey('personnel_name')) {
+      context.handle(
+        _personnelNameMeta,
+        personnelName.isAcceptableOrUnknown(
+          data['personnel_name']!,
+          _personnelNameMeta,
+        ),
       );
     }
     if (data.containsKey('created_at')) {
@@ -12593,6 +12754,18 @@ class $BioDataEntriesTable extends BioDataEntries
         DriftSqlType.bool,
         data['${effectivePrefix}is_active'],
       )!,
+      departmentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}department_id'],
+      ),
+      departmentName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}department_name'],
+      ),
+      personnelName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}personnel_name'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}created_at'],
@@ -12627,6 +12800,9 @@ class BioDataEntry extends DataClass implements Insertable<BioDataEntry> {
   final String finger;
   final String dataBase64;
   final bool isActive;
+  final int? departmentId;
+  final String? departmentName;
+  final String? personnelName;
   final String createdAt;
   final String updatedAt;
   final int syncStatus;
@@ -12640,6 +12816,9 @@ class BioDataEntry extends DataClass implements Insertable<BioDataEntry> {
     required this.finger,
     required this.dataBase64,
     required this.isActive,
+    this.departmentId,
+    this.departmentName,
+    this.personnelName,
     required this.createdAt,
     required this.updatedAt,
     required this.syncStatus,
@@ -12664,6 +12843,15 @@ class BioDataEntry extends DataClass implements Insertable<BioDataEntry> {
     map['finger'] = Variable<String>(finger);
     map['data_base64'] = Variable<String>(dataBase64);
     map['is_active'] = Variable<bool>(isActive);
+    if (!nullToAbsent || departmentId != null) {
+      map['department_id'] = Variable<int>(departmentId);
+    }
+    if (!nullToAbsent || departmentName != null) {
+      map['department_name'] = Variable<String>(departmentName);
+    }
+    if (!nullToAbsent || personnelName != null) {
+      map['personnel_name'] = Variable<String>(personnelName);
+    }
     map['created_at'] = Variable<String>(createdAt);
     map['updated_at'] = Variable<String>(updatedAt);
     map['sync_status'] = Variable<int>(syncStatus);
@@ -12691,6 +12879,15 @@ class BioDataEntry extends DataClass implements Insertable<BioDataEntry> {
       finger: Value(finger),
       dataBase64: Value(dataBase64),
       isActive: Value(isActive),
+      departmentId: departmentId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(departmentId),
+      departmentName: departmentName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(departmentName),
+      personnelName: personnelName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(personnelName),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       syncStatus: Value(syncStatus),
@@ -12714,6 +12911,9 @@ class BioDataEntry extends DataClass implements Insertable<BioDataEntry> {
       finger: serializer.fromJson<String>(json['finger']),
       dataBase64: serializer.fromJson<String>(json['dataBase64']),
       isActive: serializer.fromJson<bool>(json['isActive']),
+      departmentId: serializer.fromJson<int?>(json['departmentId']),
+      departmentName: serializer.fromJson<String?>(json['departmentName']),
+      personnelName: serializer.fromJson<String?>(json['personnelName']),
       createdAt: serializer.fromJson<String>(json['createdAt']),
       updatedAt: serializer.fromJson<String>(json['updatedAt']),
       syncStatus: serializer.fromJson<int>(json['syncStatus']),
@@ -12732,6 +12932,9 @@ class BioDataEntry extends DataClass implements Insertable<BioDataEntry> {
       'finger': serializer.toJson<String>(finger),
       'dataBase64': serializer.toJson<String>(dataBase64),
       'isActive': serializer.toJson<bool>(isActive),
+      'departmentId': serializer.toJson<int?>(departmentId),
+      'departmentName': serializer.toJson<String?>(departmentName),
+      'personnelName': serializer.toJson<String?>(personnelName),
       'createdAt': serializer.toJson<String>(createdAt),
       'updatedAt': serializer.toJson<String>(updatedAt),
       'syncStatus': serializer.toJson<int>(syncStatus),
@@ -12748,6 +12951,9 @@ class BioDataEntry extends DataClass implements Insertable<BioDataEntry> {
     String? finger,
     String? dataBase64,
     bool? isActive,
+    Value<int?> departmentId = const Value.absent(),
+    Value<String?> departmentName = const Value.absent(),
+    Value<String?> personnelName = const Value.absent(),
     String? createdAt,
     String? updatedAt,
     int? syncStatus,
@@ -12763,6 +12969,13 @@ class BioDataEntry extends DataClass implements Insertable<BioDataEntry> {
     finger: finger ?? this.finger,
     dataBase64: dataBase64 ?? this.dataBase64,
     isActive: isActive ?? this.isActive,
+    departmentId: departmentId.present ? departmentId.value : this.departmentId,
+    departmentName: departmentName.present
+        ? departmentName.value
+        : this.departmentName,
+    personnelName: personnelName.present
+        ? personnelName.value
+        : this.personnelName,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     syncStatus: syncStatus ?? this.syncStatus,
@@ -12786,6 +12999,15 @@ class BioDataEntry extends DataClass implements Insertable<BioDataEntry> {
           ? data.dataBase64.value
           : this.dataBase64,
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
+      departmentId: data.departmentId.present
+          ? data.departmentId.value
+          : this.departmentId,
+      departmentName: data.departmentName.present
+          ? data.departmentName.value
+          : this.departmentName,
+      personnelName: data.personnelName.present
+          ? data.personnelName.value
+          : this.personnelName,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       syncStatus: data.syncStatus.present
@@ -12808,6 +13030,9 @@ class BioDataEntry extends DataClass implements Insertable<BioDataEntry> {
           ..write('finger: $finger, ')
           ..write('dataBase64: $dataBase64, ')
           ..write('isActive: $isActive, ')
+          ..write('departmentId: $departmentId, ')
+          ..write('departmentName: $departmentName, ')
+          ..write('personnelName: $personnelName, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('syncStatus: $syncStatus, ')
@@ -12826,6 +13051,9 @@ class BioDataEntry extends DataClass implements Insertable<BioDataEntry> {
     finger,
     dataBase64,
     isActive,
+    departmentId,
+    departmentName,
+    personnelName,
     createdAt,
     updatedAt,
     syncStatus,
@@ -12843,6 +13071,9 @@ class BioDataEntry extends DataClass implements Insertable<BioDataEntry> {
           other.finger == this.finger &&
           other.dataBase64 == this.dataBase64 &&
           other.isActive == this.isActive &&
+          other.departmentId == this.departmentId &&
+          other.departmentName == this.departmentName &&
+          other.personnelName == this.personnelName &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.syncStatus == this.syncStatus &&
@@ -12858,6 +13089,9 @@ class BioDataEntriesCompanion extends UpdateCompanion<BioDataEntry> {
   final Value<String> finger;
   final Value<String> dataBase64;
   final Value<bool> isActive;
+  final Value<int?> departmentId;
+  final Value<String?> departmentName;
+  final Value<String?> personnelName;
   final Value<String> createdAt;
   final Value<String> updatedAt;
   final Value<int> syncStatus;
@@ -12871,6 +13105,9 @@ class BioDataEntriesCompanion extends UpdateCompanion<BioDataEntry> {
     this.finger = const Value.absent(),
     this.dataBase64 = const Value.absent(),
     this.isActive = const Value.absent(),
+    this.departmentId = const Value.absent(),
+    this.departmentName = const Value.absent(),
+    this.personnelName = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.syncStatus = const Value.absent(),
@@ -12885,6 +13122,9 @@ class BioDataEntriesCompanion extends UpdateCompanion<BioDataEntry> {
     required String finger,
     required String dataBase64,
     this.isActive = const Value.absent(),
+    this.departmentId = const Value.absent(),
+    this.departmentName = const Value.absent(),
+    this.personnelName = const Value.absent(),
     required String createdAt,
     required String updatedAt,
     this.syncStatus = const Value.absent(),
@@ -12902,6 +13142,9 @@ class BioDataEntriesCompanion extends UpdateCompanion<BioDataEntry> {
     Expression<String>? finger,
     Expression<String>? dataBase64,
     Expression<bool>? isActive,
+    Expression<int>? departmentId,
+    Expression<String>? departmentName,
+    Expression<String>? personnelName,
     Expression<String>? createdAt,
     Expression<String>? updatedAt,
     Expression<int>? syncStatus,
@@ -12916,6 +13159,9 @@ class BioDataEntriesCompanion extends UpdateCompanion<BioDataEntry> {
       if (finger != null) 'finger': finger,
       if (dataBase64 != null) 'data_base64': dataBase64,
       if (isActive != null) 'is_active': isActive,
+      if (departmentId != null) 'department_id': departmentId,
+      if (departmentName != null) 'department_name': departmentName,
+      if (personnelName != null) 'personnel_name': personnelName,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (syncStatus != null) 'sync_status': syncStatus,
@@ -12932,6 +13178,9 @@ class BioDataEntriesCompanion extends UpdateCompanion<BioDataEntry> {
     Value<String>? finger,
     Value<String>? dataBase64,
     Value<bool>? isActive,
+    Value<int?>? departmentId,
+    Value<String?>? departmentName,
+    Value<String?>? personnelName,
     Value<String>? createdAt,
     Value<String>? updatedAt,
     Value<int>? syncStatus,
@@ -12946,6 +13195,9 @@ class BioDataEntriesCompanion extends UpdateCompanion<BioDataEntry> {
       finger: finger ?? this.finger,
       dataBase64: dataBase64 ?? this.dataBase64,
       isActive: isActive ?? this.isActive,
+      departmentId: departmentId ?? this.departmentId,
+      departmentName: departmentName ?? this.departmentName,
+      personnelName: personnelName ?? this.personnelName,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       syncStatus: syncStatus ?? this.syncStatus,
@@ -12980,6 +13232,15 @@ class BioDataEntriesCompanion extends UpdateCompanion<BioDataEntry> {
     if (isActive.present) {
       map['is_active'] = Variable<bool>(isActive.value);
     }
+    if (departmentId.present) {
+      map['department_id'] = Variable<int>(departmentId.value);
+    }
+    if (departmentName.present) {
+      map['department_name'] = Variable<String>(departmentName.value);
+    }
+    if (personnelName.present) {
+      map['personnel_name'] = Variable<String>(personnelName.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<String>(createdAt.value);
     }
@@ -13006,6 +13267,9 @@ class BioDataEntriesCompanion extends UpdateCompanion<BioDataEntry> {
           ..write('finger: $finger, ')
           ..write('dataBase64: $dataBase64, ')
           ..write('isActive: $isActive, ')
+          ..write('departmentId: $departmentId, ')
+          ..write('departmentName: $departmentName, ')
+          ..write('personnelName: $personnelName, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('syncStatus: $syncStatus, ')
@@ -13108,24 +13372,6 @@ final class $$SitesTableReferences
     extends BaseReferences<_$AppDatabase, $SitesTable, Site> {
   $$SitesTableReferences(super.$_db, super.$_table, super.$_typedResult);
 
-  static MultiTypedResultKey<$DepartmentsTable, List<Department>>
-  _departmentsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
-    db.departments,
-    aliasName: $_aliasNameGenerator(db.sites.id, db.departments.companyId),
-  );
-
-  $$DepartmentsTableProcessedTableManager get departmentsRefs {
-    final manager = $$DepartmentsTableTableManager(
-      $_db,
-      $_db.departments,
-    ).filter((f) => f.companyId.id.sqlEquals($_itemColumn<int>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(_departmentsRefsTable($_db));
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-
   static MultiTypedResultKey<$KitchensTable, List<Kitchen>> _kitchensRefsTable(
     _$AppDatabase db,
   ) => MultiTypedResultKey.fromTable(
@@ -13198,31 +13444,6 @@ class $$SitesTableFilterComposer extends Composer<_$AppDatabase, $SitesTable> {
     column: $table.syncUpdatedAt,
     builder: (column) => ColumnFilters(column),
   );
-
-  Expression<bool> departmentsRefs(
-    Expression<bool> Function($$DepartmentsTableFilterComposer f) f,
-  ) {
-    final $$DepartmentsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.departments,
-      getReferencedColumn: (t) => t.companyId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$DepartmentsTableFilterComposer(
-            $db: $db,
-            $table: $db.departments,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
 
   Expression<bool> kitchensRefs(
     Expression<bool> Function($$KitchensTableFilterComposer f) f,
@@ -13347,31 +13568,6 @@ class $$SitesTableAnnotationComposer
     builder: (column) => column,
   );
 
-  Expression<T> departmentsRefs<T extends Object>(
-    Expression<T> Function($$DepartmentsTableAnnotationComposer a) f,
-  ) {
-    final $$DepartmentsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.departments,
-      getReferencedColumn: (t) => t.companyId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$DepartmentsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.departments,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
   Expression<T> kitchensRefs<T extends Object>(
     Expression<T> Function($$KitchensTableAnnotationComposer a) f,
   ) {
@@ -13411,7 +13607,7 @@ class $$SitesTableTableManager
           $$SitesTableUpdateCompanionBuilder,
           (Site, $$SitesTableReferences),
           Site,
-          PrefetchHooks Function({bool departmentsRefs, bool kitchensRefs})
+          PrefetchHooks Function({bool kitchensRefs})
         > {
   $$SitesTableTableManager(_$AppDatabase db, $SitesTable table)
     : super(
@@ -13474,59 +13670,28 @@ class $$SitesTableTableManager
                     (e.readTable(table), $$SitesTableReferences(db, table, e)),
               )
               .toList(),
-          prefetchHooksCallback:
-              ({departmentsRefs = false, kitchensRefs = false}) {
-                return PrefetchHooks(
-                  db: db,
-                  explicitlyWatchedTables: [
-                    if (departmentsRefs) db.departments,
-                    if (kitchensRefs) db.kitchens,
-                  ],
-                  addJoins: null,
-                  getPrefetchedDataCallback: (items) async {
-                    return [
-                      if (departmentsRefs)
-                        await $_getPrefetchedData<
-                          Site,
-                          $SitesTable,
-                          Department
-                        >(
-                          currentTable: table,
-                          referencedTable: $$SitesTableReferences
-                              ._departmentsRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$SitesTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).departmentsRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.companyId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
-                      if (kitchensRefs)
-                        await $_getPrefetchedData<Site, $SitesTable, Kitchen>(
-                          currentTable: table,
-                          referencedTable: $$SitesTableReferences
-                              ._kitchensRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$SitesTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).kitchensRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.companyId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
-                    ];
-                  },
-                );
+          prefetchHooksCallback: ({kitchensRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (kitchensRefs) db.kitchens],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (kitchensRefs)
+                    await $_getPrefetchedData<Site, $SitesTable, Kitchen>(
+                      currentTable: table,
+                      referencedTable: $$SitesTableReferences
+                          ._kitchensRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$SitesTableReferences(db, table, p0).kitchensRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.companyId == item.id),
+                      typedResults: items,
+                    ),
+                ];
               },
+            );
+          },
         ),
       );
 }
@@ -13543,13 +13708,12 @@ typedef $$SitesTableProcessedTableManager =
       $$SitesTableUpdateCompanionBuilder,
       (Site, $$SitesTableReferences),
       Site,
-      PrefetchHooks Function({bool departmentsRefs, bool kitchensRefs})
+      PrefetchHooks Function({bool kitchensRefs})
     >;
 typedef $$DepartmentsTableCreateCompanionBuilder =
     DepartmentsCompanion Function({
       Value<int> id,
       required String name,
-      required int companyId,
       Value<int> syncStatus,
       Value<String?> syncUpdatedAt,
     });
@@ -13557,33 +13721,9 @@ typedef $$DepartmentsTableUpdateCompanionBuilder =
     DepartmentsCompanion Function({
       Value<int> id,
       Value<String> name,
-      Value<int> companyId,
       Value<int> syncStatus,
       Value<String?> syncUpdatedAt,
     });
-
-final class $$DepartmentsTableReferences
-    extends BaseReferences<_$AppDatabase, $DepartmentsTable, Department> {
-  $$DepartmentsTableReferences(super.$_db, super.$_table, super.$_typedResult);
-
-  static $SitesTable _companyIdTable(_$AppDatabase db) => db.sites.createAlias(
-    $_aliasNameGenerator(db.departments.companyId, db.sites.id),
-  );
-
-  $$SitesTableProcessedTableManager get companyId {
-    final $_column = $_itemColumn<int>('company_id')!;
-
-    final manager = $$SitesTableTableManager(
-      $_db,
-      $_db.sites,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_companyIdTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: [item]),
-    );
-  }
-}
 
 class $$DepartmentsTableFilterComposer
     extends Composer<_$AppDatabase, $DepartmentsTable> {
@@ -13613,29 +13753,6 @@ class $$DepartmentsTableFilterComposer
     column: $table.syncUpdatedAt,
     builder: (column) => ColumnFilters(column),
   );
-
-  $$SitesTableFilterComposer get companyId {
-    final $$SitesTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.companyId,
-      referencedTable: $db.sites,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$SitesTableFilterComposer(
-            $db: $db,
-            $table: $db.sites,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
 }
 
 class $$DepartmentsTableOrderingComposer
@@ -13666,29 +13783,6 @@ class $$DepartmentsTableOrderingComposer
     column: $table.syncUpdatedAt,
     builder: (column) => ColumnOrderings(column),
   );
-
-  $$SitesTableOrderingComposer get companyId {
-    final $$SitesTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.companyId,
-      referencedTable: $db.sites,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$SitesTableOrderingComposer(
-            $db: $db,
-            $table: $db.sites,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
 }
 
 class $$DepartmentsTableAnnotationComposer
@@ -13715,29 +13809,6 @@ class $$DepartmentsTableAnnotationComposer
     column: $table.syncUpdatedAt,
     builder: (column) => column,
   );
-
-  $$SitesTableAnnotationComposer get companyId {
-    final $$SitesTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.companyId,
-      referencedTable: $db.sites,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$SitesTableAnnotationComposer(
-            $db: $db,
-            $table: $db.sites,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
 }
 
 class $$DepartmentsTableTableManager
@@ -13751,9 +13822,12 @@ class $$DepartmentsTableTableManager
           $$DepartmentsTableAnnotationComposer,
           $$DepartmentsTableCreateCompanionBuilder,
           $$DepartmentsTableUpdateCompanionBuilder,
-          (Department, $$DepartmentsTableReferences),
+          (
+            Department,
+            BaseReferences<_$AppDatabase, $DepartmentsTable, Department>,
+          ),
           Department,
-          PrefetchHooks Function({bool companyId})
+          PrefetchHooks Function()
         > {
   $$DepartmentsTableTableManager(_$AppDatabase db, $DepartmentsTable table)
     : super(
@@ -13770,13 +13844,11 @@ class $$DepartmentsTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 Value<String> name = const Value.absent(),
-                Value<int> companyId = const Value.absent(),
                 Value<int> syncStatus = const Value.absent(),
                 Value<String?> syncUpdatedAt = const Value.absent(),
               }) => DepartmentsCompanion(
                 id: id,
                 name: name,
-                companyId: companyId,
                 syncStatus: syncStatus,
                 syncUpdatedAt: syncUpdatedAt,
               ),
@@ -13784,65 +13856,18 @@ class $$DepartmentsTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 required String name,
-                required int companyId,
                 Value<int> syncStatus = const Value.absent(),
                 Value<String?> syncUpdatedAt = const Value.absent(),
               }) => DepartmentsCompanion.insert(
                 id: id,
                 name: name,
-                companyId: companyId,
                 syncStatus: syncStatus,
                 syncUpdatedAt: syncUpdatedAt,
               ),
           withReferenceMapper: (p0) => p0
-              .map(
-                (e) => (
-                  e.readTable(table),
-                  $$DepartmentsTableReferences(db, table, e),
-                ),
-              )
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
-          prefetchHooksCallback: ({companyId = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (companyId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.companyId,
-                                referencedTable: $$DepartmentsTableReferences
-                                    ._companyIdTable(db),
-                                referencedColumn: $$DepartmentsTableReferences
-                                    ._companyIdTable(db)
-                                    .id,
-                              )
-                              as T;
-                    }
-
-                    return state;
-                  },
-              getPrefetchedDataCallback: (items) async {
-                return [];
-              },
-            );
-          },
+          prefetchHooksCallback: null,
         ),
       );
 }
@@ -13857,9 +13882,12 @@ typedef $$DepartmentsTableProcessedTableManager =
       $$DepartmentsTableAnnotationComposer,
       $$DepartmentsTableCreateCompanionBuilder,
       $$DepartmentsTableUpdateCompanionBuilder,
-      (Department, $$DepartmentsTableReferences),
+      (
+        Department,
+        BaseReferences<_$AppDatabase, $DepartmentsTable, Department>,
+      ),
       Department,
-      PrefetchHooks Function({bool companyId})
+      PrefetchHooks Function()
     >;
 typedef $$ShiftsTableCreateCompanionBuilder =
     ShiftsCompanion Function({
@@ -15194,24 +15222,6 @@ final class $$StaffTableReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
-
-  static MultiTypedResultKey<$BioDataEntriesTable, List<BioDataEntry>>
-  _bioDataEntriesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
-    db.bioDataEntries,
-    aliasName: $_aliasNameGenerator(db.staff.id, db.bioDataEntries.staffId),
-  );
-
-  $$BioDataEntriesTableProcessedTableManager get bioDataEntriesRefs {
-    final manager = $$BioDataEntriesTableTableManager(
-      $_db,
-      $_db.bioDataEntries,
-    ).filter((f) => f.staffId.id.sqlEquals($_itemColumn<int>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(_bioDataEntriesRefsTable($_db));
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
 }
 
 class $$StaffTableFilterComposer extends Composer<_$AppDatabase, $StaffTable> {
@@ -15328,31 +15338,6 @@ class $$StaffTableFilterComposer extends Composer<_$AppDatabase, $StaffTable> {
           }) => $$DependentsTableFilterComposer(
             $db: $db,
             $table: $db.dependents,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
-  Expression<bool> bioDataEntriesRefs(
-    Expression<bool> Function($$BioDataEntriesTableFilterComposer f) f,
-  ) {
-    final $$BioDataEntriesTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.bioDataEntries,
-      getReferencedColumn: (t) => t.staffId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$BioDataEntriesTableFilterComposer(
-            $db: $db,
-            $table: $db.bioDataEntries,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -15566,31 +15551,6 @@ class $$StaffTableAnnotationComposer
     );
     return f(composer);
   }
-
-  Expression<T> bioDataEntriesRefs<T extends Object>(
-    Expression<T> Function($$BioDataEntriesTableAnnotationComposer a) f,
-  ) {
-    final $$BioDataEntriesTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.bioDataEntries,
-      getReferencedColumn: (t) => t.staffId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$BioDataEntriesTableAnnotationComposer(
-            $db: $db,
-            $table: $db.bioDataEntries,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
 }
 
 class $$StaffTableTableManager
@@ -15606,7 +15566,7 @@ class $$StaffTableTableManager
           $$StaffTableUpdateCompanionBuilder,
           (StaffData, $$StaffTableReferences),
           StaffData,
-          PrefetchHooks Function({bool dependentsRefs, bool bioDataEntriesRefs})
+          PrefetchHooks Function({bool dependentsRefs})
         > {
   $$StaffTableTableManager(_$AppDatabase db, $StaffTable table)
     : super(
@@ -15705,63 +15665,32 @@ class $$StaffTableTableManager
                     (e.readTable(table), $$StaffTableReferences(db, table, e)),
               )
               .toList(),
-          prefetchHooksCallback:
-              ({dependentsRefs = false, bioDataEntriesRefs = false}) {
-                return PrefetchHooks(
-                  db: db,
-                  explicitlyWatchedTables: [
-                    if (dependentsRefs) db.dependents,
-                    if (bioDataEntriesRefs) db.bioDataEntries,
-                  ],
-                  addJoins: null,
-                  getPrefetchedDataCallback: (items) async {
-                    return [
-                      if (dependentsRefs)
-                        await $_getPrefetchedData<
-                          StaffData,
-                          $StaffTable,
-                          Dependent
-                        >(
-                          currentTable: table,
-                          referencedTable: $$StaffTableReferences
-                              ._dependentsRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$StaffTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).dependentsRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.staffId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
-                      if (bioDataEntriesRefs)
-                        await $_getPrefetchedData<
-                          StaffData,
-                          $StaffTable,
-                          BioDataEntry
-                        >(
-                          currentTable: table,
-                          referencedTable: $$StaffTableReferences
-                              ._bioDataEntriesRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$StaffTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).bioDataEntriesRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.staffId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
-                    ];
-                  },
-                );
+          prefetchHooksCallback: ({dependentsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (dependentsRefs) db.dependents],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (dependentsRefs)
+                    await $_getPrefetchedData<
+                      StaffData,
+                      $StaffTable,
+                      Dependent
+                    >(
+                      currentTable: table,
+                      referencedTable: $$StaffTableReferences
+                          ._dependentsRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$StaffTableReferences(db, table, p0).dependentsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.staffId == item.id),
+                      typedResults: items,
+                    ),
+                ];
               },
+            );
+          },
         ),
       );
 }
@@ -15778,7 +15707,7 @@ typedef $$StaffTableProcessedTableManager =
       $$StaffTableUpdateCompanionBuilder,
       (StaffData, $$StaffTableReferences),
       StaffData,
-      PrefetchHooks Function({bool dependentsRefs, bool bioDataEntriesRefs})
+      PrefetchHooks Function({bool dependentsRefs})
     >;
 typedef $$StaffKitchensTableCreateCompanionBuilder =
     StaffKitchensCompanion Function({
@@ -15965,27 +15894,6 @@ final class $$DependentsTableReferences
       manager.$state.copyWith(prefetchedData: [item]),
     );
   }
-
-  static MultiTypedResultKey<$BioDataEntriesTable, List<BioDataEntry>>
-  _bioDataEntriesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
-    db.bioDataEntries,
-    aliasName: $_aliasNameGenerator(
-      db.dependents.id,
-      db.bioDataEntries.dependentId,
-    ),
-  );
-
-  $$BioDataEntriesTableProcessedTableManager get bioDataEntriesRefs {
-    final manager = $$BioDataEntriesTableTableManager(
-      $_db,
-      $_db.bioDataEntries,
-    ).filter((f) => f.dependentId.id.sqlEquals($_itemColumn<int>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(_bioDataEntriesRefsTable($_db));
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
 }
 
 class $$DependentsTableFilterComposer
@@ -16048,31 +15956,6 @@ class $$DependentsTableFilterComposer
           ),
     );
     return composer;
-  }
-
-  Expression<bool> bioDataEntriesRefs(
-    Expression<bool> Function($$BioDataEntriesTableFilterComposer f) f,
-  ) {
-    final $$BioDataEntriesTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.bioDataEntries,
-      getReferencedColumn: (t) => t.dependentId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$BioDataEntriesTableFilterComposer(
-            $db: $db,
-            $table: $db.bioDataEntries,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
   }
 }
 
@@ -16192,31 +16075,6 @@ class $$DependentsTableAnnotationComposer
     );
     return composer;
   }
-
-  Expression<T> bioDataEntriesRefs<T extends Object>(
-    Expression<T> Function($$BioDataEntriesTableAnnotationComposer a) f,
-  ) {
-    final $$BioDataEntriesTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.bioDataEntries,
-      getReferencedColumn: (t) => t.dependentId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$BioDataEntriesTableAnnotationComposer(
-            $db: $db,
-            $table: $db.bioDataEntries,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
 }
 
 class $$DependentsTableTableManager
@@ -16232,7 +16090,7 @@ class $$DependentsTableTableManager
           $$DependentsTableUpdateCompanionBuilder,
           (Dependent, $$DependentsTableReferences),
           Dependent,
-          PrefetchHooks Function({bool staffId, bool bioDataEntriesRefs})
+          PrefetchHooks Function({bool staffId})
         > {
   $$DependentsTableTableManager(_$AppDatabase db, $DependentsTable table)
     : super(
@@ -16289,73 +16147,47 @@ class $$DependentsTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback:
-              ({staffId = false, bioDataEntriesRefs = false}) {
-                return PrefetchHooks(
-                  db: db,
-                  explicitlyWatchedTables: [
-                    if (bioDataEntriesRefs) db.bioDataEntries,
-                  ],
-                  addJoins:
-                      <
-                        T extends TableManagerState<
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic
-                        >
-                      >(state) {
-                        if (staffId) {
-                          state =
-                              state.withJoin(
-                                    currentTable: table,
-                                    currentColumn: table.staffId,
-                                    referencedTable: $$DependentsTableReferences
-                                        ._staffIdTable(db),
-                                    referencedColumn:
-                                        $$DependentsTableReferences
-                                            ._staffIdTable(db)
-                                            .id,
-                                  )
-                                  as T;
-                        }
+          prefetchHooksCallback: ({staffId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (staffId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.staffId,
+                                referencedTable: $$DependentsTableReferences
+                                    ._staffIdTable(db),
+                                referencedColumn: $$DependentsTableReferences
+                                    ._staffIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
 
-                        return state;
-                      },
-                  getPrefetchedDataCallback: (items) async {
-                    return [
-                      if (bioDataEntriesRefs)
-                        await $_getPrefetchedData<
-                          Dependent,
-                          $DependentsTable,
-                          BioDataEntry
-                        >(
-                          currentTable: table,
-                          referencedTable: $$DependentsTableReferences
-                              ._bioDataEntriesRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$DependentsTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).bioDataEntriesRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.dependentId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
-                    ];
+                    return state;
                   },
-                );
+              getPrefetchedDataCallback: (items) async {
+                return [];
               },
+            );
+          },
         ),
       );
 }
@@ -16372,7 +16204,7 @@ typedef $$DependentsTableProcessedTableManager =
       $$DependentsTableUpdateCompanionBuilder,
       (Dependent, $$DependentsTableReferences),
       Dependent,
-      PrefetchHooks Function({bool staffId, bool bioDataEntriesRefs})
+      PrefetchHooks Function({bool staffId})
     >;
 typedef $$DependentKitchensTableCreateCompanionBuilder =
     DependentKitchensCompanion Function({
@@ -16542,6 +16374,9 @@ typedef $$CardsTableCreateCompanionBuilder =
       Value<bool?> isAssigned,
       Value<int?> assignedToId,
       Value<String?> assignedToType,
+      Value<int?> departmentId,
+      Value<String?> departmentName,
+      Value<String?> personnelName,
       Value<String?> issuedDate,
       Value<String?> createdAt,
       Value<int> syncStatus,
@@ -16557,6 +16392,9 @@ typedef $$CardsTableUpdateCompanionBuilder =
       Value<bool?> isAssigned,
       Value<int?> assignedToId,
       Value<String?> assignedToType,
+      Value<int?> departmentId,
+      Value<String?> departmentName,
+      Value<String?> personnelName,
       Value<String?> issuedDate,
       Value<String?> createdAt,
       Value<int> syncStatus,
@@ -16608,6 +16446,21 @@ class $$CardsTableFilterComposer extends Composer<_$AppDatabase, $CardsTable> {
 
   ColumnFilters<String> get assignedToType => $composableBuilder(
     column: $table.assignedToType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get departmentId => $composableBuilder(
+    column: $table.departmentId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get departmentName => $composableBuilder(
+    column: $table.departmentName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get personnelName => $composableBuilder(
+    column: $table.personnelName,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -16681,6 +16534,21 @@ class $$CardsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get departmentId => $composableBuilder(
+    column: $table.departmentId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get departmentName => $composableBuilder(
+    column: $table.departmentName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get personnelName => $composableBuilder(
+    column: $table.personnelName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get issuedDate => $composableBuilder(
     column: $table.issuedDate,
     builder: (column) => ColumnOrderings(column),
@@ -16743,6 +16611,21 @@ class $$CardsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<int> get departmentId => $composableBuilder(
+    column: $table.departmentId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get departmentName => $composableBuilder(
+    column: $table.departmentName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get personnelName => $composableBuilder(
+    column: $table.personnelName,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get issuedDate => $composableBuilder(
     column: $table.issuedDate,
     builder: (column) => column,
@@ -16798,6 +16681,9 @@ class $$CardsTableTableManager
                 Value<bool?> isAssigned = const Value.absent(),
                 Value<int?> assignedToId = const Value.absent(),
                 Value<String?> assignedToType = const Value.absent(),
+                Value<int?> departmentId = const Value.absent(),
+                Value<String?> departmentName = const Value.absent(),
+                Value<String?> personnelName = const Value.absent(),
                 Value<String?> issuedDate = const Value.absent(),
                 Value<String?> createdAt = const Value.absent(),
                 Value<int> syncStatus = const Value.absent(),
@@ -16811,6 +16697,9 @@ class $$CardsTableTableManager
                 isAssigned: isAssigned,
                 assignedToId: assignedToId,
                 assignedToType: assignedToType,
+                departmentId: departmentId,
+                departmentName: departmentName,
+                personnelName: personnelName,
                 issuedDate: issuedDate,
                 createdAt: createdAt,
                 syncStatus: syncStatus,
@@ -16826,6 +16715,9 @@ class $$CardsTableTableManager
                 Value<bool?> isAssigned = const Value.absent(),
                 Value<int?> assignedToId = const Value.absent(),
                 Value<String?> assignedToType = const Value.absent(),
+                Value<int?> departmentId = const Value.absent(),
+                Value<String?> departmentName = const Value.absent(),
+                Value<String?> personnelName = const Value.absent(),
                 Value<String?> issuedDate = const Value.absent(),
                 Value<String?> createdAt = const Value.absent(),
                 Value<int> syncStatus = const Value.absent(),
@@ -16839,6 +16731,9 @@ class $$CardsTableTableManager
                 isAssigned: isAssigned,
                 assignedToId: assignedToId,
                 assignedToType: assignedToType,
+                departmentId: departmentId,
+                departmentName: departmentName,
+                personnelName: personnelName,
                 issuedDate: issuedDate,
                 createdAt: createdAt,
                 syncStatus: syncStatus,
@@ -19080,41 +18975,6 @@ typedef $$ContractorStaffTableTableUpdateCompanionBuilder =
       Value<String?> syncUpdatedAt,
     });
 
-final class $$ContractorStaffTableTableReferences
-    extends
-        BaseReferences<
-          _$AppDatabase,
-          $ContractorStaffTableTable,
-          ContractorStaffTableData
-        > {
-  $$ContractorStaffTableTableReferences(
-    super.$_db,
-    super.$_table,
-    super.$_typedResult,
-  );
-
-  static MultiTypedResultKey<$BioDataEntriesTable, List<BioDataEntry>>
-  _bioDataEntriesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
-    db.bioDataEntries,
-    aliasName: $_aliasNameGenerator(
-      db.contractorStaffTable.id,
-      db.bioDataEntries.contractorStaffId,
-    ),
-  );
-
-  $$BioDataEntriesTableProcessedTableManager get bioDataEntriesRefs {
-    final manager = $$BioDataEntriesTableTableManager(
-      $_db,
-      $_db.bioDataEntries,
-    ).filter((f) => f.contractorStaffId.id.sqlEquals($_itemColumn<int>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(_bioDataEntriesRefsTable($_db));
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-}
-
 class $$ContractorStaffTableTableFilterComposer
     extends Composer<_$AppDatabase, $ContractorStaffTableTable> {
   $$ContractorStaffTableTableFilterComposer({
@@ -19193,31 +19053,6 @@ class $$ContractorStaffTableTableFilterComposer
     column: $table.syncUpdatedAt,
     builder: (column) => ColumnFilters(column),
   );
-
-  Expression<bool> bioDataEntriesRefs(
-    Expression<bool> Function($$BioDataEntriesTableFilterComposer f) f,
-  ) {
-    final $$BioDataEntriesTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.bioDataEntries,
-      getReferencedColumn: (t) => t.contractorStaffId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$BioDataEntriesTableFilterComposer(
-            $db: $db,
-            $table: $db.bioDataEntries,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
 }
 
 class $$ContractorStaffTableTableOrderingComposer
@@ -19362,31 +19197,6 @@ class $$ContractorStaffTableTableAnnotationComposer
     column: $table.syncUpdatedAt,
     builder: (column) => column,
   );
-
-  Expression<T> bioDataEntriesRefs<T extends Object>(
-    Expression<T> Function($$BioDataEntriesTableAnnotationComposer a) f,
-  ) {
-    final $$BioDataEntriesTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.bioDataEntries,
-      getReferencedColumn: (t) => t.contractorStaffId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$BioDataEntriesTableAnnotationComposer(
-            $db: $db,
-            $table: $db.bioDataEntries,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
 }
 
 class $$ContractorStaffTableTableTableManager
@@ -19400,9 +19210,16 @@ class $$ContractorStaffTableTableTableManager
           $$ContractorStaffTableTableAnnotationComposer,
           $$ContractorStaffTableTableCreateCompanionBuilder,
           $$ContractorStaffTableTableUpdateCompanionBuilder,
-          (ContractorStaffTableData, $$ContractorStaffTableTableReferences),
+          (
+            ContractorStaffTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $ContractorStaffTableTable,
+              ContractorStaffTableData
+            >,
+          ),
           ContractorStaffTableData,
-          PrefetchHooks Function({bool bioDataEntriesRefs})
+          PrefetchHooks Function()
         > {
   $$ContractorStaffTableTableTableManager(
     _$AppDatabase db,
@@ -19488,47 +19305,9 @@ class $$ContractorStaffTableTableTableManager
                 syncUpdatedAt: syncUpdatedAt,
               ),
           withReferenceMapper: (p0) => p0
-              .map(
-                (e) => (
-                  e.readTable(table),
-                  $$ContractorStaffTableTableReferences(db, table, e),
-                ),
-              )
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
-          prefetchHooksCallback: ({bioDataEntriesRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [
-                if (bioDataEntriesRefs) db.bioDataEntries,
-              ],
-              addJoins: null,
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (bioDataEntriesRefs)
-                    await $_getPrefetchedData<
-                      ContractorStaffTableData,
-                      $ContractorStaffTableTable,
-                      BioDataEntry
-                    >(
-                      currentTable: table,
-                      referencedTable: $$ContractorStaffTableTableReferences
-                          ._bioDataEntriesRefsTable(db),
-                      managerFromTypedResult: (p0) =>
-                          $$ContractorStaffTableTableReferences(
-                            db,
-                            table,
-                            p0,
-                          ).bioDataEntriesRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where(
-                            (e) => e.contractorStaffId == item.id,
-                          ),
-                      typedResults: items,
-                    ),
-                ];
-              },
-            );
-          },
+          prefetchHooksCallback: null,
         ),
       );
 }
@@ -19543,9 +19322,16 @@ typedef $$ContractorStaffTableTableProcessedTableManager =
       $$ContractorStaffTableTableAnnotationComposer,
       $$ContractorStaffTableTableCreateCompanionBuilder,
       $$ContractorStaffTableTableUpdateCompanionBuilder,
-      (ContractorStaffTableData, $$ContractorStaffTableTableReferences),
+      (
+        ContractorStaffTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $ContractorStaffTableTable,
+          ContractorStaffTableData
+        >,
+      ),
       ContractorStaffTableData,
-      PrefetchHooks Function({bool bioDataEntriesRefs})
+      PrefetchHooks Function()
     >;
 typedef $$ContractorStaffKitchensTableCreateCompanionBuilder =
     ContractorStaffKitchensCompanion Function({
@@ -19740,32 +19526,6 @@ typedef $$VisitorsTableUpdateCompanionBuilder =
       Value<String?> syncUpdatedAt,
     });
 
-final class $$VisitorsTableReferences
-    extends BaseReferences<_$AppDatabase, $VisitorsTable, Visitor> {
-  $$VisitorsTableReferences(super.$_db, super.$_table, super.$_typedResult);
-
-  static MultiTypedResultKey<$BioDataEntriesTable, List<BioDataEntry>>
-  _bioDataEntriesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
-    db.bioDataEntries,
-    aliasName: $_aliasNameGenerator(
-      db.visitors.id,
-      db.bioDataEntries.visitorId,
-    ),
-  );
-
-  $$BioDataEntriesTableProcessedTableManager get bioDataEntriesRefs {
-    final manager = $$BioDataEntriesTableTableManager(
-      $_db,
-      $_db.bioDataEntries,
-    ).filter((f) => f.visitorId.id.sqlEquals($_itemColumn<int>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(_bioDataEntriesRefsTable($_db));
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-}
-
 class $$VisitorsTableFilterComposer
     extends Composer<_$AppDatabase, $VisitorsTable> {
   $$VisitorsTableFilterComposer({
@@ -19829,31 +19589,6 @@ class $$VisitorsTableFilterComposer
     column: $table.syncUpdatedAt,
     builder: (column) => ColumnFilters(column),
   );
-
-  Expression<bool> bioDataEntriesRefs(
-    Expression<bool> Function($$BioDataEntriesTableFilterComposer f) f,
-  ) {
-    final $$BioDataEntriesTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.bioDataEntries,
-      getReferencedColumn: (t) => t.visitorId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$BioDataEntriesTableFilterComposer(
-            $db: $db,
-            $table: $db.bioDataEntries,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
 }
 
 class $$VisitorsTableOrderingComposer
@@ -19970,31 +19705,6 @@ class $$VisitorsTableAnnotationComposer
     column: $table.syncUpdatedAt,
     builder: (column) => column,
   );
-
-  Expression<T> bioDataEntriesRefs<T extends Object>(
-    Expression<T> Function($$BioDataEntriesTableAnnotationComposer a) f,
-  ) {
-    final $$BioDataEntriesTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.bioDataEntries,
-      getReferencedColumn: (t) => t.visitorId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$BioDataEntriesTableAnnotationComposer(
-            $db: $db,
-            $table: $db.bioDataEntries,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
 }
 
 class $$VisitorsTableTableManager
@@ -20008,9 +19718,9 @@ class $$VisitorsTableTableManager
           $$VisitorsTableAnnotationComposer,
           $$VisitorsTableCreateCompanionBuilder,
           $$VisitorsTableUpdateCompanionBuilder,
-          (Visitor, $$VisitorsTableReferences),
+          (Visitor, BaseReferences<_$AppDatabase, $VisitorsTable, Visitor>),
           Visitor,
-          PrefetchHooks Function({bool bioDataEntriesRefs})
+          PrefetchHooks Function()
         > {
   $$VisitorsTableTableManager(_$AppDatabase db, $VisitorsTable table)
     : super(
@@ -20076,44 +19786,9 @@ class $$VisitorsTableTableManager
                 syncUpdatedAt: syncUpdatedAt,
               ),
           withReferenceMapper: (p0) => p0
-              .map(
-                (e) => (
-                  e.readTable(table),
-                  $$VisitorsTableReferences(db, table, e),
-                ),
-              )
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
-          prefetchHooksCallback: ({bioDataEntriesRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [
-                if (bioDataEntriesRefs) db.bioDataEntries,
-              ],
-              addJoins: null,
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (bioDataEntriesRefs)
-                    await $_getPrefetchedData<
-                      Visitor,
-                      $VisitorsTable,
-                      BioDataEntry
-                    >(
-                      currentTable: table,
-                      referencedTable: $$VisitorsTableReferences
-                          ._bioDataEntriesRefsTable(db),
-                      managerFromTypedResult: (p0) => $$VisitorsTableReferences(
-                        db,
-                        table,
-                        p0,
-                      ).bioDataEntriesRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where((e) => e.visitorId == item.id),
-                      typedResults: items,
-                    ),
-                ];
-              },
-            );
-          },
+          prefetchHooksCallback: null,
         ),
       );
 }
@@ -20128,9 +19803,9 @@ typedef $$VisitorsTableProcessedTableManager =
       $$VisitorsTableAnnotationComposer,
       $$VisitorsTableCreateCompanionBuilder,
       $$VisitorsTableUpdateCompanionBuilder,
-      (Visitor, $$VisitorsTableReferences),
+      (Visitor, BaseReferences<_$AppDatabase, $VisitorsTable, Visitor>),
       Visitor,
-      PrefetchHooks Function({bool bioDataEntriesRefs})
+      PrefetchHooks Function()
     >;
 typedef $$VisitorKitchensTableCreateCompanionBuilder =
     VisitorKitchensCompanion Function({
@@ -20291,6 +19966,9 @@ typedef $$BioDataEntriesTableCreateCompanionBuilder =
       required String finger,
       required String dataBase64,
       Value<bool> isActive,
+      Value<int?> departmentId,
+      Value<String?> departmentName,
+      Value<String?> personnelName,
       required String createdAt,
       required String updatedAt,
       Value<int> syncStatus,
@@ -20306,98 +19984,14 @@ typedef $$BioDataEntriesTableUpdateCompanionBuilder =
       Value<String> finger,
       Value<String> dataBase64,
       Value<bool> isActive,
+      Value<int?> departmentId,
+      Value<String?> departmentName,
+      Value<String?> personnelName,
       Value<String> createdAt,
       Value<String> updatedAt,
       Value<int> syncStatus,
       Value<String?> syncUpdatedAt,
     });
-
-final class $$BioDataEntriesTableReferences
-    extends BaseReferences<_$AppDatabase, $BioDataEntriesTable, BioDataEntry> {
-  $$BioDataEntriesTableReferences(
-    super.$_db,
-    super.$_table,
-    super.$_typedResult,
-  );
-
-  static $StaffTable _staffIdTable(_$AppDatabase db) => db.staff.createAlias(
-    $_aliasNameGenerator(db.bioDataEntries.staffId, db.staff.id),
-  );
-
-  $$StaffTableProcessedTableManager? get staffId {
-    final $_column = $_itemColumn<int>('staff_id');
-    if ($_column == null) return null;
-    final manager = $$StaffTableTableManager(
-      $_db,
-      $_db.staff,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_staffIdTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: [item]),
-    );
-  }
-
-  static $DependentsTable _dependentIdTable(_$AppDatabase db) =>
-      db.dependents.createAlias(
-        $_aliasNameGenerator(db.bioDataEntries.dependentId, db.dependents.id),
-      );
-
-  $$DependentsTableProcessedTableManager? get dependentId {
-    final $_column = $_itemColumn<int>('dependent_id');
-    if ($_column == null) return null;
-    final manager = $$DependentsTableTableManager(
-      $_db,
-      $_db.dependents,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_dependentIdTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: [item]),
-    );
-  }
-
-  static $ContractorStaffTableTable _contractorStaffIdTable(_$AppDatabase db) =>
-      db.contractorStaffTable.createAlias(
-        $_aliasNameGenerator(
-          db.bioDataEntries.contractorStaffId,
-          db.contractorStaffTable.id,
-        ),
-      );
-
-  $$ContractorStaffTableTableProcessedTableManager? get contractorStaffId {
-    final $_column = $_itemColumn<int>('contractor_staff_id');
-    if ($_column == null) return null;
-    final manager = $$ContractorStaffTableTableTableManager(
-      $_db,
-      $_db.contractorStaffTable,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_contractorStaffIdTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: [item]),
-    );
-  }
-
-  static $VisitorsTable _visitorIdTable(_$AppDatabase db) =>
-      db.visitors.createAlias(
-        $_aliasNameGenerator(db.bioDataEntries.visitorId, db.visitors.id),
-      );
-
-  $$VisitorsTableProcessedTableManager? get visitorId {
-    final $_column = $_itemColumn<int>('visitor_id');
-    if ($_column == null) return null;
-    final manager = $$VisitorsTableTableManager(
-      $_db,
-      $_db.visitors,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_visitorIdTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: [item]),
-    );
-  }
-}
 
 class $$BioDataEntriesTableFilterComposer
     extends Composer<_$AppDatabase, $BioDataEntriesTable> {
@@ -20413,6 +20007,26 @@ class $$BioDataEntriesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<int> get staffId => $composableBuilder(
+    column: $table.staffId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get dependentId => $composableBuilder(
+    column: $table.dependentId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get contractorStaffId => $composableBuilder(
+    column: $table.contractorStaffId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get visitorId => $composableBuilder(
+    column: $table.visitorId,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<String> get finger => $composableBuilder(
     column: $table.finger,
     builder: (column) => ColumnFilters(column),
@@ -20425,6 +20039,21 @@ class $$BioDataEntriesTableFilterComposer
 
   ColumnFilters<bool> get isActive => $composableBuilder(
     column: $table.isActive,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get departmentId => $composableBuilder(
+    column: $table.departmentId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get departmentName => $composableBuilder(
+    column: $table.departmentName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get personnelName => $composableBuilder(
+    column: $table.personnelName,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -20447,98 +20076,6 @@ class $$BioDataEntriesTableFilterComposer
     column: $table.syncUpdatedAt,
     builder: (column) => ColumnFilters(column),
   );
-
-  $$StaffTableFilterComposer get staffId {
-    final $$StaffTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.staffId,
-      referencedTable: $db.staff,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$StaffTableFilterComposer(
-            $db: $db,
-            $table: $db.staff,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  $$DependentsTableFilterComposer get dependentId {
-    final $$DependentsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.dependentId,
-      referencedTable: $db.dependents,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$DependentsTableFilterComposer(
-            $db: $db,
-            $table: $db.dependents,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  $$ContractorStaffTableTableFilterComposer get contractorStaffId {
-    final $$ContractorStaffTableTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.contractorStaffId,
-      referencedTable: $db.contractorStaffTable,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$ContractorStaffTableTableFilterComposer(
-            $db: $db,
-            $table: $db.contractorStaffTable,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  $$VisitorsTableFilterComposer get visitorId {
-    final $$VisitorsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.visitorId,
-      referencedTable: $db.visitors,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$VisitorsTableFilterComposer(
-            $db: $db,
-            $table: $db.visitors,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
 }
 
 class $$BioDataEntriesTableOrderingComposer
@@ -20555,6 +20092,26 @@ class $$BioDataEntriesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get staffId => $composableBuilder(
+    column: $table.staffId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get dependentId => $composableBuilder(
+    column: $table.dependentId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get contractorStaffId => $composableBuilder(
+    column: $table.contractorStaffId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get visitorId => $composableBuilder(
+    column: $table.visitorId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get finger => $composableBuilder(
     column: $table.finger,
     builder: (column) => ColumnOrderings(column),
@@ -20567,6 +20124,21 @@ class $$BioDataEntriesTableOrderingComposer
 
   ColumnOrderings<bool> get isActive => $composableBuilder(
     column: $table.isActive,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get departmentId => $composableBuilder(
+    column: $table.departmentId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get departmentName => $composableBuilder(
+    column: $table.departmentName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get personnelName => $composableBuilder(
+    column: $table.personnelName,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -20589,99 +20161,6 @@ class $$BioDataEntriesTableOrderingComposer
     column: $table.syncUpdatedAt,
     builder: (column) => ColumnOrderings(column),
   );
-
-  $$StaffTableOrderingComposer get staffId {
-    final $$StaffTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.staffId,
-      referencedTable: $db.staff,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$StaffTableOrderingComposer(
-            $db: $db,
-            $table: $db.staff,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  $$DependentsTableOrderingComposer get dependentId {
-    final $$DependentsTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.dependentId,
-      referencedTable: $db.dependents,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$DependentsTableOrderingComposer(
-            $db: $db,
-            $table: $db.dependents,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  $$ContractorStaffTableTableOrderingComposer get contractorStaffId {
-    final $$ContractorStaffTableTableOrderingComposer composer =
-        $composerBuilder(
-          composer: this,
-          getCurrentColumn: (t) => t.contractorStaffId,
-          referencedTable: $db.contractorStaffTable,
-          getReferencedColumn: (t) => t.id,
-          builder:
-              (
-                joinBuilder, {
-                $addJoinBuilderToRootComposer,
-                $removeJoinBuilderFromRootComposer,
-              }) => $$ContractorStaffTableTableOrderingComposer(
-                $db: $db,
-                $table: $db.contractorStaffTable,
-                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-                joinBuilder: joinBuilder,
-                $removeJoinBuilderFromRootComposer:
-                    $removeJoinBuilderFromRootComposer,
-              ),
-        );
-    return composer;
-  }
-
-  $$VisitorsTableOrderingComposer get visitorId {
-    final $$VisitorsTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.visitorId,
-      referencedTable: $db.visitors,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$VisitorsTableOrderingComposer(
-            $db: $db,
-            $table: $db.visitors,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
 }
 
 class $$BioDataEntriesTableAnnotationComposer
@@ -20696,6 +20175,22 @@ class $$BioDataEntriesTableAnnotationComposer
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
+  GeneratedColumn<int> get staffId =>
+      $composableBuilder(column: $table.staffId, builder: (column) => column);
+
+  GeneratedColumn<int> get dependentId => $composableBuilder(
+    column: $table.dependentId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get contractorStaffId => $composableBuilder(
+    column: $table.contractorStaffId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get visitorId =>
+      $composableBuilder(column: $table.visitorId, builder: (column) => column);
+
   GeneratedColumn<String> get finger =>
       $composableBuilder(column: $table.finger, builder: (column) => column);
 
@@ -20706,6 +20201,21 @@ class $$BioDataEntriesTableAnnotationComposer
 
   GeneratedColumn<bool> get isActive =>
       $composableBuilder(column: $table.isActive, builder: (column) => column);
+
+  GeneratedColumn<int> get departmentId => $composableBuilder(
+    column: $table.departmentId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get departmentName => $composableBuilder(
+    column: $table.departmentName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get personnelName => $composableBuilder(
+    column: $table.personnelName,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -20722,99 +20232,6 @@ class $$BioDataEntriesTableAnnotationComposer
     column: $table.syncUpdatedAt,
     builder: (column) => column,
   );
-
-  $$StaffTableAnnotationComposer get staffId {
-    final $$StaffTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.staffId,
-      referencedTable: $db.staff,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$StaffTableAnnotationComposer(
-            $db: $db,
-            $table: $db.staff,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  $$DependentsTableAnnotationComposer get dependentId {
-    final $$DependentsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.dependentId,
-      referencedTable: $db.dependents,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$DependentsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.dependents,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  $$ContractorStaffTableTableAnnotationComposer get contractorStaffId {
-    final $$ContractorStaffTableTableAnnotationComposer composer =
-        $composerBuilder(
-          composer: this,
-          getCurrentColumn: (t) => t.contractorStaffId,
-          referencedTable: $db.contractorStaffTable,
-          getReferencedColumn: (t) => t.id,
-          builder:
-              (
-                joinBuilder, {
-                $addJoinBuilderToRootComposer,
-                $removeJoinBuilderFromRootComposer,
-              }) => $$ContractorStaffTableTableAnnotationComposer(
-                $db: $db,
-                $table: $db.contractorStaffTable,
-                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-                joinBuilder: joinBuilder,
-                $removeJoinBuilderFromRootComposer:
-                    $removeJoinBuilderFromRootComposer,
-              ),
-        );
-    return composer;
-  }
-
-  $$VisitorsTableAnnotationComposer get visitorId {
-    final $$VisitorsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.visitorId,
-      referencedTable: $db.visitors,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$VisitorsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.visitors,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
 }
 
 class $$BioDataEntriesTableTableManager
@@ -20828,14 +20245,12 @@ class $$BioDataEntriesTableTableManager
           $$BioDataEntriesTableAnnotationComposer,
           $$BioDataEntriesTableCreateCompanionBuilder,
           $$BioDataEntriesTableUpdateCompanionBuilder,
-          (BioDataEntry, $$BioDataEntriesTableReferences),
+          (
+            BioDataEntry,
+            BaseReferences<_$AppDatabase, $BioDataEntriesTable, BioDataEntry>,
+          ),
           BioDataEntry,
-          PrefetchHooks Function({
-            bool staffId,
-            bool dependentId,
-            bool contractorStaffId,
-            bool visitorId,
-          })
+          PrefetchHooks Function()
         > {
   $$BioDataEntriesTableTableManager(
     _$AppDatabase db,
@@ -20860,6 +20275,9 @@ class $$BioDataEntriesTableTableManager
                 Value<String> finger = const Value.absent(),
                 Value<String> dataBase64 = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
+                Value<int?> departmentId = const Value.absent(),
+                Value<String?> departmentName = const Value.absent(),
+                Value<String?> personnelName = const Value.absent(),
                 Value<String> createdAt = const Value.absent(),
                 Value<String> updatedAt = const Value.absent(),
                 Value<int> syncStatus = const Value.absent(),
@@ -20873,6 +20291,9 @@ class $$BioDataEntriesTableTableManager
                 finger: finger,
                 dataBase64: dataBase64,
                 isActive: isActive,
+                departmentId: departmentId,
+                departmentName: departmentName,
+                personnelName: personnelName,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 syncStatus: syncStatus,
@@ -20888,6 +20309,9 @@ class $$BioDataEntriesTableTableManager
                 required String finger,
                 required String dataBase64,
                 Value<bool> isActive = const Value.absent(),
+                Value<int?> departmentId = const Value.absent(),
+                Value<String?> departmentName = const Value.absent(),
+                Value<String?> personnelName = const Value.absent(),
                 required String createdAt,
                 required String updatedAt,
                 Value<int> syncStatus = const Value.absent(),
@@ -20901,113 +20325,18 @@ class $$BioDataEntriesTableTableManager
                 finger: finger,
                 dataBase64: dataBase64,
                 isActive: isActive,
+                departmentId: departmentId,
+                departmentName: departmentName,
+                personnelName: personnelName,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 syncStatus: syncStatus,
                 syncUpdatedAt: syncUpdatedAt,
               ),
           withReferenceMapper: (p0) => p0
-              .map(
-                (e) => (
-                  e.readTable(table),
-                  $$BioDataEntriesTableReferences(db, table, e),
-                ),
-              )
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
-          prefetchHooksCallback:
-              ({
-                staffId = false,
-                dependentId = false,
-                contractorStaffId = false,
-                visitorId = false,
-              }) {
-                return PrefetchHooks(
-                  db: db,
-                  explicitlyWatchedTables: [],
-                  addJoins:
-                      <
-                        T extends TableManagerState<
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic
-                        >
-                      >(state) {
-                        if (staffId) {
-                          state =
-                              state.withJoin(
-                                    currentTable: table,
-                                    currentColumn: table.staffId,
-                                    referencedTable:
-                                        $$BioDataEntriesTableReferences
-                                            ._staffIdTable(db),
-                                    referencedColumn:
-                                        $$BioDataEntriesTableReferences
-                                            ._staffIdTable(db)
-                                            .id,
-                                  )
-                                  as T;
-                        }
-                        if (dependentId) {
-                          state =
-                              state.withJoin(
-                                    currentTable: table,
-                                    currentColumn: table.dependentId,
-                                    referencedTable:
-                                        $$BioDataEntriesTableReferences
-                                            ._dependentIdTable(db),
-                                    referencedColumn:
-                                        $$BioDataEntriesTableReferences
-                                            ._dependentIdTable(db)
-                                            .id,
-                                  )
-                                  as T;
-                        }
-                        if (contractorStaffId) {
-                          state =
-                              state.withJoin(
-                                    currentTable: table,
-                                    currentColumn: table.contractorStaffId,
-                                    referencedTable:
-                                        $$BioDataEntriesTableReferences
-                                            ._contractorStaffIdTable(db),
-                                    referencedColumn:
-                                        $$BioDataEntriesTableReferences
-                                            ._contractorStaffIdTable(db)
-                                            .id,
-                                  )
-                                  as T;
-                        }
-                        if (visitorId) {
-                          state =
-                              state.withJoin(
-                                    currentTable: table,
-                                    currentColumn: table.visitorId,
-                                    referencedTable:
-                                        $$BioDataEntriesTableReferences
-                                            ._visitorIdTable(db),
-                                    referencedColumn:
-                                        $$BioDataEntriesTableReferences
-                                            ._visitorIdTable(db)
-                                            .id,
-                                  )
-                                  as T;
-                        }
-
-                        return state;
-                      },
-                  getPrefetchedDataCallback: (items) async {
-                    return [];
-                  },
-                );
-              },
+          prefetchHooksCallback: null,
         ),
       );
 }
@@ -21022,14 +20351,12 @@ typedef $$BioDataEntriesTableProcessedTableManager =
       $$BioDataEntriesTableAnnotationComposer,
       $$BioDataEntriesTableCreateCompanionBuilder,
       $$BioDataEntriesTableUpdateCompanionBuilder,
-      (BioDataEntry, $$BioDataEntriesTableReferences),
+      (
+        BioDataEntry,
+        BaseReferences<_$AppDatabase, $BioDataEntriesTable, BioDataEntry>,
+      ),
       BioDataEntry,
-      PrefetchHooks Function({
-        bool staffId,
-        bool dependentId,
-        bool contractorStaffId,
-        bool visitorId,
-      })
+      PrefetchHooks Function()
     >;
 
 class $AppDatabaseManager {
