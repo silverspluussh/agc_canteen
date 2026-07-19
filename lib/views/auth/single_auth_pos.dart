@@ -369,6 +369,17 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
                           AppLocalizations.of(context).scanning,
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
+                        const SizedBox(height: 24),
+                        OutlinedButton.icon(
+                          onPressed: () =>
+                              ref.read(authProvider.notifier).cancel(),
+                          icon: const Icon(Icons.close, size: 18),
+                          label: const Text('Cancel'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.red,
+                            side: const BorderSide(color: Colors.red),
+                          ),
+                        ),
                       ],
                       if (state.isPlacingOrder) ...[
                         const LinearProgressIndicator(),

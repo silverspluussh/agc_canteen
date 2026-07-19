@@ -10,6 +10,7 @@ class NfcAuthService {
   final NfcService _nfc;
   final Logger _logger;
   Completer<Card?>? _pendingCompleter;
+  StreamSubscription<Map<String, dynamic>>? _subscription;
 
   NfcAuthService({
     required AppDatabase db,
@@ -24,14 +25,14 @@ class NfcAuthService {
   /// Optionally filters by [departmentId] to narrow the lookup.
   Future<Card?> readCard({int? departmentId}) async {
     _pendingCompleter?.complete(null);
+    await _subscription?.cancel();
     dev.log('[NfcAuth] Waiting for NFC tap...', name: 'NFC_AUTH');
 
     final stream = _nfc.tagStream;
     final completer = Completer<Card?>();
     _pendingCompleter = completer;
 
-    StreamSubscription<Map<String, dynamic>>? sub;
-    sub = stream.listen(
+    _subscription = stream.listen(
       (tag) async {
         final code = tag['tagId'] as String;
 
@@ -46,7 +47,7 @@ class NfcAuthService {
           dev.log('[NfcAuth] No card found for code=$code', name: 'NFC_AUTH');
         }
 
-        await sub?.cancel();
+        await _subscription?.cancel();
         if (!completer.isCompleted) completer.complete(match);
         if (_pendingCompleter == completer) _pendingCompleter = null;
       },
@@ -58,5 +59,13 @@ class NfcAuthService {
     );
 
     return completer.future;
+  }
+
+  /// Cancels an in-progress NFC read.
+  void cancel() {
+    _subscription?.cancel();
+    _subscription = null;
+    _pendingCompleter?.complete(null);
+    _pendingCompleter = null;
   }
 }

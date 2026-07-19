@@ -59,6 +59,9 @@ class FingerprintAuthService {
 
   Future<bool> get isAvailable => _fingerprint.isAvailable();
 
+  /// Cancels an in-progress fingerprint capture.
+  Future<void> cancel() => _fingerprint.cancel();
+
   
   Future<bool> hasFingerType(int entityId, Finger finger, {EmployeeType entityType = EmployeeType.permanent}) async {
     final fingerprints = await _getActiveBioData(entityId, entityType: entityType);

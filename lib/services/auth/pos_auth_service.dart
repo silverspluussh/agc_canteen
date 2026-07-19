@@ -55,6 +55,12 @@ class PosAuthService {
        _fingerprintAuth = fingerprintAuth,
        _nfcAuth = nfcAuth;
 
+  /// Cancels any in-progress auth (fingerprint capture or NFC read).
+  Future<void> cancelAuth() async {
+    await _fingerprintAuth.cancel();
+    _nfcAuth.cancel();
+  }
+
   Future<bool> init() async {
     dev.log(
       '[PosAuthService] Initializing fingerprint auth service...',
