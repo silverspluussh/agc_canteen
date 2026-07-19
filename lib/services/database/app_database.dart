@@ -743,6 +743,19 @@ class AppDatabase extends _$AppDatabase {
   Future<void> deleteCardsByAssignedTo(int assignedToId) =>
       (delete(cards)..where((t) => t.assignedToId.equals(assignedToId))).go();
 
+  Future<int> deleteCardsNotIn(Set<int> keepIds) async {
+    if (keepIds.isEmpty) {
+      return (delete(cards)..where((t) => t.syncStatus.equals(2))).go();
+    }
+    final toDelete = await (select(cards)
+          ..where((t) => t.syncStatus.equals(2) & t.id.isNotIn(keepIds)))
+        .get();
+    for (final record in toDelete) {
+      await deleteCard(record.id);
+    }
+    return toDelete.length;
+  }
+
   Future<List<Card>> getAllCards() => select(cards).get();
   Future<Card?> getCard(int id) =>
       (select(cards)..where((t) => t.id.equals(id))).getSingleOrNull();

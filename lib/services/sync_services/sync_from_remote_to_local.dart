@@ -1,8 +1,6 @@
 import 'dart:async';
-import 'dart:developer';
 import 'package:agc_canteen/models/sync.model.dart';
 import 'package:drift/drift.dart';
-import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 import '../../core/network/network_api_dio.dart';
 import '../database/app_database.dart';
@@ -185,11 +183,11 @@ class RemoteToLocalSyncService {
           : null;
 
       final responseData = await _networkAPI.getData(
-        '/hr/staffs',
+        '/hr/staff/sync',
         queryParameters: {
-          'active': 'true',
-          'limit':2500,
-          'offset':0,
+          // 'active': 'true',
+          // 'limit':2500,
+          // 'offset':0,
           if (posKitchenId != null && posKitchenId != 0)
             'kitchenId': posKitchenId,
         },
@@ -418,13 +416,11 @@ class RemoteToLocalSyncService {
       _logger.i('RemoteToLocalSyncService: kitchen id $posKitchenId');
 
       final responseData = await _networkAPI.getData(
-        '/hr/bio-data',
+        '/hr/bio-data/sync',
         queryParameters: {
           if (posKitchenId != null && posKitchenId != 0)
             'kitchenId': posKitchenId,
-          'active': 'true',
-          'limit': 2500,
-          'offset': 0,
+        
         },
         builder: (data) => data,
       );
@@ -525,10 +521,8 @@ class RemoteToLocalSyncService {
           ? posDevices.first.kitchenId
           : null;
       final responseData = await _networkAPI.getData(
-        '/hr/nfc-cards',
+        '/hr/nfc-cards/sync',
         queryParameters: {
-          
-          'status': 'active', 'limit': 2500, 'offset': 0,
            if (posKitchenId != null && posKitchenId != 0)
             'kitchenId': posKitchenId       
           },
@@ -559,6 +553,12 @@ class RemoteToLocalSyncService {
             final id = _safeParseInt(item['id']);
             if (id != null && id != 0) remoteIds.add(id);
           }
+        }
+        final deleted = await _db.deleteCardsNotIn(remoteIds);
+        if (deleted > 0) {
+          _logger.i(
+            'RemoteToLocalSyncService: removed $deleted stale NFC card records',
+          );
         }
       });
 
@@ -726,12 +726,10 @@ class RemoteToLocalSyncService {
           : null;
 
       final responseData = await _networkAPI.getData(
-        '/hr/visitors',
+        '/hr/visitor/sync',
         builder: (data) => data,
         queryParameters: {
-          'active': 'true',
-          'limit': 2500,
-          'offset': 0,
+        
           if (posKitchenId != null && posKitchenId != 0)
             'kitchenId': posKitchenId,
         },
@@ -863,11 +861,9 @@ class RemoteToLocalSyncService {
           ? posDevices.first.kitchenId
           : null;
       final responseData = await _networkAPI.getData(
-        '/hr/contractor-staffs',
+        '/hr/contractor-staff/sync',
         queryParameters: {
-          'active': 'true',
-          'limit': 2500,
-          'offset': 0,
+         
           if (posKitchenId != null && posKitchenId != 0)
             'kitchenId': posKitchenId,
         },
@@ -875,7 +871,6 @@ class RemoteToLocalSyncService {
       );
 
       List<dynamic>? list;
-      print(responseData);
       if (responseData is List) {
         list = responseData;
       } else if (responseData is Map &&
@@ -1007,11 +1002,10 @@ class RemoteToLocalSyncService {
           ? posDevices.first.kitchenId
           : null;
       final responseData = await _networkAPI.getData(
-        '/hr/dependents',
+        '/hr/dependent/sync',
         builder: (data) => data,
         queryParameters: {
-            'limit':2500,
-          'offset':0,
+        
           if (posKitchenId != null && posKitchenId != 0)
             'kitchenId': posKitchenId,
 

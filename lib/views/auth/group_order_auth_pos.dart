@@ -106,7 +106,9 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
   }
 
   Future<void> _startAuth() async {
-    await ref.read(authProvider.notifier).authenticateOnly(departmentId: _selectedDepartmentId);
+    await ref
+        .read(authProvider.notifier)
+        .authenticateOnly(departmentId: _selectedDepartmentId);
   }
 
   List<Widget> _authButtons() {
@@ -145,13 +147,11 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
           child: PosButton(
             color: AppColors.success,
             onPressed: () async {
-              ref.read(authProvider.notifier).authenticateWithNfcOnly(departmentId: _selectedDepartmentId);
+              ref
+                  .read(authProvider.notifier)
+                  .authenticateWithNfcOnly(departmentId: _selectedDepartmentId);
             },
-            prefixChild: const Icon(
-              Icons.nfc,
-              color: Colors.white,
-              size: 35,
-            ),
+            prefixChild: const Icon(Icons.nfc, color: Colors.white, size: 35),
             label: const Text(
               'Tap Card',
               style: TextStyle(
@@ -167,10 +167,7 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
 
     if (buttons.isEmpty) return [];
 
-    return [
-      const SizedBox(height: 20),
-      Row(children: buttons),
-    ];
+    return [const SizedBox(height: 20), Row(children: buttons)];
   }
 
   Future<void> _placeGroupOrders(AuthResult staff) async {
@@ -412,13 +409,16 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
                 const SizedBox(height: 16),
                 Text(
                   "Generate Group Meal Vouchers",
-                  style: Theme.of(context).textTheme.titleLarge!.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge!.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 16),
-                   Text("Select Department",style: Theme.of(context).textTheme.titleLarge),
-          SizedBox(height: 15),
+                Text(
+                  "Select Department",
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                SizedBox(height: 15),
                 DepartmentDropdown(
                   value: _selectedDepartmentId,
                   onChanged: (id) => setState(() => _selectedDepartmentId = id),
@@ -470,19 +470,14 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
                   ),
                 ],
                 if (state.isCompleted && state.orderCode != null) ...[
-                  const Icon(
-                    Icons.check_circle,
-                    color: Colors.green,
-                    size: 48,
-                  ),
+                  const Icon(Icons.check_circle, color: Colors.green, size: 48),
                   const SizedBox(height: 8),
                   Text(
                     'Vouchers Printed',
-                    style: Theme.of(context).textTheme.headlineSmall
-                        ?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green,
-                        ),
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   VoucherCard(

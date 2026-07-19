@@ -331,6 +331,11 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
                         ),
                       ),
                       const SizedBox(height: 16),
+                       Text(
+                  "Select Department",
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                SizedBox(height: 15),
 
                       // Department selector
                       DepartmentDropdown(
