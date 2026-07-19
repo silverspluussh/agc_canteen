@@ -72,7 +72,9 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
       '[StaffAuthPage] Scan button tapped — starting fingerprint auth (departmentId=$_selectedDepartmentId)',
       name: 'POS_AUTH',
     );
-    await ref.read(authProvider.notifier).authenticate(departmentId: _selectedDepartmentId);
+    await ref
+        .read(authProvider.notifier)
+        .authenticate(departmentId: _selectedDepartmentId);
   }
 
   List<Widget> _authButtons() {
@@ -112,13 +114,11 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
           child: PosButton(
             color: AppColors.success,
             onPressed: () async {
-              await ref.read(authProvider.notifier).authenticateWithNfc(departmentId: _selectedDepartmentId);
+              await ref
+                  .read(authProvider.notifier)
+                  .authenticateWithNfc(departmentId: _selectedDepartmentId);
             },
-            prefixChild: const Icon(
-              Icons.nfc,
-              color: Colors.white,
-              size: 35,
-            ),
+            prefixChild: const Icon(Icons.nfc, color: Colors.white, size: 35),
             label: const Text(
               'Tap Card',
               style: TextStyle(
@@ -134,10 +134,7 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
 
     if (buttons.isEmpty) return [];
 
-    return [
-      const SizedBox(height: 20),
-      Row(children: buttons),
-    ];
+    return [const SizedBox(height: 20), Row(children: buttons)];
   }
 
   Future<void> _showAdminCodeDialog() async {
@@ -331,16 +328,17 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                       Text(
-                  "Select Department",
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                SizedBox(height: 15),
+                      Text(
+                        "Select Department",
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      SizedBox(height: 15),
 
                       // Department selector
                       DepartmentDropdown(
                         value: _selectedDepartmentId,
-                        onChanged: (id) => setState(() => _selectedDepartmentId = id),
+                        onChanged: (id) =>
+                            setState(() => _selectedDepartmentId = id),
                       ),
 
                       const Spacer(),
@@ -420,8 +418,7 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                         ..._authButtons(),
-                        
+                        ..._authButtons(),
                       ],
                     ],
                   ),

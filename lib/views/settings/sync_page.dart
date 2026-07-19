@@ -41,7 +41,16 @@ class _SyncPageState extends ConsumerState<SyncPage>
   int _shiftCount = 0;
   int _cardCount = 0;
   int _departmentCount = 0;
-  bool _syncingDownload = false;
+  bool _syncingStaff = false;
+  bool _syncingMealTypes = false;
+  bool _syncingDownloadBioData = false;
+  bool _syncingVisitors = false;
+  bool _syncingContractorStaff = false;
+  bool _syncingDependents = false;
+  bool _syncingShifts = false;
+  bool _syncingDepartments = false;
+  bool _syncingCards = false;
+  bool _syncingAllDownload = false;
 
   int get _totalUploadPending => _unsyncedOrders + _unsyncedBioData;
   int get _totalLocalRecords =>
@@ -164,8 +173,12 @@ class _SyncPageState extends ConsumerState<SyncPage>
 
   // ── Download actions ───────────────────────────────────────
 
-  Future<void> _syncDownload(String label, Future<void> Function() fn) async {
-    setState(() => _syncingDownload = true);
+  Future<void> _syncDownload(
+    String label,
+    Future<void> Function() fn,
+    void Function(bool) setBusy,
+  ) async {
+    setState(() => setBusy(true));
     try {
       await fn();
       if (mounted) _showDownloadSnackBar('$label synced');
@@ -173,14 +186,25 @@ class _SyncPageState extends ConsumerState<SyncPage>
       if (mounted) _showDownloadSnackBar('$label failed: $e', ok: false);
     } finally {
       if (mounted) {
-        setState(() => _syncingDownload = false);
+        setState(() => setBusy(false));
         await _loadDownloadCounts();
       }
     }
   }
 
   Future<void> _syncAllDownload() async {
-    setState(() => _syncingDownload = true);
+    setState(() {
+      _syncingStaff = true;
+      _syncingMealTypes = true;
+      _syncingDownloadBioData = true;
+      _syncingVisitors = true;
+      _syncingContractorStaff = true;
+      _syncingDependents = true;
+      _syncingShifts = true;
+      _syncingDepartments = true;
+      _syncingCards = true;
+      _syncingAllDownload = true;
+    });
     try {
       await _downloadService.syncAll(background: false);
       if (mounted) _showDownloadSnackBar('All data synced');
@@ -188,7 +212,18 @@ class _SyncPageState extends ConsumerState<SyncPage>
       if (mounted) _showDownloadSnackBar('Sync failed: $e', ok: false);
     } finally {
       if (mounted) {
-        setState(() => _syncingDownload = false);
+        setState(() {
+          _syncingStaff = false;
+          _syncingMealTypes = false;
+          _syncingDownloadBioData = false;
+          _syncingVisitors = false;
+          _syncingContractorStaff = false;
+          _syncingDependents = false;
+          _syncingShifts = false;
+          _syncingDepartments = false;
+          _syncingCards = false;
+          _syncingAllDownload = false;
+        });
         await _loadDownloadCounts();
       }
     }
@@ -395,7 +430,7 @@ class _SyncPageState extends ConsumerState<SyncPage>
             onPressed: _syncingAllUpload ? null : _syncAllUpload,
             loading: _syncingAllUpload,
             label: 'Upload All',
-            accent: AppColors.gold600,
+            accent: AppColors.gold900,
           ),
           const SizedBox(height: 32),
         ],
@@ -424,8 +459,9 @@ class _SyncPageState extends ConsumerState<SyncPage>
             icon: Icons.people_outline,
             label: 'Staff',
             count: _staffCount,
-            syncing: _syncingDownload,
-            onSync: () => _syncDownload('Staff', _downloadService.syncStaffOnly),
+            syncing: _syncingStaff,
+            onSync: () => _syncDownload(
+                'Staff', _downloadService.syncStaffOnly, (v) => _syncingStaff = v),
             onView: null,
           ),
           const SizedBox(height: 10),
@@ -433,9 +469,9 @@ class _SyncPageState extends ConsumerState<SyncPage>
             icon: Icons.restaurant_menu,
             label: 'MealTypes',
             count: _mealTypeCount,
-            syncing: _syncingDownload,
+            syncing: _syncingMealTypes,
             onSync: () => _syncDownload(
-                'Meal types', _downloadService.syncMealTypesOnly),
+                'Meal types', _downloadService.syncMealTypesOnly, (v) => _syncingMealTypes = v),
             onView: null,
           ),
           const SizedBox(height: 10),
@@ -443,9 +479,9 @@ class _SyncPageState extends ConsumerState<SyncPage>
             icon: Icons.fingerprint,
             label: 'BioData',
             count: _bioDataCount,
-            syncing: _syncingDownload,
+            syncing: _syncingDownloadBioData,
             onSync: () => _syncDownload(
-                'BioData', _downloadService.syncBioDataOnly),
+                'BioData', _downloadService.syncBioDataOnly, (v) => _syncingDownloadBioData = v),
             onView: null,
           ),
           const SizedBox(height: 10),
@@ -453,9 +489,9 @@ class _SyncPageState extends ConsumerState<SyncPage>
             icon: Icons.person_add_outlined,
             label: 'Visitors',
             count: _visitorCount,
-            syncing: _syncingDownload,
+            syncing: _syncingVisitors,
             onSync: () => _syncDownload(
-                'Visitors', _downloadService.syncVisitorsOnly),
+                'Visitors', _downloadService.syncVisitorsOnly, (v) => _syncingVisitors = v),
             onView: null,
           ),
           const SizedBox(height: 10),
@@ -463,9 +499,9 @@ class _SyncPageState extends ConsumerState<SyncPage>
             icon: Icons.engineering_outlined,
             label: 'Contractor Staff',
             count: _contractorStaffCount,
-            syncing: _syncingDownload,
+            syncing: _syncingContractorStaff,
             onSync: () => _syncDownload(
-                'Contractor staff', _downloadService.syncContractorStaffOnly),
+                'Contractor staff', _downloadService.syncContractorStaffOnly, (v) => _syncingContractorStaff = v),
             onView: null,
           ),
           const SizedBox(height: 10),
@@ -473,9 +509,9 @@ class _SyncPageState extends ConsumerState<SyncPage>
             icon: Icons.family_restroom,
             label: 'Dependents',
             count: _dependentCount,
-            syncing: _syncingDownload,
+            syncing: _syncingDependents,
             onSync: () => _syncDownload(
-                'Dependents', _downloadService.syncDependentsOnly),
+                'Dependents', _downloadService.syncDependentsOnly, (v) => _syncingDependents = v),
             onView: null,
           ),
           const SizedBox(height: 10),
@@ -483,9 +519,9 @@ class _SyncPageState extends ConsumerState<SyncPage>
             icon: Icons.schedule,
             label: 'Shifts',
             count: _shiftCount,
-            syncing: _syncingDownload,
+            syncing: _syncingShifts,
             onSync: () => _syncDownload(
-                'Shifts', _downloadService.syncShiftsOnly),
+                'Shifts', _downloadService.syncShiftsOnly, (v) => _syncingShifts = v),
             onView: null,
           ),
           const SizedBox(height: 10),
@@ -493,9 +529,9 @@ class _SyncPageState extends ConsumerState<SyncPage>
             icon: Icons.business_outlined,
             label: 'Departments',
             count: _departmentCount,
-            syncing: _syncingDownload,
+            syncing: _syncingDepartments,
             onSync: () => _syncDownload(
-                'Departments', _downloadService.syncDepartmentsOnly),
+                'Departments', _downloadService.syncDepartmentsOnly, (v) => _syncingDepartments = v),
             onView: null,
           ),
           const SizedBox(height: 10),
@@ -503,18 +539,30 @@ class _SyncPageState extends ConsumerState<SyncPage>
             icon: Icons.nfc,
             label: 'NFC Cards',
             count: _cardCount,
-            syncing: _syncingDownload,
+            syncing: _syncingCards,
             onSync: () => _syncDownload(
-                'NFC Cards', _downloadService.syncCardsOnly),
+                'NFC Cards', _downloadService.syncCardsOnly, (v) => _syncingCards = v),
             onView: null,
           ),
 
           const SizedBox(height: 28),
           _primaryButton(
-            onPressed: _syncingDownload ? null : _syncAllDownload,
-            loading: _syncingDownload,
+            onPressed: _syncingStaff ||
+                    _syncingMealTypes ||
+                    _syncingDownloadBioData ||
+                    _syncingVisitors ||
+                    _syncingContractorStaff ||
+                    _syncingDependents ||
+                    _syncingShifts ||
+                    _syncingDepartments ||
+                    _syncingCards ||
+                    _syncingAllDownload
+                ? null
+                : _syncAllDownload,
+            loading: _syncingAllDownload,
             label: 'Download All',
-            accent: AppColors.gold500,
+            
+            accent: AppColors.gold900,
           ),
           const SizedBox(height: 32),
         ],
@@ -644,11 +692,12 @@ class _SyncPageState extends ConsumerState<SyncPage>
     required String label,
     Color? accent,
   }) {
-    final color = accent ?? const Color(0xFF1565C0);
+    final color = accent ?? const Color.fromARGB(255, 32, 21, 192);
     return SizedBox(
       width: double.infinity,
       height: 52,
       child: PrimaryButton(
+        
         onPressed: onPressed,
         color: color,
         label: loading

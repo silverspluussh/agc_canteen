@@ -30,6 +30,7 @@ class FingerprintAuthService {
     dev.log('[FingerprintAuth] Initializing fingerprint device...',
         name: 'POS_AUTH');
     const maxRetries = 4;
+    await Future.delayed(const Duration(seconds: 2));
     for (var attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         final ok = await _fingerprint.init();

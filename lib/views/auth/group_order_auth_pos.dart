@@ -69,7 +69,14 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
         _placeGroupOrders(next.staff!);
       }
       if (prev != null && !prev.isAuthenticating && next.isAuthenticating) {
-        setState(_resetOrderState);
+        setState(() {
+          _ordersPlaced = 0;
+          _orderCode = null;
+          _staffName = null;
+          _mealType = null;
+          _orderTime = null;
+          _isPlacingOrders = false;
+        });
       }
     });
   }
@@ -388,6 +395,8 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(authProvider);
+        Size size = MediaQuery.sizeOf(context);
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: AppColors.gold600,
@@ -400,13 +409,15 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
       ),
 
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: SizedBox(
+          height:size.height ,
+          width: size.width,
           child: Padding(
             padding: const EdgeInsets.all(15),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const SizedBox(height: 16),
+                // const SizedBox(height: 16),
                 Text(
                   "Generate Group Meal Vouchers",
                   style: Theme.of(
@@ -434,7 +445,7 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
                   onDecrement: _decrement,
                 ),
 
-                const SizedBox(height: 32),
+                const Spacer(),
 
                 if (!_fingerprintReady && !_fingerprintInitFailed) ...[
                   const SizedBox(height: 10),

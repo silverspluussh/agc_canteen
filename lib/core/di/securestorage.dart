@@ -22,7 +22,7 @@ class SecureStorage {
   }
 
   Future writeSecureToken(String value) async {
-    final expirationTime = DateTime.now().add(const Duration(hours: 12));
+    final expirationTime = DateTime.now().add(const Duration(hours: 168));
 
     await storage.write(key: 'access_token', value: value);
     await storage.write(
@@ -46,7 +46,7 @@ class SecureStorage {
 
   //save email and add expiry of 12 hours
   Future<void> writeSecureEmail(String email) async {
-    final expirationTime = DateTime.now().add(const Duration(hours: 12));
+    final expirationTime = DateTime.now().add(const Duration(hours: 168));
     await storage.write(key: 'email', value: email);
     await storage.write(
       key: 'email_expiration',
@@ -67,7 +67,7 @@ class SecureStorage {
   Future<void> clearSecureEmail() async => await storage.deleteAll();
 
   Future<void> writeSecurePhone(String phone) async {
-    final expirationTime = DateTime.now().add(const Duration(hours: 12));
+    final expirationTime = DateTime.now().add(const Duration(hours: 168));
     await storage.write(key: 'phone', value: phone);
     await storage.write(
       key: 'phone_expiration',
