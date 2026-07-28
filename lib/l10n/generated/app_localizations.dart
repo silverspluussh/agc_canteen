@@ -835,7 +835,7 @@ abstract class AppLocalizations {
   /// No description provided for @viewReportsSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'View POS orders and overcharges'**
+  /// **'View POS orders'**
   String get viewReportsSubtitle;
 
   /// No description provided for @appearance.

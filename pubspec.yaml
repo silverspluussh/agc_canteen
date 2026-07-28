@@ -1,6 +1,6 @@
 name: agc_canteen
 description: "An android pos canteen system to support the AGC canteen"
-publish_to: 'none'
+publish_to: "none"
 version: 0.1.0+1
 
 environment:
@@ -12,7 +12,7 @@ dependencies:
   crypto: ^3.0.6
   dio: ^5.9.2
   drift: 2.31.0
-  esc_pos_utils: ^1.1.0
+  # esc_pos_utils: ^1.1.0
   # ffi: ^2.2.0
   flutter:
     sdk: flutter
@@ -30,7 +30,7 @@ dependencies:
   package_info_plus: ^9.0.1
   path: ^1.9.1
   path_provider: ^2.1.5
-  riverpod_annotation: ^4.0.2
+  # riverpod_annotation: ^4.0.2
   # share_plus: ^12.0.2
   shared_preferences: ^2.5.5
   sqlite3_flutter_libs: ^0.5.24
@@ -45,10 +45,11 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
-  riverpod_generator: ^4.0.3
+  fake_async: ^1.3.3
+  # riverpod_generator: ^4.0.3
   drift_dev: 2.31.0
   build_runner: ^2.15.0
-  json_serializable: ^6.13.0
+  # json_serializable: ^6.13.0
   mocktail: ^1.0.5
   flutter_launcher_icons: ^0.9.3
 
@@ -63,28 +64,26 @@ flutter:
     - family: SF Pro Display
       fonts:
         - asset: assets/sf-pro-display/SFPRODISPLAYTHINITALIC.OTF
-          weight: 100        
+          weight: 100
         - asset: assets/sf-pro-display/SFPRODISPLAYULTRALIGHTITALIC.OTF
-          weight: 200        
+          weight: 200
         - asset: assets/sf-pro-display/SFPRODISPLAYLIGHTITALIC.OTF
-          weight: 300        
+          weight: 300
         - asset: assets/sf-pro-display/SFPRODISPLAYREGULAR.OTF
           weight: 400
         - asset: assets/sf-pro-display/SFPRODISPLAYMEDIUM.OTF
           weight: 500
         - asset: assets/sf-pro-display/SFPRODISPLAYSEMIBOLDITALIC.OTF
-          weight: 600         
+          weight: 600
         - asset: assets/sf-pro-display/SFPRODISPLAYBOLD.OTF
           weight: 700
         - asset: assets/sf-pro-display/SFPRODISPLAYHEAVYITALIC.OTF
-          weight: 800       
+          weight: 800
         - asset: assets/sf-pro-display/SFPRODISPLAYBLACKITALIC.OTF
-          weight: 900       
+          weight: 900
 
 flutter_icons:
   android: true
   image_path: "assets/app_logo.png"
   adaptive_icon_background: "#ffffff"
   adaptive_icon_foreground: "assets/app_logo.png"
-  
-

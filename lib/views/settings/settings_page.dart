@@ -419,6 +419,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 .managePosSubtitle, // "Manage POS devices and configurations"
             onTap: () => Navigator.of(context).pushNamed('/pos'),
           ),
+          _SettingsTile(
+            icon: Icons.print_outlined,
+            title: l10n.printerSettings,
+            subtitle: 'Manage built-in and external (USB/Bluetooth) printers',
+            onTap: () => Navigator.of(context).pushNamed('/printer-settings'),
+          ),
           // _SettingsTile(
           //   icon: Icons.language_outlined,
           //   title: l10n.language,

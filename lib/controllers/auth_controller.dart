@@ -1,11 +1,11 @@
 import 'dart:async';
-import 'dart:developer' as dev;
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import 'package:drift/drift.dart';
 import '../core/di/injection_container.dart';
+import '../core/utils/app_log.dart';
 import '../services/database/activity_log_service.dart';
 import '../services/auth/pos_auth_service.dart';
 import '../services/database/app_database.dart';
@@ -39,10 +39,17 @@ class AuthState {
     this.orderTime,
   });
 
+  /// Sentinel used so [copyWith] can distinguish "error not passed" (keep
+  /// the current value) from "error explicitly passed as null" (clear it).
+  /// A plain `String? error` param can't tell those apart, since both look
+  /// like `null` — which previously made `error: null` (used throughout
+  /// this file, including `clearError()`) silently keep the old message.
+  static const Object _unset = Object();
+
   AuthState copyWith({
     AuthStep? step,
     AuthResult? staff,
-    String? error,
+    Object? error = _unset,
     String? orderCode,
     String? mealType,
     String? orderTime,
@@ -51,7 +58,7 @@ class AuthState {
     return AuthState(
       step: step ?? this.step,
       staff: clearStaff ? null : (staff ?? this.staff),
-      error: error ?? this.error,
+      error: identical(error, _unset) ? this.error : error as String?,
       orderCode: orderCode ?? this.orderCode,
       mealType: mealType ?? this.mealType,
       orderTime: orderTime ?? this.orderTime,
@@ -82,7 +89,7 @@ class AuthController extends Notifier<AuthState> {
 
   Future<void> authenticate({int? departmentId}) async {
     final sessionId = _authSessionId;
-    dev.log(
+    appLog(
       '[AuthController] authenticate(departmentId=$departmentId) called — setting state to authenticating',
       name: 'POS_AUTH',
     );
@@ -91,14 +98,14 @@ class AuthController extends Notifier<AuthState> {
     try {
       final posAuth = ref.read(posAuthProvider);
 
-      dev.log(
+      appLog(
         '[AuthController] Calling posAuth.authenticateWithFingerprint()',
         name: 'POS_AUTH',
       );
       final result = await posAuth.authenticateWithFingerprint(departmentId: departmentId);
       if (sessionId != _authSessionId) return;
 
-      dev.log(
+      appLog(
         '[AuthController] authenticateWithFingerprint returned: '
         'result=${result.isAuthenticated ? "entityId=${result.entityId}, type=${result.entityType?.name}, name=${result.displayName}" : "failure=${result.failureReason?.name}"}',
         name: 'POS_AUTH',
@@ -109,11 +116,11 @@ class AuthController extends Notifier<AuthState> {
         final errorMessage = switch (reason) {
           AuthFailureReason.notEnrolled =>
             'Fingerprint not recognized. Please enroll your fingerprint.',
-          AuthFailureReason.notInKitchen =>
-            'Staff is not assigned to this kitchen.',
+          AuthFailureReason.entityNotFound =>
+            'Matched person record was not found locally. Please sync staff data.',
           null => 'Authentication failed.',
         };
-        dev.log(
+        appLog(
           '[AuthController] Auth failed ($reason) — setting error state',
           name: 'POS_AUTH',
         );
@@ -127,7 +134,7 @@ class AuthController extends Notifier<AuthState> {
         return;
       }
 
-      dev.log(
+      appLog(
         '[AuthController] Auth SUCCESS — placing order immediately',
         name: 'POS_AUTH',
       );
@@ -143,7 +150,7 @@ class AuthController extends Notifier<AuthState> {
 
       await _placeVoucherOrder(result);
     } catch (e, st) {
-      dev.log(
+      appLog(
         '[AuthController] Auth EXCEPTION: $e',
         name: 'POS_AUTH',
         error: e,
@@ -174,8 +181,8 @@ class AuthController extends Notifier<AuthState> {
         final errorMessage = switch (reason) {
           AuthFailureReason.notEnrolled =>
             'Card not recognized. Please register your NFC card.',
-          AuthFailureReason.notInKitchen =>
-            'This card is not assigned to any registered person.',
+          AuthFailureReason.entityNotFound =>
+            'Card holder record was not found locally. Please sync staff data.',
           null => 'Authentication failed.',
         };
         getIt<ActivityLogService>().log(
@@ -200,7 +207,7 @@ class AuthController extends Notifier<AuthState> {
 
       await _placeNfcVoucherOrder(result);
     } catch (e, st) {
-      dev.log('[AuthController] NFC auth exception: $e', name: 'POS_AUTH', error: e, stackTrace: st);
+      appLog('[AuthController] NFC auth exception: $e', name: 'POS_AUTH', error: e, stackTrace: st);
       getIt<ActivityLogService>().log(
         type: 'nfc_auth_failure',
         message: 'NFC auth error: $e',
@@ -226,8 +233,8 @@ class AuthController extends Notifier<AuthState> {
         final errorMessage = switch (reason) {
           AuthFailureReason.notEnrolled =>
             'Card not recognized.',
-          AuthFailureReason.notInKitchen =>
-            'This card is not assigned to any registered person.',
+          AuthFailureReason.entityNotFound =>
+            'Card holder record was not found locally. Please sync staff data.',
           null => 'Authentication failed.',
         };
         state = state.copyWith(step: AuthStep.error, error: errorMessage);
@@ -244,7 +251,7 @@ class AuthController extends Notifier<AuthState> {
         actorName: result.displayName,
       );
     } catch (e, st) {
-      dev.log('[AuthController] NFC auth exception: $e', name: 'POS_AUTH', error: e, stackTrace: st);
+      appLog('[AuthController] NFC auth exception: $e', name: 'POS_AUTH', error: e, stackTrace: st);
       state = state.copyWith(step: AuthStep.error, error: e.toString());
     }
   }
@@ -264,8 +271,8 @@ class AuthController extends Notifier<AuthState> {
         final errorMessage = switch (reason) {
           AuthFailureReason.notEnrolled =>
             'Fingerprint not recognized.',
-          AuthFailureReason.notInKitchen =>
-            'Staff is not assigned to this kitchen.',
+          AuthFailureReason.entityNotFound =>
+            'Matched person record was not found locally. Please sync staff data.',
           null => 'Authentication failed.',
         };
         state = state.copyWith(step: AuthStep.error, error: errorMessage);
@@ -282,7 +289,7 @@ class AuthController extends Notifier<AuthState> {
         actorName: result.displayName,
       );
     } catch (e, st) {
-      dev.log('[AuthController] Auth exception: $e', name: 'POS_AUTH', error: e, stackTrace: st);
+      appLog('[AuthController] Auth exception: $e', name: 'POS_AUTH', error: e, stackTrace: st);
       state = state.copyWith(step: AuthStep.error, error: e.toString());
     }
   }
@@ -324,11 +331,17 @@ class AuthController extends Notifier<AuthState> {
       final now = DateTime.now();
       final nowIso = now.toIso8601String();
       final orderId = DateTime.now().millisecondsSinceEpoch;
-      final posDevices = await db.getAllPosDevices();
-      final posDevice = posDevices.firstOrNull;
+      final posDevice = await _loadRegisteredPosDevice(db);
+      if (posDevice == null) {
+        state = state.copyWith(
+          step: AuthStep.error,
+          error: _posNotRegisteredError,
+        );
+        return;
+      }
       final orderCode = await db.nextOrderCode(
         staff.entityType?.entityName.substring(0, 1) ?? '',
-        posDevice!.id,
+        posDevice.id,
         posDevice.kitchenId!,
       );
       final staffName = staff.displayName ?? 'Unknown';
@@ -390,7 +403,7 @@ class AuthController extends Notifier<AuthState> {
         orderTime: timeLabel,
       );
     } catch (e, st) {
-      dev.log(
+      appLog(
         '[AuthController] Place voucher order FAILED: $e',
         name: 'POS_AUTH',
         error: e,
@@ -403,6 +416,15 @@ class AuthController extends Notifier<AuthState> {
     }
   }
 
+  static const _posNotRegisteredError =
+      'POS device is not registered. Please complete device setup in Settings.';
+
+  Future<PosDevice?> _loadRegisteredPosDevice(AppDatabase db) async {
+    final posDevice = (await db.getAllPosDevices()).firstOrNull;
+    if (posDevice == null || posDevice.kitchenId == null) return null;
+    return posDevice;
+  }
+
   Future<(int, String, double)?> _resolveCurrentMealType(AppDatabase db) async {
     final mealTypes = await db.getAllMealTypes();
 
@@ -410,7 +432,6 @@ class AuthController extends Notifier<AuthState> {
     final currentMinutes = now.hour * 60 + now.minute;
 
     for (final mt in mealTypes) {
-      debugPrint(mt.toJsonString());
       if (mt.status != 'active') continue;
 
       TimeOfDay parse(String time) {
@@ -475,11 +496,17 @@ class AuthController extends Notifier<AuthState> {
       final now = DateTime.now();
       final nowIso = now.toIso8601String();
       final orderId = DateTime.now().millisecondsSinceEpoch;
-      final posDevices = await db.getAllPosDevices();
-      final posDevice = posDevices.firstOrNull;
+      final posDevice = await _loadRegisteredPosDevice(db);
+      if (posDevice == null) {
+        state = state.copyWith(
+          step: AuthStep.error,
+          error: _posNotRegisteredError,
+        );
+        return;
+      }
       final orderCode = await db.nextOrderCode(
         staff.entityType?.entityName.substring(0, 1) ?? '',
-        posDevice!.id,
+        posDevice.id,
         posDevice.kitchenId!,
       );
       final staffName = staff.displayName ?? 'Unknown';
@@ -541,7 +568,7 @@ class AuthController extends Notifier<AuthState> {
         orderTime: timeLabel,
       );
     } catch (e, st) {
-      dev.log('[AuthController] Place NFC voucher order FAILED: $e', name: 'POS_AUTH', error: e, stackTrace: st);
+      appLog('[AuthController] Place NFC voucher order FAILED: $e', name: 'POS_AUTH', error: e, stackTrace: st);
       state = state.copyWith(
         step: AuthStep.error,
         error: 'Failed to print voucher: $e',

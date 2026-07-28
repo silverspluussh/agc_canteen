@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
+import '../../core/utils/search_debouncer.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../../models/unified_report_order_row.dart';
 import '../../services/database/app_database.dart';
 import '../../services/print/print_service_manager.dart';
 
@@ -92,70 +94,76 @@ class _ReportOrder {
   bool get isSynced => syncStatus == 2;
 }
 
-final reportOrdersProvider = FutureProvider<List<_ReportOrder>>((ref) async {
-  final db = GetIt.instance<AppDatabase>();
+const _ordersPageSize = 50;
 
-  final orders = await db.getAllOrders();
-  final groupOrders = await db.getAllGroupOrders();
+Future<({
+  Map<int, String> staffNames,
+  Map<int, String> visitorNames,
+  Map<int, String> dependentNames,
+  Map<int, String> contractorNames,
+})> _buildEntityNameMaps(AppDatabase db) async {
   final staffList = await db.getAllStaff();
   final visitorList = await db.getAllVisitors();
   final dependentList = await db.getAllDependents();
   final contractorList = await db.getAllContractorStaff();
 
-  String resolveName(int id, String employeeType) {
-    switch (employeeType) {
-      case 'visitor':
-        final v = visitorList.where((e) => e.id == id).firstOrNull;
-        return v?.name ?? id.toString();
-      case 'dependent':
-        final d = dependentList.where((e) => e.id == id).firstOrNull;
-        return d?.fullname ?? id.toString();
-      case 'contractor':
-        final c = contractorList.where((e) => e.id == id).firstOrNull;
-        return c?.name ?? id.toString();
-      default:
-        final s = staffList.where((e) => e.id == id).firstOrNull;
-        return s != null ? '${s.firstName} ${s.lastName}' : id.toString();
-    }
+  return (
+    staffNames: {
+      for (final s in staffList) s.id: '${s.firstName} ${s.lastName}',
+    },
+    visitorNames: {for (final v in visitorList) v.id: v.name},
+    dependentNames: {for (final d in dependentList) d.id: d.fullname},
+    contractorNames: {for (final c in contractorList) c.id: c.name},
+  );
+}
+
+String _resolveStaffName(
+  UnifiedReportOrderRow row,
+  ({
+    Map<int, String> staffNames,
+    Map<int, String> visitorNames,
+    Map<int, String> dependentNames,
+    Map<int, String> contractorNames,
+  }) names,
+) {
+  final id = row.orderedById!;
+  switch (row.employeeType) {
+    case 'visitor':
+      return names.visitorNames[id] ?? id.toString();
+    case 'dependent':
+      return names.dependentNames[id] ?? id.toString();
+    case 'contractor':
+      return names.contractorNames[id] ?? id.toString();
+    default:
+      return names.staffNames[id] ?? id.toString();
   }
+}
 
-  final results = <_ReportOrder>[];
-
-  for (final o in orders) {
-    results.add(_ReportOrder(
-      id: o.id,
-      orderCode: o.orderCode,
-      status: o.status,
-      orderType: o.orderType,
-      mealType: o.mealType,
-      total: o.total,
-      groupCount: o.groupCount,
-      syncStatus: o.syncStatus,
-      description: o.description,
-      staffName: resolveName(o.orderedById, o.employeeType),
-      createdAt: DateTime.tryParse(o.createdAt) ?? DateTime.now(),
-    ));
-  }
-
-  for (final o in groupOrders) {
-    results.add(_ReportOrder(
-      id: o.id,
-      orderCode: o.orderCode,
-      status: o.status,
-      orderType: o.orderType,
-      mealType: o.mealType,
-      total: o.total,
-      groupCount: o.groupCount,
-      syncStatus: o.syncStatus,
-      description: o.description,
-      staffName: null,
-      createdAt: DateTime.tryParse(o.createdAt) ?? DateTime.now(),
-    ));
-  }
-
-  results.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-  return results;
-});
+_ReportOrder _mapRow(
+  UnifiedReportOrderRow row,
+  ({
+    Map<int, String> staffNames,
+    Map<int, String> visitorNames,
+    Map<int, String> dependentNames,
+    Map<int, String> contractorNames,
+  }) names,
+) {
+  return _ReportOrder(
+    id: row.id,
+    orderCode: row.orderCode,
+    status: row.status,
+    orderType: row.orderType,
+    mealType: row.mealType,
+    total: row.total,
+    groupCount: row.groupCount,
+    syncStatus: row.syncStatus,
+    description: row.description,
+    staffName: row.isGroup
+        ? null
+        : _resolveStaffName(row, names),
+    createdAt: DateTime.tryParse(row.createdAt) ?? DateTime.now(),
+  );
+}
 
 class ReportsPage extends StatelessWidget {
   const ReportsPage({super.key});
@@ -189,24 +197,138 @@ class _OrdersTabState extends ConsumerState<_OrdersTab>
   bool get wantKeepAlive => true;
 
   final _searchCtrl = TextEditingController();
+  final _searchDebouncer = SearchDebouncer();
   String _query = '';
   String? _statusFilter;
   String? _mealTypeFilter;
   String? _syncFilter;
   DateTimeRange? _dateRangeFilter;
 
+  bool _loading = true;
+  bool _loadingMore = false;
+  bool _hasMore = true;
+  int _offset = 0;
+  List<_ReportOrder> _loadedOrders = [];
+  int _totalCount = 0;
+  double _totalRevenue = 0;
+  String? _loadError;
+
+  ({
+    Map<int, String> staffNames,
+    Map<int, String> visitorNames,
+    Map<int, String> dependentNames,
+    Map<int, String> contractorNames,
+  })? _nameMaps;
+
   @override
   void initState() {
     super.initState();
-    _searchCtrl.addListener(
-      () => setState(() => _query = _searchCtrl.text.trim().toLowerCase()),
-    );
+    _searchCtrl.addListener(() {
+      _searchDebouncer(() {
+        if (mounted) {
+          setState(
+            () => _query = _searchCtrl.text.trim().toLowerCase(),
+          );
+        }
+      });
+    });
+    _loadOrders(reset: true);
   }
 
   @override
   void dispose() {
+    _searchDebouncer.dispose();
     _searchCtrl.dispose();
     super.dispose();
+  }
+
+  String? _dateFromIso() =>
+      _dateRangeFilter?.start.toIso8601String();
+
+  String? _dateToInclusiveIso() {
+    if (_dateRangeFilter == null) return null;
+    final end = _dateRangeFilter!.end;
+    return DateTime(end.year, end.month, end.day, 23, 59, 59)
+        .toIso8601String();
+  }
+
+  bool? _syncedDbFilter() {
+    if (_syncFilter == 'synced') return true;
+    if (_syncFilter == 'unsynced') return false;
+    return null;
+  }
+
+  Future<void> _loadOrders({bool reset = false}) async {
+    if (reset) {
+      _offset = 0;
+      _hasMore = true;
+      _loadedOrders = [];
+      _nameMaps = null;
+    } else if (!_hasMore) {
+      return;
+    }
+
+    setState(() {
+      _loadError = null;
+      if (reset) {
+        _loading = true;
+      } else {
+        _loadingMore = true;
+      }
+    });
+
+    try {
+      final db = GetIt.instance<AppDatabase>();
+      _nameMaps ??= await _buildEntityNameMaps(db);
+      final names = _nameMaps!;
+
+      final rows = await db.queryUnifiedOrdersPage(
+        createdAtFrom: _dateFromIso(),
+        createdAtToInclusive: _dateToInclusiveIso(),
+        status: _statusFilter,
+        synced: _syncedDbFilter(),
+        mealType: _mealTypeFilter,
+        limit: _ordersPageSize,
+        offset: _offset,
+      );
+
+      if (reset) {
+        _totalCount = await db.countUnifiedOrders(
+          createdAtFrom: _dateFromIso(),
+          createdAtToInclusive: _dateToInclusiveIso(),
+          status: _statusFilter,
+          synced: _syncedDbFilter(),
+          mealType: _mealTypeFilter,
+        );
+        _totalRevenue = await db.sumUnifiedOrdersRevenue(
+          createdAtFrom: _dateFromIso(),
+          createdAtToInclusive: _dateToInclusiveIso(),
+          status: _statusFilter,
+          synced: _syncedDbFilter(),
+          mealType: _mealTypeFilter,
+        );
+      }
+
+      final mapped = rows.map((r) => _mapRow(r, names)).toList();
+      _offset += rows.length;
+      _hasMore = _offset < _totalCount;
+
+      setState(() {
+        if (reset) {
+          _loadedOrders = mapped;
+        } else {
+          _loadedOrders = [..._loadedOrders, ...mapped];
+        }
+        _loading = false;
+        _loadingMore = false;
+      });
+    } catch (e) {
+      setState(() {
+        _loadError = e.toString();
+        _loading = false;
+        _loadingMore = false;
+      });
+    }
   }
 
   List<_ReportOrder> _filter(List<_ReportOrder> orders) {
@@ -219,14 +341,9 @@ class _OrdersTabState extends ConsumerState<_OrdersTab>
           o.status.toLowerCase().contains(q);
       final matchS = _statusFilter == null || o.status == _statusFilter;
       final matchM = _mealTypeFilter == null || o.mealType == _mealTypeFilter;
-      final matchDate = _dateRangeFilter == null ||
-          ((o.createdAt.isAtSameMomentAs(_dateRangeFilter!.start) ||
-                  o.createdAt.isAfter(_dateRangeFilter!.start)) &&
-              o.createdAt
-                  .isBefore(_dateRangeFilter!.end.add(const Duration(days: 1))));
       final matchSync = _syncFilter == null ||
           (_syncFilter == 'synced' ? o.isSynced : !o.isSynced);
-      return matchQ && matchS && matchM && matchSync && matchDate;
+      return matchQ && matchS && matchM && matchSync;
     }).toList();
   }
 
@@ -418,6 +535,7 @@ class _OrdersTabState extends ConsumerState<_OrdersTab>
                           _dateRangeFilter = tempDateRange;
                         });
                         Navigator.pop(context);
+                        _loadOrders(reset: true);
                     },
                     label: Text(
                       "Apply Filters",
@@ -437,73 +555,91 @@ class _OrdersTabState extends ConsumerState<_OrdersTab>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final ordersAsync = ref.watch(reportOrdersProvider);
 
-    return ordersAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Failed to load orders: $e')),
-      data: (allOrders) {
-        final items = _filter(allOrders);
-        final total = items.fold<double>(0, (s, o) => s + o.total);
-        return Column(
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_loadError != null) {
+      return Center(child: Text('Failed to load orders: $_loadError'));
+    }
+
+    final items = _filter(_loadedOrders);
+    final total = _totalRevenue;
+
+    return Column(
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: _SearchBar(
-                    controller: _searchCtrl,
-                    hint: AppLocalizations.of(context).searchOrderHint,
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(right: 12.0, top: 12.0),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: IconButton(
-                      icon: Icon(
-                        Icons.tune,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                      onPressed: _showFilterModal,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            if (items.isNotEmpty)
-              _SummaryStrip(
-                '${items.length} ${AppLocalizations.of(context).orders}',
-                '${AppLocalizations.of(context).total}: GH₵ ${_currency.format(total)}',
-              ),
             Expanded(
-              child: items.isEmpty
-                  ? _EmptyView(
-                      Icons.receipt_long_outlined,
-                      AppLocalizations.of(context).noOrders,
-                      onRefresh: () => ref.invalidate(reportOrdersProvider),
-                    )
-                  : RefreshIndicator(
-                    onRefresh: () async {
-                      ref.invalidate(reportOrdersProvider);
-                      
-                    },
-                    child: ListView.separated(
-                        padding: const EdgeInsets.only(bottom: 24),
-                        itemCount: items.length,
-                        separatorBuilder: (_, __) =>
-                            const Divider(height: 1, indent: 16, endIndent: 16),
-                        itemBuilder: (_, i) => _OrderTile(order: items[i]),
-                      ),
+              child: _SearchBar(
+                controller: _searchCtrl,
+                hint: AppLocalizations.of(context).searchOrderHint,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(right: 12.0, top: 12.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: IconButton(
+                  icon: Icon(
+                    Icons.tune,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
+                  onPressed: _showFilterModal,
+                ),
+              ),
             ),
           ],
-        );
-      },
+        ),
+        const SizedBox(height: 10),
+        if (_totalCount > 0)
+          _SummaryStrip(
+            '${_totalCount} ${AppLocalizations.of(context).orders}',
+            '${AppLocalizations.of(context).total}: GH₵ ${_currency.format(total)}',
+          ),
+        Expanded(
+          child: items.isEmpty
+              ? _EmptyView(
+                  Icons.receipt_long_outlined,
+                  AppLocalizations.of(context).noOrders,
+                  onRefresh: () => _loadOrders(reset: true),
+                )
+              : RefreshIndicator(
+                  onRefresh: () => _loadOrders(reset: true),
+                  child: ListView.separated(
+                    padding: const EdgeInsets.only(bottom: 24),
+                    itemCount: items.length + (_hasMore ? 1 : 0),
+                    separatorBuilder: (_, index) {
+                      if (index >= items.length - 1) {
+                        return const SizedBox.shrink();
+                      }
+                      return const Divider(height: 1, indent: 16, endIndent: 16);
+                    },
+                    itemBuilder: (_, i) {
+                      if (i >= items.length) {
+                        return Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Center(
+                            child: _loadingMore
+                                ? const CircularProgressIndicator()
+                                : OutlinedButton(
+                                    onPressed: () => _loadOrders(),
+                                    child: const Text('Load more'),
+                                  ),
+                          ),
+                        );
+                      }
+                      return _OrderTile(order: items[i]);
+                    },
+                  ),
+                ),
+        ),
+      ],
     );
   }
 }

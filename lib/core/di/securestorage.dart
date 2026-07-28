@@ -36,7 +36,7 @@ class SecureStorage {
     if (expirationTime == null) return null;
     final expirationDateTime = DateTime.parse(expirationTime);
     if (expirationDateTime.isBefore(DateTime.now())) return null;
-    return await storage.read(key: key) ?? 'No data found!';
+    return await storage.read(key: key);
   }
 
   Future<void> deleteSecureData(String key) async =>

@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:developer' as dev;
+import 'package:agc_canteen/core/utils/app_log.dart';
 import 'dart:typed_data';
 import 'package:agc_canteen/controllers/auth_controller.dart';
 import 'package:agc_canteen/controllers/auth_settings_controller.dart';
@@ -8,9 +8,10 @@ import 'package:agc_canteen/core/theme/app_colors.dart';
 import 'package:agc_canteen/l10n/generated/app_localizations.dart';
 import 'package:agc_canteen/views/widgets/app_buttons.widget.dart';
 import 'package:agc_canteen/views/widgets/avatarglow.widget.dart';
-import 'package:agc_canteen/views/widgets/department_dropdown.widget.dart';
+import 'package:agc_canteen/views/widgets/department_search_field.widget.dart';
 import 'package:agc_canteen/views/widgets/groupselector.widget.dart';
 import 'package:agc_canteen/views/widgets/voucher_card.widget.dart';
+import 'package:agc_canteen/views/widgets/pos_meal_time_refresh.widget.dart';
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -61,13 +62,10 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initFingerprint();
       ref.read(authProvider.notifier).reset();
+      _initFingerprint();
     });
     ref.listenManual(authProvider, (prev, next) {
-      if (prev != null && !prev.isStaffReady && next.isStaffReady) {
-        _placeGroupOrders(next.staff!);
-      }
       if (prev != null && !prev.isAuthenticating && next.isAuthenticating) {
         setState(() {
           _ordersPlaced = 0;
@@ -81,13 +79,28 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
     });
   }
 
+  Future<int?> _effectiveDepartmentId() async {
+    if (_selectedDepartmentId != null) return _selectedDepartmentId;
+    final departments = ref.read(departmentsProvider).value ?? [];
+    if (departments.length == 1) return departments.first.id;
+    return null;
+  }
+
   Future<void> _initFingerprint() async {
-    dev.log(
-      '[StaffAuthPage] Initializing fingerprint SDK...',
+    appLog(
+      '[GroupOrderAuthPos] Initializing fingerprint SDK...',
       name: 'POS_AUTH',
     );
     try {
       final posAuth = ref.read(posAuthProvider);
+      if (await posAuth.isFingerprintAvailable) {
+        appLog(
+          '[GroupOrderAuthPos] Fingerprint SDK already ready — skipping init',
+          name: 'POS_AUTH',
+        );
+        if (mounted) setState(() => _fingerprintReady = true);
+        return;
+      }
       final ok = await posAuth.init();
       if (mounted) {
         setState(() {
@@ -96,26 +109,50 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
         });
       }
       if (ok) {
-        dev.log(
-          '[StaffAuthPage] Fingerprint SDK initialized successfully',
+        appLog(
+          '[GroupOrderAuthPos] Fingerprint SDK initialized successfully',
           name: 'POS_AUTH',
         );
       }
     } catch (e, st) {
-      dev.log(
-        '[StaffAuthPage] Fingerprint SDK init FAILED: $e',
+      appLog(
+        '[GroupOrderAuthPos] Fingerprint SDK init FAILED: $e',
         name: 'POS_AUTH',
         error: e,
         stackTrace: st,
       );
-      if (mounted) setState(() => _fingerprintInitFailed = true);
+      if (mounted) {
+        setState(() {
+          _fingerprintInitFailed = true;
+          _fingerprintReady = false;
+        });
+      }
     }
   }
 
   Future<void> _startAuth() async {
+    final departmentId = await _effectiveDepartmentId();
+    if (departmentId == null) {
+      final departments = ref.read(departmentsProvider).value ?? [];
+      if (departments.length > 1) {
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          const SnackBar(
+            content: Text('Please select a department before scanning.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+    }
+
     await ref
         .read(authProvider.notifier)
-        .authenticateOnly(departmentId: _selectedDepartmentId);
+        .authenticateOnly(departmentId: departmentId);
+
+    final state = ref.read(authProvider);
+    if (state.isStaffReady && state.staff != null) {
+      await _placeGroupOrders(state.staff!);
+    }
   }
 
   List<Widget> _authButtons() {
@@ -154,9 +191,28 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
           child: PosButton(
             color: AppColors.success,
             onPressed: () async {
-              ref
+              final departmentId = await _effectiveDepartmentId();
+              if (departmentId == null) {
+                final departments = ref.read(departmentsProvider).value ?? [];
+                if (departments.length > 1) {
+                  ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Please select a department before scanning.',
+                      ),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+              }
+              await ref
                   .read(authProvider.notifier)
-                  .authenticateWithNfcOnly(departmentId: _selectedDepartmentId);
+                  .authenticateWithNfcOnly(departmentId: departmentId);
+              final state = ref.read(authProvider);
+              if (state.isStaffReady && state.staff != null) {
+                await _placeGroupOrders(state.staff!);
+              }
             },
             prefixChild: const Icon(Icons.nfc, color: Colors.white, size: 35),
             label: const Text(
@@ -245,51 +301,60 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
     try {
       final posDevices = await db.getAllPosDevices();
       final posDevice = posDevices.firstOrNull;
-
-      // Pre-generate all order codes in one pass
-      final startCode = await db.nextOrderCode(
-        staff.entityType?.entityName.substring(0, 1) ?? '',
-        posDevice!.id,
-        posDevice.kitchenId!,
-      );
-      final prefix = startCode.substring(0, startCode.lastIndexOf('-') + 1);
-      final startNum = int.tryParse(startCode.split('-').last) ?? 0;
-      final orders = <OrdersCompanion>[];
-
-      for (int i = 0; i < _groupCount; i++) {
-        final orderCode = '$prefix${(startNum + i).toString().padLeft(4, '0')}';
-        if (i == 0) _orderCode = orderCode;
-
-        orders.add(
-          OrdersCompanion(
-            id: Value(DateTime.now().millisecondsSinceEpoch + i),
-            uuid: Value(const Uuid().v4()),
-            orderCode: Value(orderCode),
-            status: const Value('completed'),
-            orderType: const Value('group'),
-            mealType: Value(mealType),
-            total: Value(price),
-            groupCount: const Value(1),
-            description: Value('[Group] $mealType (${i + 1}/$_groupCount)'),
-            orderedById: Value(staff.entityId!),
-            employeeType: Value(staff.entityType!.name),
-            createdAt: Value(nowIso),
-            updatedAt: Value(nowIso),
-            syncStatus: const Value(0),
-            syncUpdatedAt: const Value.absent(),
+      if (posDevice == null || posDevice.kitchenId == null) {
+        if (!mounted) return;
+        setState(_resetOrderState);
+        ref.read(authProvider.notifier).reset();
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          const SnackBar(
+            content: Text(
+              'POS device is not registered. Please complete device setup in Settings.',
+            ),
+            backgroundColor: Colors.red,
           ),
         );
+        return;
       }
 
-      // Single transaction for all inserts
+      final typeChar = staff.entityType?.entityName.substring(0, 1) ?? '';
+      final orderCodes = <String>[];
+
+      // Generate codes and insert inside one transaction for atomic sequencing
       await db.transaction(() async {
-        for (int i = 0; i < orders.length; i++) {
-          await db.insertOrder(orders[i]);
-          setState(() => _ordersPlaced = i + 1);
+        for (int i = 0; i < _groupCount; i++) {
+          final orderCode = await db.nextOrderCode(
+            typeChar,
+            posDevice.id,
+            posDevice.kitchenId!,
+          );
+          orderCodes.add(orderCode);
+          if (i == 0) _orderCode = orderCode;
+
+          await db.insertOrder(
+            OrdersCompanion(
+              id: Value(DateTime.now().millisecondsSinceEpoch + i),
+              uuid: Value(const Uuid().v4()),
+              orderCode: Value(orderCode),
+              status: const Value('completed'),
+              orderType: const Value('group'),
+              mealType: Value(mealType),
+              total: Value(price),
+              groupCount: const Value(1),
+              description: Value('[Group] $mealType (${i + 1}/$_groupCount)'),
+              orderedById: Value(staff.entityId!),
+              employeeType: Value(staff.entityType!.name),
+              createdAt: Value(nowIso),
+              updatedAt: Value(nowIso),
+              syncStatus: const Value(0),
+              syncUpdatedAt: const Value.absent(),
+            ),
+          );
+
+          if (mounted) setState(() => _ordersPlaced = i + 1);
 
           unawaited(
             _printGroupReceipt(
-              orderCode: orders[i].orderCode.value,
+              orderCode: orderCode,
               mealType: mealType,
               staffName: staffName,
               index: i + 1,
@@ -310,7 +375,7 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
         actorName: staffName,
         sourceTable: 'orders',
         metadata: {
-          'order_codes': orders.map((o) => o.orderCode.value).toList(),
+          'order_codes': orderCodes,
           'meal_type': mealType,
           'group_count': _groupCount,
           'order_type': 'group_fingerprint',
@@ -354,7 +419,7 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
     try {
       final printer = getIt<PrintServiceManager>();
       final now = DateTime.now();
-      final pad = (int n) => n.toString().padLeft(2, '0');
+      String pad(int n) => n.toString().padLeft(2, '0');
       final date =
           '${now.year}-${pad(now.month)}-${pad(now.day)} '
           '${pad(now.hour)}:${pad(now.minute)}';
@@ -381,7 +446,7 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
       ln('Meal:  ${mealType[0].toUpperCase()}${mealType.substring(1)}');
       ln('Qty:   $index / $total');
       ln('--------------------');
-      ln('     THANK YOU!');
+
       ln('');
 
       final bytes = Uint8List.fromList(b.toBytes());
@@ -395,29 +460,25 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(authProvider);
-        Size size = MediaQuery.sizeOf(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: AppColors.gold600,
-        automaticallyImplyLeading: false,
-        centerTitle: true,
-        toolbarHeight: 70,
-        leading: BackButton(color: Colors.white),
+    return PosMealTimeRefresh(
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: AppColors.gold600,
+          automaticallyImplyLeading: false,
+          centerTitle: true,
+          toolbarHeight: 70,
+          leading: BackButton(color: Colors.white),
 
-        title: Text("Group Order Page"),
-      ),
+          title: Text("Group Order Page"),
+        ),
 
-      body: SafeArea(
-        child: SizedBox(
-          height:size.height ,
-          width: size.width,
+        body: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(15),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // const SizedBox(height: 16),
                 Text(
                   "Generate Group Meal Vouchers",
                   style: Theme.of(
@@ -429,104 +490,125 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
                   "Select Department",
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
-                SizedBox(height: 15),
-                DepartmentDropdown(
+                const SizedBox(height: 15),
+                DepartmentSearchField(
                   value: _selectedDepartmentId,
                   onChanged: (id) => setState(() => _selectedDepartmentId = id),
                 ),
                 const SizedBox(height: 20),
-                // BiometricGlow(),
-                // const SizedBox(height: 16),
-
-                // ── Group count selector ──
                 GroupCountSelector(
                   count: _groupCount,
                   onIncrement: _increment,
                   onDecrement: _decrement,
                 ),
+                const SizedBox(height: 40),
 
-                const Spacer(),
-
-                if (!_fingerprintReady && !_fingerprintInitFailed) ...[
-                  const SizedBox(height: 10),
-                  const LinearProgressIndicator(),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Initializing biometrics...',
-                    style: TextStyle(fontSize: 16),
-                  ),
-                ],
-                if (state.isUnauthenticated &&
-                    !state.isAuthenticating &&
-                    !state.hasError &&
-                    _fingerprintReady) ...[
-                  const SizedBox(height: 20),
-
-                  ..._authButtons(),
-                ],
-                if (state.isAuthenticating) ...[
-                  const LinearProgressIndicator(),
-                  const SizedBox(height: 16),
-                  Text(
-                    AppLocalizations.of(context).scanning,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 24),
-                  OutlinedButton.icon(
-                    onPressed: () =>
-                        ref.read(authProvider.notifier).cancel(),
-                    icon: const Icon(Icons.close, size: 18),
-                    label: const Text('Cancel'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red,
-                      side: const BorderSide(color: Colors.red),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const SizedBox(height: 16),
+                        if (!_fingerprintReady && !_fingerprintInitFailed) ...[
+                          const SizedBox(height: 10),
+                          const LinearProgressIndicator(),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Initializing biometrics...',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                        ],
+                        if (state.isUnauthenticated &&
+                            !state.isAuthenticating &&
+                            !state.hasError &&
+                            _fingerprintReady) ...[
+                          const SizedBox(height: 20),
+                          ..._authButtons(),
+                        ],
+                        if (state.isAuthenticating) ...[
+                          const LinearProgressIndicator(),
+                          const SizedBox(height: 16),
+                          Text(
+                            AppLocalizations.of(context).scanning,
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: 24),
+                          OutlinedButton.icon(
+                            onPressed: () =>
+                                ref.read(authProvider.notifier).cancel(),
+                            icon: const Icon(Icons.close, size: 18),
+                            label: const Text('Cancel'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.red,
+                              side: const BorderSide(color: Colors.red),
+                            ),
+                          ),
+                        ],
+                        if (state.isStaffReady &&
+                            !_isPlacingOrders &&
+                            state.orderCode == null) ...[
+                          const LinearProgressIndicator(),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Staff identified — placing group orders...',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                        ],
+                        if (_isPlacingOrders &&
+                            _ordersPlaced < _groupCount) ...[
+                          const LinearProgressIndicator(),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Printing voucher ${_ordersPlaced + 1} / $_groupCount...',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                        ],
+                        if (state.isCompleted && state.orderCode != null) ...[
+                          const Icon(
+                            Icons.check_circle,
+                            color: Colors.green,
+                            size: 48,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Vouchers Printed',
+                            style: Theme.of(context).textTheme.headlineSmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.green,
+                                ),
+                          ),
+                          const SizedBox(height: 16),
+                          VoucherCard(
+                            orderCode: state.orderCode!,
+                            staffName: state.staff?.displayName ?? '',
+                            mealType: state.mealType ?? '',
+                            orderTime: state.orderTime ?? '',
+                          ),
+                        ],
+                        if (state.hasError) ...[
+                          Icon(
+                            Icons.error_outline,
+                            size: 48,
+                            color: Theme.of(context).colorScheme.error,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            state.error ??
+                                AppLocalizations.of(context).somethingWentWrong,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          ..._authButtons(),
+                        ],
+                      ],
                     ),
                   ),
-                ],
-                if (_isPlacingOrders && _ordersPlaced < _groupCount) ...[
-                  const LinearProgressIndicator(),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Printing voucher ${_ordersPlaced + 1} / $_groupCount...',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                ],
-                if (state.isCompleted && state.orderCode != null) ...[
-                  const Icon(Icons.check_circle, color: Colors.green, size: 48),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Vouchers Printed',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.green,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  VoucherCard(
-                    orderCode: state.orderCode!,
-                    staffName: state.staff?.displayName ?? '',
-                    mealType: state.mealType ?? '',
-                    orderTime: state.orderTime ?? '',
-                  ),
-                ],
-                if (state.hasError) ...[
-                  Icon(
-                    Icons.error_outline,
-                    size: 48,
-                    color: Theme.of(context).colorScheme.error,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    state.error ??
-                        AppLocalizations.of(context).somethingWentWrong,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  ..._authButtons(),
-                ],
+                ),
               ],
             ),
           ),
@@ -535,5 +617,3 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
     );
   }
 }
-
-// mary adarkwa

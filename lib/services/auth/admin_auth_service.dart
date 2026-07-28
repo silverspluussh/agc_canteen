@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:developer';
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:logger/logger.dart';
@@ -7,6 +6,7 @@ import '../../core/di/injection_container.dart';
 import '../../core/di/securestorage.dart';
 import '../../core/network/api_exceptions_util.dart';
 import '../../core/network/network_api_dio.dart';
+import '../../core/utils/app_log.dart';
 import '../database/activity_log_service.dart';
 
 enum AdminAuthStatus {
@@ -52,7 +52,7 @@ class AdminAuthService {
     Logger? logger,
   }) : _networkAPI = networkAPI,
        _storage = storage,
-       _logger = logger ?? Logger();
+       _logger = logger ?? createAppLogger();
 
   String _hashCredentials(String email, String password) {
     final input = utf8.encode('${email.toLowerCase()}:$password');
@@ -83,7 +83,7 @@ class AdminAuthService {
   }
 
   Future<AdminAuthResult> login(String email, String password) async {
-    log(  'Attempting login for email: $email');
+    appLog('Attempting admin login', name: 'AdminAuth');
     final lowerEmail = email.trim();
 
     try {

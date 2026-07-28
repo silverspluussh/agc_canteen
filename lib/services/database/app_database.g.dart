@@ -13311,6 +13311,46 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     this,
   );
   late final $BioDataEntriesTable bioDataEntries = $BioDataEntriesTable(this);
+  late final Index idxStaffDepartmentId = Index(
+    'idx_staff_department_id',
+    'CREATE INDEX idx_staff_department_id ON staff (department_id)',
+  );
+  late final Index idxCardsTagId = Index(
+    'idx_cards_tag_id',
+    'CREATE INDEX idx_cards_tag_id ON cards (tag_id)',
+  );
+  late final Index idxOrdersSyncStatus = Index(
+    'idx_orders_sync_status',
+    'CREATE INDEX idx_orders_sync_status ON orders (sync_status)',
+  );
+  late final Index idxOrdersCreatedAt = Index(
+    'idx_orders_created_at',
+    'CREATE INDEX idx_orders_created_at ON orders (created_at)',
+  );
+  late final Index idxOrdersOrderCode = Index(
+    'idx_orders_order_code',
+    'CREATE INDEX idx_orders_order_code ON orders (order_code)',
+  );
+  late final Index idxGroupOrdersSyncStatus = Index(
+    'idx_group_orders_sync_status',
+    'CREATE INDEX idx_group_orders_sync_status ON group_orders (sync_status)',
+  );
+  late final Index idxGroupOrdersOrderCode = Index(
+    'idx_group_orders_order_code',
+    'CREATE INDEX idx_group_orders_order_code ON group_orders (order_code)',
+  );
+  late final Index idxBioDataStaffId = Index(
+    'idx_bio_data_staff_id',
+    'CREATE INDEX idx_bio_data_staff_id ON bio_data_entries (staff_id)',
+  );
+  late final Index idxBioDataDepartmentId = Index(
+    'idx_bio_data_department_id',
+    'CREATE INDEX idx_bio_data_department_id ON bio_data_entries (department_id)',
+  );
+  late final Index idxBioDataSyncStatus = Index(
+    'idx_bio_data_sync_status',
+    'CREATE INDEX idx_bio_data_sync_status ON bio_data_entries (sync_status)',
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -13340,6 +13380,16 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     visitors,
     visitorKitchens,
     bioDataEntries,
+    idxStaffDepartmentId,
+    idxCardsTagId,
+    idxOrdersSyncStatus,
+    idxOrdersCreatedAt,
+    idxOrdersOrderCode,
+    idxGroupOrdersSyncStatus,
+    idxGroupOrdersOrderCode,
+    idxBioDataStaffId,
+    idxBioDataDepartmentId,
+    idxBioDataSyncStatus,
   ];
 }
 

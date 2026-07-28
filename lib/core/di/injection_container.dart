@@ -42,9 +42,6 @@ Future<void> setupServiceLocator() async {
       () => PosFingerprintService());
   getIt.registerLazySingleton<PosScannerService>(() => PosScannerService());
   getIt.registerLazySingleton<PrintServiceManager>(() => PrintServiceManager());
-  try {
-    await getIt<PrintServiceManager>().loadPrinterType();
-  } catch (_) {}
   getIt.registerLazySingleton<PosCardService>(() => PosCardService());
   getIt.registerLazySingleton<PosDeviceService>(() => PosDeviceService());
   getIt.registerLazySingleton<DeviceInfoService>(() => DeviceInfoService());
@@ -66,7 +63,6 @@ Future<void> setupServiceLocator() async {
       ));
 
   getIt.registerLazySingleton<PosAuthService>(() => PosAuthService(
-        db: getIt<AppDatabase>(),
         fingerprintAuth: getIt<FingerprintAuthService>(),
         nfcAuth: getIt<NfcAuthService>(),
       ));

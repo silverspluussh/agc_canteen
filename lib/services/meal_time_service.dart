@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../controllers/providers.dart';
@@ -52,16 +51,10 @@ final mealTimeWindowsProvider = FutureProvider<List<MealTimeWindow>>((ref) async
 });
 
 final availableMealTypesProvider = FutureProvider<List<String>>((ref) async {
-  final timer = Timer.periodic(const Duration(seconds: 30), (_) {
-    ref.invalidateSelf();
-  });
-  ref.onDispose(() => timer.cancel());
-
   final windows = await ref.watch(mealTimeWindowsProvider.future);
   final now = DateTime.now();
-  final active = windows.where((window) {
-    final active = window.isActiveAt(now);
-    return active;
-  }).map((window) => window.mealType).toList();
-  return active;
+  return windows
+      .where((window) => window.isActiveAt(now))
+      .map((window) => window.mealType)
+      .toList();
 });

@@ -377,8 +377,7 @@ class AppLocalizationsFr extends AppLocalizations {
       'Synchroniser les enregistrements avec le serveur';
 
   @override
-  String get viewReportsSubtitle =>
-      'Voir les commandes POS et les surfacturations';
+  String get viewReportsSubtitle => 'Voir les commandes POS';
 
   @override
   String get appearance => 'Apparence';

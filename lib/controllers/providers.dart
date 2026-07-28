@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../core/di/injection_container.dart';
 import '../services/database/database_service.dart';
 import '../services/database/app_database.dart';
 import '../services/pos/pos_fingerprint_service.dart';
@@ -21,42 +22,35 @@ final staffListProvider = FutureProvider<List<StaffData>>((ref) async {
 });
 
 final fingerprintDeviceProvider = Provider<PosFingerprintService>((ref) {
-  return PosFingerprintService();
+  return getIt<PosFingerprintService>();
 });
 
 final scannerProvider = Provider<PosScannerService>((ref) {
-  return PosScannerService();
+  return getIt<PosScannerService>();
 });
 
 final deviceProvider = Provider<PosDeviceService>((ref) {
-  return PosDeviceService();
+  return getIt<PosDeviceService>();
 });
 
 final fingerprintAuthProvider = Provider<FingerprintAuthService>((ref) {
-  final db = ref.watch(databaseProvider);
-  final device = ref.watch(fingerprintDeviceProvider);
-  return FingerprintAuthService(db: db, fingerprint: device);
+  return getIt<FingerprintAuthService>();
 });
 
 final nfcServiceProvider = Provider<NfcService>((ref) {
-  return NfcService();
+  return getIt<NfcService>();
 });
 
 final nfcAuthProvider = Provider<NfcAuthService>((ref) {
-  final db = ref.watch(databaseProvider);
-  final nfc = ref.watch(nfcServiceProvider);
-  return NfcAuthService(db: db, nfc: nfc);
+  return getIt<NfcAuthService>();
 });
 
 final posAuthProvider = Provider<PosAuthService>((ref) {
-  final db = ref.watch(databaseProvider);
-  final fingerprint = ref.watch(fingerprintAuthProvider);
-  final nfcAuth = ref.watch(nfcAuthProvider);
-  return PosAuthService(db: db, fingerprintAuth: fingerprint, nfcAuth: nfcAuth);
+  return getIt<PosAuthService>();
 });
 
 final deviceInfoServiceProvider = Provider<DeviceInfoService>((ref) {
-  return DeviceInfoService();
+  return getIt<DeviceInfoService>();
 });
 
 final deviceInfoProvider = FutureProvider<DeviceInfo>((ref) async {
@@ -64,7 +58,7 @@ final deviceInfoProvider = FutureProvider<DeviceInfo>((ref) async {
   return service.gatherDeviceInfo();
 });
 
-final departmentsProvider = FutureProvider<List<Department>>((ref) async {
+final departmentsProvider = StreamProvider<List<Department>>((ref) {
   final db = ref.watch(databaseProvider);
-  return db.getAllDepartments();
+  return db.watchAllDepartments();
 });

@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:agc_canteen/core/network/network_api_dio.dart';
+import 'package:agc_canteen/core/utils/app_log.dart';
 import 'package:agc_canteen/models/pos_device.model.dart';
 import 'package:device_info_plus/device_info_plus.dart';
-import 'package:logger/logger.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../models/device_info.model.dart';
 
@@ -10,7 +10,7 @@ class DeviceInfoService {
   final NetworkAPI networkAPI = NetworkAPI();
   DeviceInfoService();
 
-  final _logger = Logger();
+  final _logger = createAppLogger();
 
   Future<DeviceInfo> gatherDeviceInfo() async {
     final deviceInfo = DeviceInfoPlugin();
@@ -126,9 +126,8 @@ class DeviceInfoService {
       'pos/profiles',
       queryParameters: {"model": deviceModel},
       builder: (data) {
-        print("POS Device Data: $data");
+        appLog('POS profiles response size: ${data?.toString().length ?? 0}B', name: 'DeviceInfoService');
         if (data is List && data.isNotEmpty) {
-          //log(data.first.toString());
           return PosDevice.fromMap(data.first as Map<String, dynamic>);
         }
         return null;

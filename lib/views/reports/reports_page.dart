@@ -1,5 +1,4 @@
-import 'dart:developer';
-
+import 'package:agc_canteen/core/utils/app_log.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -24,8 +23,16 @@ extension _PeriodFilter on ReportPeriod {
     final now = DateTime.now();
     return switch (this) {
       ReportPeriod.today => DateTime(now.year, now.month, now.day),
-      ReportPeriod.yesterday => DateTime(now.year, now.month, now.day).subtract(const Duration(days: 1)),
-      ReportPeriod.thisWeek => DateTime(now.year, now.month, now.day).subtract(Duration(days: now.weekday - 1)),
+      ReportPeriod.yesterday => DateTime(
+        now.year,
+        now.month,
+        now.day,
+      ).subtract(const Duration(days: 1)),
+      ReportPeriod.thisWeek => DateTime(
+        now.year,
+        now.month,
+        now.day,
+      ).subtract(Duration(days: now.weekday - 1)),
       ReportPeriod.thisMonth => DateTime(now.year, now.month, 1),
       ReportPeriod.allTime => null,
     };
@@ -53,53 +60,56 @@ class _ReportSummary {
   });
 }
 
-final reportSummaryProvider = FutureProvider.family<_ReportSummary, ReportPeriod>((ref, period) async {
-  final db = ref.watch(databaseProvider);
-
-  final orders = await db.getAllOrders();
-  final groupOrders = await db.getAllGroupOrders();
-  final mealTypes = await db.getAllMealTypes();
-  final staff = await db.getAllStaff();
-
-  bool inRange(String? isoString) {
-    if (isoString == null) return false;
-    final dt = DateTime.tryParse(isoString);
-    if (dt == null) return false;
-    final start = period.start;
-    final end = period.end;
-    if (start != null && dt.isBefore(start)) return false;
-    if (end != null && dt.isAfter(end)) return false;
-    return true;
+extension _PeriodBounds on ReportPeriod {
+  ({String? from, String? toInclusive, String? toExclusive}) get bounds {
+    final start = this.start;
+    final end = this.end;
+    if (this == ReportPeriod.allTime) {
+      return (from: null, toInclusive: null, toExclusive: null);
+    }
+    if (this == ReportPeriod.yesterday && start != null && end != null) {
+      return (
+        from: start.toIso8601String(),
+        toInclusive: null,
+        toExclusive: end.toIso8601String(),
+      );
+    }
+    return (
+      from: start?.toIso8601String(),
+      toInclusive: end?.toIso8601String() ?? DateTime.now().toIso8601String(),
+      toExclusive: null,
+    );
   }
+}
 
-  final isAllTime = period == ReportPeriod.allTime;
+final reportSummaryProvider =
+    FutureProvider.family<_ReportSummary, ReportPeriod>((ref, period) async {
+      final db = ref.watch(databaseProvider);
+      final bounds = period.bounds;
 
-  final filteredMealTypes = isAllTime
-      ? mealTypes
-      : mealTypes.where((m) => inRange(m.createdAt)).toList();
+      final orderAgg = await db.aggregateOrders(
+        createdAtFrom: bounds.from,
+        createdAtToInclusive: bounds.toInclusive,
+        createdAtToExclusive: bounds.toExclusive,
+      );
+      final groupAgg = await db.aggregateGroupOrders(
+        createdAtFrom: bounds.from,
+        createdAtToInclusive: bounds.toInclusive,
+        createdAtToExclusive: bounds.toExclusive,
+      );
+      final mealTypeCount = await db.countMealTypesInRange(
+        createdAtFrom: bounds.from,
+        createdAtToInclusive: bounds.toInclusive,
+        createdAtToExclusive: bounds.toExclusive,
+      );
 
-  final filteredOrderCount = isAllTime
-      ? orders.length + groupOrders.length
-      : orders.where((o) => inRange(o.createdAt)).length +
-          groupOrders.where((o) => inRange(o.createdAt)).length;
-
-  final orderRevenue = isAllTime
-      ? orders.fold<double>(0, (sum, o) => sum + o.total)
-      : orders.where((o) => inRange(o.createdAt)).fold<double>(0, (sum, o) => sum + o.total);
-
-  final groupOrderRevenue = isAllTime
-      ? groupOrders.fold<double>(0, (sum, o) => sum + o.total)
-      : groupOrders.where((o) => inRange(o.createdAt)).fold<double>(0, (sum, o) => sum + o.total);
-
-  final totalRevenue = orderRevenue + groupOrderRevenue;
-
-  return _ReportSummary(
-    totalOrders: filteredOrderCount,
-    totalRevenue: totalRevenue,
-    totalMealTypes: filteredMealTypes.length,
-    totalStaff: staff.length,
-  );
-});
+      return _ReportSummary(
+        totalOrders: orderAgg.count + groupAgg.count,
+        totalRevenue: orderAgg.revenue + groupAgg.revenue,
+        totalMealTypes: mealTypeCount,
+        totalStaff: (await db.getAllStaff()).length,
+      );
+    });
 
 final _currencyFormat = NumberFormat('#,##0.00', 'en_US');
 
@@ -107,7 +117,8 @@ class ReportsDashboardPage extends ConsumerStatefulWidget {
   const ReportsDashboardPage({super.key});
 
   @override
-  ConsumerState<ReportsDashboardPage> createState() => _ReportsDashboardPageState();
+  ConsumerState<ReportsDashboardPage> createState() =>
+      _ReportsDashboardPageState();
 }
 
 class _ReportsDashboardPageState extends ConsumerState<ReportsDashboardPage> {
@@ -124,7 +135,10 @@ class _ReportsDashboardPageState extends ConsumerState<ReportsDashboardPage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: colorScheme.primary,
-        title: Text("Vouchers Summary", style: const TextStyle(color: Colors.white)),
+        title: Text(
+          "Vouchers Summary",
+          style: const TextStyle(color: Colors.white),
+        ),
         centerTitle: true,
         elevation: 0,
         leading: BackButton(
@@ -133,15 +147,15 @@ class _ReportsDashboardPageState extends ConsumerState<ReportsDashboardPage> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const ReportsPage()),
-            ),
+            onPressed: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const ReportsPage())),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Icon(Icons.list_alt, color: Colors.white, size: 20),
                 const SizedBox(width: 4),
-                Text(l10n.orders, style: const TextStyle(color: Colors.white)),
+                Text("Vouchers", style: const TextStyle(color: Colors.white)),
               ],
             ),
           ),
@@ -155,10 +169,9 @@ class _ReportsDashboardPageState extends ConsumerState<ReportsDashboardPage> {
               data: (summary) => _buildSummaryCards(summary, theme),
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (e, _) {
-                log(e.toString());
-                return Center(
-                child: Text('${l10n.failedToLoadMeals} $e'),
-              );}
+                appLog(e.toString(), name: 'ReportsPage');
+                return Center(child: Text('${l10n.failedToLoadMeals} $e'));
+              },
             ),
           ),
         ],
@@ -215,8 +228,6 @@ class _ReportsDashboardPageState extends ConsumerState<ReportsDashboardPage> {
             value: summary.totalMealTypes.toString(),
             color: Colors.purple,
           ),
-        
-         
         ],
       ),
     );

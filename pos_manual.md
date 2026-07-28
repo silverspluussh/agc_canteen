@@ -42,7 +42,14 @@ The AGC Canteen POS System is an Android-based Point of Sale application designe
 
 ### Printer Setup
 
-Navigate to **Settings → Printer Settings** and select your printer type (external thermal printer via USB or Bluetooth).
+Navigate to **Settings → Printer Settings**.
+
+- **Built-in** — uses the POS terminal's internal thermal printer (HFPos SDK). No pairing needed; tap **Test print** to verify.
+- **External** — connect a separate USB or Bluetooth thermal printer:
+  - **USB**: plug in the printer, tap **Scan**, then **Connect** on the detected device.
+  - **Bluetooth**: tap **Scan in app** first — this discovers nearby printers and attempts to pair automatically. If your POS unit blocks in-app pairing (common on some handheld models), tap **Bluetooth settings** to pair the printer from Android's system settings, then return to the app and tap the **Refresh** icon next to "Paired devices" to pick it up. Either way, tap **Connect** on the paired device to finish.
+  - Once connected, tap **Test print** to confirm the printer outputs a receipt.
+- If you switch to **External** before a device is connected, the app shows a message and keeps using the previous printer type until you connect one.
 
 ---
 
@@ -213,7 +220,7 @@ Navigate to **Settings → Card Test** to scan an NFC card and verify it can be 
 
 ### Printer Settings
 
-Navigate to **Settings → Printer Settings** to configure the thermal printer. The system supports external USB/Bluetooth printers.
+Navigate to **Settings → Printer Settings** to configure the thermal printer. Choose **Built-in** for the terminal's internal printer, or **External** for a USB/Bluetooth thermal printer — see [Printer Setup](#system-setup) above for the full scan/pair/connect flow. This page replaces the old printer type switch that used to live on the POS Settings page (POS Settings now only links to it).
 
 ### Data Synchronization
 
@@ -243,9 +250,11 @@ See [Data Synchronization](#data-synchronization) section above.
 
 ### Order Not Printing
 
-1. Verify printer is selected in **Settings → Printer Settings**.
-2. Ensure printer is powered on and connected (USB/Bluetooth).
-3. Try re-printing from the **Reports** page.
+1. Verify printer type is selected in **Settings → Printer Settings**.
+2. For **External**: check the status card shows "Connected" — if not, reconnect (USB: Scan → Connect; Bluetooth: Scan in app or pair via Bluetooth settings → Refresh → Connect).
+3. Ensure printer is powered on and, for Bluetooth, within range.
+4. Use **Test print** on the Printer Settings page to isolate whether the issue is the printer connection or the order flow.
+5. Try re-printing from the **Reports** page.
 
 ### Staff Not Found During Authentication
 

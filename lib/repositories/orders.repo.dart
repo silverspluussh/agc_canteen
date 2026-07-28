@@ -1,5 +1,6 @@
 import 'package:logger/logger.dart';
 import '../core/network/network_api_dio.dart';
+import '../core/utils/app_log.dart';
 
 class OrderItemRequest {
   final String mealName;
@@ -60,7 +61,7 @@ class OrderService {
     required NetworkAPI networkAPI,
     Logger? logger,
   })  : _networkAPI = networkAPI,
-        _logger = logger ?? Logger();
+        _logger = logger ?? createAppLogger();
 
 
   Future<Map<String, dynamic>> fetchOrders({

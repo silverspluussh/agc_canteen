@@ -1,9 +1,9 @@
-import 'dart:developer' as dev;
+import 'package:agc_canteen/core/utils/app_log.dart';
 import 'package:agc_canteen/core/theme/app_colors.dart';
 import 'package:agc_canteen/views/auth/group_order_auth_pos.dart';
 import 'package:agc_canteen/views/widgets/app_buttons.widget.dart';
 import 'package:agc_canteen/views/widgets/avatarglow.widget.dart';
-import 'package:agc_canteen/views/widgets/department_dropdown.widget.dart';
+import 'package:agc_canteen/views/widgets/department_search_field.widget.dart';
 import 'package:agc_canteen/views/widgets/voucher_card.widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -13,6 +13,7 @@ import '../../controllers/auth_settings_controller.dart';
 import '../../controllers/providers.dart';
 import '../../core/di/injection_container.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../../views/widgets/pos_meal_time_refresh.widget.dart';
 import '../../services/database/activity_log_service.dart';
 
 class SingleAuthPosPage extends ConsumerStatefulWidget {
@@ -37,10 +38,7 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
   }
 
   Future<void> _initFingerprint() async {
-    dev.log(
-      '[StaffAuthPage] Initializing fingerprint SDK...',
-      name: 'POS_AUTH',
-    );
+    appLog('[StaffAuthPage] Initializing fingerprint SDK...', name: 'POS_AUTH');
     try {
       final posAuth = ref.read(posAuthProvider);
       final ok = await posAuth.init();
@@ -51,13 +49,13 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
         });
       }
       if (ok) {
-        dev.log(
+        appLog(
           '[StaffAuthPage] Fingerprint SDK initialized successfully',
           name: 'POS_AUTH',
         );
       }
     } catch (e, st) {
-      dev.log(
+      appLog(
         '[StaffAuthPage] Fingerprint SDK init FAILED: $e',
         name: 'POS_AUTH',
         error: e,
@@ -67,14 +65,22 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
     }
   }
 
+  Future<int?> _effectiveDepartmentId() async {
+    if (_selectedDepartmentId != null) return _selectedDepartmentId;
+    final departments = ref.read(departmentsProvider).value ?? [];
+    if (departments.length == 1) return departments.first.id;
+    return null;
+  }
+
   Future<void> _startAuth() async {
-    dev.log(
-      '[StaffAuthPage] Scan button tapped — starting fingerprint auth (departmentId=$_selectedDepartmentId)',
+    final departmentId = await _effectiveDepartmentId();
+    appLog(
+      '[StaffAuthPage] Scan button tapped — starting fingerprint auth (departmentId=$departmentId)',
       name: 'POS_AUTH',
     );
     await ref
         .read(authProvider.notifier)
-        .authenticate(departmentId: _selectedDepartmentId);
+        .authenticate(departmentId: departmentId);
   }
 
   List<Widget> _authButtons() {
@@ -114,9 +120,10 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
           child: PosButton(
             color: AppColors.success,
             onPressed: () async {
+              final departmentId = await _effectiveDepartmentId();
               await ref
                   .read(authProvider.notifier)
-                  .authenticateWithNfc(departmentId: _selectedDepartmentId);
+                  .authenticateWithNfc(departmentId: departmentId);
             },
             prefixChild: const Icon(Icons.nfc, color: Colors.white, size: 35),
             label: const Text(
@@ -237,10 +244,14 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
                   width: 120,
                   height: 48,
                   onPressed: () {
-                    final accescode =
-                        dotenv.env['ADMIN_ACCESS_CODE'] ?? '123456';
+                    final accessCode = dotenv.env['ADMIN_ACCESS_CODE'];
                     if (!formKey.currentState!.validate()) return;
-                    if (codeController.text.trim() == accescode) {
+                    if (accessCode == null || accessCode.isEmpty) {
+                      setDialogState(() => isWrong = true);
+                      codeController.clear();
+                      return;
+                    }
+                    if (codeController.text.trim() == accessCode) {
                       Navigator.of(context).pop();
                       getIt<ActivityLogService>().log(
                         type: 'admin_code_access',
@@ -270,172 +281,165 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(authProvider);
-    Size size = MediaQuery.sizeOf(context);
-    return PopScope(
-      canPop: false,
-      child: Scaffold(
-        appBar: AppBar(
-          backgroundColor: AppColors.gold600,
-          automaticallyImplyLeading: false,
-          centerTitle: false,
-          toolbarHeight: 70,
-          title: PrimaryButton(
-            noShadow: true,
-            width: 150,
-            height: 50,
-            color: Colors.white,
-            onPressed: () {
-              Navigator.pushNamed(
-                context,
-                GroupOrderAuthPos.routeID,
-              ).then((_) => ref.read(authProvider.notifier).reset());
-            },
-            prefixChild: Icon(Icons.group, color: Colors.white),
-            label: Text(
-              "Group Order",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-          ),
-
-          actions: [
-            IconButton(
-              onPressed: _showAdminCodeDialog,
-              icon: Icon(Icons.settings, size: 30, color: Colors.white),
-            ),
-            SizedBox(width: 20),
-          ],
-        ),
-
-        body: SafeArea(
-          child: Stack(
-            children: [
-              SizedBox(
-                width: size.width,
-                height: size.height,
-                child: Padding(
-                  padding: const EdgeInsets.all(15),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      Text(
-                        "Generate Meal Voucher",
-                        style: Theme.of(context).textTheme.titleLarge!.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        "Select Department",
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      SizedBox(height: 15),
-
-                      // Department selector
-                      DepartmentDropdown(
-                        value: _selectedDepartmentId,
-                        onChanged: (id) =>
-                            setState(() => _selectedDepartmentId = id),
-                      ),
-
-                      const Spacer(),
-
-                      BiometricGlow(),
-                      const Spacer(),
-                      if (!_fingerprintReady && !_fingerprintInitFailed) ...[
-                        const SizedBox(height: 10),
-                        const LinearProgressIndicator(),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Initializing biometrics...',
-                          style: TextStyle(fontSize: 16),
-                        ),
-                      ],
-                      if (state.isUnauthenticated &&
-                          !state.isAuthenticating &&
-                          !state.hasError &&
-                          _fingerprintReady) ...[
-                        const SizedBox(height: 20),
-
-                        ..._authButtons(),
-                      ],
-                      if (state.isAuthenticating) ...[
-                        const LinearProgressIndicator(),
-                        const SizedBox(height: 16),
-                        Text(
-                          AppLocalizations.of(context).scanning,
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        const SizedBox(height: 24),
-                        OutlinedButton.icon(
-                          onPressed: () =>
-                              ref.read(authProvider.notifier).cancel(),
-                          icon: const Icon(Icons.close, size: 18),
-                          label: const Text('Cancel'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.red,
-                            side: const BorderSide(color: Colors.red),
-                          ),
-                        ),
-                      ],
-                      if (state.isPlacingOrder) ...[
-                        const LinearProgressIndicator(),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Printing voucher...',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                      ],
-                      if (state.isCompleted && state.orderCode != null) ...[
-                        const Icon(
-                          Icons.check_circle,
-                          color: Colors.green,
-                          size: 48,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Voucher Printed',
-                          style: Theme.of(context).textTheme.headlineSmall
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green,
-                              ),
-                        ),
-                        const SizedBox(height: 16),
-                        VoucherCard(
-                          orderCode: state.orderCode!,
-                          staffName: state.staff?.displayName ?? "",
-                          mealType: state.mealType ?? '',
-                          orderTime: state.orderTime ?? '',
-                        ),
-                      ],
-                      if (state.hasError) ...[
-                        Icon(
-                          Icons.error_outline,
-                          size: 48,
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          state.error ??
-                              AppLocalizations.of(context).somethingWentWrong,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Theme.of(context).colorScheme.error,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        ..._authButtons(),
-                      ],
-                    ],
-                  ),
+    return PosMealTimeRefresh(
+      child: PopScope(
+        canPop: false,
+        child: Scaffold(
+          appBar: AppBar(
+            backgroundColor: AppColors.gold600,
+            automaticallyImplyLeading: false,
+            centerTitle: false,
+            toolbarHeight: 70,
+            title: PrimaryButton(
+              noShadow: true,
+              width: 150,
+              height: 50,
+              color: Colors.white,
+              onPressed: () {
+                Navigator.pushNamed(
+                  context,
+                  GroupOrderAuthPos.routeID,
+                ).then((_) => ref.read(authProvider.notifier).reset());
+              },
+              prefixChild: Icon(Icons.group, color: Colors.white),
+              label: Text(
+                "Group Order",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
               ),
+            ),
+
+            actions: [
+              IconButton(
+                onPressed: _showAdminCodeDialog,
+                icon: Icon(Icons.settings, size: 30, color: Colors.white),
+              ),
+              SizedBox(width: 20),
             ],
+          ),
+
+          body: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(15),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    "Generate Meal Voucher",
+                    style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    "Select Department",
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 15),
+                  DepartmentSearchField(
+                    value: _selectedDepartmentId,
+                    onChanged: (id) =>
+                        setState(() => _selectedDepartmentId = id),
+                  ),
+                  Expanded(child: Center(child: BiometricGlow())),
+                  SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        if (!_fingerprintReady && !_fingerprintInitFailed) ...[
+                          const SizedBox(height: 10),
+                          const LinearProgressIndicator(),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Initializing biometrics...',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                        ],
+                        if (state.isUnauthenticated &&
+                            !state.isAuthenticating &&
+                            !state.hasError &&
+                            _fingerprintReady) ...[
+                          const SizedBox(height: 20),
+                          ..._authButtons(),
+                        ],
+                        if (state.isAuthenticating) ...[
+                          const LinearProgressIndicator(),
+                          const SizedBox(height: 16),
+                          Text(
+                            AppLocalizations.of(context).scanning,
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: 24),
+                          OutlinedButton.icon(
+                            onPressed: () =>
+                                ref.read(authProvider.notifier).cancel(),
+                            icon: const Icon(Icons.close, size: 18),
+                            label: const Text('Cancel'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.red,
+                              side: const BorderSide(color: Colors.red),
+                            ),
+                          ),
+                        ],
+                        if (state.isPlacingOrder) ...[
+                          const LinearProgressIndicator(),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Printing voucher...',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                        ],
+                        if (state.isCompleted && state.orderCode != null) ...[
+                          const Icon(
+                            Icons.check_circle,
+                            color: Colors.green,
+                            size: 48,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Voucher Printed',
+                            style: Theme.of(context).textTheme.headlineSmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.green,
+                                ),
+                          ),
+                          const SizedBox(height: 16),
+                          VoucherCard(
+                            orderCode: state.orderCode!,
+                            staffName: state.staff?.displayName ?? "",
+                            mealType: state.mealType ?? '',
+                            orderTime: state.orderTime ?? '',
+                          ),
+                        ],
+                        if (state.hasError) ...[
+                          Icon(
+                            Icons.error_outline,
+                            size: 48,
+                            color: Theme.of(context).colorScheme.error,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            state.error ??
+                                AppLocalizations.of(context).somethingWentWrong,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          ..._authButtons(),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),

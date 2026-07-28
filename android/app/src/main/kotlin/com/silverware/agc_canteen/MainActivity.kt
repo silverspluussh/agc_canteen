@@ -58,6 +58,25 @@ class MainActivity : FlutterActivity() {
             permissionsToRequest.add(Manifest.permission.READ_EXTERNAL_STORAGE)
         }
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
+                permissionsToRequest.add(Manifest.permission.BLUETOOTH_CONNECT)
+            }
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
+                permissionsToRequest.add(Manifest.permission.BLUETOOTH_SCAN)
+            }
+        } else {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
+                permissionsToRequest.add(Manifest.permission.ACCESS_FINE_LOCATION)
+            }
+        }
+
         if (permissionsToRequest.isNotEmpty()) {
             ActivityCompat.requestPermissions(
                 this,

@@ -376,7 +376,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get pushPullSubtitle => 'Sincronizar registros con el servidor';
 
   @override
-  String get viewReportsSubtitle => 'Ver pedidos POS y cargos adicionales';
+  String get viewReportsSubtitle => 'Ver pedidos POS';
 
   @override
   String get appearance => 'Apariencia';

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/legacy.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/di/injection_container.dart';
+import 'services/print/print_service_manager.dart';
 import 'core/theme/app_theme.dart';
 import 'l10n/generated/app_localizations.dart';
 import 'views/splash/auth_gate.dart';
@@ -16,7 +17,7 @@ import 'views/settings/sync_page.dart';
 import 'views/pos/pos_settings_page.dart';
 import 'views/pos/manual_order_page.dart';
 import 'views/auth/group_order_auth_pos.dart';
-
+import 'views/settings/printer_settings_page.dart';
 
 final localeProvider = StateProvider<Locale>((ref) {
   return const Locale('en');
@@ -36,6 +37,7 @@ void main() async => runZoneGuarded(() async {
   final savedLocale = Locale(savedLang);
 
   await setupServiceLocator();
+  unawaited(getIt<PrintServiceManager>().ensureLoaded());
   runApp(
     ProviderScope(
       overrides: [localeProvider.overrideWith((ref) => savedLocale)],
@@ -143,19 +145,15 @@ Route<dynamic>? _onGenerateRoute(RouteSettings settings) {
     case '/pos':
       page = const PosSettingsPage();
       break;
+    case '/printer-settings':
+      page = const PrinterSettingsPage();
+      break;
     case '/create-manual-order':
       page = const ManualOrderPage();
       break;
     case '/group-order':
       page = const GroupOrderAuthPos();
       break;
-    // case '/card-test':
-    //   page = const CardTestPage();
-    //   break;
-    // case '/nfc-test':
-    //   page = const NfcTestPage();
-    //   break;
-
     default:
       return null;
   }

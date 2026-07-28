@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:agc_canteen/core/network/api_exceptions_util.dart';
 import 'package:agc_canteen/models/sync.model.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:agc_canteen/core/utils/app_log.dart';
 import 'package:logger/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
@@ -17,6 +18,10 @@ class LocalToRemoteSyncService {
   final Logger _logger;
 
   static const _lastSyncKey = 'last_sync_timestamp';
+  static const _orderUploadBatchSize = 50;
+
+  Future<SyncResult>? _syncOrdersInFlight;
+  Future<SyncResult>? _syncBioInFlight;
 
   LocalToRemoteSyncService({
     required AppDatabase db,
@@ -26,7 +31,7 @@ class LocalToRemoteSyncService {
   }) : _db = db,
        _networkAPI = networkAPI,
        _connectivity = connectivity ?? Connectivity(),
-       _logger = logger ?? Logger();
+       _logger = logger ?? createAppLogger();
 
   Future<DateTime?> get lastSync async {
     final prefs = await SharedPreferences.getInstance();
@@ -76,7 +81,13 @@ class LocalToRemoteSyncService {
     return SyncResult(pushed: pushed, pulled: {}, errors: errors);
   }
 
-  Future<SyncResult> syncSingleOrders() async {
+  Future<SyncResult> syncSingleOrders() {
+    return _syncOrdersInFlight ??= _syncSingleOrdersImpl().whenComplete(() {
+      _syncOrdersInFlight = null;
+    });
+  }
+
+  Future<SyncResult> _syncSingleOrdersImpl() async {
     final pushed = <String, int>{};
     final pulled = <String, int>{};
     final errors = <String>[];
@@ -95,37 +106,66 @@ class LocalToRemoteSyncService {
         return SyncResult(pushed: pushed, pulled: pulled, errors: errors);
       }
 
+      final posDevices = await _db.getAllPosDevices();
+      final posId = posDevices.firstOrNull?.id;
+      final kitchenId = posDevices.firstOrNull?.kitchenId;
+      final mealTypeByName = {
+        for (final t in await _db.getAllMealTypes()) t.name.toLowerCase(): t.id,
+      };
+
       final List<Map<String, dynamic>> payloads = [];
+      final List<Order> ordersToSync = [];
       for (final order in orders) {
         if (order.total <= 0) {
           _logger.w('Skipping order ${order.orderCode}: total is ${order.total}');
           continue;
         }
-        payloads.add(await _buildSingleOrderPayload(order));
-      }
-      try {
-        await _networkAPI.postData(
-          '/pos/order/create-bulk',
-          data: {'orders': payloads},
-          builder: (data) {
-            return data;
-          },
+        payloads.add(
+          _buildSingleOrderPayload(
+            order,
+            posId: posId,
+            kitchenId: kitchenId,
+            mealTypeByName: mealTypeByName,
+          ),
         );
-        for (final order in orders) {
-          await _db.markOrderSynced(order.id);
-        }
-        pushed['orders'] = orders.length;
-      } on APIException catch (e) {
-        _logger.w('Failed to push bulk orders: ${e.message}');
-        for (final order in orders) {
-          errors.add('Order ${order.orderCode}: ${e.message}');
-          await _db.markOrderFailed(order.id);
-        }
-      } catch (e) {
-        _logger.w('Failed to push bulk orders: $e');
-        for (final order in orders) {
-          errors.add('Order ${order.orderCode}: $e');
-          await _db.markOrderFailed(order.id);
+        ordersToSync.add(order);
+      }
+
+      if (payloads.isEmpty) {
+        return SyncResult(pushed: pushed, pulled: pulled, errors: errors);
+      }
+
+      for (var i = 0; i < payloads.length; i += _orderUploadBatchSize) {
+        final end = (i + _orderUploadBatchSize < payloads.length)
+            ? i + _orderUploadBatchSize
+            : payloads.length;
+        final batchPayloads = payloads.sublist(i, end);
+        final batchOrders = ordersToSync.sublist(i, end);
+
+        try {
+          await _networkAPI.postData(
+            '/pos/order/create-bulk',
+            data: {'orders': batchPayloads},
+            builder: (data) {
+              return data;
+            },
+          );
+          for (final order in batchOrders) {
+            await _db.markOrderSynced(order.id);
+          }
+          pushed['orders'] = (pushed['orders'] ?? 0) + batchOrders.length;
+        } on APIException catch (e) {
+          _logger.w('Failed to push bulk orders batch ${i ~/ _orderUploadBatchSize + 1}: ${e.message}');
+          for (final order in batchOrders) {
+            errors.add('Order ${order.orderCode}: ${e.message}');
+            await _db.markOrderFailed(order.id);
+          }
+        } catch (e) {
+          _logger.w('Failed to push bulk orders batch ${i ~/ _orderUploadBatchSize + 1}: $e');
+          for (final order in batchOrders) {
+            errors.add('Order ${order.orderCode}: $e');
+            await _db.markOrderFailed(order.id);
+          }
         }
       }
       await _saveLastSync();
@@ -137,7 +177,13 @@ class LocalToRemoteSyncService {
 
   // ─── BioData Sync ──────────────────────────────────────────
 
-  Future<SyncResult> syncBioData() async {
+  Future<SyncResult> syncBioData() {
+    return _syncBioInFlight ??= _syncBioDataImpl().whenComplete(() {
+      _syncBioInFlight = null;
+    });
+  }
+
+  Future<SyncResult> _syncBioDataImpl() async {
     final pushed = <String, int>{};
     final errors = <String>[];
 
@@ -273,19 +319,13 @@ class LocalToRemoteSyncService {
     return 0;
   }
 
-  Future<Map<String, dynamic>> _buildSingleOrderPayload(Order order) async {
-    final posId = await _db.getAllPosDevices().then(
-      (pos) => pos.firstOrNull?.id,
-    );
-    final kitchenid = await _db.getAllPosDevices().then(
-      (pos) => pos.firstOrNull?.kitchenId,
-    );
-
-    final allTypes = await _db.getAllMealTypes();
-    final mealTypeId = allTypes
-        .where((t) => t.name.toLowerCase() == order.mealType.toLowerCase())
-        .firstOrNull
-        ?.id;
+  Map<String, dynamic> _buildSingleOrderPayload(
+    Order order, {
+    required int? posId,
+    required int? kitchenId,
+    required Map<String, int> mealTypeByName,
+  }) {
+    final mealTypeId = mealTypeByName[order.mealType.toLowerCase()];
 
     return {
       'orderCode': order.orderCode,
@@ -298,7 +338,7 @@ class LocalToRemoteSyncService {
       'description': order.description ?? '',
       'isAlaCarte': false,
       'posProfileId': posId ?? 0,
-      'kitchenId': kitchenid,
+      'kitchenId': kitchenId,
       'quantity': 1,
       'createdAt': '',
     };

@@ -85,12 +85,12 @@ class _SyncPageState extends ConsumerState<SyncPage>
   // ── Upload counts ──────────────────────────────────────────
 
   Future<void> _loadCounts() async {
-    final orders = await _db.getUnsyncedOrders();
-    final bioData = await _db.getUnsyncedBioData();
+    final unsyncedOrders = await _db.countUnsyncedOrders();
+    final unsyncedBioData = await _db.countUnsyncedBioData();
     if (mounted) {
       setState(() {
-        _unsyncedOrders = orders.length;
-        _unsyncedBioData = bioData.length;
+        _unsyncedOrders = unsyncedOrders;
+        _unsyncedBioData = unsyncedBioData;
       });
     }
   }
@@ -103,26 +103,26 @@ class _SyncPageState extends ConsumerState<SyncPage>
   // ── Download counts ────────────────────────────────────────
 
   Future<void> _loadDownloadCounts() async {
-    final staff = await _db.getAllStaff();
-    final mealTypes = await _db.getAllMealTypes();
-    final bioData = await _db.getAllBioData();
-    final visitors = await _db.getAllVisitors();
-    final cStaff = await _db.getAllContractorStaff();
-    final dependents = await _db.getAllDependents();
-    final shifts = await _db.getAllShifts();
-    final cards = await _db.getAllCards();
-    final departments = await _db.getAllDepartments();
+    final staffCount = await _db.countStaff();
+    final mealTypeCount = await _db.countMealTypes();
+    final bioDataCount = await _db.countBioData();
+    final visitorCount = await _db.countVisitors();
+    final contractorStaffCount = await _db.countContractorStaff();
+    final dependentCount = await _db.countDependents();
+    final shiftCount = await _db.countShifts();
+    final cardCount = await _db.countCards();
+    final departmentCount = await _db.countDepartments();
     if (mounted) {
       setState(() {
-        _staffCount = staff.length;
-        _mealTypeCount = mealTypes.length;
-        _bioDataCount = bioData.length;
-        _visitorCount = visitors.length;
-        _contractorStaffCount = cStaff.length;
-        _dependentCount = dependents.length;
-        _shiftCount = shifts.length;
-        _cardCount = cards.length;
-        _departmentCount = departments.length;
+        _staffCount = staffCount;
+        _mealTypeCount = mealTypeCount;
+        _bioDataCount = bioDataCount;
+        _visitorCount = visitorCount;
+        _contractorStaffCount = contractorStaffCount;
+        _dependentCount = dependentCount;
+        _shiftCount = shiftCount;
+        _cardCount = cardCount;
+        _departmentCount = departmentCount;
       });
     }
   }

@@ -1,5 +1,7 @@
 import 'package:drift/drift.dart';
 import 'tables.dart';
+import '../../models/biodata_fingerprint_summary.dart';
+import '../../models/unified_report_order_row.dart';
 
 part 'app_database.g.dart';
 
@@ -35,17 +37,58 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-    onUpgrade: (m, from, to) async {
+    onCreate: (m) async {
       await m.createAll();
+      await _createPerformanceIndexes();
+    },
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await _createPerformanceIndexes();
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
+      await customStatement('PRAGMA journal_mode = WAL');
+      await customStatement('PRAGMA synchronous = NORMAL');
     },
   );
+
+  Future<void> _createPerformanceIndexes() async {
+    await customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_orders_sync_status ON orders (sync_status)',
+    );
+    await customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders (created_at)',
+    );
+    await customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_orders_order_code ON orders (order_code)',
+    );
+    await customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_group_orders_sync_status ON group_orders (sync_status)',
+    );
+    await customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_group_orders_order_code ON group_orders (order_code)',
+    );
+    await customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_staff_department_id ON staff (department_id)',
+    );
+    await customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_bio_data_staff_id ON bio_data_entries (staff_id)',
+    );
+    await customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_bio_data_department_id ON bio_data_entries (department_id)',
+    );
+    await customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_bio_data_sync_status ON bio_data_entries (sync_status)',
+    );
+    await customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_cards_tag_id ON cards (tag_id)',
+    );
+  }
 
   Future<void> clearAll() async {
     await transaction(() async {
@@ -95,45 +138,175 @@ class AppDatabase extends _$AppDatabase {
     };
   }
 
-  Future<int> _countUnsyncedSites() async => (await (select(
-    sites,
-  )..where((t) => t.syncStatus.isNotValue(2))).get()).length;
-  Future<int> _countUnsyncedContractors() async => (await (select(
-    contractors,
-  )..where((t) => t.syncStatus.isNotValue(2))).get()).length;
-  Future<int> _countUnsyncedContractorStaff() async => (await (select(
-    contractorStaffTable,
-  )..where((t) => t.syncStatus.isNotValue(2))).get()).length;
-  Future<int> _countUnsyncedVisitors() async => (await (select(
-    visitors,
-  )..where((t) => t.syncStatus.isNotValue(2))).get()).length;
-  Future<int> _countUnsyncedDepartments() async => (await (select(
-    departments,
-  )..where((t) => t.syncStatus.isNotValue(2))).get()).length;
-  Future<int> _countUnsyncedShifts() async => (await (select(
-    shifts,
-  )..where((t) => t.syncStatus.isNotValue(2))).get()).length;
-  Future<int> _countUnsyncedKitchens() async => (await (select(
-    kitchens,
-  )..where((t) => t.syncStatus.isNotValue(2))).get()).length;
-  Future<int> _countUnsyncedMealTypes() async => (await (select(
-    mealTypes,
-  )..where((t) => t.syncStatus.isNotValue(2))).get()).length;
-  Future<int> _countUnsyncedStaff() async => (await (select(
-    staff,
-  )..where((t) => t.syncStatus.isNotValue(2))).get()).length;
-  Future<int> _countUnsyncedUsers() async => (await (select(
-    users,
-  )..where((t) => t.syncStatus.isNotValue(2))).get()).length;
-  Future<int> _countUnsyncedOrders() async => (await (select(
-    orders,
-  )..where((t) => t.syncStatus.isNotValue(2))).get()).length;
-  Future<int> _countUnsyncedPosDevices() async => (await (select(
-    posDevices,
-  )..where((t) => t.syncStatus.isNotValue(2))).get()).length;
-  Future<int> _countUnsyncedGroupOrders() async => (await (select(
-    groupOrders,
-  )..where((t) => t.syncStatus.isNotValue(2))).get()).length;
+  Future<int> _countUnsyncedSites() async {
+    final count = countAll();
+    final query = selectOnly(sites)
+      ..addColumns([count])
+      ..where(sites.syncStatus.isNotValue(2));
+    return (await query.getSingle()).read(count) ?? 0;
+  }
+
+  Future<int> _countUnsyncedContractors() async {
+    final count = countAll();
+    final query = selectOnly(contractors)
+      ..addColumns([count])
+      ..where(contractors.syncStatus.isNotValue(2));
+    return (await query.getSingle()).read(count) ?? 0;
+  }
+
+  Future<int> _countUnsyncedContractorStaff() async {
+    final count = countAll();
+    final query = selectOnly(contractorStaffTable)
+      ..addColumns([count])
+      ..where(contractorStaffTable.syncStatus.isNotValue(2));
+    return (await query.getSingle()).read(count) ?? 0;
+  }
+
+  Future<int> _countUnsyncedVisitors() async {
+    final count = countAll();
+    final query = selectOnly(visitors)
+      ..addColumns([count])
+      ..where(visitors.syncStatus.isNotValue(2));
+    return (await query.getSingle()).read(count) ?? 0;
+  }
+
+  Future<int> _countUnsyncedDepartments() async {
+    final count = countAll();
+    final query = selectOnly(departments)
+      ..addColumns([count])
+      ..where(departments.syncStatus.isNotValue(2));
+    return (await query.getSingle()).read(count) ?? 0;
+  }
+
+  Future<int> _countUnsyncedShifts() async {
+    final count = countAll();
+    final query = selectOnly(shifts)
+      ..addColumns([count])
+      ..where(shifts.syncStatus.isNotValue(2));
+    return (await query.getSingle()).read(count) ?? 0;
+  }
+
+  Future<int> _countUnsyncedKitchens() async {
+    final count = countAll();
+    final query = selectOnly(kitchens)
+      ..addColumns([count])
+      ..where(kitchens.syncStatus.isNotValue(2));
+    return (await query.getSingle()).read(count) ?? 0;
+  }
+
+  Future<int> _countUnsyncedMealTypes() async {
+    final count = countAll();
+    final query = selectOnly(mealTypes)
+      ..addColumns([count])
+      ..where(mealTypes.syncStatus.isNotValue(2));
+    return (await query.getSingle()).read(count) ?? 0;
+  }
+
+  Future<int> _countUnsyncedStaff() async {
+    final count = countAll();
+    final query = selectOnly(staff)
+      ..addColumns([count])
+      ..where(staff.syncStatus.isNotValue(2));
+    return (await query.getSingle()).read(count) ?? 0;
+  }
+
+  Future<int> _countUnsyncedUsers() async {
+    final count = countAll();
+    final query = selectOnly(users)
+      ..addColumns([count])
+      ..where(users.syncStatus.isNotValue(2));
+    return (await query.getSingle()).read(count) ?? 0;
+  }
+
+  Future<int> _countUnsyncedOrders() async {
+    final count = countAll();
+    final query = selectOnly(orders)
+      ..addColumns([count])
+      ..where(orders.syncStatus.isNotValue(2));
+    return (await query.getSingle()).read(count) ?? 0;
+  }
+
+  Future<int> _countUnsyncedPosDevices() async {
+    final count = countAll();
+    final query = selectOnly(posDevices)
+      ..addColumns([count])
+      ..where(posDevices.syncStatus.isNotValue(2));
+    return (await query.getSingle()).read(count) ?? 0;
+  }
+
+  Future<int> _countUnsyncedGroupOrders() async {
+    final count = countAll();
+    final query = selectOnly(groupOrders)
+      ..addColumns([count])
+      ..where(groupOrders.syncStatus.isNotValue(2));
+    return (await query.getSingle()).read(count) ?? 0;
+  }
+
+  Future<int> _countUnsyncedBioData() async {
+    final count = countAll();
+    final query = selectOnly(bioDataEntries)
+      ..addColumns([count])
+      ..where(bioDataEntries.syncStatus.isNotValue(2));
+    return (await query.getSingle()).read(count) ?? 0;
+  }
+
+  Future<int> countUnsyncedOrders() => _countUnsyncedOrders();
+
+  Future<int> countUnsyncedBioData() => _countUnsyncedBioData();
+
+  Future<int> countStaff() => staff.count().getSingle();
+
+  Future<int> countMealTypes() => mealTypes.count().getSingle();
+
+  Future<int> countBioData() => bioDataEntries.count().getSingle();
+
+  Future<int> countActiveBioData() async {
+    final count = countAll();
+    final query = selectOnly(bioDataEntries)
+      ..addColumns([count])
+      ..where(bioDataEntries.isActive.equals(true));
+    return (await query.getSingle()).read(count) ?? 0;
+  }
+
+  Future<List<BioDataFingerprintSummary>> getActiveBioDataSummaries() async {
+    final query = selectOnly(bioDataEntries)
+      ..addColumns([
+        bioDataEntries.id,
+        bioDataEntries.staffId,
+        bioDataEntries.dependentId,
+        bioDataEntries.contractorStaffId,
+        bioDataEntries.visitorId,
+        bioDataEntries.finger,
+        bioDataEntries.createdAt,
+      ])
+      ..where(bioDataEntries.isActive.equals(true));
+    final rows = await query.get();
+    return rows
+        .map(
+          (row) => BioDataFingerprintSummary(
+            id: row.read(bioDataEntries.id)!,
+            staffId: row.read(bioDataEntries.staffId),
+            dependentId: row.read(bioDataEntries.dependentId),
+            contractorStaffId: row.read(bioDataEntries.contractorStaffId),
+            visitorId: row.read(bioDataEntries.visitorId),
+            finger: row.read(bioDataEntries.finger)!,
+            createdAt: row.read(bioDataEntries.createdAt)!,
+          ),
+        )
+        .toList();
+  }
+
+  Future<int> countVisitors() => visitors.count().getSingle();
+
+  Future<int> countContractorStaff() => contractorStaffTable.count().getSingle();
+
+  Future<int> countDependents() => dependents.count().getSingle();
+
+  Future<int> countShifts() => shifts.count().getSingle();
+
+  Future<int> countCards() => cards.count().getSingle();
+
+  Future<int> countDepartments() => departments.count().getSingle();
   // ─── Sites ─────────────────────────────────────────────────
 
   Future<void> insertSite(
@@ -197,6 +370,10 @@ class AppDatabase extends _$AppDatabase {
       (delete(departments)..where((t) => t.id.equals(id))).go();
 
   Future<List<Department>> getAllDepartments() => select(departments).get();
+
+  Stream<List<Department>> watchAllDepartments() =>
+      (select(departments)..orderBy([(t) => OrderingTerm.asc(t.name)])).watch();
+
   Future<Department?> getDepartment(int id) =>
       (select(departments)..where((t) => t.id.equals(id))).getSingleOrNull();
 
@@ -503,6 +680,29 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<List<StaffData>> getAllStaff() => select(staff).get();
+
+  Future<List<StaffData>> searchStaff(
+    String query, {
+    int limit = 20,
+  }) async {
+    final trimmed = query.trim();
+    final queryBuilder = select(staff)
+      ..orderBy([(t) => OrderingTerm(expression: t.firstName)])
+      ..limit(limit);
+
+    if (trimmed.isNotEmpty) {
+      final pattern = '%${trimmed.replaceAll('%', '')}%';
+      queryBuilder.where(
+        (t) =>
+            t.firstName.like(pattern) |
+            t.lastName.like(pattern) |
+            t.empId.like(pattern),
+      );
+    }
+
+    return queryBuilder.get();
+  }
+
   Future<StaffData?> getStaff(int id) =>
       (select(staff)..where((t) => t.id.equals(id))).getSingleOrNull();
 
@@ -1042,6 +1242,265 @@ class AppDatabase extends _$AppDatabase {
   Future<List<Order>> getUnsyncedOrders() =>
       (select(orders)..where((t) => t.syncStatus.isNotValue(2))).get();
 
+  Future<({int count, double revenue})> aggregateOrders({
+    String? createdAtFrom,
+    String? createdAtToInclusive,
+    String? createdAtToExclusive,
+  }) async {
+    final query = selectOnly(orders)
+      ..addColumns([orders.id.count(), orders.total.sum()]);
+    if (createdAtFrom != null) {
+      query.where(orders.createdAt.isBiggerOrEqualValue(createdAtFrom));
+    }
+    if (createdAtToInclusive != null) {
+      query.where(orders.createdAt.isSmallerOrEqualValue(createdAtToInclusive));
+    }
+    if (createdAtToExclusive != null) {
+      query.where(orders.createdAt.isSmallerThanValue(createdAtToExclusive));
+    }
+    final row = await query.getSingle();
+    return (
+      count: row.read(orders.id.count()) ?? 0,
+      revenue: row.read(orders.total.sum()) ?? 0.0,
+    );
+  }
+
+  Future<({int count, double revenue})> aggregateGroupOrders({
+    String? createdAtFrom,
+    String? createdAtToInclusive,
+    String? createdAtToExclusive,
+  }) async {
+    final query = selectOnly(groupOrders)
+      ..addColumns([groupOrders.id.count(), groupOrders.total.sum()]);
+    if (createdAtFrom != null) {
+      query.where(groupOrders.createdAt.isBiggerOrEqualValue(createdAtFrom));
+    }
+    if (createdAtToInclusive != null) {
+      query.where(
+        groupOrders.createdAt.isSmallerOrEqualValue(createdAtToInclusive),
+      );
+    }
+    if (createdAtToExclusive != null) {
+      query.where(groupOrders.createdAt.isSmallerThanValue(createdAtToExclusive));
+    }
+    final row = await query.getSingle();
+    return (
+      count: row.read(groupOrders.id.count()) ?? 0,
+      revenue: row.read(groupOrders.total.sum()) ?? 0.0,
+    );
+  }
+
+  Future<int> countMealTypesInRange({
+    String? createdAtFrom,
+    String? createdAtToInclusive,
+    String? createdAtToExclusive,
+  }) async {
+    final query = selectOnly(mealTypes)..addColumns([mealTypes.id.count()]);
+    if (createdAtFrom != null) {
+      query.where(mealTypes.createdAt.isBiggerOrEqualValue(createdAtFrom));
+    }
+    if (createdAtToInclusive != null) {
+      query.where(mealTypes.createdAt.isSmallerOrEqualValue(createdAtToInclusive));
+    }
+    if (createdAtToExclusive != null) {
+      query.where(mealTypes.createdAt.isSmallerThanValue(createdAtToExclusive));
+    }
+    final row = await query.getSingle();
+    return row.read(mealTypes.id.count()) ?? 0;
+  }
+
+  List<String> _reportOrderFilterClauses({
+    String? createdAtFrom,
+    String? createdAtToInclusive,
+    String? status,
+    bool? synced,
+    String? mealType,
+    required List<Variable> variables,
+  }) {
+    final clauses = <String>[];
+    if (createdAtFrom != null) {
+      clauses.add('created_at >= ?');
+      variables.add(Variable<String>(createdAtFrom));
+    }
+    if (createdAtToInclusive != null) {
+      clauses.add('created_at <= ?');
+      variables.add(Variable<String>(createdAtToInclusive));
+    }
+    if (status != null) {
+      clauses.add('status = ?');
+      variables.add(Variable<String>(status));
+    }
+    if (synced == true) {
+      clauses.add('sync_status = 2');
+    } else if (synced == false) {
+      clauses.add('sync_status != 2');
+    }
+    if (mealType != null) {
+      clauses.add('meal_type = ?');
+      variables.add(Variable<String>(mealType));
+    }
+    return clauses;
+  }
+
+  String _whereSql(List<String> clauses) =>
+      clauses.isEmpty ? '' : 'WHERE ${clauses.join(' AND ')}';
+
+  Future<List<UnifiedReportOrderRow>> queryUnifiedOrdersPage({
+    String? createdAtFrom,
+    String? createdAtToInclusive,
+    String? status,
+    bool? synced,
+    String? mealType,
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    final orderVars = <Variable>[];
+    final groupVars = <Variable>[];
+    final orderClauses = _reportOrderFilterClauses(
+      createdAtFrom: createdAtFrom,
+      createdAtToInclusive: createdAtToInclusive,
+      status: status,
+      synced: synced,
+      mealType: mealType,
+      variables: orderVars,
+    );
+    final groupClauses = _reportOrderFilterClauses(
+      createdAtFrom: createdAtFrom,
+      createdAtToInclusive: createdAtToInclusive,
+      status: status,
+      synced: synced,
+      mealType: mealType,
+      variables: groupVars,
+    );
+
+    final limitVars = <Variable>[
+      Variable<int>(limit),
+      Variable<int>(offset),
+    ];
+
+    final sql =
+        '''
+SELECT * FROM (
+  SELECT id, order_code, status, order_type, meal_type, total, group_count,
+         sync_status, description, created_at, ordered_by_id, employee_type, 0 AS is_group
+  FROM orders ${_whereSql(orderClauses)}
+  UNION ALL
+  SELECT id, order_code, status, order_type, meal_type, total, group_count,
+         sync_status, description, created_at, NULL AS ordered_by_id, NULL AS employee_type, 1 AS is_group
+  FROM group_orders ${_whereSql(groupClauses)}
+)
+ORDER BY created_at DESC
+LIMIT ? OFFSET ?
+''';
+
+    final rows = await customSelect(
+      sql,
+      variables: [...orderVars, ...groupVars, ...limitVars],
+      readsFrom: {orders, groupOrders},
+    ).get();
+
+    return rows.map((row) => UnifiedReportOrderRow.fromData(row.data)).toList();
+  }
+
+  Future<int> countUnifiedOrders({
+    String? createdAtFrom,
+    String? createdAtToInclusive,
+    String? status,
+    bool? synced,
+    String? mealType,
+  }) async {
+    final orderVars = <Variable>[];
+    final groupVars = <Variable>[];
+    final orderClauses = _reportOrderFilterClauses(
+      createdAtFrom: createdAtFrom,
+      createdAtToInclusive: createdAtToInclusive,
+      status: status,
+      synced: synced,
+      mealType: mealType,
+      variables: orderVars,
+    );
+    final groupClauses = _reportOrderFilterClauses(
+      createdAtFrom: createdAtFrom,
+      createdAtToInclusive: createdAtToInclusive,
+      status: status,
+      synced: synced,
+      mealType: mealType,
+      variables: groupVars,
+    );
+
+    final sql =
+        '''
+SELECT COUNT(*) AS c FROM (
+  SELECT id FROM orders ${_whereSql(orderClauses)}
+  UNION ALL
+  SELECT id FROM group_orders ${_whereSql(groupClauses)}
+)
+''';
+
+    final row = await customSelect(
+      sql,
+      variables: [...orderVars, ...groupVars],
+      readsFrom: {orders, groupOrders},
+    ).getSingle();
+    return row.read<int>('c');
+  }
+
+  Future<double> sumUnifiedOrdersRevenue({
+    String? createdAtFrom,
+    String? createdAtToInclusive,
+    String? status,
+    bool? synced,
+    String? mealType,
+  }) async {
+    final orderAgg = await aggregateOrders(
+      createdAtFrom: createdAtFrom,
+      createdAtToInclusive: createdAtToInclusive,
+    );
+    final groupAgg = await aggregateGroupOrders(
+      createdAtFrom: createdAtFrom,
+      createdAtToInclusive: createdAtToInclusive,
+    );
+
+    if (status == null && synced == null && mealType == null) {
+      return orderAgg.revenue + groupAgg.revenue;
+    }
+
+    final orderVars = <Variable>[];
+    final groupVars = <Variable>[];
+    final orderClauses = _reportOrderFilterClauses(
+      createdAtFrom: createdAtFrom,
+      createdAtToInclusive: createdAtToInclusive,
+      status: status,
+      synced: synced,
+      mealType: mealType,
+      variables: orderVars,
+    );
+    final groupClauses = _reportOrderFilterClauses(
+      createdAtFrom: createdAtFrom,
+      createdAtToInclusive: createdAtToInclusive,
+      status: status,
+      synced: synced,
+      mealType: mealType,
+      variables: groupVars,
+    );
+
+    final sql =
+        '''
+SELECT COALESCE(SUM(total), 0) AS revenue FROM (
+  SELECT total FROM orders ${_whereSql(orderClauses)}
+  UNION ALL
+  SELECT total FROM group_orders ${_whereSql(groupClauses)}
+)
+''';
+
+    final row = await customSelect(
+      sql,
+      variables: [...orderVars, ...groupVars],
+      readsFrom: {orders, groupOrders},
+    ).getSingle();
+    return row.read<double>('revenue');
+  }
+
   Future<void> markOrderSynced(int id) =>
       (update(orders)..where((t) => t.id.equals(id))).write(
         OrdersCompanion(
@@ -1133,10 +1592,6 @@ class AppDatabase extends _$AppDatabase {
         ),
       );
 
-
-  Future<int> _countUnsyncedBioData() async => (await (select(
-    bioDataEntries,
-  )..where((t) => t.syncStatus.isNotValue(2))).get()).length;
 
   // ─── BioDataEntries ────────────────────────────────
 
@@ -1280,29 +1735,37 @@ class AppDatabase extends _$AppDatabase {
   /// by scanning existing [orders] and [group_orders] for the highest
   /// numeric suffix for the given POS and kitchen, and incrementing it.
   Future<String> nextOrderCode(String typeChar, int posId, int kitchenId) async {
-    final prefix = 'ASG$typeChar$posId-$kitchenId-';
-    int maxCode = 0;
+    return transaction(() async {
+      final prefix = 'ASG$typeChar$posId-$kitchenId-';
+      int maxCode = 0;
 
-    int? parseMax(List<QueryRow> rows) {
-      if (rows.isEmpty) return null;
-      final val = rows.first.data.values.firstOrNull;
-      return val is int ? val : (val is num ? val.toInt() : null);
-    }
+      int? parseMax(List<QueryRow> rows) {
+        if (rows.isEmpty) return null;
+        final val = rows.first.data.values.firstOrNull;
+        return val is int ? val : (val is num ? val.toInt() : null);
+      }
 
-    final orderRows = await customSelect(
-      'SELECT MAX(CAST(SUBSTR(order_code, ?) AS INTEGER)) FROM orders WHERE order_code LIKE ?',
-      variables: [Variable<int>(prefix.length + 1), Variable<String>('$prefix%')],
-    ).get();
-    final groupOrderRows = await customSelect(
-      'SELECT MAX(CAST(SUBSTR(order_code, ?) AS INTEGER)) FROM group_orders WHERE order_code LIKE ?',
-      variables: [Variable<int>(prefix.length + 1), Variable<String>('$prefix%')],
-    ).get();
+      final orderRows = await customSelect(
+        'SELECT MAX(CAST(SUBSTR(order_code, ?) AS INTEGER)) FROM orders WHERE order_code LIKE ?',
+        variables: [
+          Variable<int>(prefix.length + 1),
+          Variable<String>('$prefix%'),
+        ],
+      ).get();
+      final groupOrderRows = await customSelect(
+        'SELECT MAX(CAST(SUBSTR(order_code, ?) AS INTEGER)) FROM group_orders WHERE order_code LIKE ?',
+        variables: [
+          Variable<int>(prefix.length + 1),
+          Variable<String>('$prefix%'),
+        ],
+      ).get();
 
-    final orderMax = parseMax(orderRows) ?? 0;
-    final groupMax = parseMax(groupOrderRows) ?? 0;
-    maxCode = orderMax > groupMax ? orderMax : groupMax;
+      final orderMax = parseMax(orderRows) ?? 0;
+      final groupMax = parseMax(groupOrderRows) ?? 0;
+      maxCode = orderMax > groupMax ? orderMax : groupMax;
 
-    final next = maxCode + 1;
-    return '$prefix${next.toString().padLeft(4, '0')}';
+      final next = maxCode + 1;
+      return '$prefix${next.toString().padLeft(4, '0')}';
+    });
   }
 }

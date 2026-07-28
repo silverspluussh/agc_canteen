@@ -9,7 +9,6 @@ import '../../services/database/activity_log_service.dart';
 import '../../services/database/app_database.dart' show AppDatabase, PosDevice;
 import '../../services/pos/pos_device_service.dart';
 import '../../services/pos/pos_fingerprint_service.dart';
-import '../../services/print/print_service_manager.dart';
 import '../../services/pos/pos_scanner_service.dart';
 import '../settings/pos_selection_dialog.dart';
 
@@ -22,15 +21,10 @@ class PosSettingsPage extends ConsumerStatefulWidget {
 
 class _PosSettingsPageState extends ConsumerState<PosSettingsPage> {
   late final PosDeviceService _deviceService;
-  late final PrintServiceManager _printManager;
   late final PosFingerprintService _fingerprintService;
   late final PosScannerService _scannerService;
   late final AppDatabase _db;
 
-  // ignore: unused_field
-  Map<String, dynamic>? _printerState;
-  // ignore: unused_field
-  String? _printerFirmware;
   // ignore: unused_field
   bool _fingerprintAvailable = false;
   // ignore: unused_field
@@ -45,47 +39,18 @@ class _PosSettingsPageState extends ConsumerState<PosSettingsPage> {
   void initState() {
     super.initState();
     _deviceService = getIt<PosDeviceService>();
-    _printManager = getIt<PrintServiceManager>();
-    _printManager.addListener(_onPrinterTypeChanged);
     _fingerprintService = getIt<PosFingerprintService>();
     _scannerService = getIt<PosScannerService>();
     _db = getIt<AppDatabase>();
     _loadAll();
   }
 
-  @override
-  void dispose() {
-    _printManager.removeListener(_onPrinterTypeChanged);
-    super.dispose();
-  }
-
-  void _onPrinterTypeChanged() {
-    _loadPrinterInfo();
-  }
-
   Future<void> _loadAll() async {
     setState(() => _isLoading = true);
 
-    await Future.wait([
-      _loadPrinterInfo(),
-      _loadPeripherals(),
-      _loadDbDevices(),
-    ]);
+    await Future.wait([_loadPeripherals(), _loadDbDevices()]);
 
     if (mounted) setState(() => _isLoading = false);
-  }
-
-  Future<void> _loadPrinterInfo() async {
-    try {
-      final state = await _printManager.checkPrinterState();
-      final fw = await _printManager.getFirmwareVersion();
-      if (mounted) {
-        setState(() {
-          _printerState = state;
-          _printerFirmware = fw;
-        });
-      }
-    } catch (_) {}
   }
 
   Future<void> _loadPeripherals() async {
@@ -314,9 +279,10 @@ class _PosSettingsPageState extends ConsumerState<PosSettingsPage> {
                     if (_dbDevices.isNotEmpty) _buildChangePosCard(context),
 
                     const SizedBox(height: 20),
-                    _PrinterTypeCard(
-                      currentType: _printManager.printerType,
-                      onChanged: (type) => _printManager.setPrinterType(type),
+                    _PrinterSettingsLinkCard(
+                      onTap: () => Navigator.of(
+                        context,
+                      ).pushNamed('/printer-settings'),
                     ),
                     const SizedBox(height: 20),
                     SizedBox(
@@ -469,40 +435,31 @@ class _DeviceInfoCard extends StatelessWidget {
   }
 }
 
-class _PrinterInfoCard extends StatelessWidget {
-  const _PrinterInfoCard({
-    required this.printerState,
-    required this.firmwareVersion,
-  });
+class _PrinterSettingsLinkCard extends StatelessWidget {
+  const _PrinterSettingsLinkCard({required this.onTap});
 
-  final Map<String, dynamic>? printerState;
-  final String? firmwareVersion;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _SectionHeader(title: l10n.posPrinter),
-            const Divider(height: 16),
-            if (firmwareVersion != null)
-              _InfoRow(label: l10n.posFirmwareVersion, value: firmwareVersion!),
-            if (printerState != null && printerState!.isNotEmpty)
-              ...printerState!.entries.map(
-                (e) =>
-                    _InfoRow(label: e.key, value: e.value?.toString() ?? '—'),
-              ),
-            if ((printerState == null || printerState!.isEmpty) &&
-                firmwareVersion == null)
-              _EmptyPlaceholder(label: l10n.printerDisconnected),
-          ],
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        leading: CircleAvatar(
+          backgroundColor: colorScheme.primaryContainer,
+          child: Icon(Icons.print_outlined, color: colorScheme.primary),
         ),
+        title: Text(
+          l10n.printerSettings,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+        subtitle: const Text('Manage built-in and external printers'),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: onTap,
       ),
     );
   }
@@ -751,49 +708,3 @@ class _EmptyPlaceholder extends StatelessWidget {
   }
 }
 
-class _PrinterTypeCard extends StatelessWidget {
-  const _PrinterTypeCard({required this.currentType, required this.onChanged});
-
-  final PrinterType currentType;
-  final ValueChanged<PrinterType> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      // shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Printer Type',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ),
-            const Divider(height: 16),
-            SegmentedButton<PrinterType>(
-              segments: const [
-                ButtonSegment(
-                  value: PrinterType.inbuilt,
-                  label: Text('Built-in'),
-                  icon: Icon(Icons.print),
-                ),
-                ButtonSegment(
-                  value: PrinterType.external,
-                  label: Text('External'),
-                  icon: Icon(Icons.usb),
-                ),
-              ],
-              selected: {currentType},
-              onSelectionChanged: (v) => onChanged(v.first),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

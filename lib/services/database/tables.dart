@@ -89,6 +89,7 @@ class MealTypes extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+@TableIndex(name: 'idx_staff_department_id', columns: {#departmentId})
 class Staff extends Table {
   IntColumn get id => integer()();
   TextColumn get empId => text()();
@@ -134,6 +135,7 @@ class Dependents extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+@TableIndex(name: 'idx_cards_tag_id', columns: {#tagId})
 class Cards extends Table {
   IntColumn get id => integer()();
   TextColumn get tagId => text().nullable()();
@@ -183,6 +185,9 @@ class UserKitchens extends Table {
   Set<Column> get primaryKey => {userId, kitchenId};
 }
 
+@TableIndex(name: 'idx_orders_sync_status', columns: {#syncStatus})
+@TableIndex(name: 'idx_orders_created_at', columns: {#createdAt})
+@TableIndex(name: 'idx_orders_order_code', columns: {#orderCode})
 class Orders extends Table {
   IntColumn get id => integer()();
   TextColumn get uuid => text()();
@@ -238,6 +243,8 @@ class ActivityLogs extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+@TableIndex(name: 'idx_group_orders_sync_status', columns: {#syncStatus})
+@TableIndex(name: 'idx_group_orders_order_code', columns: {#orderCode})
 class GroupOrders extends Table {
   IntColumn get id => integer()();
   TextColumn get uuid => text()();
@@ -310,6 +317,9 @@ class Visitors extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+@TableIndex(name: 'idx_bio_data_staff_id', columns: {#staffId})
+@TableIndex(name: 'idx_bio_data_department_id', columns: {#departmentId})
+@TableIndex(name: 'idx_bio_data_sync_status', columns: {#syncStatus})
 class BioDataEntries extends Table {
   IntColumn get id => integer()();
   IntColumn get staffId => integer().nullable()();

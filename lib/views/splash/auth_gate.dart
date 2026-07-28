@@ -1,12 +1,12 @@
 import 'dart:async';
-import 'dart:developer' as dev;
+
 import 'package:agc_canteen/views/auth/single_auth_pos.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../controllers/admin_auth_controller.dart';
 import '../../controllers/auth_controller.dart';
+import '../../controllers/providers.dart';
 import '../../core/di/injection_container.dart';
-import '../../services/pos/pos_device_service.dart';
 import '../../services/sync_services/sync_from_remote_to_local.dart';
 import '../auth/admin_login_page.dart';
 import '../settings/pos_selection_dialog.dart';
@@ -26,7 +26,6 @@ class _AuthGateState extends ConsumerState<AuthGate> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(adminAuthProvider.notifier).tryAutoLogin();
-      Future.delayed(const Duration(milliseconds: 500), _initPosDevice);
     });
   }
 
@@ -47,39 +46,13 @@ class _AuthGateState extends ConsumerState<AuthGate> {
     }
 
     if (mounted) {
-      unawaited(syncService.syncDepartmentsOnly());
+      unawaited(() async {
+        await syncService.syncDepartmentsOnly();
+        if (mounted) ref.invalidate(departmentsProvider);
+      }());
       unawaited(syncService.syncMealTypesOnly());
       unawaited(syncService.syncShiftsOnly());
       //  unawaited(syncService.syncAll());
-    }
-  }
-
-  Future<void> _initPosDevice() async {
-    dev.log(
-      '[AuthGate] Initializing POS device SDK on app start...',
-      name: 'POS_AUTH',
-    );
-    try {
-      final deviceService = getIt<PosDeviceService>();
-      final ok = await deviceService.init();
-      if (ok) {
-        dev.log(
-          '[AuthGate] POS device SDK initialized successfully at startup',
-          name: 'POS_AUTH',
-        );
-      } else {
-        dev.log(
-          '[AuthGate] POS device SDK init returned false at startup',
-          name: 'POS_AUTH',
-        );
-      }
-    } catch (e, st) {
-      dev.log(
-        '[AuthGate] POS device SDK init FAILED at startup: $e',
-        name: 'POS_AUTH',
-        error: e,
-        stackTrace: st,
-      );
     }
   }
 

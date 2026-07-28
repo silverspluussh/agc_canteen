@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'abstract_print_service.dart';
@@ -6,6 +5,10 @@ import '../pos/pos_print_service.dart';
 import 'external_thermal_print_service.dart';
 
 enum PrinterType { inbuilt, external }
+
+/// Result of attempting to switch printer type, used to drive UI feedback
+/// (e.g. a SnackBar explaining why a switch to External was rejected).
+enum SetPrinterTypeResult { success, noDeviceConnected }
 
 class PrintServiceManager extends ChangeNotifier implements AbstractPrintService {
   static const _printerTypeKey = 'printer_type';
@@ -23,6 +26,9 @@ class PrintServiceManager extends ChangeNotifier implements AbstractPrintService
 
   PrinterType get printerType => _printerType;
 
+  ExternalThermalPrintService get externalPrinter => _externalPrinter;
+  PosPrintService get inbuiltPrinter => _inbuiltPrinter;
+
   Future<void> loadPrinterType() async {
     final prefs = await SharedPreferences.getInstance();
     final stored = prefs.getString(_printerTypeKey);
@@ -34,27 +40,37 @@ class PrintServiceManager extends ChangeNotifier implements AbstractPrintService
     notifyListeners();
   }
 
-  Future<void> setPrinterType(PrinterType type) async {
+  Future<void>? _loadFuture;
+
+  /// Loads persisted printer preference on first use (deferred from app startup).
+  Future<void> ensureLoaded() {
+    return _loadFuture ??= loadPrinterType();
+  }
+
+  /// Switches printer type. Returns [SetPrinterTypeResult.noDeviceConnected]
+  /// (and stays on the previous type) when External is requested but no
+  /// external printer is currently connected, so the UI can explain why the
+  /// switch didn't happen instead of silently reverting.
+  Future<SetPrinterTypeResult> setPrinterType(PrinterType type) async {
     if (type == PrinterType.external) {
       final available = await _externalPrinter.isAvailable();
       if (!available) {
-        _printerType = PrinterType.inbuilt;
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(_printerTypeKey, PrinterType.inbuilt.name);
         notifyListeners();
-        return;
+        return SetPrinterTypeResult.noDeviceConnected;
       }
     }
     _printerType = type;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_printerTypeKey, type.name);
     notifyListeners();
+    return SetPrinterTypeResult.success;
   }
 
   AbstractPrintService get _active =>
       _printerType == PrinterType.external ? _externalPrinter : _inbuiltPrinter;
 
   Future<AbstractPrintService> get _resolvedForPrint async {
+    await ensureLoaded();
     if (_printerType == PrinterType.external) {
       final available = await _externalPrinter.isAvailable();
       if (!available) return _inbuiltPrinter;
@@ -82,12 +98,40 @@ class PrintServiceManager extends ChangeNotifier implements AbstractPrintService
   }
 
   @override
-  Future<Map<String, dynamic>?> checkPrinterState() =>
-      _active.checkPrinterState();
+  Future<Map<String, dynamic>?> checkPrinterState() async {
+    final printer = await _resolvedForPrint;
+    return printer.checkPrinterState();
+  }
 
   @override
-  Future<String?> getFirmwareVersion() => _active.getFirmwareVersion();
+  Future<String?> getFirmwareVersion() async {
+    final printer = await _resolvedForPrint;
+    return printer.getFirmwareVersion();
+  }
 
   @override
   Future<bool> isAvailable() => _active.isAvailable();
+
+  /// Sends a short ESC/POS test receipt to whichever printer is currently
+  /// resolved (respects the same fallback-to-inbuilt logic as real prints).
+  Future<bool> testPrint() async {
+    final bytes = _buildTestReceipt();
+    final ok = await printRawBytes(bytes);
+    if (ok) await cutPaper();
+    return ok;
+  }
+
+  Uint8List _buildTestReceipt() {
+    const init = [0x1B, 0x40]; // ESC @ (initialize)
+    const alignCenter = [0x1B, 0x61, 0x01];
+    const alignLeft = [0x1B, 0x61, 0x00];
+    final text = 'ASG Canteen\nPrinter Test\n${DateTime.now()}\n\n\n'
+        .codeUnits;
+    return Uint8List.fromList([
+      ...init,
+      ...alignCenter,
+      ...text,
+      ...alignLeft,
+    ]);
+  }
 }

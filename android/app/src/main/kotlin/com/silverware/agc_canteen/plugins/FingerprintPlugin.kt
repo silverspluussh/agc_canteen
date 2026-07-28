@@ -25,6 +25,7 @@ class FingerprintPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, EventC
     private var isSdkReady = false
     private var activity: Activity? = null
     private var pendingInitResult: MethodChannel.Result? = null
+    private var pendingCaptureResult: MethodChannel.Result? = null
 
     override fun onAttachedToEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
         methodChannel = MethodChannel(binding.binaryMessenger, "com.silverware.agc_canteen/fingerprint")
@@ -106,6 +107,7 @@ class FingerprintPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, EventC
     }
 
     private fun cancelFingerprint() {
+        pendingCaptureResult = null
         val sdk = fingerSDK ?: return
         try {
             val method = FingerSDK::class.java.getDeclaredMethod("cancel").apply {
@@ -188,6 +190,11 @@ class FingerprintPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, EventC
             return
         }
 
+        if (pendingCaptureResult != null) {
+            cancelFingerprint()
+        }
+        pendingCaptureResult = result
+
         try {
             val templateType = getTemplateAtIndex(templateIndex)
             fingerSDK!!.captureBytes(templateType, object : OnCaptureBytesListener {
@@ -197,6 +204,10 @@ class FingerprintPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, EventC
                     bitmap: Bitmap?,
                     template: ByteArray?
                 ) {
+                    val pending = pendingCaptureResult
+                    pendingCaptureResult = null
+                    if (pending == null) return
+
                     if (code == FingerSDK.RESULT_OK && data != null && template != null) {
                         currentTemplate = template
 
@@ -216,15 +227,16 @@ class FingerprintPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, EventC
                         }
 
                         eventSink?.success(captureResult)
-                        result.success(captureResult)
+                        pending.success(captureResult)
                     } else {
                         val errorResult = mapOf("success" to false, "code" to code)
                         eventSink?.success(errorResult)
-                        result.success(errorResult)
+                        pending.success(errorResult)
                     }
                 }
             })
         } catch (e: Exception) {
+            pendingCaptureResult = null
             result.error("FINGER_CAPTURE_ERROR", e.message, null)
         }
     }

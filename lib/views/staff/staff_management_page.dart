@@ -1,11 +1,10 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/utils/search_debouncer.dart';
 import '../../controllers/providers.dart';
 import '../../core/enums/employee_type.enum.dart';
 import '../../l10n/generated/app_localizations.dart';
-import '../../services/database/app_database.dart';
+import '../../models/biodata_fingerprint_summary.dart';
 import '../widgets/app_buttons.widget.dart';
 import 'fingerprint_enrollment_sheet.dart';
 
@@ -21,6 +20,7 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage>
     with SingleTickerProviderStateMixin {
   late final TabController _tabCtrl;
   final _searchCtrl = TextEditingController();
+  final _searchDebouncer = SearchDebouncer();
   String _query = '';
   bool? _fingerprintFilter;
 
@@ -35,22 +35,46 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage>
     super.initState();
     _tabCtrl = TabController(length: 4, vsync: this);
     _tabCtrl.addListener(() => setState(() {}));
-    _searchCtrl.addListener(
-      () => setState(() => _query = _searchCtrl.text.trim().toLowerCase()),
-    );
+    _searchCtrl.addListener(() {
+      _searchDebouncer(() {
+        if (mounted) {
+          setState(
+            () => _query = _searchCtrl.text.trim().toLowerCase(),
+          );
+        }
+      });
+    });
     _loadAll();
   }
 
   @override
   void dispose() {
     _tabCtrl.dispose();
+    _searchDebouncer.dispose();
     _searchCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _loadAll() async {
     final db = ref.read(databaseProvider);
-    final allFps = await db.getActiveBioData();
+    final summaries = await db.getActiveBioDataSummaries();
+
+    final byStaff = <int, List<BioDataFingerprintSummary>>{};
+    final byDependent = <int, List<BioDataFingerprintSummary>>{};
+    final byVisitor = <int, List<BioDataFingerprintSummary>>{};
+    final byContractorStaff = <int, List<BioDataFingerprintSummary>>{};
+
+    for (final fp in summaries) {
+      if (fp.staffId != null) {
+        byStaff.putIfAbsent(fp.staffId!, () => []).add(fp);
+      } else if (fp.dependentId != null) {
+        byDependent.putIfAbsent(fp.dependentId!, () => []).add(fp);
+      } else if (fp.visitorId != null) {
+        byVisitor.putIfAbsent(fp.visitorId!, () => []).add(fp);
+      } else if (fp.contractorStaffId != null) {
+        byContractorStaff.putIfAbsent(fp.contractorStaffId!, () => []).add(fp);
+      }
+    }
 
     // Staff
     final staffList = await db.getAllStaff();
@@ -58,8 +82,7 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage>
       ..clear()
       ..addAll(
         staffList.map((s) {
-          log(s.toJsonString());
-          final fps = allFps.where((f) => f.staffId == s.id).toList();
+          final fps = byStaff[s.id] ?? [];
           return _EntityEntry(
             id: s.id,
             displayName: '${s.firstName} ${s.lastName}',
@@ -78,7 +101,7 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage>
       ..clear()
       ..addAll(
         depList.map((d) {
-          final fps = allFps.where((f) => f.dependentId == d.id).toList();
+          final fps = byDependent[d.id] ?? [];
           final initials = d.fullname
               .split(' ')
               .map((p) => p.isNotEmpty ? p[0] : '')
@@ -101,7 +124,7 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage>
       ..clear()
       ..addAll(
         visList.map((v) {
-          final fps = allFps.where((f) => f.visitorId == v.id).toList();
+          final fps = byVisitor[v.id] ?? [];
           final initials = v.name.isNotEmpty ? v.name[0] : 'V';
           return _EntityEntry(
             id: v.id,
@@ -120,7 +143,7 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage>
       ..clear()
       ..addAll(
         csList.map((c) {
-          final fps = allFps.where((f) => f.contractorStaffId == c.id).toList();
+          final fps = byContractorStaff[c.id] ?? [];
           final initials = c.name.isNotEmpty ? c.name[0] : 'C';
           return _EntityEntry(
             id: c.id,
@@ -499,7 +522,7 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage>
     );
   }
 
-  Future<void> _deleteSingleFingerprint(BioDataEntry fp) async {
+  Future<void> _deleteSingleFingerprint(BioDataFingerprintSummary fp) async {
     final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
@@ -574,7 +597,7 @@ class _EntityEntry {
   final EmployeeType entityType;
   final String initials;
   bool hasFingerprint;
-  List<BioDataEntry> fingerprints;
+  List<BioDataFingerprintSummary> fingerprints;
 
   _EntityEntry({
     required this.id,

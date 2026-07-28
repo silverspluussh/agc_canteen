@@ -375,7 +375,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pushPullSubtitle => 'Push & pull records with the server';
 
   @override
-  String get viewReportsSubtitle => 'View POS orders and overcharges';
+  String get viewReportsSubtitle => 'View POS orders';
 
   @override
   String get appearance => 'Appearance';

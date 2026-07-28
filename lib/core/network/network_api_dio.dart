@@ -1,7 +1,7 @@
-import 'dart:developer';
 import 'dart:io';
 import 'package:agc_canteen/core/network/api_exceptions_util.dart';
 import 'package:agc_canteen/core/network/dio_client.dart';
+import 'package:agc_canteen/core/utils/app_log.dart';
 import 'package:dio/dio.dart';
 
 class NetworkAPI {
@@ -103,7 +103,7 @@ class NetworkAPI {
         data: data,
       );
 
-      log('Response: ${response.data}', name: 'NetworkAPI.postData');
+      appLogHttp('POST', path, response.statusCode, response.data);
       switch (response.statusCode) {
         case 200:
         case 201:

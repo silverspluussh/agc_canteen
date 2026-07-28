@@ -1,5 +1,4 @@
-import 'dart:developer';
-
+import 'package:agc_canteen/core/utils/app_log.dart';
 import 'package:flutter/material.dart';
 import '../../core/di/injection_container.dart';
 import '../../services/sync_services/sync_from_remote_to_local.dart';
@@ -46,7 +45,7 @@ class _PosSelectionDialogState extends State<PosSelectionDialog> {
   Future<void> _selectProfile(Map<String, dynamic> profile) async {
     setState(() => _saving = true);
     try {
-      log('pos map data $profile');
+      appLog('POS profile selected (id=${profile['id']})', name: 'PosSelection');
       final service = getIt<RemoteToLocalSyncService>();
       await service.saveSelectedPosProfile(profile);
       if (mounted) Navigator.of(context).pop(true);

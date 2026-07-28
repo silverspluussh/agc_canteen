@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  USB thermal printer vendor IDs (decimal) that should wake/launch the app
+  when attached. Keep in sync with PRINTER_VENDOR_IDS in ExternalPrintPlugin.kt.
+-->
+<resources>
+    <usb-device vendor-id="1208" /> <!-- Epson: 0x04b8 -->
+    <usb-device vendor-id="2655" /> <!-- Zebra: 0x0a5f -->
+    <usb-device vendor-id="5380" /> <!-- Bixolon: 0x1504 -->
+    <usb-device vendor-id="1305" /> <!-- Star Micronics: 0x0519 -->
+    <usb-device vendor-id="7344" /> <!-- Citizen: 0x1cb0 -->
+    <usb-device vendor-id="1046" /> <!-- Winpos: 0x0416 -->
+    <usb-device vendor-id="1171" /> <!-- Esc/POS generic: 0x0493 -->
+</resources>
