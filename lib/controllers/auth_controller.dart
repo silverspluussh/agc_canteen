@@ -82,9 +82,11 @@ class AuthController extends Notifier<AuthState> {
   /// Cancels any in-progress authentication and resets state to [AuthStep.unauthenticated].
   Future<void> cancel() async {
     _authSessionId++;
+    // Reset UI immediately so a slow cancelAuth() cannot leave the screen
+    // stuck on "Scanning" / allow a racing place-order path to repaint progress.
+    state = const AuthState();
     final posAuth = ref.read(posAuthProvider);
     await posAuth.cancelAuth();
-    state = const AuthState();
   }
 
   Future<void> authenticate({int? departmentId}) async {

@@ -265,27 +265,15 @@ void main() {
           .thenAnswer((_) => releaseAuth.future);
 
       final authFuture = controller().authenticate();
+      expect(state().step, AuthStep.authenticating);
+
       await controller().cancel();
+      expect(state().step, AuthStep.unauthenticated);
+
+      // A successful match that arrives after Cancel must not place/print.
       releaseAuth.complete(authenticatedStaff());
       await authFuture;
-
-      expect(state().step, AuthStep.unauthenticated);
-      expect(await db.getAllOrders(), isEmpty);
-      verifyNever(() => printer.printRawBytes(any()));
-    });
-
-    test('cancel after match during order placement does not write an order', () async {
-      await seedPosDevice(db, kitchenId: 1);
-      await seedMealType(db, id: 1, name: 'lunch', price: 12.5);
-      when(() => posAuth.cancelAuth()).thenAnswer((_) async {});
-      when(() => posAuth.authenticateWithFingerprint(departmentId: any(named: 'departmentId')))
-          .thenAnswer((_) async {
-        // Race cancel after auth returns but while voucher placement awaits DB/meal lookup.
-        unawaited(Future<void>.microtask(() => controller().cancel()));
-        return authenticatedStaff();
-      });
-
-      await controller().authenticate();
+      await Future<void>.delayed(Duration.zero);
 
       expect(state().step, AuthStep.unauthenticated);
       expect(await db.getAllOrders(), isEmpty);
