@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:agc_canteen/controllers/auth_controller.dart';
 import 'package:agc_canteen/controllers/providers.dart';
 import 'package:agc_canteen/core/enums/employee_type.enum.dart';
@@ -251,6 +253,31 @@ void main() {
 
       expect(state().step, AuthStep.unauthenticated);
       verify(() => posAuth.cancelAuth()).called(1);
+    });
+
+    test('cancel while auth is in flight does not place an order', () async {
+      await seedPosDevice(db, kitchenId: 1);
+      await seedMealType(db, id: 1, name: 'lunch', price: 12.5);
+      when(() => posAuth.cancelAuth()).thenAnswer((_) async {});
+
+      final releaseAuth = Completer<AuthResult>();
+      when(() => posAuth.authenticateWithFingerprint(departmentId: any(named: 'departmentId')))
+          .thenAnswer((_) => releaseAuth.future);
+
+      final authFuture = controller().authenticate();
+      expect(state().step, AuthStep.authenticating);
+
+      await controller().cancel();
+      expect(state().step, AuthStep.unauthenticated);
+
+      // A successful match that arrives after Cancel must not place/print.
+      releaseAuth.complete(authenticatedStaff());
+      await authFuture;
+      await Future<void>.delayed(Duration.zero);
+
+      expect(state().step, AuthStep.unauthenticated);
+      expect(await db.getAllOrders(), isEmpty);
+      verifyNever(() => printer.printRawBytes(any()));
     });
   });
 

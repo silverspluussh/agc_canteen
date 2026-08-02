@@ -960,7 +960,10 @@ class AppDatabase extends _$AppDatabase {
   Future<Card?> getCard(int id) =>
       (select(cards)..where((t) => t.id.equals(id))).getSingleOrNull();
   Future<Card?> getCardByTagId(String tagId, {int? departmentId}) {
-    final query = select(cards)..where((t) => t.tagId.equals(tagId));
+    // Only active cards may authenticate — deactivated/revoked cards are kept
+    // locally for sync but must not unlock voucher placement.
+    final query = select(cards)
+      ..where((t) => t.tagId.equals(tagId) & t.status.equals('active'));
     if (departmentId != null) {
       query.where((t) => t.departmentId.equals(departmentId));
     }

@@ -10,6 +10,7 @@ import '../../services/database/app_database.dart' show AppDatabase, PosDevice;
 import '../../services/pos/pos_device_service.dart';
 import '../../services/pos/pos_fingerprint_service.dart';
 import '../../services/pos/pos_scanner_service.dart';
+import '../../services/sync_services/sync_from_remote_to_local.dart';
 import '../settings/pos_selection_dialog.dart';
 
 class PosSettingsPage extends ConsumerStatefulWidget {
@@ -149,16 +150,21 @@ class _PosSettingsPageState extends ConsumerState<PosSettingsPage> {
 
     if (confirmed != true || !mounted) return;
 
+    // Clear local data BEFORE selecting the new profile. Selecting first then
+    // clearing wiped the just-saved POS row (and all local data), leaving the
+    // device unregistered and unable to place orders until reconfigured.
+    try {
+      await _db.clearAll();
+    } catch (_) {}
+
+    if (!mounted) return;
+
     final selected = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (_) => const PosSelectionDialog(),
     );
     if (selected != true || !mounted) return;
-
-    try {
-      await _db.clearAll();
-    } catch (_) {}
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -168,6 +174,8 @@ class _PosSettingsPageState extends ConsumerState<PosSettingsPage> {
         ),
       );
       _loadAll();
+      ref.invalidate(departmentsProvider);
+      unawaited(getIt<RemoteToLocalSyncService>().syncAll());
     }
   }
 

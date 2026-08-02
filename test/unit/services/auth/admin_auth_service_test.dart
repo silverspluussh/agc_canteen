@@ -202,4 +202,52 @@ void main() {
       expect(email, 'cached@example.com');
     });
   });
+
+  group('tryAutoLogin', () {
+    void stubGetDataThrows(Object error) {
+      when(
+        () => api.getData<dynamic>(
+          any(),
+          queryParameters: any(named: 'queryParameters'),
+          opts: any(named: 'opts'),
+          builder: any(named: 'builder'),
+        ),
+      ).thenThrow(error);
+    }
+
+    test('does not unlock from cached credentials after revoked online session',
+        () async {
+      when(() => storage.readSecureData('access_token'))
+          .thenAnswer((_) async => 'revoked-token');
+      when(() => storage.readSecureData('refresh_token'))
+          .thenAnswer((_) async => 'revoked-refresh');
+      stubGetDataThrows(Exception('unauthorized'));
+      stubPostDataThrows(Exception('refresh failed'));
+      when(() => storage.readAdminEmail())
+          .thenAnswer((_) async => 'user@example.com');
+      when(() => storage.readAdminPassHash()).thenAnswer(
+        (_) async => hashCredentials('user@example.com', 'password1'),
+      );
+
+      final result = await service.tryAutoLogin();
+
+      expect(result.isSuccess, isFalse);
+      expect(result.status, AdminAuthStatus.unauthenticated);
+    });
+
+    test('returns offline when session check fails due to no connection '
+        'and a token is still cached', () async {
+      when(() => storage.readSecureData('access_token'))
+          .thenAnswer((_) async => 'cached-token');
+      when(() => storage.readSecureData('refresh_token'))
+          .thenAnswer((_) async => 'refresh');
+      stubGetDataThrows(NoInternetConnectionException('offline'));
+
+      final result = await service.tryAutoLogin();
+
+      expect(result.isSuccess, isTrue);
+      expect(result.status, AdminAuthStatus.authenticatedOffline);
+      expect(result.token, 'cached-token');
+    });
+  });
 }
