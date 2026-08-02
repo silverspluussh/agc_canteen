@@ -62,6 +62,24 @@ void main() {
     expect(result, isNull);
   });
 
+  test('returns null for a deactivated card even when the tag matches', () async {
+    await seedNfcCard(
+      db,
+      id: 1,
+      tagId: 'INACTIVE',
+      status: 'inactive',
+      assignedToId: 5,
+      assignedToType: 'permanent',
+    );
+
+    final future = nfcAuth.readCard();
+    await pumpEventLoop();
+    tagController.add({'tagId': 'INACTIVE'});
+    final result = await future;
+
+    expect(result, isNull);
+  });
+
   test('filters by departmentId when provided', () async {
     await seedNfcCard(
       db,

@@ -315,23 +315,12 @@ class AdminAuthService {
         }
       }
 
-      // 3. Fallback to offline credentials check if stored credentials exist
-      final email = await _storage.readAdminEmail();
-      final passHash = await _storage.readAdminPassHash();
-      if (email != null && passHash != null) {
-        final cachedToken = await _storage.readSecureData('access_token');
-        _logger.i('Auto-login: using offline cached credentials fallback');
-        getIt<ActivityLogService>().log(
-          type: 'admin_auto_login',
-          message: 'Admin auto-login via cached credentials: $email',
-          actorType: 'admin',
-          actorName: email,
-          metadata: {'mode': 'cached_credentials'},
-        );
-        return AdminAuthResult.offline(cachedToken ?? 'offline_session');
-      }
-
-      _logger.i('Auto-login: no valid session or credentials found');
+      // 3. Do NOT auto-login from cached email/password hash alone.
+      // Presence of a stored hash is not authentication — offline access must
+      // go through login() which verifies the password. Falling through here
+      // previously unlocked the POS after revoked/expired tokens without any
+      // password check.
+      _logger.i('Auto-login: no valid session or refreshable token found');
       return const AdminAuthResult(status: AdminAuthStatus.unauthenticated);
     } catch (e) {
       _logger.e('Auto-login unexpected error', error: e);

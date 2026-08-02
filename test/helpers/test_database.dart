@@ -80,6 +80,7 @@ Future<int> seedNfcCard(
   AppDatabase db, {
   int id = 1,
   required String tagId,
+  String status = 'active',
   int? assignedToId,
   String? assignedToType,
   int? departmentId,
@@ -89,7 +90,7 @@ Future<int> seedNfcCard(
     CardsCompanion.insert(
       id: Value(id),
       code: 0,
-      status: 'active',
+      status: status,
       tagId: Value(tagId),
       assignedToId: Value.absentIfNull(assignedToId),
       assignedToType: Value.absentIfNull(assignedToType),

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:agc_canteen/controllers/auth_controller.dart';
 import 'package:agc_canteen/controllers/providers.dart';
 import 'package:agc_canteen/core/enums/employee_type.enum.dart';
@@ -251,6 +253,43 @@ void main() {
 
       expect(state().step, AuthStep.unauthenticated);
       verify(() => posAuth.cancelAuth()).called(1);
+    });
+
+    test('cancel while auth is in flight does not place an order', () async {
+      await seedPosDevice(db, kitchenId: 1);
+      await seedMealType(db, id: 1, name: 'lunch', price: 12.5);
+      when(() => posAuth.cancelAuth()).thenAnswer((_) async {});
+
+      final releaseAuth = Completer<AuthResult>();
+      when(() => posAuth.authenticateWithFingerprint(departmentId: any(named: 'departmentId')))
+          .thenAnswer((_) => releaseAuth.future);
+
+      final authFuture = controller().authenticate();
+      await controller().cancel();
+      releaseAuth.complete(authenticatedStaff());
+      await authFuture;
+
+      expect(state().step, AuthStep.unauthenticated);
+      expect(await db.getAllOrders(), isEmpty);
+      verifyNever(() => printer.printRawBytes(any()));
+    });
+
+    test('cancel after match during order placement does not write an order', () async {
+      await seedPosDevice(db, kitchenId: 1);
+      await seedMealType(db, id: 1, name: 'lunch', price: 12.5);
+      when(() => posAuth.cancelAuth()).thenAnswer((_) async {});
+      when(() => posAuth.authenticateWithFingerprint(departmentId: any(named: 'departmentId')))
+          .thenAnswer((_) async {
+        // Race cancel after auth returns but while voucher placement awaits DB/meal lookup.
+        unawaited(Future<void>.microtask(() => controller().cancel()));
+        return authenticatedStaff();
+      });
+
+      await controller().authenticate();
+
+      expect(state().step, AuthStep.unauthenticated);
+      expect(await db.getAllOrders(), isEmpty);
+      verifyNever(() => printer.printRawBytes(any()));
     });
   });
 

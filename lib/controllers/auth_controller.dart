@@ -295,6 +295,7 @@ class AuthController extends Notifier<AuthState> {
   }
 
   Future<void> _placeVoucherOrder(AuthResult staff) async {
+    final sessionId = _authSessionId;
     state = state.copyWith(step: AuthStep.placingOrder);
 
     try {
@@ -303,6 +304,7 @@ class AuthController extends Notifier<AuthState> {
       final sync = getIt<LocalToRemoteSyncService>();
 
       final result = await _resolveCurrentMealType(db);
+      if (sessionId != _authSessionId) return;
       if (result == null) {
         state = state.copyWith(
           step: AuthStep.error,
@@ -315,10 +317,12 @@ class AuthController extends Notifier<AuthState> {
       // Check shift meal restrictions for staff-type employees
       if (staff.entityType != null && staff.entityType!.isStaffType) {
         final staffData = await db.getStaff(staff.entityId!);
+        if (sessionId != _authSessionId) return;
         if (staffData != null && staffData.shiftId != null) {
           final allowedMealTypeIds = await db.getShiftMealTypeIds(staffData.shiftId!);
           if (allowedMealTypeIds.isNotEmpty && !allowedMealTypeIds.contains(mealTypeId)) {
             final shiftName = (await db.getShift(staffData.shiftId!))?.name ?? 'assigned shift';
+            if (sessionId != _authSessionId) return;
             state = state.copyWith(
               step: AuthStep.error,
               error: 'This meal is not allowed for your $shiftName shift.',
@@ -332,6 +336,7 @@ class AuthController extends Notifier<AuthState> {
       final nowIso = now.toIso8601String();
       final orderId = DateTime.now().millisecondsSinceEpoch;
       final posDevice = await _loadRegisteredPosDevice(db);
+      if (sessionId != _authSessionId) return;
       if (posDevice == null) {
         state = state.copyWith(
           step: AuthStep.error,
@@ -345,6 +350,10 @@ class AuthController extends Notifier<AuthState> {
         posDevice.kitchenId!,
       );
       final staffName = staff.displayName ?? 'Unknown';
+
+      // Cancel can still race while step was "authenticating" before placingOrder;
+      // refuse to write/print once the session has been cancelled.
+      if (sessionId != _authSessionId) return;
 
       await db.insertOrder(
         OrdersCompanion(
@@ -366,6 +375,8 @@ class AuthController extends Notifier<AuthState> {
         ),
       );
 
+      if (sessionId != _authSessionId) return;
+
       unawaited(sync.syncSingleOrders());
 
       await _printVoucher(
@@ -375,6 +386,8 @@ class AuthController extends Notifier<AuthState> {
         mealType: mealType,
         orderTime: now,
       );
+
+      if (sessionId != _authSessionId) return;
 
       getIt<ActivityLogService>().log(
         type: 'order_placed',
@@ -403,6 +416,7 @@ class AuthController extends Notifier<AuthState> {
         orderTime: timeLabel,
       );
     } catch (e, st) {
+      if (sessionId != _authSessionId) return;
       appLog(
         '[AuthController] Place voucher order FAILED: $e',
         name: 'POS_AUTH',
@@ -460,6 +474,7 @@ class AuthController extends Notifier<AuthState> {
   }
 
   Future<void> _placeNfcVoucherOrder(AuthResult staff) async {
+    final sessionId = _authSessionId;
     state = state.copyWith(step: AuthStep.placingOrder);
 
     try {
@@ -468,6 +483,7 @@ class AuthController extends Notifier<AuthState> {
       final sync = getIt<LocalToRemoteSyncService>();
 
       final result = await _resolveCurrentMealType(db);
+      if (sessionId != _authSessionId) return;
       if (result == null) {
         state = state.copyWith(
           step: AuthStep.error,
@@ -480,10 +496,12 @@ class AuthController extends Notifier<AuthState> {
       // Check shift meal restrictions for staff-type employees
       if (staff.entityType != null && staff.entityType!.isStaffType) {
         final staffData = await db.getStaff(staff.entityId!);
+        if (sessionId != _authSessionId) return;
         if (staffData != null && staffData.shiftId != null) {
           final allowedMealTypeIds = await db.getShiftMealTypeIds(staffData.shiftId!);
           if (allowedMealTypeIds.isNotEmpty && !allowedMealTypeIds.contains(mealTypeId)) {
             final shiftName = (await db.getShift(staffData.shiftId!))?.name ?? 'assigned shift';
+            if (sessionId != _authSessionId) return;
             state = state.copyWith(
               step: AuthStep.error,
               error: 'This meal is not allowed for your $shiftName shift.',
@@ -497,6 +515,7 @@ class AuthController extends Notifier<AuthState> {
       final nowIso = now.toIso8601String();
       final orderId = DateTime.now().millisecondsSinceEpoch;
       final posDevice = await _loadRegisteredPosDevice(db);
+      if (sessionId != _authSessionId) return;
       if (posDevice == null) {
         state = state.copyWith(
           step: AuthStep.error,
@@ -510,6 +529,8 @@ class AuthController extends Notifier<AuthState> {
         posDevice.kitchenId!,
       );
       final staffName = staff.displayName ?? 'Unknown';
+
+      if (sessionId != _authSessionId) return;
 
       await db.insertOrder(
         OrdersCompanion(
@@ -531,6 +552,8 @@ class AuthController extends Notifier<AuthState> {
         ),
       );
 
+      if (sessionId != _authSessionId) return;
+
       unawaited(sync.syncSingleOrders());
 
       await _printVoucher(
@@ -540,6 +563,8 @@ class AuthController extends Notifier<AuthState> {
         mealType: mealType,
         orderTime: now,
       );
+
+      if (sessionId != _authSessionId) return;
 
       getIt<ActivityLogService>().log(
         type: 'order_placed',
@@ -568,6 +593,7 @@ class AuthController extends Notifier<AuthState> {
         orderTime: timeLabel,
       );
     } catch (e, st) {
+      if (sessionId != _authSessionId) return;
       appLog('[AuthController] Place NFC voucher order FAILED: $e', name: 'POS_AUTH', error: e, stackTrace: st);
       state = state.copyWith(
         step: AuthStep.error,
