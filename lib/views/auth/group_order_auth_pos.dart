@@ -21,6 +21,7 @@ import '../../services/database/activity_log_service.dart';
 import '../../services/database/app_database.dart';
 import '../../services/auth/pos_auth_service.dart';
 import '../../services/print/print_service_manager.dart';
+import '../../services/meal_time_service.dart';
 import '../../services/sync_services/sync_from_local_to_remote.dart';
 
 class GroupOrderAuthPos extends ConsumerStatefulWidget {
@@ -271,29 +272,24 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
     final nowIso = now.toIso8601String();
     final staffName = staff.displayName ?? 'Unknown';
 
-    // Resolve current meal type
-    final hour = now.hour;
-    final mealType = hour < 10
-        ? 'breakfast'
-        : hour < 15
-        ? 'lunch'
-        : 'dinner';
-    final matchedType = allTypes
-        .where((t) => t.name.toLowerCase() == mealType)
-        .firstOrNull;
-    if (matchedType == null || matchedType.price <= 0) {
+    // Use configured meal windows (same rules as single-voucher path).
+    final resolvedMeal = resolveActiveMealType(allTypes, now: now);
+    if (resolvedMeal == null || resolvedMeal.$3 <= 0) {
       if (!mounted) return;
       setState(_resetOrderState);
       ref.read(authProvider.notifier).reset();
       ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-        SnackBar(
-          content: Text('$mealType meal type not found or has no price'),
+        const SnackBar(
+          content: Text(
+            'No meals available at this time. Please try again later.',
+          ),
           backgroundColor: Colors.red,
         ),
       );
       return;
     }
-    final price = matchedType.price;
+    final mealType = resolvedMeal.$2;
+    final price = resolvedMeal.$3;
 
     _mealType = mealType;
     _staffName = staffName;

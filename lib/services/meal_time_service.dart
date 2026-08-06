@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../controllers/providers.dart';
+import 'database/app_database.dart';
 
 class MealTimeWindow {
   final String mealType;
@@ -27,11 +28,41 @@ class MealTimeWindow {
   }
 }
 
-TimeOfDay _parseTimeOfDay(String time) {
+TimeOfDay parseMealTimeOfDay(String time) {
   final parts = time.trim().split(':');
   final hour = int.tryParse(parts[0]) ?? 0;
   final minute = parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
   return TimeOfDay(hour: hour, minute: minute);
+}
+
+/// Returns the first active meal type whose configured window contains [now].
+///
+/// Used by single-voucher and group-order paths so pricing/meal names stay
+/// consistent with kitchen-configured begin/end times.
+(int id, String name, double price)? resolveActiveMealType(
+  Iterable<MealType> mealTypes, {
+  DateTime? now,
+}) {
+  final moment = now ?? DateTime.now();
+  final currentMinutes = moment.hour * 60 + moment.minute;
+
+  for (final mt in mealTypes) {
+    if (mt.status != 'active') continue;
+
+    final start = parseMealTimeOfDay(mt.beginTime);
+    final end = parseMealTimeOfDay(mt.endTime);
+    final startMins = start.hour * 60 + start.minute;
+    final endMins = end.hour * 60 + end.minute;
+
+    final active = startMins <= endMins
+        ? currentMinutes >= startMins && currentMinutes < endMins
+        : currentMinutes >= startMins || currentMinutes < endMins;
+
+    if (active) {
+      return (mt.id, mt.name.toLowerCase(), mt.price);
+    }
+  }
+  return null;
 }
 
 final mealTimeWindowsProvider = FutureProvider<List<MealTimeWindow>>((ref) async {
@@ -40,8 +71,8 @@ final mealTimeWindowsProvider = FutureProvider<List<MealTimeWindow>>((ref) async
 
   final activeTypes = mealTypes.where((mt) => mt.status == 'active').toList();
   return activeTypes.map((mt) {
-    final start = _parseTimeOfDay(mt.beginTime);
-    final end = _parseTimeOfDay(mt.endTime);
+    final start = parseMealTimeOfDay(mt.beginTime);
+    final end = parseMealTimeOfDay(mt.endTime);
     return MealTimeWindow(
       mealType: mt.name.toLowerCase(),
       start: start,

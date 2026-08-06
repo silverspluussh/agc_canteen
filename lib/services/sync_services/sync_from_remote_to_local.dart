@@ -99,20 +99,13 @@ class RemoteToLocalSyncService {
     try {
       _logger.i('RemoteToLocalSyncService: fetching remote departments...');
 
-      final responseData = await _networkAPI.getData(
-        '/hr/departments',
-        builder: (data) => data,
-        queryParameters: {'limit': 100, 'offset': 0},
+      final list = await _fetchAllPages(
+        path: '/hr/departments',
+        limit: 100,
+        listKeys: const ['data'],
       );
 
-      List<dynamic>? list;
-      if (responseData is List) {
-        list = responseData;
-      } else if (responseData is Map && responseData['data'] is List) {
-        list = responseData['data'] as List<dynamic>;
-      }
-
-      if (list == null || list.isEmpty) {
+      if (list.isEmpty) {
         _logger.w('RemoteToLocalSyncService: no remote departments available');
         return false;
       }
@@ -123,7 +116,7 @@ class RemoteToLocalSyncService {
 
       await _db.transaction(() async {
         final remoteIds = <int>{};
-        for (final item in list!) {
+        for (final item in list) {
           if (item is Map<String, dynamic>) {
             await _upsertDepartmentData(item);
             final id = _safeParseInt(item['id']);
@@ -323,21 +316,14 @@ class RemoteToLocalSyncService {
     try {
       _logger.i('RemoteToLocalSyncService: fetching remote meal types...');
 
-      final responseData = await _networkAPI.getData(
-        '/caterer/meal-types',
-        builder: (data) => data,
-        queryParameters: {'active': 'true',  'limit':30,
-          'offset':0},
+      final mealTypesList = await _fetchAllPages(
+        path: '/caterer/meal-types',
+        limit: 30,
+        listKeys: const ['data'],
+        extraQuery: const {'active': 'true'},
       );
 
-      List<dynamic>? mealTypesList;
-      if (responseData is List) {
-        mealTypesList = responseData;
-      } else if (responseData is Map && responseData['data'] is List) {
-        mealTypesList = responseData['data'] as List<dynamic>;
-      }
-
-      if (mealTypesList == null || mealTypesList.isEmpty) {
+      if (mealTypesList.isEmpty) {
         _logger.w('RemoteToLocalSyncService: no remote meal types available');
         return false;
       }
@@ -348,7 +334,7 @@ class RemoteToLocalSyncService {
 
       await _db.transaction(() async {
         final remoteIds = <int>{};
-        for (final item in mealTypesList!) {
+        for (final item in mealTypesList) {
           if (item is Map<String, dynamic>) {
             await _upsertMealTypeData(item);
             final id = _safeParseInt(item['id']);
@@ -1127,27 +1113,20 @@ class RemoteToLocalSyncService {
     try {
       _logger.i('RemoteToLocalSyncService: fetching remote shifts...');
 
-      final responseData = await _networkAPI.getData(
-        '/hr/shifts',
-        builder: (data) => data,
-        queryParameters: {'limit': 50, 'offset': 0},
+      final list = await _fetchAllPages(
+        path: '/hr/shifts',
+        limit: 50,
+        listKeys: const ['shifts', 'data'],
       );
 
-      List<dynamic>? list;
-      if (responseData is List) {
-        list = responseData;
-      } else if (responseData is Map && responseData['shifts'] is List) {
-        list = responseData['shifts'] as List<dynamic>;
-      }
-
-      if (list == null || list.isEmpty) {
+      if (list.isEmpty) {
         _logger.w('RemoteToLocalSyncService: no remote shifts available');
         return false;
       }
 
       await _db.transaction(() async {
         final remoteIds = <int>{};
-        for (final item in list!) {
+        for (final item in list) {
           if (item is Map<String, dynamic>) {
             await _upsertShiftData(item);
             final id = _safeParseInt(item['id']);
@@ -1201,6 +1180,63 @@ class RemoteToLocalSyncService {
         stackTrace: stack,
       );
     }
+  }
+
+  /// Fetches every page for a limit/offset API before callers run deleteNotIn.
+  ///
+  /// Stops when a page is short, empty, or yields no new ids (guards against
+  /// APIs that ignore offset and re-return the full collection).
+  Future<List<dynamic>> _fetchAllPages({
+    required String path,
+    required int limit,
+    List<String> listKeys = const ['data'],
+    Map<String, dynamic> extraQuery = const {},
+  }) async {
+    final all = <dynamic>[];
+    final seenIds = <int>{};
+    var offset = 0;
+
+    while (true) {
+      final responseData = await _networkAPI.getData(
+        path,
+        builder: (data) => data,
+        queryParameters: {
+          ...extraQuery,
+          'limit': limit,
+          'offset': offset,
+        },
+      );
+
+      final page = _extractList(responseData, listKeys);
+      if (page == null || page.isEmpty) break;
+
+      var newIds = 0;
+      for (final item in page) {
+        all.add(item);
+        if (item is Map<String, dynamic>) {
+          final id = _safeParseInt(item['id']);
+          if (id != null && id != 0 && seenIds.add(id)) {
+            newIds++;
+          }
+        }
+      }
+
+      if (newIds == 0 || page.length < limit) break;
+      offset += limit;
+    }
+
+    return all;
+  }
+
+  List<dynamic>? _extractList(dynamic responseData, List<String> listKeys) {
+    if (responseData is List) return responseData;
+    if (responseData is Map) {
+      for (final key in listKeys) {
+        final value = responseData[key];
+        if (value is List) return value;
+      }
+    }
+    return null;
   }
 
   int? _safeParseInt(dynamic value) {

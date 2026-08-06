@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'tables.dart';
+import '../../core/enums/employee_type.enum.dart';
 import '../../models/biodata_fingerprint_summary.dart';
 import '../../models/unified_report_order_row.dart';
 
@@ -672,8 +673,11 @@ class AppDatabase extends _$AppDatabase {
   Future<void> deleteStaff(int id) async {
     await transaction(() async {
       await deleteStaffKitchensByStaff(id);
-      await deleteDependentsByStaff(id);
-      await deleteCardsByAssignedTo(id);
+      final dependentsOfStaff = await getDependentsByStaff(id);
+      for (final dependent in dependentsOfStaff) {
+        await deleteDependent(dependent.id);
+      }
+      await deleteCardsByAssignedTo(id, entityType: EmployeeType.permanent);
       await deleteBioDataByStaff(id);
       await (delete(staff)..where((t) => t.id.equals(id))).go();
     });
@@ -883,13 +887,18 @@ class AppDatabase extends _$AppDatabase {
   Future<void> deleteDependent(int id) async {
     await transaction(() async {
       await deleteDependentKitchensByDependent(id);
+      await deleteCardsByAssignedTo(id, entityType: EmployeeType.dependent);
       await deleteBioDataByDependent(id);
       await (delete(dependents)..where((t) => t.id.equals(id))).go();
     });
   }
 
-  Future<void> deleteDependentsByStaff(int staffId) =>
-      (delete(dependents)..where((t) => t.staffId.equals(staffId))).go();
+  Future<void> deleteDependentsByStaff(int staffId) async {
+    final dependentsOfStaff = await getDependentsByStaff(staffId);
+    for (final dependent in dependentsOfStaff) {
+      await deleteDependent(dependent.id);
+    }
+  }
 
   Future<List<Dependent>> getAllDependents() => select(dependents).get();
   Future<Dependent?> getDependent(int id) =>
@@ -940,8 +949,30 @@ class AppDatabase extends _$AppDatabase {
   Future<void> deleteCard(int id) =>
       (delete(cards)..where((t) => t.id.equals(id))).go();
 
-  Future<void> deleteCardsByAssignedTo(int assignedToId) =>
-      (delete(cards)..where((t) => t.assignedToId.equals(assignedToId))).go();
+  /// Deletes NFC cards for [assignedToId] only when [assignedToType] matches
+  /// [entityType] (staff-type aliases match any staff entity).
+  ///
+  /// Filtering by type is required because staff/visitor/dependent/contractor
+  /// tables use independent id sequences — deleting staff id `5` must not wipe
+  /// a visitor card that also happens to use `assignedToId = 5`.
+  Future<void> deleteCardsByAssignedTo(
+    int assignedToId, {
+    required EmployeeType entityType,
+  }) async {
+    final matches = await (select(cards)
+          ..where((t) => t.assignedToId.equals(assignedToId)))
+        .get();
+    for (final card in matches) {
+      final parsed = EmployeeType.tryParse(card.assignedToType);
+      if (parsed == null) continue;
+      final matchesType = entityType.isStaffType
+          ? parsed.isStaffType
+          : parsed == entityType;
+      if (matchesType) {
+        await deleteCard(card.id);
+      }
+    }
+  }
 
   Future<int> deleteCardsNotIn(Set<int> keepIds) async {
     if (keepIds.isEmpty) {
@@ -1037,6 +1068,7 @@ class AppDatabase extends _$AppDatabase {
   Future<void> deleteContractorStaff(int id) async {
     await transaction(() async {
       await deleteContractorStaffKitchensByContractorStaff(id);
+      await deleteCardsByAssignedTo(id, entityType: EmployeeType.contractor);
       await deleteBioDataByContractorStaff(id);
       await (delete(contractorStaffTable)..where((t) => t.id.equals(id))).go();
     });
@@ -1103,6 +1135,7 @@ class AppDatabase extends _$AppDatabase {
   Future<void> deleteVisitor(int id) async {
     await transaction(() async {
       await deleteVisitorKitchensByVisitor(id);
+      await deleteCardsByAssignedTo(id, entityType: EmployeeType.visitor);
       await deleteBioDataByVisitor(id);
       await (delete(visitors)..where((t) => t.id.equals(id))).go();
     });

@@ -151,6 +151,80 @@ void main() {
       expect(result.isAuthenticated, isFalse);
       expect(result.failureReason, AuthFailureReason.entityNotFound);
     });
+
+    test('rejects terminated staff even when fingerprint still matches', () async {
+      await seedStaff(
+        db,
+        id: 11,
+        firstName: 'Ex',
+        lastName: 'Employee',
+        empStatus: 'terminated',
+      );
+      await setupTestLocator(db: db);
+
+      when(() => fingerprintAuth.authenticate(departmentId: any(named: 'departmentId')))
+          .thenAnswer((_) async => bioDataEntry(staffId: 11));
+
+      final result = await posAuth.authenticateWithFingerprint();
+
+      expect(result.isAuthenticated, isFalse);
+      expect(result.failureReason, AuthFailureReason.entityNotFound);
+    });
+
+    test('rejects inactive dependents', () async {
+      await seedDependent(
+        db,
+        id: 21,
+        fullname: 'Inactive Dependent',
+        status: 'inactive',
+      );
+      await setupTestLocator(db: db);
+
+      when(() => fingerprintAuth.authenticate(departmentId: any(named: 'departmentId')))
+          .thenAnswer((_) async => bioDataEntry(dependentId: 21));
+
+      final result = await posAuth.authenticateWithFingerprint();
+
+      expect(result.isAuthenticated, isFalse);
+      expect(result.failureReason, AuthFailureReason.entityNotFound);
+    });
+
+    test('rejects visitors whose end date has passed', () async {
+      await seedVisitor(
+        db,
+        id: 41,
+        name: 'Expired Visitor',
+        endTime: '2020-01-01',
+      );
+      await setupTestLocator(db: db);
+
+      when(() => fingerprintAuth.authenticate(departmentId: any(named: 'departmentId')))
+          .thenAnswer((_) async => bioDataEntry(visitorId: 41));
+
+      final result = await posAuth.authenticateWithFingerprint();
+
+      expect(result.isAuthenticated, isFalse);
+      expect(result.failureReason, AuthFailureReason.entityNotFound);
+    });
+
+    test('rejects contractor staff outside their contract window', () async {
+      await seedContractorStaff(
+        db,
+        id: 31,
+        name: 'Expired Contractor',
+        startDate: '2020-01-01',
+        endDate: '2020-12-31',
+      );
+      await setupTestLocator(db: db);
+
+      when(() => fingerprintAuth.authenticate(departmentId: any(named: 'departmentId')))
+          .thenAnswer((_) async => bioDataEntry(contractorStaffId: 31));
+
+      final result = await posAuth.authenticateWithFingerprint();
+
+      expect(result.isAuthenticated, isFalse);
+      expect(result.failureReason, AuthFailureReason.entityNotFound);
+    });
   });
 
   group('authenticateWithNfc', () {

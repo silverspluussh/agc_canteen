@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:typed_data';
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import 'package:drift/drift.dart';
@@ -9,6 +8,7 @@ import '../core/utils/app_log.dart';
 import '../services/database/activity_log_service.dart';
 import '../services/auth/pos_auth_service.dart';
 import '../services/database/app_database.dart';
+import '../services/meal_time_service.dart';
 import '../services/print/print_service_manager.dart';
 import '../services/sync_services/sync_from_local_to_remote.dart';
 import 'providers.dart';
@@ -427,36 +427,7 @@ class AuthController extends Notifier<AuthState> {
 
   Future<(int, String, double)?> _resolveCurrentMealType(AppDatabase db) async {
     final mealTypes = await db.getAllMealTypes();
-
-    final now = DateTime.now();
-    final currentMinutes = now.hour * 60 + now.minute;
-
-    for (final mt in mealTypes) {
-      if (mt.status != 'active') continue;
-
-      TimeOfDay parse(String time) {
-        final parts = time.trim().split(':');
-        return TimeOfDay(
-          hour: int.tryParse(parts[0]) ?? 0,
-          minute: parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0,
-        );
-      }
-
-      final start = parse(mt.beginTime);
-      final end = parse(mt.endTime);
-      final startMins = start.hour * 60 + start.minute;
-      final endMins = end.hour * 60 + end.minute;
-
-      bool active;
-      if (startMins <= endMins) {
-        active = currentMinutes >= startMins && currentMinutes < endMins;
-      } else {
-        active = currentMinutes >= startMins || currentMinutes < endMins;
-      }
-
-      if (active) return (mt.id, mt.name.toLowerCase(), mt.price);
-    }
-    return null;
+    return resolveActiveMealType(mealTypes);
   }
 
   Future<void> _placeNfcVoucherOrder(AuthResult staff) async {
