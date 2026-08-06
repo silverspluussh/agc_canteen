@@ -190,6 +190,14 @@ class PosAuthService {
       return const AuthResult.failed(failureReason: AuthFailureReason.entityNotFound);
     }
 
+    if (_isInactiveStatus(staff.empStatus)) {
+      appLog(
+        '[PosAuthService] Staff id=$staffId rejected: empStatus=${staff.empStatus}',
+        name: 'POS_AUTH',
+      );
+      return const AuthResult.failed(failureReason: AuthFailureReason.entityNotFound);
+    }
+
     final entityType =
         EmployeeType.tryParse(staff.employeeType) ?? EmployeeType.permanent;
     final displayName = '${staff.firstName} ${staff.lastName}'.trim();
@@ -229,6 +237,14 @@ class PosAuthService {
       return const AuthResult.failed(failureReason: AuthFailureReason.entityNotFound);
     }
 
+    if (dependent.status.trim().toLowerCase() != 'active') {
+      appLog(
+        '[PosAuthService] Dependent id=$dependentId rejected: status=${dependent.status}',
+        name: 'POS_AUTH',
+      );
+      return const AuthResult.failed(failureReason: AuthFailureReason.entityNotFound);
+    }
+
     final name = dependent.fullname.trim().isNotEmpty
         ? dependent.fullname.trim()
         : (fallbackName?.trim().isNotEmpty == true ? fallbackName!.trim() : null);
@@ -253,6 +269,15 @@ class PosAuthService {
     if (contractor == null) {
       appLog(
         '[PosAuthService] Contractor staff not found for id=$contractorStaffId',
+        name: 'POS_AUTH',
+      );
+      return const AuthResult.failed(failureReason: AuthFailureReason.entityNotFound);
+    }
+
+    if (_isBeforeStart(contractor.startDate) || _isPastEnd(contractor.endDate)) {
+      appLog(
+        '[PosAuthService] Contractor staff id=$contractorStaffId rejected: '
+        'start=${contractor.startDate} end=${contractor.endDate}',
         name: 'POS_AUTH',
       );
       return const AuthResult.failed(failureReason: AuthFailureReason.entityNotFound);
@@ -287,6 +312,15 @@ class PosAuthService {
       return const AuthResult.failed(failureReason: AuthFailureReason.entityNotFound);
     }
 
+    if (_isBeforeStart(visitor.startDate) || _isPastEnd(visitor.endTime)) {
+      appLog(
+        '[PosAuthService] Visitor id=$visitorId rejected: '
+        'start=${visitor.startDate} end=${visitor.endTime}',
+        name: 'POS_AUTH',
+      );
+      return const AuthResult.failed(failureReason: AuthFailureReason.entityNotFound);
+    }
+
     final name = visitor.name.trim().isNotEmpty
         ? visitor.name.trim()
         : (fallbackName?.trim().isNotEmpty == true ? fallbackName!.trim() : null);
@@ -300,6 +334,55 @@ class PosAuthService {
       displayName: name,
       staffId: visitorId,
     );
+  }
+
+  /// Employment statuses that must not receive meal vouchers.
+  ///
+  /// `on-leave` and similar remain eligible; only clearly deactivated /
+  /// terminated values are rejected. Null/empty status is treated as eligible.
+  static bool _isInactiveStatus(String? status) {
+    if (status == null) return false;
+    final normalized = status.trim().toLowerCase().replaceAll(
+      RegExp(r'[\s_-]+'),
+      '',
+    );
+    if (normalized.isEmpty) return false;
+    return const {
+      'inactive',
+      'terminated',
+      'terminatedemployment',
+      'resigned',
+      'deactivated',
+      'disabled',
+      'deleted',
+    }.contains(normalized);
+  }
+
+  static bool _isPastEnd(String? raw) {
+    final end = _parseBoundary(raw, endOfDay: true);
+    if (end == null) return false;
+    return DateTime.now().isAfter(end);
+  }
+
+  static bool _isBeforeStart(String? raw) {
+    final start = _parseBoundary(raw, endOfDay: false);
+    if (start == null) return false;
+    return DateTime.now().isBefore(start);
+  }
+
+  static DateTime? _parseBoundary(String? raw, {required bool endOfDay}) {
+    if (raw == null) return null;
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty) return null;
+    final parsed = DateTime.tryParse(trimmed);
+    if (parsed == null) return null;
+    // Date-only values (YYYY-MM-DD) are inclusive for the whole calendar day.
+    if (trimmed.length <= 10) {
+      return endOfDay
+          ? DateTime(parsed.year, parsed.month, parsed.day, 23, 59, 59, 999)
+          : DateTime(parsed.year, parsed.month, parsed.day);
+    }
+    return parsed;
   }
 
   /// Enroll a new fingerprint for an entity.

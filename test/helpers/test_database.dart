@@ -17,6 +17,7 @@ Future<int> seedStaff(
   String firstName = 'Jane',
   String lastName = 'Doe',
   String employeeType = 'permanent',
+  String? empStatus,
   int? shiftId,
   int? departmentId,
 }) async {
@@ -27,6 +28,7 @@ Future<int> seedStaff(
       firstName: firstName,
       lastName: lastName,
       employeeType: employeeType,
+      empStatus: Value.absentIfNull(empStatus),
       shiftId: Value.absentIfNull(shiftId),
       departmentId: Value.absentIfNull(departmentId),
     ),
@@ -38,13 +40,14 @@ Future<int> seedDependent(
   AppDatabase db, {
   int id = 1,
   String fullname = 'Baby Doe',
+  String status = 'active',
   int? staffId,
 }) async {
   await db.insertDependent(
     DependentsCompanion.insert(
       id: Value(id),
       fullname: fullname,
-      status: 'active',
+      status: status,
       staffId: Value.absentIfNull(staffId),
     ),
   );
@@ -55,13 +58,15 @@ Future<int> seedContractorStaff(
   AppDatabase db, {
   int id = 1,
   String name = 'Contract Worker',
+  String startDate = '2024-01-01',
+  String endDate = '2099-12-31',
 }) async {
   await db.insertContractorStaff(
     ContractorStaffTableCompanion.insert(
       id: Value(id),
       name: name,
-      startDate: '2024-01-01',
-      endDate: '2024-12-31',
+      startDate: startDate,
+      endDate: endDate,
     ),
   );
   return id;
@@ -71,8 +76,17 @@ Future<int> seedVisitor(
   AppDatabase db, {
   int id = 1,
   String name = 'Visitor Person',
+  String? startDate,
+  String? endTime,
 }) async {
-  await db.insertVisitor(VisitorsCompanion.insert(id: Value(id), name: name));
+  await db.insertVisitor(
+    VisitorsCompanion.insert(
+      id: Value(id),
+      name: name,
+      startDate: Value.absentIfNull(startDate),
+      endTime: Value.absentIfNull(endTime),
+    ),
+  );
   return id;
 }
 
