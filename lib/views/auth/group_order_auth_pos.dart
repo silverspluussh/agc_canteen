@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:agc_canteen/controllers/auth_controller.dart';
 import 'package:agc_canteen/controllers/auth_settings_controller.dart';
 import 'package:agc_canteen/controllers/providers.dart';
+import 'package:agc_canteen/core/enums/employee_type.enum.dart';
 import 'package:agc_canteen/core/theme/app_colors.dart';
 import 'package:agc_canteen/l10n/generated/app_localizations.dart';
 import 'package:agc_canteen/views/widgets/app_buttons.widget.dart';
@@ -241,11 +242,15 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
 
     final db = getIt<AppDatabase>();
 
-    final staffData = staff.entityId != null
+    // Only staff-type entities may place group orders. Looking up getStaff by
+    // entityId alone is unsafe: visitor/dependent/contractor ids can collide
+    // with a staff row that has allowGroupOrder enabled.
+    final staffData = (staff.entityType?.isStaffType == true &&
+            staff.entityId != null)
         ? await db.getStaff(staff.entityId!)
         : null;
 
-    if (staffData == null || staffData.allowGroupOrder != true) {
+    if (!isAllowedGroupOrderAuth(staff, staffData) || staffData == null) {
       if (mounted) {
         setState(_resetOrderState);
         ref.read(authProvider.notifier).reset();
@@ -616,4 +621,15 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
       ),
     );
   }
+}
+
+/// Returns true only when [auth] is a staff-type entity that is explicitly
+/// allowed to place group orders.
+///
+/// Non-staff entity ids must not inherit permission from a coincidentally
+/// matching staff row (`getStaff(entityId)` alone is not enough).
+bool isAllowedGroupOrderAuth(AuthResult auth, StaffData? staffData) {
+  final type = auth.entityType;
+  if (type == null || !type.isStaffType) return false;
+  return staffData?.allowGroupOrder == true;
 }

@@ -180,8 +180,15 @@ class FingerprintAuthService {
         _db.bioDataEntries.visitorId,
       ])
       ..where(_db.bioDataEntries.isActive.equals(true));
+    // Department filter applies to staff templates that carry a departmentId.
+    // Non-staff enrollments leave departmentId null; requiring equality would
+    // make visitor/dependent/contractor fingerprints invisible whenever a
+    // department is selected on the POS.
     if (departmentId != null) {
-      query.where(_db.bioDataEntries.departmentId.equals(departmentId));
+      query.where(
+        _db.bioDataEntries.departmentId.isNull() |
+            _db.bioDataEntries.departmentId.equals(departmentId),
+      );
     }
     final rows = await query.get();
 

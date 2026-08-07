@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:agc_canteen/controllers/auth_controller.dart';
 import 'package:agc_canteen/controllers/providers.dart';
 import 'package:agc_canteen/core/enums/employee_type.enum.dart';
@@ -265,15 +267,46 @@ void main() {
       // wait a tick so the sign-out log's id doesn't collide with the
       // auth-success log written a moment ago in the same test.
       await Future<void>.delayed(const Duration(milliseconds: 2));
+      when(() => posAuth.cancelAuth()).thenAnswer((_) async {});
       controller().reset();
 
       expect(state().step, AuthStep.unauthenticated);
       expect(state().staff, isNull);
+      verify(() => posAuth.cancelAuth()).called(1);
     });
 
     test('is a no-op safe to call with no active staff session', () {
+      when(() => posAuth.cancelAuth()).thenAnswer((_) async {});
       controller().reset();
       expect(state().step, AuthStep.unauthenticated);
+      verify(() => posAuth.cancelAuth()).called(1);
+    });
+
+    test('reset while fingerprint auth is in flight does not place an order', () async {
+      await seedPosDevice(db, kitchenId: 1);
+      await seedMealType(db, id: 1, name: 'lunch', price: 12.5);
+
+      final gate = Completer<AuthResult>();
+      when(() => posAuth.authenticateWithFingerprint(departmentId: any(named: 'departmentId')))
+          .thenAnswer((_) => gate.future);
+      when(() => posAuth.cancelAuth()).thenAnswer((_) async {});
+
+      final authFuture = controller().authenticate();
+      await Future<void>.delayed(Duration.zero);
+      expect(state().step, AuthStep.authenticating);
+
+      // Mimics navigating Single Auth → Group Order while scanning: reset()
+      // must invalidate the session so a late match cannot place a voucher.
+      controller().reset();
+      expect(state().step, AuthStep.unauthenticated);
+      verify(() => posAuth.cancelAuth()).called(1);
+
+      gate.complete(authenticatedStaff());
+      await authFuture;
+
+      expect(state().step, AuthStep.unauthenticated);
+      expect(await db.getAllOrders(), isEmpty);
+      verifyNever(() => printer.printRawBytes(any()));
     });
   });
 

@@ -617,6 +617,11 @@ class AuthController extends Notifier<AuthState> {
     }
   }
 
+  /// Clears auth UI state and invalidates any in-flight auth/place-order work.
+  ///
+  /// Unlike a pure state wipe, this bumps [_authSessionId] and cancels hardware
+  /// capture so a fingerprint/NFC match that completes after navigation (e.g.
+  /// Single Auth → Group Order) cannot still place a voucher.
   void reset() {
     if (state.staff != null) {
       final staff = state.staff!;
@@ -629,7 +634,9 @@ class AuthController extends Notifier<AuthState> {
       ));
      
     }
+    _authSessionId++;
     state = const AuthState();
+    unawaited(ref.read(posAuthProvider).cancelAuth());
   }
 
   void clearError() {
