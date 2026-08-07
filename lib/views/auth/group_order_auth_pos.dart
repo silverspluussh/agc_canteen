@@ -250,7 +250,7 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
         ? await db.getStaff(staff.entityId!)
         : null;
 
-    if (!isAllowedGroupOrderAuth(staff, staffData)) {
+    if (!isAllowedGroupOrderAuth(staff, staffData) || staffData == null) {
       if (mounted) {
         setState(_resetOrderState);
         ref.read(authProvider.notifier).reset();
