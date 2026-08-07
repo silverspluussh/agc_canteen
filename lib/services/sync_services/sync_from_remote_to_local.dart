@@ -813,10 +813,11 @@ class RemoteToLocalSyncService {
         }
       }
 
-      // Upsert bioData
+      // Upsert bioData — only replace synced remote templates; keep local
+      // unsynced enrollments so a pull cannot wipe fingerprints awaiting upload.
       final visitorBioData = map['bioData'] as List<dynamic>?;
       if (visitorBioData != null) {
-        await _db.deleteBioDataByVisitor(id);
+        await _db.deleteSyncedBioDataByVisitor(id);
         for (final bio in visitorBioData) {
           if (bio is Map<String, dynamic>) {
             final bioId = _safeParseInt(bio['id']) ?? 0;
@@ -957,10 +958,11 @@ class RemoteToLocalSyncService {
         }
       }
 
-      // Upsert bioData
+      // Upsert bioData — only replace synced remote templates; keep local
+      // unsynced enrollments so a pull cannot wipe fingerprints awaiting upload.
       final csBioData = map['bioData'] as List<dynamic>?;
       if (csBioData != null) {
-        await _db.deleteBioDataByContractorStaff(id);
+        await _db.deleteSyncedBioDataByContractorStaff(id);
         for (final bio in csBioData) {
           if (bio is Map<String, dynamic>) {
             final bioId = _safeParseInt(bio['id']) ?? 0;
@@ -1086,10 +1088,11 @@ class RemoteToLocalSyncService {
         }
       }
 
-      // Upsert bioData
+      // Upsert bioData — only replace synced remote templates; keep local
+      // unsynced enrollments so a pull cannot wipe fingerprints awaiting upload.
       final depBioData = map['bioData'] as List<dynamic>?;
       if (depBioData != null) {
-        await _db.deleteBioDataByDependent(id);
+        await _db.deleteSyncedBioDataByDependent(id);
         for (final bio in depBioData) {
           if (bio is Map<String, dynamic>) {
             final bioId = _safeParseInt(bio['id']) ?? 0;

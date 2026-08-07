@@ -1618,6 +1618,33 @@ SELECT COALESCE(SUM(total), 0) AS revenue FROM (
   Future<void> deleteBioDataByVisitor(int visitorId) =>
       (delete(bioDataEntries)..where((t) => t.visitorId.equals(visitorId))).go();
 
+  /// Deletes only *synced* bios for an entity. Used when remote nested
+  /// `bioData` payloads replace server-owned templates so local unsynced
+  /// enrollments (`syncStatus != 2`) survive a pull.
+  Future<void> deleteSyncedBioDataByDependent(int dependentId) =>
+      (delete(bioDataEntries)
+            ..where(
+              (t) =>
+                  t.dependentId.equals(dependentId) & t.syncStatus.equals(2),
+            ))
+          .go();
+
+  Future<void> deleteSyncedBioDataByContractorStaff(int contractorStaffId) =>
+      (delete(bioDataEntries)
+            ..where(
+              (t) =>
+                  t.contractorStaffId.equals(contractorStaffId) &
+                  t.syncStatus.equals(2),
+            ))
+          .go();
+
+  Future<void> deleteSyncedBioDataByVisitor(int visitorId) =>
+      (delete(bioDataEntries)
+            ..where(
+              (t) => t.visitorId.equals(visitorId) & t.syncStatus.equals(2),
+            ))
+          .go();
+
   Future<List<BioDataEntry>> getAllBioData() => select(bioDataEntries).get();
 
   Future<BioDataEntry?> getBioData(int id) =>
