@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:agc_canteen/core/enums/employee_type.enum.dart';
 import 'package:agc_canteen/core/network/api_exceptions_util.dart';
 import 'package:agc_canteen/models/sync.model.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -120,12 +121,24 @@ class LocalToRemoteSyncService {
           _logger.w('Skipping order ${order.orderCode}: total is ${order.total}');
           continue;
         }
+        final mealTypeId = mealTypeByName[order.mealType.toLowerCase()];
+        if (mealTypeId == null) {
+          // Do not upload mealTypeId=0 and mark synced — leave unsynced for retry
+          // after meal types are pulled/renamed back into local DB.
+          _logger.w(
+            'Skipping order ${order.orderCode}: unknown meal type "${order.mealType}"',
+          );
+          errors.add(
+            'Order ${order.orderCode}: unknown meal type "${order.mealType}"',
+          );
+          continue;
+        }
         payloads.add(
           _buildSingleOrderPayload(
             order,
             posId: posId,
             kitchenId: kitchenId,
-            mealTypeByName: mealTypeByName,
+            mealTypeId: mealTypeId,
           ),
         );
         ordersToSync.add(order);
@@ -258,41 +271,14 @@ class LocalToRemoteSyncService {
         }
       }
 
-      // Push staff bio-data — look up each staff's actual employeeType
-      for (final staffId in byStaff.keys) {
-        final entries = byStaff[staffId]!;
-        final staff = await _db.getStaff(staffId);
-        final employeeType = staff?.employeeType ?? 'permanent';
-        final payload = {
-          'uuid': const Uuid().v4(),
-          'referenceId': staffId,
-          'employeeType': employeeType,
-          'bioDatas': entries
-              .map((e) => {'finger': e.finger, 'data': e.dataBase64})
-              .toList(),
-        };
-
-        try {
-          await _networkAPI.postData(
-            '/hr/bio-data/create-bulk',
-            data: payload,
-            builder: (data) => data,
-          );
-          for (final entry in entries) {
-            await _db.markBioDataSynced(entry.id);
-          }
-          pushed['bio_data'] = (pushed['bio_data'] ?? 0) + entries.length;
-        } catch (e) {
-          _logger.w('Failed to push bio-data for staff $staffId: $e');
-          errors.add('BioData staff $staffId: $e');
-          for (final entry in entries) {
-            await _db.markBioDataFailed(entry.id);
-          }
-        }
-      }
-
+      // Bio-data API expects entity class, not HR staff subtype
+      // (staff|contractorstaff|visitor|dependent).
+      await pushGroup(groups: byStaff, employeeType: 'staff');
       await pushGroup(groups: byDependent, employeeType: 'dependent');
-      await pushGroup(groups: byContractorStaff, employeeType: 'contractor');
+      await pushGroup(
+        groups: byContractorStaff,
+        employeeType: 'contractorstaff',
+      );
       await pushGroup(groups: byVisitor, employeeType: 'visitor');
 
       await _saveLastSync();
@@ -323,16 +309,15 @@ class LocalToRemoteSyncService {
     Order order, {
     required int? posId,
     required int? kitchenId,
-    required Map<String, int> mealTypeByName,
+    required int mealTypeId,
   }) {
-    final mealTypeId = mealTypeByName[order.mealType.toLowerCase()];
-
     return {
       'orderCode': order.orderCode,
       'uuid': order.uuid,
-      'employeeType': order.employeeType,
+      // Local orders store HR/enum names (e.g. permanent); POS API needs entity class.
+      'employeeType': EmployeeType.toPosApiEmployeeType(order.employeeType),
       'orderType': order.orderType,
-      'mealTypeId': mealTypeId ?? 0,
+      'mealTypeId': mealTypeId,
       'total': order.total,
       'orderedBy': order.orderedById,
       'description': order.description ?? '',
@@ -340,7 +325,8 @@ class LocalToRemoteSyncService {
       'posProfileId': posId ?? 0,
       'kitchenId': kitchenId,
       'quantity': 1,
-      'createdAt': '',
+      // Preserve place-time so offline orders don't inherit sync receive-time.
+      'createdAt': order.createdAt,
     };
   }
 

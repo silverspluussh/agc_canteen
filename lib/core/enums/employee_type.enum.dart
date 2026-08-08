@@ -22,6 +22,33 @@ enum EmployeeType {
     dependent => 'Dependent',
   };
 
+  /// POS / bio-data API entity class (`staff|contractorstaff|visitor|dependent`).
+  ///
+  /// Distinct from HR staff subtypes stored locally (`permanent`,
+  /// `graduateTrainee`, …) and from display labels.
+  String get posApiEmployeeType => switch (this) {
+    permanent || graduateTrainee || nationalService || intern => 'staff',
+    contractor => 'contractorstaff',
+    visitor => 'visitor',
+    dependent => 'dependent',
+  };
+
+  /// Maps a locally stored employee-type string to the POS/bio-data API value.
+  ///
+  /// Accepts HR subtypes, enum names, display labels, and already-correct API
+  /// values. Unknown inputs fall back to `staff` so uploads never send an
+  /// unrecognized HR subtype like `permanent`.
+  static String toPosApiEmployeeType(String? raw) {
+    final parsed = tryParse(raw);
+    if (parsed != null) return parsed.posApiEmployeeType;
+
+    final normalized = raw?.trim().toLowerCase() ?? '';
+    return switch (normalized) {
+      'staff' || 'contractorstaff' || 'visitor' || 'dependent' => normalized,
+      _ => 'staff',
+    };
+  }
+
   /// Parses API/DB strings such as `permanent`, `graduateTrainee`,
   /// `Graduate Trainee`, `Staff`, etc.
   static EmployeeType? tryParse(String? raw) {
