@@ -2,7 +2,7 @@ import 'package:agc_canteen/services/database/app_database.dart';
 import 'package:agc_canteen/services/database/tables.dart';
 import 'package:agc_canteen/services/sync_services/sync_from_local_to_remote.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' hide isNull;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
