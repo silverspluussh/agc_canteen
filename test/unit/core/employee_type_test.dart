@@ -85,4 +85,39 @@ void main() {
       expect(EmployeeType.dependent.entityName, 'Dependent');
     });
   });
+
+  group('EmployeeType.posApiEmployeeType', () {
+    test('maps HR staff subtypes to staff and contractor to contractorstaff', () {
+      expect(EmployeeType.permanent.posApiEmployeeType, 'staff');
+      expect(EmployeeType.graduateTrainee.posApiEmployeeType, 'staff');
+      expect(EmployeeType.nationalService.posApiEmployeeType, 'staff');
+      expect(EmployeeType.intern.posApiEmployeeType, 'staff');
+      expect(EmployeeType.contractor.posApiEmployeeType, 'contractorstaff');
+      expect(EmployeeType.visitor.posApiEmployeeType, 'visitor');
+      expect(EmployeeType.dependent.posApiEmployeeType, 'dependent');
+    });
+  });
+
+  group('EmployeeType.toPosApiEmployeeType', () {
+    test('maps stored local/HR values to POS API entity classes', () {
+      expect(EmployeeType.toPosApiEmployeeType('permanent'), 'staff');
+      expect(EmployeeType.toPosApiEmployeeType('graduateTrainee'), 'staff');
+      expect(EmployeeType.toPosApiEmployeeType('contractor'), 'contractorstaff');
+      expect(EmployeeType.toPosApiEmployeeType('visitor'), 'visitor');
+      expect(EmployeeType.toPosApiEmployeeType('dependent'), 'dependent');
+    });
+
+    test('preserves already-correct API values', () {
+      expect(EmployeeType.toPosApiEmployeeType('staff'), 'staff');
+      expect(
+        EmployeeType.toPosApiEmployeeType('contractorstaff'),
+        'contractorstaff',
+      );
+    });
+
+    test('falls back to staff for unknown values', () {
+      expect(EmployeeType.toPosApiEmployeeType(null), 'staff');
+      expect(EmployeeType.toPosApiEmployeeType('alien'), 'staff');
+    });
+  });
 }
