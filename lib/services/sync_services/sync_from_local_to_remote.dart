@@ -201,13 +201,43 @@ class LocalToRemoteSyncService {
         return SyncResult(pushed: pushed, pulled: {}, errors: errors);
       }
 
+      // Revoke deactivated templates first. Never send them through
+      // create-bulk — that would re-enroll a fingerprint the operator removed.
+      final toRevoke = unsynced.where((e) => !e.isActive).toList();
+      for (final entry in toRevoke) {
+        try {
+          await _networkAPI.deleteData(
+            '/hr/bio-data/delete/${entry.id}',
+            builder: (data) => data,
+          );
+          await _db.deleteBioData(entry.id);
+          pushed['bio_data_deleted'] =
+              (pushed['bio_data_deleted'] ?? 0) + 1;
+        } on NotFoundException {
+          // Already absent remotely — finish the local revocation.
+          await _db.deleteBioData(entry.id);
+          pushed['bio_data_deleted'] =
+              (pushed['bio_data_deleted'] ?? 0) + 1;
+        } catch (e) {
+          _logger.w('Failed to revoke bio-data ${entry.id}: $e');
+          errors.add('BioData delete ${entry.id}: $e');
+          await _db.markBioDataFailed(entry.id);
+        }
+      }
+
+      final toCreate = unsynced.where((e) => e.isActive).toList();
+      if (toCreate.isEmpty) {
+        await _saveLastSync();
+        return SyncResult(pushed: pushed, pulled: {}, errors: errors);
+      }
+
       // Group by entity type + entity ID
       final byStaff = <int, List<BioDataEntry>>{};
       final byDependent = <int, List<BioDataEntry>>{};
       final byContractorStaff = <int, List<BioDataEntry>>{};
       final byVisitor = <int, List<BioDataEntry>>{};
 
-      for (final entry in unsynced) {
+      for (final entry in toCreate) {
         if (entry.staffId != null) {
           byStaff.putIfAbsent(entry.staffId!, () => []).add(entry);
         } else if (entry.dependentId != null) {
