@@ -237,15 +237,15 @@ class FingerprintAuthService {
     return fingerprints.map((t) => t.id).toList();
   }
 
-  /// Delete a stored fingerprint .
+  /// Revokes a stored fingerprint for authentication.
+  ///
+  /// Must soft-deactivate (not hard-delete): a hard delete is resurrected by
+  /// the next remote bio-data pull while the server template remains active.
+  /// Deactivation stops local matches immediately and queues a remote DELETE
+  /// via [LocalToRemoteSyncService.syncBioData].
   Future<void> deleteFingerprint(int fingerprintId) async {
-    await _db.deleteBioData(fingerprintId);
-    getIt<ActivityLogService>().log(
-      type: 'fingerprint_deleted',
-      message: 'Fingerprint deleted: $fingerprintId',
-      sourceTable: 'bio_data_entries',
-      recordId: fingerprintId.toString(),
-    );
+    await deactivateFingerprint(fingerprintId);
+    unawaited(getIt<LocalToRemoteSyncService>().syncBioData());
   }
 
   Future<void> deactivateFingerprint(int fingerprintId) async {

@@ -478,6 +478,17 @@ class RemoteToLocalSyncService {
       final intId = id is int ? id : int.tryParse(id.toString()) ?? 0;
       if (intId == 0) return;
 
+      // Preserve pending local revocations/enrollments. Overwriting an
+      // unsynced soft-delete would re-activate a fingerprint the operator
+      // already removed on this device.
+      final existing = await _db.getBioData(intId);
+      if (existing != null && existing.syncStatus != 2) {
+        _logger.i(
+          'RemoteToLocalSyncService: skipping upsert for locally pending bio-data id=$intId',
+        );
+        return;
+      }
+
       final now = DateTime.now().toIso8601String();
 
       final companion = BioDataEntriesCompanion(
@@ -813,14 +824,19 @@ class RemoteToLocalSyncService {
         }
       }
 
-      // Upsert bioData
+      // Upsert bioData — only replace synced remote templates; keep local
+      // unsynced enrollments/revocations so a pull cannot re-activate deleted prints.
       final visitorBioData = map['bioData'] as List<dynamic>?;
       if (visitorBioData != null) {
-        await _db.deleteBioDataByVisitor(id);
+        await _db.deleteSyncedBioDataByVisitor(id);
         for (final bio in visitorBioData) {
           if (bio is Map<String, dynamic>) {
             final bioId = _safeParseInt(bio['id']) ?? 0;
             if (bioId == 0) continue;
+            final existingBio = await _db.getBioData(bioId);
+            if (existingBio != null && existingBio.syncStatus != 2) {
+              continue;
+            }
             await _db.upsertBioData(
               BioDataEntriesCompanion(
                 id: Value(bioId),
@@ -957,14 +973,19 @@ class RemoteToLocalSyncService {
         }
       }
 
-      // Upsert bioData
+      // Upsert bioData — only replace synced remote templates; keep local
+      // unsynced enrollments/revocations so a pull cannot re-activate deleted prints.
       final csBioData = map['bioData'] as List<dynamic>?;
       if (csBioData != null) {
-        await _db.deleteBioDataByContractorStaff(id);
+        await _db.deleteSyncedBioDataByContractorStaff(id);
         for (final bio in csBioData) {
           if (bio is Map<String, dynamic>) {
             final bioId = _safeParseInt(bio['id']) ?? 0;
             if (bioId == 0) continue;
+            final existingBio = await _db.getBioData(bioId);
+            if (existingBio != null && existingBio.syncStatus != 2) {
+              continue;
+            }
             await _db.upsertBioData(
               BioDataEntriesCompanion(
                 id: Value(bioId),
@@ -1086,14 +1107,19 @@ class RemoteToLocalSyncService {
         }
       }
 
-      // Upsert bioData
+      // Upsert bioData — only replace synced remote templates; keep local
+      // unsynced enrollments/revocations so a pull cannot re-activate deleted prints.
       final depBioData = map['bioData'] as List<dynamic>?;
       if (depBioData != null) {
-        await _db.deleteBioDataByDependent(id);
+        await _db.deleteSyncedBioDataByDependent(id);
         for (final bio in depBioData) {
           if (bio is Map<String, dynamic>) {
             final bioId = _safeParseInt(bio['id']) ?? 0;
             if (bioId == 0) continue;
+            final existingBio = await _db.getBioData(bioId);
+            if (existingBio != null && existingBio.syncStatus != 2) {
+              continue;
+            }
             await _db.upsertBioData(
               BioDataEntriesCompanion(
                 id: Value(bioId),
