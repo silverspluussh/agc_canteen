@@ -245,10 +245,12 @@ void main() {
     });
 
     test(
-      'falls back to probing staff/dependent/contractor/visitor tables when '
-      'assignedToType cannot be parsed',
+      'refuses auth when assignedToType cannot be parsed (no cross-table probe)',
       () async {
-        await seedVisitor(db, id: 70, name: 'Unparsed Type Visitor');
+        // Staff id=70 exists; card claims id=70 with an unknown type.
+        // Old behavior probed staff first and would mis-auth as that staff.
+        await seedStaff(db, id: 70, firstName: 'Wrong', lastName: 'Person');
+        await seedVisitor(db, id: 70, name: 'Real Visitor');
         await setupTestLocator(db: db);
         await seedNfcCard(
           db,
@@ -264,9 +266,8 @@ void main() {
 
         final result = await posAuth.authenticateWithNfc();
 
-        expect(result.isAuthenticated, isTrue);
-        expect(result.entityId, 70);
-        expect(result.entityType, EmployeeType.visitor);
+        expect(result.isAuthenticated, isFalse);
+        expect(result.failureReason, AuthFailureReason.entityNotFound);
       },
     );
   });

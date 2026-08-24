@@ -90,6 +90,28 @@ void main() {
     expect(result, isNull);
   });
 
+  test('cancel() after a matched tag does not throw StateError', () async {
+    await seedNfcCard(
+      db,
+      id: 1,
+      tagId: 'RACE',
+      assignedToId: 1,
+      assignedToType: 'permanent',
+    );
+
+    final future = nfcAuth.readCard();
+    await pumpEventLoop();
+    tagController.add({'tagId': 'RACE'});
+    // Cancel in the window after match while the listen callback may still
+    // hold _pendingCompleter — must not double-complete.
+    await pumpEventLoop();
+    expect(() => nfcAuth.cancel(), returnsNormally);
+
+    final result = await future;
+    // Either the match or the cancel may win; both are non-throwing outcomes.
+    expect(result == null || result.tagId == 'RACE', isTrue);
+  });
+
   test('starting a new readCard cancels the previous pending read', () async {
     await seedNfcCard(
       db,

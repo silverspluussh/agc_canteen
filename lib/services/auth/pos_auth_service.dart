@@ -152,17 +152,16 @@ class PosAuthService {
     required EmployeeType? hintedType,
     String? fallbackName,
   }) async {
+    // Fail closed when the card type cannot be parsed. Probing staff first
+    // (then other tables) mis-authenticates whenever another entity shares the
+    // same numeric id — e.g. visitor card id=5 with type "unknown" matches
+    // staff row 5 and places a staff voucher.
     if (hintedType == null) {
-      // Try staff first, then other entity tables.
-      final staffResult = await _resolveStaff(entityId, fallbackName: fallbackName);
-      if (staffResult.isAuthenticated) return staffResult;
-      final dependentResult =
-          await _resolveDependent(entityId, fallbackName: fallbackName);
-      if (dependentResult.isAuthenticated) return dependentResult;
-      final contractorResult =
-          await _resolveContractorStaff(entityId, fallbackName: fallbackName);
-      if (contractorResult.isAuthenticated) return contractorResult;
-      return _resolveVisitor(entityId, fallbackName: fallbackName);
+      appLog(
+        '[PosAuthService] Unparseable assignedToType for entityId=$entityId — refusing auth',
+        name: 'POS_AUTH',
+      );
+      return const AuthResult.failed(failureReason: AuthFailureReason.entityNotFound);
     }
 
     if (hintedType.isStaffType) {

@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'tables.dart';
+import '../../core/enums/employee_type.enum.dart';
 import '../../models/biodata_fingerprint_summary.dart';
 import '../../models/unified_report_order_row.dart';
 
@@ -414,7 +415,9 @@ class AppDatabase extends _$AppDatabase {
     InsertMode mode = InsertMode.insert,
   }) async {
     await into(shifts).insert(shift, mode: mode);
-    if (mealTypeIds.isNotEmpty && mode == InsertMode.insertOrReplace) {
+    // Always clear existing links on replace — an empty mealTypeIds means
+    // "no restrictions", not "leave previous restrictions in place".
+    if (mode == InsertMode.insertOrReplace) {
       await deleteShiftMealTypesByShift(shift.id.value);
     }
     for (final mt in mealTypeIds) {
@@ -672,7 +675,12 @@ class AppDatabase extends _$AppDatabase {
   Future<void> deleteStaff(int id) async {
     await transaction(() async {
       await deleteStaffKitchensByStaff(id);
-      await deleteDependentsByStaff(id);
+      // Cascade each dependent properly (kitchens, bio, cards) — a bare
+      // deleteDependentsByStaff leaves orphan auth material behind.
+      final dependentsOfStaff = await getDependentsByStaff(id);
+      for (final dependent in dependentsOfStaff) {
+        await deleteDependent(dependent.id);
+      }
       await deleteCardsByAssignedTo(id);
       await deleteBioDataByStaff(id);
       await (delete(staff)..where((t) => t.id.equals(id))).go();
@@ -726,12 +734,11 @@ class AppDatabase extends _$AppDatabase {
       );
 
   Future<int> deleteStaffNotIn(Set<int> keepIds) async {
-    if (keepIds.isEmpty) {
-      return (delete(staff)..where((t) => t.syncStatus.equals(2))).go();
-    }
-    final toDelete = await (select(staff)
-          ..where((t) => t.syncStatus.equals(2) & t.id.isNotIn(keepIds)))
-        .get();
+    final toDelete = keepIds.isEmpty
+        ? await (select(staff)..where((t) => t.syncStatus.equals(2))).get()
+        : await (select(staff)
+              ..where((t) => t.syncStatus.equals(2) & t.id.isNotIn(keepIds)))
+            .get();
     for (final record in toDelete) {
       await deleteStaff(record.id);
     }
@@ -884,12 +891,17 @@ class AppDatabase extends _$AppDatabase {
     await transaction(() async {
       await deleteDependentKitchensByDependent(id);
       await deleteBioDataByDependent(id);
+      await deleteCardsForEntity(id, EmployeeType.dependent);
       await (delete(dependents)..where((t) => t.id.equals(id))).go();
     });
   }
 
-  Future<void> deleteDependentsByStaff(int staffId) =>
-      (delete(dependents)..where((t) => t.staffId.equals(staffId))).go();
+  Future<void> deleteDependentsByStaff(int staffId) async {
+    final dependentsOfStaff = await getDependentsByStaff(staffId);
+    for (final dependent in dependentsOfStaff) {
+      await deleteDependent(dependent.id);
+    }
+  }
 
   Future<List<Dependent>> getAllDependents() => select(dependents).get();
   Future<Dependent?> getDependent(int id) =>
@@ -915,12 +927,11 @@ class AppDatabase extends _$AppDatabase {
       );
 
   Future<int> deleteDependentsNotIn(Set<int> keepIds) async {
-    if (keepIds.isEmpty) {
-      return (delete(dependents)..where((t) => t.syncStatus.equals(2))).go();
-    }
-    final toDelete = await (select(dependents)
-          ..where((t) => t.syncStatus.equals(2) & t.id.isNotIn(keepIds)))
-        .get();
+    final toDelete = keepIds.isEmpty
+        ? await (select(dependents)..where((t) => t.syncStatus.equals(2))).get()
+        : await (select(dependents)
+              ..where((t) => t.syncStatus.equals(2) & t.id.isNotIn(keepIds)))
+            .get();
     for (final record in toDelete) {
       await deleteDependent(record.id);
     }
@@ -942,6 +953,24 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> deleteCardsByAssignedTo(int assignedToId) =>
       (delete(cards)..where((t) => t.assignedToId.equals(assignedToId))).go();
+
+  /// Removes NFC cards for [assignedToId] whose [Card.assignedToType] resolves
+  /// to [entityType]. Avoids wiping unrelated entities that share the same id.
+  Future<void> deleteCardsForEntity(int assignedToId, EmployeeType entityType) async {
+    final matches = await getCardsByAssignedTo(assignedToId);
+    for (final card in matches) {
+      final parsed = EmployeeType.tryParse(card.assignedToType);
+      final belongs = switch (entityType) {
+        EmployeeType.visitor => parsed == EmployeeType.visitor,
+        EmployeeType.dependent => parsed == EmployeeType.dependent,
+        EmployeeType.contractor => parsed == EmployeeType.contractor,
+        _ => parsed != null && parsed.isStaffType,
+      };
+      if (belongs) {
+        await deleteCard(card.id);
+      }
+    }
+  }
 
   Future<int> deleteCardsNotIn(Set<int> keepIds) async {
     if (keepIds.isEmpty) {
@@ -1038,6 +1067,7 @@ class AppDatabase extends _$AppDatabase {
     await transaction(() async {
       await deleteContractorStaffKitchensByContractorStaff(id);
       await deleteBioDataByContractorStaff(id);
+      await deleteCardsForEntity(id, EmployeeType.contractor);
       await (delete(contractorStaffTable)..where((t) => t.id.equals(id))).go();
     });
   }
@@ -1076,14 +1106,13 @@ class AppDatabase extends _$AppDatabase {
       );
 
   Future<int> deleteContractorStaffNotIn(Set<int> keepIds) async {
-    if (keepIds.isEmpty) {
-      return (delete(contractorStaffTable)
-            ..where((t) => t.syncStatus.equals(2)))
-          .go();
-    }
-    final toDelete = await (select(contractorStaffTable)
-          ..where((t) => t.syncStatus.equals(2) & t.id.isNotIn(keepIds)))
-        .get();
+    final toDelete = keepIds.isEmpty
+        ? await (select(contractorStaffTable)
+              ..where((t) => t.syncStatus.equals(2)))
+            .get()
+        : await (select(contractorStaffTable)
+              ..where((t) => t.syncStatus.equals(2) & t.id.isNotIn(keepIds)))
+            .get();
     for (final record in toDelete) {
       await deleteContractorStaff(record.id);
     }
@@ -1104,6 +1133,7 @@ class AppDatabase extends _$AppDatabase {
     await transaction(() async {
       await deleteVisitorKitchensByVisitor(id);
       await deleteBioDataByVisitor(id);
+      await deleteCardsForEntity(id, EmployeeType.visitor);
       await (delete(visitors)..where((t) => t.id.equals(id))).go();
     });
   }
@@ -1129,12 +1159,11 @@ class AppDatabase extends _$AppDatabase {
       );
 
   Future<int> deleteVisitorsNotIn(Set<int> keepIds) async {
-    if (keepIds.isEmpty) {
-      return (delete(visitors)..where((t) => t.syncStatus.equals(2))).go();
-    }
-    final toDelete = await (select(visitors)
-          ..where((t) => t.syncStatus.equals(2) & t.id.isNotIn(keepIds)))
-        .get();
+    final toDelete = keepIds.isEmpty
+        ? await (select(visitors)..where((t) => t.syncStatus.equals(2))).get()
+        : await (select(visitors)
+              ..where((t) => t.syncStatus.equals(2) & t.id.isNotIn(keepIds)))
+            .get();
     for (final record in toDelete) {
       await deleteVisitor(record.id);
     }

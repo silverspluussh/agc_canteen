@@ -19,7 +19,7 @@ class NfcAuthService {
   /// and returns the matching [Card] record (with assignedToId + assignedToType).
   /// Optionally filters by [departmentId] to narrow the lookup.
   Future<Card?> readCard({int? departmentId}) async {
-    _pendingCompleter?.complete(null);
+    _completePending(null);
     await _subscription?.cancel();
     appLog('[NfcAuth] Waiting for NFC tap...', name: 'NFC_AUTH');
 
@@ -43,13 +43,13 @@ class NfcAuthService {
         }
 
         await _subscription?.cancel();
-        if (!completer.isCompleted) completer.complete(match);
         if (_pendingCompleter == completer) _pendingCompleter = null;
+        if (!completer.isCompleted) completer.complete(match);
       },
       onError: (error) {
         appLog('[NfcAuth] Stream error: $error', name: 'NFC_AUTH');
-        if (!completer.isCompleted) completer.complete(null);
         if (_pendingCompleter == completer) _pendingCompleter = null;
+        if (!completer.isCompleted) completer.complete(null);
       },
     );
 
@@ -60,7 +60,15 @@ class NfcAuthService {
   void cancel() {
     _subscription?.cancel();
     _subscription = null;
-    _pendingCompleter?.complete(null);
+    _completePending(null);
+  }
+
+  /// Completes and clears [_pendingCompleter] without double-completing.
+  void _completePending(Card? value) {
+    final pending = _pendingCompleter;
     _pendingCompleter = null;
+    if (pending != null && !pending.isCompleted) {
+      pending.complete(value);
+    }
   }
 }
