@@ -81,6 +81,46 @@ void main() {
     expect(result, isNull);
   });
 
+  test('department filter still matches cards with null departmentId', () async {
+    await seedNfcCard(
+      db,
+      id: 2,
+      tagId: 'NULLDEPT',
+      assignedToId: 7,
+      assignedToType: 'visitor',
+      // departmentId omitted → null, as when sync omits the field
+    );
+
+    final future = nfcAuth.readCard(departmentId: 3);
+    await pumpEventLoop();
+    tagController.add({'tagId': 'NULLDEPT'});
+    final result = await future;
+
+    expect(result, isNotNull);
+    expect(result!.assignedToId, 7);
+    expect(result.departmentId, isNull);
+  });
+
+  test('department filter matches cards for the selected department', () async {
+    await seedNfcCard(
+      db,
+      id: 3,
+      tagId: 'SAMEDEPT',
+      assignedToId: 9,
+      assignedToType: 'permanent',
+      departmentId: 3,
+    );
+
+    final future = nfcAuth.readCard(departmentId: 3);
+    await pumpEventLoop();
+    tagController.add({'tagId': 'SAMEDEPT'});
+    final result = await future;
+
+    expect(result, isNotNull);
+    expect(result!.assignedToId, 9);
+    expect(result.departmentId, 3);
+  });
+
   test('cancel() completes a pending read with null', () async {
     final future = nfcAuth.readCard();
     await pumpEventLoop();

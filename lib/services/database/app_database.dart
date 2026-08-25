@@ -961,8 +961,15 @@ class AppDatabase extends _$AppDatabase {
       (select(cards)..where((t) => t.id.equals(id))).getSingleOrNull();
   Future<Card?> getCardByTagId(String tagId, {int? departmentId}) {
     final query = select(cards)..where((t) => t.tagId.equals(tagId));
+    // Department filter applies to cards that carry a departmentId.
+    // Cards synced without department metadata leave departmentId null;
+    // requiring equality would make those cards invisible whenever a
+    // department is selected on the POS (including sole-department
+    // auto-select on Single Auth).
     if (departmentId != null) {
-      query.where((t) => t.departmentId.equals(departmentId));
+      query.where(
+        (t) => t.departmentId.isNull() | t.departmentId.equals(departmentId),
+      );
     }
     return query.getSingleOrNull();
   }
