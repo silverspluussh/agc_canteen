@@ -600,7 +600,7 @@ class _OrdersTabState extends ConsumerState<_OrdersTab>
         if (_totalCount > 0)
           _SummaryStrip(
             '${_totalCount} ${AppLocalizations.of(context).orders}',
-            '${AppLocalizations.of(context).total}: GH₵ ${_currency.format(total)}',
+            '${AppLocalizations.of(context).total}: \$ ${_currency.format(total)}',
           ),
         Expanded(
           child: items.isEmpty
