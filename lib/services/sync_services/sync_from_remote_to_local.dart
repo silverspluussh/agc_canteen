@@ -929,6 +929,13 @@ class RemoteToLocalSyncService {
         startDate: Value(map['startDate'] as String? ?? now),
         endDate: Value(map['endDate'] as String? ?? now),
         isCharged: Value(map['isCharged'] as bool? ?? false),
+        allowGroupOrder: Value.absentIfNull(
+          map['allowGroupOrder'] as bool? ?? map['allow_group_order'] as bool?,
+        ),
+        maxOrderCount: Value.absentIfNull(
+          _safeParseInt(map['maxOrderCount']) ??
+              _safeParseInt(map['max_order_count']),
+        ),
         syncStatus: const Value(2),
         syncUpdatedAt: Value(now),
       );

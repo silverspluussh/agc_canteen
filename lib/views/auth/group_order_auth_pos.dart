@@ -4,10 +4,10 @@ import 'dart:typed_data';
 import 'package:agc_canteen/controllers/auth_controller.dart';
 import 'package:agc_canteen/controllers/auth_settings_controller.dart';
 import 'package:agc_canteen/controllers/providers.dart';
+import 'package:agc_canteen/core/enums/employee_type.enum.dart';
 import 'package:agc_canteen/core/theme/app_colors.dart';
 import 'package:agc_canteen/l10n/generated/app_localizations.dart';
 import 'package:agc_canteen/views/widgets/app_buttons.widget.dart';
-import 'package:agc_canteen/views/widgets/avatarglow.widget.dart';
 import 'package:agc_canteen/views/widgets/department_search_field.widget.dart';
 import 'package:agc_canteen/views/widgets/groupselector.widget.dart';
 import 'package:agc_canteen/views/widgets/voucher_card.widget.dart';
@@ -240,12 +240,24 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
     });
 
     final db = getIt<AppDatabase>();
+    final entityId = staff.entityId;
 
-    final staffData = staff.entityId != null
-        ? await db.getStaff(staff.entityId!)
-        : null;
+    bool allowGroupOrder = false;
+    int? maxOrderCount;
 
-    if (staffData == null || staffData.allowGroupOrder != true) {
+    if (entityId != null) {
+      if (staff.entityType == EmployeeType.contractor) {
+        final contractorStaff = await db.getContractorStaff(entityId);
+        allowGroupOrder = contractorStaff?.allowGroupOrder == true;
+        maxOrderCount = contractorStaff?.maxOrderCount;
+      } else if (staff.entityType?.isStaffType ?? false) {
+        final staffData = await db.getStaff(entityId);
+        allowGroupOrder = staffData?.allowGroupOrder == true;
+        maxOrderCount = staffData?.maxOrderCount;
+      }
+    }
+
+    if (!allowGroupOrder) {
       if (mounted) {
         setState(_resetOrderState);
         ref.read(authProvider.notifier).reset();
@@ -261,9 +273,10 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
       return;
     }
 
-    final maxAllowed = staffData.maxOrderCount;
-    if (maxAllowed != null && maxAllowed > 0 && _groupCount > maxAllowed) {
-      _groupCount = maxAllowed;
+    if (maxOrderCount != null &&
+        maxOrderCount > 0 &&
+        _groupCount > maxOrderCount) {
+      _groupCount = maxOrderCount;
     }
 
     final allTypes = await db.getAllMealTypes();
@@ -370,7 +383,7 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
         type: 'group_order_placed',
         message:
             'Group order: $_groupCount vouchers ($mealType) for $staffName',
-        actorType: 'Staff',
+        actorType: staff.entityType?.entityName ?? 'Staff',
         actorId: staff.entityId,
         actorName: staffName,
         sourceTable: 'orders',
@@ -475,17 +488,18 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
 
         body: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.all(15),
+            padding: const EdgeInsets.symmetric(horizontal: 15),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
+                const SizedBox(height: 10),
                 Text(
                   "Generate Group Meal Vouchers",
                   style: Theme.of(
                     context,
                   ).textTheme.titleLarge!.copyWith(fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 5),
                 Text(
                   "Select Department",
                   style: Theme.of(context).textTheme.titleLarge,

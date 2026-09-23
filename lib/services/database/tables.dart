@@ -293,6 +293,8 @@ class ContractorStaffTable extends Table {
   TextColumn get startDate => text()();
   TextColumn get endDate => text()();
   BoolColumn get isCharged => boolean().withDefault(const Constant(false))();
+  BoolColumn get allowGroupOrder => boolean().nullable()();
+  IntColumn get maxOrderCount => integer().nullable()();
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();
   TextColumn get syncUpdatedAt => text().nullable()();
 

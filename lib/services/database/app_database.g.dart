@@ -10604,6 +10604,31 @@ class $ContractorStaffTableTable extends ContractorStaffTable
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _allowGroupOrderMeta = const VerificationMeta(
+    'allowGroupOrder',
+  );
+  @override
+  late final GeneratedColumn<bool> allowGroupOrder = GeneratedColumn<bool>(
+    'allow_group_order',
+    aliasedName,
+    true,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("allow_group_order" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _maxOrderCountMeta = const VerificationMeta(
+    'maxOrderCount',
+  );
+  @override
+  late final GeneratedColumn<int> maxOrderCount = GeneratedColumn<int>(
+    'max_order_count',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _syncStatusMeta = const VerificationMeta(
     'syncStatus',
   );
@@ -10641,6 +10666,8 @@ class $ContractorStaffTableTable extends ContractorStaffTable
     startDate,
     endDate,
     isCharged,
+    allowGroupOrder,
+    maxOrderCount,
     syncStatus,
     syncUpdatedAt,
   ];
@@ -10740,6 +10767,24 @@ class $ContractorStaffTableTable extends ContractorStaffTable
         isCharged.isAcceptableOrUnknown(data['is_charged']!, _isChargedMeta),
       );
     }
+    if (data.containsKey('allow_group_order')) {
+      context.handle(
+        _allowGroupOrderMeta,
+        allowGroupOrder.isAcceptableOrUnknown(
+          data['allow_group_order']!,
+          _allowGroupOrderMeta,
+        ),
+      );
+    }
+    if (data.containsKey('max_order_count')) {
+      context.handle(
+        _maxOrderCountMeta,
+        maxOrderCount.isAcceptableOrUnknown(
+          data['max_order_count']!,
+          _maxOrderCountMeta,
+        ),
+      );
+    }
     if (data.containsKey('sync_status')) {
       context.handle(
         _syncStatusMeta,
@@ -10815,6 +10860,14 @@ class $ContractorStaffTableTable extends ContractorStaffTable
         DriftSqlType.bool,
         data['${effectivePrefix}is_charged'],
       )!,
+      allowGroupOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}allow_group_order'],
+      ),
+      maxOrderCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}max_order_count'],
+      ),
       syncStatus: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}sync_status'],
@@ -10846,6 +10899,8 @@ class ContractorStaffTableData extends DataClass
   final String startDate;
   final String endDate;
   final bool isCharged;
+  final bool? allowGroupOrder;
+  final int? maxOrderCount;
   final int syncStatus;
   final String? syncUpdatedAt;
   const ContractorStaffTableData({
@@ -10861,6 +10916,8 @@ class ContractorStaffTableData extends DataClass
     required this.startDate,
     required this.endDate,
     required this.isCharged,
+    this.allowGroupOrder,
+    this.maxOrderCount,
     required this.syncStatus,
     this.syncUpdatedAt,
   });
@@ -10893,6 +10950,12 @@ class ContractorStaffTableData extends DataClass
     map['start_date'] = Variable<String>(startDate);
     map['end_date'] = Variable<String>(endDate);
     map['is_charged'] = Variable<bool>(isCharged);
+    if (!nullToAbsent || allowGroupOrder != null) {
+      map['allow_group_order'] = Variable<bool>(allowGroupOrder);
+    }
+    if (!nullToAbsent || maxOrderCount != null) {
+      map['max_order_count'] = Variable<int>(maxOrderCount);
+    }
     map['sync_status'] = Variable<int>(syncStatus);
     if (!nullToAbsent || syncUpdatedAt != null) {
       map['sync_updated_at'] = Variable<String>(syncUpdatedAt);
@@ -10928,6 +10991,12 @@ class ContractorStaffTableData extends DataClass
       startDate: Value(startDate),
       endDate: Value(endDate),
       isCharged: Value(isCharged),
+      allowGroupOrder: allowGroupOrder == null && nullToAbsent
+          ? const Value.absent()
+          : Value(allowGroupOrder),
+      maxOrderCount: maxOrderCount == null && nullToAbsent
+          ? const Value.absent()
+          : Value(maxOrderCount),
       syncStatus: Value(syncStatus),
       syncUpdatedAt: syncUpdatedAt == null && nullToAbsent
           ? const Value.absent()
@@ -10953,6 +11022,8 @@ class ContractorStaffTableData extends DataClass
       startDate: serializer.fromJson<String>(json['startDate']),
       endDate: serializer.fromJson<String>(json['endDate']),
       isCharged: serializer.fromJson<bool>(json['isCharged']),
+      allowGroupOrder: serializer.fromJson<bool?>(json['allowGroupOrder']),
+      maxOrderCount: serializer.fromJson<int?>(json['maxOrderCount']),
       syncStatus: serializer.fromJson<int>(json['syncStatus']),
       syncUpdatedAt: serializer.fromJson<String?>(json['syncUpdatedAt']),
     );
@@ -10973,6 +11044,8 @@ class ContractorStaffTableData extends DataClass
       'startDate': serializer.toJson<String>(startDate),
       'endDate': serializer.toJson<String>(endDate),
       'isCharged': serializer.toJson<bool>(isCharged),
+      'allowGroupOrder': serializer.toJson<bool?>(allowGroupOrder),
+      'maxOrderCount': serializer.toJson<int?>(maxOrderCount),
       'syncStatus': serializer.toJson<int>(syncStatus),
       'syncUpdatedAt': serializer.toJson<String?>(syncUpdatedAt),
     };
@@ -10991,6 +11064,8 @@ class ContractorStaffTableData extends DataClass
     String? startDate,
     String? endDate,
     bool? isCharged,
+    Value<bool?> allowGroupOrder = const Value.absent(),
+    Value<int?> maxOrderCount = const Value.absent(),
     int? syncStatus,
     Value<String?> syncUpdatedAt = const Value.absent(),
   }) => ContractorStaffTableData(
@@ -11008,6 +11083,12 @@ class ContractorStaffTableData extends DataClass
     startDate: startDate ?? this.startDate,
     endDate: endDate ?? this.endDate,
     isCharged: isCharged ?? this.isCharged,
+    allowGroupOrder: allowGroupOrder.present
+        ? allowGroupOrder.value
+        : this.allowGroupOrder,
+    maxOrderCount: maxOrderCount.present
+        ? maxOrderCount.value
+        : this.maxOrderCount,
     syncStatus: syncStatus ?? this.syncStatus,
     syncUpdatedAt: syncUpdatedAt.present
         ? syncUpdatedAt.value
@@ -11037,6 +11118,12 @@ class ContractorStaffTableData extends DataClass
       startDate: data.startDate.present ? data.startDate.value : this.startDate,
       endDate: data.endDate.present ? data.endDate.value : this.endDate,
       isCharged: data.isCharged.present ? data.isCharged.value : this.isCharged,
+      allowGroupOrder: data.allowGroupOrder.present
+          ? data.allowGroupOrder.value
+          : this.allowGroupOrder,
+      maxOrderCount: data.maxOrderCount.present
+          ? data.maxOrderCount.value
+          : this.maxOrderCount,
       syncStatus: data.syncStatus.present
           ? data.syncStatus.value
           : this.syncStatus,
@@ -11061,6 +11148,8 @@ class ContractorStaffTableData extends DataClass
           ..write('startDate: $startDate, ')
           ..write('endDate: $endDate, ')
           ..write('isCharged: $isCharged, ')
+          ..write('allowGroupOrder: $allowGroupOrder, ')
+          ..write('maxOrderCount: $maxOrderCount, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('syncUpdatedAt: $syncUpdatedAt')
           ..write(')'))
@@ -11081,6 +11170,8 @@ class ContractorStaffTableData extends DataClass
     startDate,
     endDate,
     isCharged,
+    allowGroupOrder,
+    maxOrderCount,
     syncStatus,
     syncUpdatedAt,
   );
@@ -11100,6 +11191,8 @@ class ContractorStaffTableData extends DataClass
           other.startDate == this.startDate &&
           other.endDate == this.endDate &&
           other.isCharged == this.isCharged &&
+          other.allowGroupOrder == this.allowGroupOrder &&
+          other.maxOrderCount == this.maxOrderCount &&
           other.syncStatus == this.syncStatus &&
           other.syncUpdatedAt == this.syncUpdatedAt);
 }
@@ -11118,6 +11211,8 @@ class ContractorStaffTableCompanion
   final Value<String> startDate;
   final Value<String> endDate;
   final Value<bool> isCharged;
+  final Value<bool?> allowGroupOrder;
+  final Value<int?> maxOrderCount;
   final Value<int> syncStatus;
   final Value<String?> syncUpdatedAt;
   const ContractorStaffTableCompanion({
@@ -11133,6 +11228,8 @@ class ContractorStaffTableCompanion
     this.startDate = const Value.absent(),
     this.endDate = const Value.absent(),
     this.isCharged = const Value.absent(),
+    this.allowGroupOrder = const Value.absent(),
+    this.maxOrderCount = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.syncUpdatedAt = const Value.absent(),
   });
@@ -11149,6 +11246,8 @@ class ContractorStaffTableCompanion
     required String startDate,
     required String endDate,
     this.isCharged = const Value.absent(),
+    this.allowGroupOrder = const Value.absent(),
+    this.maxOrderCount = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.syncUpdatedAt = const Value.absent(),
   }) : name = Value(name),
@@ -11167,6 +11266,8 @@ class ContractorStaffTableCompanion
     Expression<String>? startDate,
     Expression<String>? endDate,
     Expression<bool>? isCharged,
+    Expression<bool>? allowGroupOrder,
+    Expression<int>? maxOrderCount,
     Expression<int>? syncStatus,
     Expression<String>? syncUpdatedAt,
   }) {
@@ -11183,6 +11284,8 @@ class ContractorStaffTableCompanion
       if (startDate != null) 'start_date': startDate,
       if (endDate != null) 'end_date': endDate,
       if (isCharged != null) 'is_charged': isCharged,
+      if (allowGroupOrder != null) 'allow_group_order': allowGroupOrder,
+      if (maxOrderCount != null) 'max_order_count': maxOrderCount,
       if (syncStatus != null) 'sync_status': syncStatus,
       if (syncUpdatedAt != null) 'sync_updated_at': syncUpdatedAt,
     });
@@ -11201,6 +11304,8 @@ class ContractorStaffTableCompanion
     Value<String>? startDate,
     Value<String>? endDate,
     Value<bool>? isCharged,
+    Value<bool?>? allowGroupOrder,
+    Value<int?>? maxOrderCount,
     Value<int>? syncStatus,
     Value<String?>? syncUpdatedAt,
   }) {
@@ -11217,6 +11322,8 @@ class ContractorStaffTableCompanion
       startDate: startDate ?? this.startDate,
       endDate: endDate ?? this.endDate,
       isCharged: isCharged ?? this.isCharged,
+      allowGroupOrder: allowGroupOrder ?? this.allowGroupOrder,
+      maxOrderCount: maxOrderCount ?? this.maxOrderCount,
       syncStatus: syncStatus ?? this.syncStatus,
       syncUpdatedAt: syncUpdatedAt ?? this.syncUpdatedAt,
     );
@@ -11261,6 +11368,12 @@ class ContractorStaffTableCompanion
     if (isCharged.present) {
       map['is_charged'] = Variable<bool>(isCharged.value);
     }
+    if (allowGroupOrder.present) {
+      map['allow_group_order'] = Variable<bool>(allowGroupOrder.value);
+    }
+    if (maxOrderCount.present) {
+      map['max_order_count'] = Variable<int>(maxOrderCount.value);
+    }
     if (syncStatus.present) {
       map['sync_status'] = Variable<int>(syncStatus.value);
     }
@@ -11285,6 +11398,8 @@ class ContractorStaffTableCompanion
           ..write('startDate: $startDate, ')
           ..write('endDate: $endDate, ')
           ..write('isCharged: $isCharged, ')
+          ..write('allowGroupOrder: $allowGroupOrder, ')
+          ..write('maxOrderCount: $maxOrderCount, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('syncUpdatedAt: $syncUpdatedAt')
           ..write(')'))
@@ -19004,6 +19119,8 @@ typedef $$ContractorStaffTableTableCreateCompanionBuilder =
       required String startDate,
       required String endDate,
       Value<bool> isCharged,
+      Value<bool?> allowGroupOrder,
+      Value<int?> maxOrderCount,
       Value<int> syncStatus,
       Value<String?> syncUpdatedAt,
     });
@@ -19021,6 +19138,8 @@ typedef $$ContractorStaffTableTableUpdateCompanionBuilder =
       Value<String> startDate,
       Value<String> endDate,
       Value<bool> isCharged,
+      Value<bool?> allowGroupOrder,
+      Value<int?> maxOrderCount,
       Value<int> syncStatus,
       Value<String?> syncUpdatedAt,
     });
@@ -19091,6 +19210,16 @@ class $$ContractorStaffTableTableFilterComposer
 
   ColumnFilters<bool> get isCharged => $composableBuilder(
     column: $table.isCharged,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get allowGroupOrder => $composableBuilder(
+    column: $table.allowGroupOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get maxOrderCount => $composableBuilder(
+    column: $table.maxOrderCount,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -19174,6 +19303,16 @@ class $$ContractorStaffTableTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get allowGroupOrder => $composableBuilder(
+    column: $table.allowGroupOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get maxOrderCount => $composableBuilder(
+    column: $table.maxOrderCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get syncStatus => $composableBuilder(
     column: $table.syncStatus,
     builder: (column) => ColumnOrderings(column),
@@ -19237,6 +19376,16 @@ class $$ContractorStaffTableTableAnnotationComposer
 
   GeneratedColumn<bool> get isCharged =>
       $composableBuilder(column: $table.isCharged, builder: (column) => column);
+
+  GeneratedColumn<bool> get allowGroupOrder => $composableBuilder(
+    column: $table.allowGroupOrder,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get maxOrderCount => $composableBuilder(
+    column: $table.maxOrderCount,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<int> get syncStatus => $composableBuilder(
     column: $table.syncStatus,
@@ -19304,6 +19453,8 @@ class $$ContractorStaffTableTableTableManager
                 Value<String> startDate = const Value.absent(),
                 Value<String> endDate = const Value.absent(),
                 Value<bool> isCharged = const Value.absent(),
+                Value<bool?> allowGroupOrder = const Value.absent(),
+                Value<int?> maxOrderCount = const Value.absent(),
                 Value<int> syncStatus = const Value.absent(),
                 Value<String?> syncUpdatedAt = const Value.absent(),
               }) => ContractorStaffTableCompanion(
@@ -19319,6 +19470,8 @@ class $$ContractorStaffTableTableTableManager
                 startDate: startDate,
                 endDate: endDate,
                 isCharged: isCharged,
+                allowGroupOrder: allowGroupOrder,
+                maxOrderCount: maxOrderCount,
                 syncStatus: syncStatus,
                 syncUpdatedAt: syncUpdatedAt,
               ),
@@ -19336,6 +19489,8 @@ class $$ContractorStaffTableTableTableManager
                 required String startDate,
                 required String endDate,
                 Value<bool> isCharged = const Value.absent(),
+                Value<bool?> allowGroupOrder = const Value.absent(),
+                Value<int?> maxOrderCount = const Value.absent(),
                 Value<int> syncStatus = const Value.absent(),
                 Value<String?> syncUpdatedAt = const Value.absent(),
               }) => ContractorStaffTableCompanion.insert(
@@ -19351,6 +19506,8 @@ class $$ContractorStaffTableTableTableManager
                 startDate: startDate,
                 endDate: endDate,
                 isCharged: isCharged,
+                allowGroupOrder: allowGroupOrder,
+                maxOrderCount: maxOrderCount,
                 syncStatus: syncStatus,
                 syncUpdatedAt: syncUpdatedAt,
               ),
