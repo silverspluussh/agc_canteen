@@ -322,121 +322,129 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
 
           body: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.all(15),
+              padding: const EdgeInsets.symmetric(horizontal: 15),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
+                  const SizedBox(height: 5),
+
                   Text(
                     "Generate Meal Voucher",
                     style: Theme.of(context).textTheme.titleLarge!.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 5),
                   Text(
                     "Select Department",
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
-                  const SizedBox(height: 15),
+                  const SizedBox(height: 10),
                   DepartmentSearchField(
                     value: _selectedDepartmentId,
                     onChanged: (id) =>
                         setState(() => _selectedDepartmentId = id),
                   ),
                   Expanded(child: Center(child: BiometricGlow())),
-                  SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        if (!_fingerprintReady && !_fingerprintInitFailed) ...[
-                          const SizedBox(height: 10),
-                          const LinearProgressIndicator(),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'Initializing biometrics...',
-                            style: TextStyle(fontSize: 16),
-                          ),
-                        ],
-                        if (state.isUnauthenticated &&
-                            !state.isAuthenticating &&
-                            !state.hasError &&
-                            _fingerprintReady) ...[
-                          const SizedBox(height: 20),
-                          ..._authButtons(),
-                        ],
-                        if (state.isAuthenticating) ...[
-                          const LinearProgressIndicator(),
-                          const SizedBox(height: 16),
-                          Text(
-                            AppLocalizations.of(context).scanning,
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                          const SizedBox(height: 24),
-                          OutlinedButton.icon(
-                            onPressed: () =>
-                                ref.read(authProvider.notifier).cancel(),
-                            icon: const Icon(Icons.close, size: 18),
-                            label: const Text('Cancel'),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.red,
-                              side: const BorderSide(color: Colors.red),
+                  Flexible(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          if (!_fingerprintReady &&
+                              !_fingerprintInitFailed) ...[
+                            const SizedBox(height: 10),
+                            const LinearProgressIndicator(),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'Initializing biometrics...',
+                              style: TextStyle(fontSize: 16),
                             ),
-                          ),
-                        ],
-                        if (state.isPlacingOrder) ...[
-                          const LinearProgressIndicator(),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Printing voucher...',
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                        ],
-                        if (state.isCompleted && state.orderCode != null) ...[
-                          const Icon(
-                            Icons.check_circle,
-                            color: Colors.green,
-                            size: 48,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Voucher Printed',
-                            style: Theme.of(context).textTheme.headlineSmall
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.green,
-                                ),
-                          ),
-                          const SizedBox(height: 16),
-                          VoucherCard(
-                            orderCode: state.orderCode!,
-                            staffName: state.staff?.displayName ?? "",
-                            mealType: state.mealType ?? '',
-                            orderTime: state.orderTime ?? '',
-                          ),
-                        ],
-                        if (state.hasError) ...[
-                          Icon(
-                            Icons.error_outline,
-                            size: 48,
-                            color: Theme.of(context).colorScheme.error,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            state.error ??
-                                AppLocalizations.of(context).somethingWentWrong,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 16,
+                          ],
+                          if (state.isUnauthenticated &&
+                              !state.isAuthenticating &&
+                              !state.hasError &&
+                              _fingerprintReady) ...[
+                            const SizedBox(height: 15),
+                            ..._authButtons(),
+                          ],
+                          if (state.isAuthenticating) ...[
+                            const LinearProgressIndicator(),
+                            const SizedBox(height: 10),
+                            Text(
+                              AppLocalizations.of(context).scanning,
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            const SizedBox(height: 10),
+                            OutlinedButton.icon(
+                              onPressed: () =>
+                                  ref.read(authProvider.notifier).cancel(),
+                              icon: const Icon(Icons.close, size: 18),
+                              label: const Text('Cancel'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.red,
+                                side: const BorderSide(color: Colors.red),
+                              ),
+                            ),
+                          ],
+                          if (state.isPlacingOrder) ...[
+                            const LinearProgressIndicator(),
+                            const SizedBox(height: 10),
+                            Text(
+                              'Printing voucher',
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                          ],
+                          if (state.isCompleted && state.orderCode != null) ...[
+                            const Icon(
+                              Icons.check_circle,
+                              color: Colors.green,
+                              size: 48,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Voucher Printed',
+                              style: Theme.of(context).textTheme.headlineSmall
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.green,
+                                  ),
+                            ),
+                            const SizedBox(height: 10),
+                            VoucherCard(
+                              orderCode: state.orderCode!,
+                              staffName: state.staff?.displayName ?? "",
+                              mealType: state.mealType ?? '',
+                              orderTime: state.orderTime ?? '',
+                            ),
+                          ],
+                          if (state.hasError) ...[
+                            Icon(
+                              Icons.error_outline,
+                              size: 48,
                               color: Theme.of(context).colorScheme.error,
                             ),
-                          ),
-                          const SizedBox(height: 16),
-                          ..._authButtons(),
+                            const SizedBox(height: 8),
+                            Text(
+                              state.error ??
+                                  AppLocalizations.of(
+                                    context,
+                                  ).somethingWentWrong,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Theme.of(context).colorScheme.error,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            ..._authButtons(),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
                   ),
+                  const SizedBox(height: 5),
                 ],
               ),
             ),

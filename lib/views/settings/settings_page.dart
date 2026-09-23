@@ -1,4 +1,3 @@
-
 import 'package:adaptive_theme/adaptive_theme.dart';
 import 'package:agc_canteen/views/widgets/app_buttons.widget.dart';
 import 'package:flutter/material.dart';
@@ -353,8 +352,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     }
   }
 
-  
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -378,13 +375,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         children: [
           // ── Data ───────────────────────────────────────────────────────────
           _SectionHeader(label: l10n.data),
-          // _SettingsTile(
-          //   icon: Icons.fastfood_rounded,
-          //   title: l10n.manualPosOrder,
-          //   subtitle: l10n.manualPosOrderSubtitle,
-          //   onTap: () =>
-          //       Navigator.of(context).pushNamed('/create-manual-order'),
-          // ),
+
           _SettingsTile(
             icon: Icons.bar_chart_rounded,
             title: "Vouchers",
@@ -397,22 +388,18 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             subtitle: l10n.pushPullSubtitle,
             onTap: () => Navigator.of(context).pushNamed('/sync'),
           ),
-
-        
-        
-
           _SettingsTile(
             icon: Icons.group_outlined,
             title: "Personnel Management", // "Staff Management"
-            subtitle: "View and enroll personnel bio data", // "Register and remove fingerprints for staff access"
+            subtitle:
+                "View and enroll personnel bio data", // "Register and remove fingerprints for staff access"
             onTap: () => Navigator.of(context).pushNamed('/staff'),
           ),
           //POS managment
-         
 
           // ── Preferences ────────────────────────────────────────────────────
           _SectionHeader(label: l10n.preferences),
-           _SettingsTile(
+          _SettingsTile(
             icon: Icons.device_hub_outlined,
             title: l10n.posSettings, // "POS Settings"
             subtitle: l10n
@@ -443,15 +430,19 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           SwitchListTile(
             secondary: CircleAvatar(
               backgroundColor: colorScheme.primaryContainer,
-              child: Icon(Icons.fingerprint, color: colorScheme.primary, size: 15),
+              child: Icon(
+                Icons.fingerprint,
+                color: colorScheme.primary,
+                size: 15,
+              ),
             ),
             title: const Text('Enable Fingerprint'),
             subtitle: const Text('Allow fingerprint login on auth pages'),
             value: ref.watch(authSettingsProvider).enableFinger,
-            onChanged: (v) => ref.read(authSettingsProvider.notifier).setFingerEnabled(v),
-           activeThumbColor: Colors.green,
+            onChanged: (v) =>
+                ref.read(authSettingsProvider.notifier).setFingerEnabled(v),
+            activeThumbColor: Colors.green,
             inactiveThumbColor: Colors.grey,
-          
           ),
           SwitchListTile(
             secondary: CircleAvatar(
@@ -463,7 +454,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             value: ref.watch(authSettingsProvider).enableNfc,
             activeThumbColor: Colors.green,
             inactiveThumbColor: Colors.grey,
-            onChanged: (v) => ref.read(authSettingsProvider.notifier).setNfcEnabled(v),
+            onChanged: (v) =>
+                ref.read(authSettingsProvider.notifier).setNfcEnabled(v),
           ),
 
           // ── System ─────────────────────────────────────────────────────────
@@ -501,7 +493,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           //   subtitle: 'Test contactless NFC tag reading',
           //   onTap: () => Navigator.of(context).pushNamed('/nfc-test'),
           // ),
-
           const Divider(height: 32),
 
           ListTile(

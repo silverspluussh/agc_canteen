@@ -131,7 +131,10 @@ class _PosSettingsPageState extends ConsumerState<PosSettingsPage> {
             child: OutlineButton(
               color: Colors.red,
               onPressed: () => Navigator.pop(ctx, false),
-              label: const Text('Cancel', style: TextStyle(color: Colors.red)),
+              label: const Text(
+                'Cancel',
+                style: TextStyle(color: Colors.white),
+              ),
             ),
           ),
           PrimaryButton(
@@ -274,17 +277,13 @@ class _PosSettingsPageState extends ConsumerState<PosSettingsPage> {
                       onToggle: _toggleDevice,
                     ),
 
-                    POSDeviceAccountCard(device: _dbDevices.first),
-
-                    if (_dbDevices.isNotEmpty) _buildChangePosCard(context),
+                    if (_dbDevices.isNotEmpty) ...[
+                      POSDeviceAccountCard(device: _dbDevices.first),
+                      _buildChangePosCard(context),
+                    ],
 
                     const SizedBox(height: 20),
-                    _PrinterSettingsLinkCard(
-                      onTap: () => Navigator.of(
-                        context,
-                      ).pushNamed('/printer-settings'),
-                    ),
-                    const SizedBox(height: 20),
+
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
@@ -707,4 +706,3 @@ class _EmptyPlaceholder extends StatelessWidget {
     );
   }
 }
-

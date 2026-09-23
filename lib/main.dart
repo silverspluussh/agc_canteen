@@ -48,7 +48,7 @@ void main() async => runZoneGuarded(() async {
 
 void runZoneGuarded(void Function() body) {
   runZonedGuarded(body, (error, stack) {
-    runApp(
+    return runApp(
       ProviderScope(
         child: MaterialApp(
           home: Scaffold(

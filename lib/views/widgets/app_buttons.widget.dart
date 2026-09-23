@@ -185,20 +185,20 @@ class PosButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: width ?? double.infinity,
-      height: height ?? 120,
+      height: height ?? 100,
       padding: EdgeInsets.all(10),
       decoration: BoxDecoration(
         color:
             color?.withValues(alpha: 0.9) ??
             Theme.of(context).colorScheme.primary,
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: color ?? Theme.of(context).colorScheme.primary,
         ),
         boxShadow: [
           if (noShadow == null)
             BoxShadow(
-              color:color?.withValues(alpha: 0.6)?? AppColors.gold800,
+              color: color?.withValues(alpha: 0.6) ?? AppColors.gold800,
               blurStyle: BlurStyle.solid,
               offset: const Offset(0, 7),
               blurRadius: 4,
@@ -212,7 +212,7 @@ class PosButton extends StatelessWidget {
                 onPressed!();
               }
             : null,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,

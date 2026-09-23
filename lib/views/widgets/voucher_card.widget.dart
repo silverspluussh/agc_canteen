@@ -6,7 +6,8 @@ class VoucherCard extends StatelessWidget {
   final String mealType;
   final String orderTime;
 
-  const VoucherCard({super.key, 
+  const VoucherCard({
+    super.key,
     required this.orderCode,
     required this.staffName,
     required this.mealType,
@@ -19,10 +20,13 @@ class VoucherCard extends StatelessWidget {
     final mealLabel =
         mealType[0].toUpperCase() + mealType.substring(1).replaceAll('_', ' ');
     return Card(
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        side: BorderSide(width: 1),
+        borderRadius: BorderRadius.circular(10),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(15),
+        padding: const EdgeInsets.all(10),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

@@ -1,9 +1,7 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import '../../core/di/injection_container.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../services/print/external_thermal_print_service.dart';
@@ -11,9 +9,6 @@ import '../../services/print/print_service_manager.dart';
 
 const _connectionTypeKey = 'external_connection_type';
 
-/// Dedicated printer management page: built-in vs external (USB/Bluetooth),
-/// with scan/pair/connect flows and a test print action. Replaces the old
-/// printer type switch that used to live on the POS Settings page.
 class PrinterSettingsPage extends ConsumerStatefulWidget {
   const PrinterSettingsPage({super.key});
 
@@ -93,9 +88,7 @@ class _PrinterSettingsPageState extends ConsumerState<PrinterSettingsPage>
         if (!_bondedDevices.any((d) => d.address == device.address)) {
           _bondedDevices = [..._bondedDevices, device];
         }
-      } else if (!_discoveredDevices.any(
-        (d) => d.address == device.address,
-      )) {
+      } else if (!_discoveredDevices.any((d) => d.address == device.address)) {
         _discoveredDevices.add(device);
       }
     });
@@ -413,7 +406,10 @@ class _PrinterSettingsPageState extends ConsumerState<PrinterSettingsPage>
           disconnectedLabel: l10n.printerDisconnected,
           details: [
             if (_builtInFirmware != null)
-              _InfoRow(label: l10n.posFirmwareVersion, value: _builtInFirmware!),
+              _InfoRow(
+                label: l10n.posFirmwareVersion,
+                value: _builtInFirmware!,
+              ),
           ],
         ),
         const SizedBox(height: 16),
@@ -422,7 +418,10 @@ class _PrinterSettingsPageState extends ConsumerState<PrinterSettingsPage>
           child: FilledButton.icon(
             onPressed: _isBusy ? null : _testPrint,
             icon: const Icon(Icons.receipt_long),
-            label: const Text('Test print'),
+            label: const Text(
+              'Test Print',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ),
       ],
@@ -458,7 +457,9 @@ class _PrinterSettingsPageState extends ConsumerState<PrinterSettingsPage>
         ),
         const SizedBox(height: 16),
         Card(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Column(
@@ -630,7 +631,8 @@ class _PrinterSettingsPageState extends ConsumerState<PrinterSettingsPage>
             const Divider(height: 8),
             if (_bondedDevices.isEmpty)
               const _EmptyPlaceholder(
-                label: 'No paired printers yet. Scan or pair in Bluetooth '
+                label:
+                    'No paired printers yet. Scan or pair in Bluetooth '
                     'settings, then refresh.',
               )
             else
@@ -696,7 +698,10 @@ class _PrinterSettingsPageState extends ConsumerState<PrinterSettingsPage>
 }
 
 class _PrinterTypeSelector extends StatelessWidget {
-  const _PrinterTypeSelector({required this.currentType, required this.onChanged});
+  const _PrinterTypeSelector({
+    required this.currentType,
+    required this.onChanged,
+  });
 
   final PrinterType currentType;
   final ValueChanged<PrinterType> onChanged;
@@ -761,7 +766,9 @@ class _StatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final statusColor = connected ? Colors.green : Theme.of(context).colorScheme.error;
+    final statusColor = connected
+        ? Colors.green
+        : Theme.of(context).colorScheme.error;
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
@@ -801,10 +808,7 @@ class _StatusCard extends StatelessWidget {
                 ?trailing,
               ],
             ),
-            if (details.isNotEmpty) ...[
-              const Divider(height: 20),
-              ...details,
-            ],
+            if (details.isNotEmpty) ...[const Divider(height: 20), ...details],
           ],
         ),
       ),
@@ -848,7 +852,10 @@ class _DeviceTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+                Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
                 Text(
                   subtitle,
                   style: TextStyle(fontSize: 12, color: colorScheme.outline),

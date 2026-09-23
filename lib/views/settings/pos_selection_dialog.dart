@@ -64,7 +64,7 @@ class _PosSelectionDialogState extends State<PosSelectionDialog> {
     final theme = Theme.of(context);
 
     return PopScope(
-      canPop: false,
+      canPop: !_saving,
       child: Dialog.fullscreen(
         child: Scaffold(
           appBar: AppBar(
@@ -72,6 +72,12 @@ class _PosSelectionDialogState extends State<PosSelectionDialog> {
             title: const Text('Select POS Device'),
             centerTitle: true,
             automaticallyImplyLeading: false,
+            leading: _saving
+                ? null
+                : IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.of(context).pop(false),
+                  ),
           ),
           body: _buildBody(theme),
         ),

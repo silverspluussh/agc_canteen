@@ -276,6 +276,7 @@ class _SyncPageState extends ConsumerState<SyncPage>
           return s != null ? '${s.firstName} ${s.lastName}' : id.toString();
       }
     }
+
     if (!mounted) return;
 
     final orders = await _db.getUnsyncedOrders();
@@ -301,11 +302,15 @@ class _SyncPageState extends ConsumerState<SyncPage>
               ),
             ),
             const SizedBox(height: 12),
-            const Text('Unsynced Orders',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+            const Text(
+              'Unsynced Orders',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 4),
-            Text('${orders.length} orders',
-                style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+            Text(
+              '${orders.length} orders',
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+            ),
             const SizedBox(height: 8),
             Expanded(
               child: orders.isEmpty
@@ -320,16 +325,22 @@ class _SyncPageState extends ConsumerState<SyncPage>
                         return ListTile(
                           dense: true,
                           contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 4, vertical: 4),
+                            horizontal: 4,
+                            vertical: 4,
+                          ),
                           leading: CircleAvatar(
                             radius: 18,
                             backgroundColor: Colors.orange.withOpacity(0.1),
-                            child: const Icon(Icons.receipt_long,
-                                size: 18, color: Colors.orange),
+                            child: const Icon(
+                              Icons.receipt_long,
+                              size: 18,
+                              color: Colors.orange,
+                            ),
                           ),
-                          title: Text(o.orderCode,
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w600)),
+                          title: Text(
+                            o.orderCode,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
                           subtitle: Text(
                             '${o.mealType} · ${o.groupCount} item${o.groupCount != 1 ? 's' : ''} · ${entityName(o.orderedById, o.employeeType)}',
                             style: const TextStyle(fontSize: 12),
@@ -355,25 +366,29 @@ class _SyncPageState extends ConsumerState<SyncPage>
         backgroundColor: cs.primary,
         foregroundColor: cs.onPrimary,
         title: const Text('Data Sync'),
+        leading: BackButton(color: Colors.white),
         centerTitle: true,
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: Colors.white,
           labelColor: Colors.white,
           unselectedLabelColor: cs.onPrimary.withOpacity(0.6),
-          labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          labelStyle: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
           tabs: const [
             Tab(icon: Icon(Icons.upload_rounded), text: 'Upload to Server'),
-            Tab(icon: Icon(Icons.download_rounded), text: 'Download from Server'),
+            Tab(
+              icon: Icon(Icons.download_rounded),
+              text: 'Download from Server',
+            ),
           ],
         ),
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [
-          _buildUploadTab(cs),
-          _buildDownloadTab(cs),
-        ],
+        children: [_buildUploadTab(cs), _buildDownloadTab(cs)],
       ),
     );
   }
@@ -395,9 +410,13 @@ class _SyncPageState extends ConsumerState<SyncPage>
         padding: const EdgeInsets.all(16),
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
-          _buildSummaryHeader(cs, _totalUploadPending > 0
-              ? '$_totalUploadPending pending item${_totalUploadPending != 1 ? 's' : ''}'
-              : 'Everything is up to date', accent: accent),
+          _buildSummaryHeader(
+            cs,
+            _totalUploadPending > 0
+                ? '$_totalUploadPending pending item${_totalUploadPending != 1 ? 's' : ''}'
+                : 'Everything is up to date',
+            accent: accent,
+          ),
           const SizedBox(height: 20),
 
           _sectionHeader('Pending Upload'),
@@ -449,8 +468,11 @@ class _SyncPageState extends ConsumerState<SyncPage>
         padding: const EdgeInsets.all(16),
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
-          _buildSummaryHeader(cs, '$_totalLocalRecords local records',
-              accent: accent),
+          _buildSummaryHeader(
+            cs,
+            '$_totalLocalRecords local records',
+            accent: accent,
+          ),
           const SizedBox(height: 20),
 
           _sectionHeader('Fetch from Remote'),
@@ -461,7 +483,10 @@ class _SyncPageState extends ConsumerState<SyncPage>
             count: _staffCount,
             syncing: _syncingStaff,
             onSync: () => _syncDownload(
-                'Staff', _downloadService.syncStaffOnly, (v) => _syncingStaff = v),
+              'Staff',
+              _downloadService.syncStaffOnly,
+              (v) => _syncingStaff = v,
+            ),
             onView: null,
           ),
           const SizedBox(height: 10),
@@ -471,7 +496,10 @@ class _SyncPageState extends ConsumerState<SyncPage>
             count: _mealTypeCount,
             syncing: _syncingMealTypes,
             onSync: () => _syncDownload(
-                'Meal types', _downloadService.syncMealTypesOnly, (v) => _syncingMealTypes = v),
+              'Meal types',
+              _downloadService.syncMealTypesOnly,
+              (v) => _syncingMealTypes = v,
+            ),
             onView: null,
           ),
           const SizedBox(height: 10),
@@ -481,7 +509,10 @@ class _SyncPageState extends ConsumerState<SyncPage>
             count: _bioDataCount,
             syncing: _syncingDownloadBioData,
             onSync: () => _syncDownload(
-                'BioData', _downloadService.syncBioDataOnly, (v) => _syncingDownloadBioData = v),
+              'BioData',
+              _downloadService.syncBioDataOnly,
+              (v) => _syncingDownloadBioData = v,
+            ),
             onView: null,
           ),
           const SizedBox(height: 10),
@@ -491,7 +522,10 @@ class _SyncPageState extends ConsumerState<SyncPage>
             count: _visitorCount,
             syncing: _syncingVisitors,
             onSync: () => _syncDownload(
-                'Visitors', _downloadService.syncVisitorsOnly, (v) => _syncingVisitors = v),
+              'Visitors',
+              _downloadService.syncVisitorsOnly,
+              (v) => _syncingVisitors = v,
+            ),
             onView: null,
           ),
           const SizedBox(height: 10),
@@ -501,7 +535,10 @@ class _SyncPageState extends ConsumerState<SyncPage>
             count: _contractorStaffCount,
             syncing: _syncingContractorStaff,
             onSync: () => _syncDownload(
-                'Contractor staff', _downloadService.syncContractorStaffOnly, (v) => _syncingContractorStaff = v),
+              'Contractor staff',
+              _downloadService.syncContractorStaffOnly,
+              (v) => _syncingContractorStaff = v,
+            ),
             onView: null,
           ),
           const SizedBox(height: 10),
@@ -511,7 +548,10 @@ class _SyncPageState extends ConsumerState<SyncPage>
             count: _dependentCount,
             syncing: _syncingDependents,
             onSync: () => _syncDownload(
-                'Dependents', _downloadService.syncDependentsOnly, (v) => _syncingDependents = v),
+              'Dependents',
+              _downloadService.syncDependentsOnly,
+              (v) => _syncingDependents = v,
+            ),
             onView: null,
           ),
           const SizedBox(height: 10),
@@ -521,7 +561,10 @@ class _SyncPageState extends ConsumerState<SyncPage>
             count: _shiftCount,
             syncing: _syncingShifts,
             onSync: () => _syncDownload(
-                'Shifts', _downloadService.syncShiftsOnly, (v) => _syncingShifts = v),
+              'Shifts',
+              _downloadService.syncShiftsOnly,
+              (v) => _syncingShifts = v,
+            ),
             onView: null,
           ),
           const SizedBox(height: 10),
@@ -531,7 +574,10 @@ class _SyncPageState extends ConsumerState<SyncPage>
             count: _departmentCount,
             syncing: _syncingDepartments,
             onSync: () => _syncDownload(
-                'Departments', _downloadService.syncDepartmentsOnly, (v) => _syncingDepartments = v),
+              'Departments',
+              _downloadService.syncDepartmentsOnly,
+              (v) => _syncingDepartments = v,
+            ),
             onView: null,
           ),
           const SizedBox(height: 10),
@@ -541,13 +587,17 @@ class _SyncPageState extends ConsumerState<SyncPage>
             count: _cardCount,
             syncing: _syncingCards,
             onSync: () => _syncDownload(
-                'NFC Cards', _downloadService.syncCardsOnly, (v) => _syncingCards = v),
+              'NFC Cards',
+              _downloadService.syncCardsOnly,
+              (v) => _syncingCards = v,
+            ),
             onView: null,
           ),
 
           const SizedBox(height: 28),
           _primaryButton(
-            onPressed: _syncingStaff ||
+            onPressed:
+                _syncingStaff ||
                     _syncingMealTypes ||
                     _syncingDownloadBioData ||
                     _syncingVisitors ||
@@ -561,7 +611,7 @@ class _SyncPageState extends ConsumerState<SyncPage>
                 : _syncAllDownload,
             loading: _syncingAllDownload,
             label: 'Download All',
-            
+
             accent: AppColors.gold900,
           ),
           const SizedBox(height: 32),
@@ -572,8 +622,7 @@ class _SyncPageState extends ConsumerState<SyncPage>
 
   // ── Shared widgets ─────────────────────────────────────────
 
-  Widget _buildSummaryHeader(ColorScheme cs, String subtitle,
-      {Color? accent}) {
+  Widget _buildSummaryHeader(ColorScheme cs, String subtitle, {Color? accent}) {
     final color = accent ?? cs.primary;
     return Container(
       padding: const EdgeInsets.all(20),
@@ -598,15 +647,19 @@ class _SyncPageState extends ConsumerState<SyncPage>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Data Synchronization',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500)),
+                Text(
+                  'Data Synchronization',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
                 const SizedBox(height: 8),
-                Text(subtitle,
-                    style: TextStyle(
-                        color: Colors.white, fontSize: 13)),
+                Text(
+                  subtitle,
+                  style: TextStyle(color: Colors.white, fontSize: 13),
+                ),
               ],
             ),
           ),
@@ -617,8 +670,11 @@ class _SyncPageState extends ConsumerState<SyncPage>
               color: cs.onPrimary.withOpacity(0.2),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(Icons.sync_rounded,
-                color: Colors.white, size: 28),
+            child: const Icon(
+              Icons.sync_rounded,
+              color: Colors.white,
+              size: 28,
+            ),
           ),
         ],
       ),
@@ -628,15 +684,15 @@ class _SyncPageState extends ConsumerState<SyncPage>
   Widget _sectionHeader(String text) {
     return Padding(
       padding: const EdgeInsets.only(left: 4),
-      child: Text(text,
-          style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Theme.of(context)
-                  .colorScheme
-                  .onSurface
-                  .withOpacity(0.5),
-              letterSpacing: 0.5)),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+          letterSpacing: 0.5,
+        ),
+      ),
     );
   }
 
@@ -665,14 +721,21 @@ class _SyncPageState extends ConsumerState<SyncPage>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Last Upload',
-                    style: TextStyle(
-                        fontSize: 13,
-                        color: cs.onSurface.withOpacity(0.6))),
+                Text(
+                  'Last Upload',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: cs.onSurface.withOpacity(0.6),
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(lastSyncStr,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 15)),
+                Text(
+                  lastSyncStr,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                  ),
+                ),
               ],
             ),
           ),
@@ -692,12 +755,11 @@ class _SyncPageState extends ConsumerState<SyncPage>
     required String label,
     Color? accent,
   }) {
-    final color = accent ?? const Color.fromARGB(255, 32, 21, 192);
+    final color = accent ?? const Color.fromARGB(255, 251, 160, 2);
     return SizedBox(
       width: double.infinity,
-      height: 52,
+      height: 60,
       child: PrimaryButton(
-        
         onPressed: onPressed,
         color: color,
         label: loading
@@ -708,27 +770,34 @@ class _SyncPageState extends ConsumerState<SyncPage>
                     width: 20,
                     height: 20,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2.5, color: Colors.white),
+                      strokeWidth: 2.5,
+                      color: Colors.white,
+                    ),
                   ),
                   const SizedBox(width: 12),
-                  Text('Syncing...',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16)),
+                  Text(
+                    'Syncing...',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                    ),
+                  ),
                 ],
               )
             : Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.sync_rounded,
-                      color: Colors.white, size: 22),
+                  const Icon(Icons.sync_rounded, color: Colors.white, size: 22),
                   const SizedBox(width: 10),
-                  Text(label,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16)),
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                    ),
+                  ),
                 ],
               ),
       ),
@@ -766,12 +835,15 @@ class _SyncStatCard extends StatelessWidget {
         color: cs.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-            color: accentColor.withOpacity(hasData ? 0.4 : 0.3), width: 1.5),
+          color: accentColor.withOpacity(hasData ? 0.4 : 0.3),
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
-              color: accentColor.withOpacity(0.06),
-              blurRadius: 8,
-              offset: const Offset(0, 2)),
+            color: accentColor.withOpacity(0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
       padding: const EdgeInsets.all(16),
@@ -784,8 +856,9 @@ class _SyncStatCard extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                    color: accentColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10)),
+                  color: accentColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
                 child: Icon(icon, color: accentColor, size: 22),
               ),
               const SizedBox(width: 12),
@@ -793,31 +866,43 @@ class _SyncStatCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(label,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w600, fontSize: 15)),
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                      ),
+                    ),
                     const SizedBox(height: 2),
-                    Text(hasData ? '$count records' : 'Up to date',
-                        style: TextStyle(
-                            fontSize: 13,
-                            color: accentColor,
-                            fontWeight: FontWeight.w500)),
+                    Text(
+                      hasData ? '$count records' : 'Up to date',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: accentColor,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ],
                 ),
               ),
               if (hasData)
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: accentColor.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Text('$count',
-                      style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: accentColor)),
+                  child: Text(
+                    '$count',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: accentColor,
+                    ),
+                  ),
                 ),
               if (!hasData)
                 Icon(Icons.check_circle, size: 22, color: accentColor),
@@ -834,14 +919,16 @@ class _SyncStatCard extends StatelessWidget {
                       child: OutlinedButton.icon(
                         onPressed: onView,
                         icon: const Icon(Icons.visibility_outlined, size: 16),
-                        label:
-                            const Text('View', style: TextStyle(fontSize: 13)),
+                        label: const Text(
+                          'View',
+                          style: TextStyle(fontSize: 13),
+                        ),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: accentColor,
-                          side:
-                              BorderSide(color: accentColor.withOpacity(0.5)),
+                          side: BorderSide(color: accentColor.withOpacity(0.5)),
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8)),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                         ),
                       ),
                     ),
@@ -859,21 +946,31 @@ class _SyncStatCard extends StatelessWidget {
                                 width: 14,
                                 height: 14,
                                 child: CircularProgressIndicator(
-                                    strokeWidth: 2, color: Colors.white),
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
                               )
-                            : const Icon(Icons.sync_rounded,
-                                size: 16, color: Colors.white),
+                            : const Icon(
+                                Icons.sync_rounded,
+                                size: 16,
+                                color: Colors.white,
+                              ),
                         label: syncing
                             ? const SizedBox.shrink()
-                            : const Text('Sync',
+                            : const Text(
+                                'Sync',
                                 style: TextStyle(
-                                    fontSize: 13, color: Colors.white)),
+                                  fontSize: 13,
+                                  color: Colors.white,
+                                ),
+                              ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: accentColor,
                           foregroundColor: Colors.white,
                           elevation: 0,
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8)),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                         ),
                       ),
                     ),

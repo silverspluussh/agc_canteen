@@ -1,6 +1,7 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-AndroidOptions _getAndroidOptions() => AndroidOptions();
+AndroidOptions _getAndroidOptions() =>
+    AndroidOptions(encryptedSharedPreferences: true, resetOnError: true);
 
 const String _expirationKey = 'token_expiration';
 const String _kEncryptionKeyStorageKey = 'encryption_key';

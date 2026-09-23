@@ -23,7 +23,7 @@ class BiometricGlow extends StatelessWidget {
           child: AvatarGlow(
             glowColor: Theme.of(context).colorScheme.primary,
             glowCount: 1,
-         glowRadiusFactor: 0.5,
+            glowRadiusFactor: 0.5,
             child: Container(
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
