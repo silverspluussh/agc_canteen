@@ -47,6 +47,7 @@ flutter:
   assets:
     - .env
     - assets/
+    - assets/certs/
     - assets/illustrations/
   fonts:
     - family: SF Pro Display

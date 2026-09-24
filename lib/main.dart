@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/legacy.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/di/injection_container.dart';
+import 'core/network/dio_client.dart';
 import 'services/print/print_service_manager.dart';
 import 'core/theme/app_theme.dart';
 import 'l10n/generated/app_localizations.dart';
@@ -36,6 +37,7 @@ void main() async => runZoneGuarded(() async {
   final savedLang = prefs.getString('app_language') ?? 'en';
   final savedLocale = Locale(savedLang);
 
+  await DioClient.configureTrust();
   await setupServiceLocator();
   unawaited(getIt<PrintServiceManager>().ensureLoaded());
   runApp(

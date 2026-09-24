@@ -4,6 +4,7 @@ import 'package:agc_canteen/core/di/securestorage.dart';
 import 'package:agc_canteen/core/network/dio_interceptor.dart';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class DioClient {
@@ -30,14 +31,15 @@ class DioClient {
     return _dio!;
   }
 
-  static void setupCertificatePinning() {
-    _dio?.httpClientAdapter = IOHttpClientAdapter()
-      ..createHttpClient = () {
-        final client = HttpClient();
-        client.badCertificateCallback = (cert, host, port) {
-          return host == baseUrl;
-        };
-        return client;
-      };
+  /// Trusts the on-prem internal CA (assets/certs/asantegold-ca.crt) for all
+  /// HTTPS calls so the self-signed internal CA is accepted on Android/iOS.
+  static Future<void> configureTrust() async {
+    final data = await rootBundle.load('assets/certs/asantegold-ca.crt');
+    final context = SecurityContext(withTrustedRoots: true)
+      ..setTrustedCertificatesBytes(
+        data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+      );
+    dio.httpClientAdapter = IOHttpClientAdapter()
+      ..createHttpClient = () => HttpClient(context: context);
   }
 }

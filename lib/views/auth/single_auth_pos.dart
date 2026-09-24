@@ -354,7 +354,7 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
                         children: [
                           if (!_fingerprintReady &&
                               !_fingerprintInitFailed) ...[
-                            const SizedBox(height: 10),
+                            const SizedBox(height: 15),
                             const LinearProgressIndicator(),
                             const SizedBox(height: 16),
                             const Text(
