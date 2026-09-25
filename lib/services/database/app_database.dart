@@ -1361,7 +1361,7 @@ class AppDatabase extends _$AppDatabase {
     String? status,
     bool? synced,
     String? mealType,
-    int limit = 50,
+    int? limit = 50,
     int offset = 0,
   }) async {
     final orderVars = <Variable>[];
@@ -1384,8 +1384,10 @@ class AppDatabase extends _$AppDatabase {
     );
 
     final limitVars = <Variable>[
-      Variable<int>(limit),
-      Variable<int>(offset),
+      if (limit != null) ...[
+        Variable<int>(limit),
+        Variable<int>(offset),
+      ],
     ];
 
     final sql =
@@ -1400,7 +1402,7 @@ SELECT * FROM (
   FROM group_orders ${_whereSql(groupClauses)}
 )
 ORDER BY created_at DESC
-LIMIT ? OFFSET ?
+${limit != null ? 'LIMIT ? OFFSET ?' : ''}
 ''';
 
     final rows = await customSelect(

@@ -10,6 +10,7 @@ import '../../services/nfc/nfc_service.dart';
 import '../../services/database/activity_log_service.dart';
 import '../../services/database/app_database.dart';
 import '../../services/database/database_service.dart';
+import '../../services/export/file_export_service.dart';
 import '../../repositories/biodata.repo.dart';
 import '../../repositories/orders.repo.dart';
 import '../../services/sync_services/sync_from_remote_to_local.dart';
@@ -96,4 +97,6 @@ Future<void> setupServiceLocator() async {
 
   getIt.registerLazySingleton<ActivityLogService>(
       () => ActivityLogService(getIt<AppDatabase>()));
+
+  getIt.registerLazySingleton<FileExportService>(() => FileExportService());
 }

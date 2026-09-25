@@ -50,9 +50,7 @@ class _AuthGateState extends ConsumerState<AuthGate> {
         await syncService.syncDepartmentsOnly();
         if (mounted) ref.invalidate(departmentsProvider);
       }());
-      unawaited(syncService.syncMealTypesOnly());
-      unawaited(syncService.syncShiftsOnly());
-      //  unawaited(syncService.syncAll());
+      unawaited(syncService.syncAll());
     }
   }
 

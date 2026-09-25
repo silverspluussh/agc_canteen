@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:agc_canteen/views/widgets/app_buttons.widget.dart';
 import 'package:flutter/material.dart';
@@ -8,10 +9,22 @@ import '../../core/utils/search_debouncer.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../models/unified_report_order_row.dart';
 import '../../services/database/app_database.dart';
+import '../../services/export/file_export_service.dart';
 import '../../services/print/print_service_manager.dart';
 
 final _currency = NumberFormat('#,##0.00', 'en_US');
 String _cap(String s) => s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
+
+String _csvField(Object? value) {
+  final s = (value ?? '').toString();
+  if (s.contains(',') ||
+      s.contains('"') ||
+      s.contains('\n') ||
+      s.contains('\r')) {
+    return '"${s.replaceAll('"', '""')}"';
+  }
+  return s;
+}
 
 Future<void> _printReportReceipt(_ReportOrder order) async {
   try {
@@ -52,7 +65,6 @@ Future<void> _printReportReceipt(_ReportOrder order) async {
     ln('Time:  $date');
     ln('Staff: $staffLabel');
     ln('Meal:  $mealTypeLabel');
-    ln('Type:  $orderTypeLabel');
     ln('--------------------');
     if (isGroup) {
       ln('People: ${order.groupCount}');
@@ -206,6 +218,7 @@ class _OrdersTabState extends ConsumerState<_OrdersTab>
 
   bool _loading = true;
   bool _loadingMore = false;
+  bool _exporting = false;
   bool _hasMore = true;
   int _offset = 0;
   List<_ReportOrder> _loadedOrders = [];
@@ -345,6 +358,112 @@ class _OrdersTabState extends ConsumerState<_OrdersTab>
           (_syncFilter == 'synced' ? o.isSynced : !o.isSynced);
       return matchQ && matchS && matchM && matchSync;
     }).toList();
+  }
+
+  Future<void> _exportVouchers() async {
+    if (_exporting) return;
+    setState(() => _exporting = true);
+    try {
+      final db = GetIt.instance<AppDatabase>();
+      _nameMaps ??= await _buildEntityNameMaps(db);
+      final names = _nameMaps!;
+
+      final rows = await db.queryUnifiedOrdersPage(
+        createdAtFrom: _dateFromIso(),
+        createdAtToInclusive: _dateToInclusiveIso(),
+        status: _statusFilter,
+        synced: _syncedDbFilter(),
+        mealType: _mealTypeFilter,
+        limit: null,
+      );
+
+      final orders = _filter(rows.map((r) => _mapRow(r, names)).toList());
+      if (!mounted) return;
+
+      if (orders.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No vouchers to export')),
+        );
+        return;
+      }
+
+      final buffer = StringBuffer();
+      void row(List<Object?> cells) =>
+          buffer.write('${cells.map(_csvField).join(',')}\r\n');
+
+      row([
+        'Order Code',
+        'Date/Time',
+        'Staff/Group',
+        'Meal Type',
+        'Order Type',
+        'Status',
+        'Sync Status',
+        'Group Count',
+        'Total',
+        'Description',
+      ]);
+
+      final dateFmt = DateFormat('yyyy-MM-dd HH:mm');
+      var revenue = 0.0;
+      for (final o in orders) {
+        revenue += o.total;
+        row([
+          o.orderCode,
+          dateFmt.format(o.createdAt),
+          o.staffName ?? 'Group order',
+          _cap(o.mealType),
+          o.orderType == 'takeout' ? 'Takeout' : 'Dine-in',
+          _cap(o.status),
+          o.isSynced ? 'Synced' : 'Unsynced',
+          o.groupCount,
+          o.total.toStringAsFixed(2),
+          o.description ?? '',
+        ]);
+      }
+
+      row([
+        'TOTAL',
+        '${orders.length} vouchers',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        revenue.toStringAsFixed(2),
+        '',
+      ]);
+
+      final now = DateTime.now();
+      String pad(int n) => n.toString().padLeft(2, '0');
+      final stamp = '${now.year}${pad(now.month)}${pad(now.day)}_'
+          '${pad(now.hour)}${pad(now.minute)}${pad(now.second)}';
+      final fileName = 'vouchers_$stamp.csv';
+
+      final bytes = <int>[
+        0xEF,
+        0xBB,
+        0xBF,
+        ...utf8.encode(buffer.toString()),
+      ];
+
+      final savedPath = await GetIt.instance<FileExportService>()
+          .saveToDownloads(fileName: fileName, bytes: bytes);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Saved to $savedPath')),
+      );
+    } catch (e) {
+      print('Export failed: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Export failed: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
   }
 
   Future<void> _showFilterModal() async {
@@ -576,6 +695,29 @@ class _OrdersTabState extends ConsumerState<_OrdersTab>
               child: _SearchBar(
                 controller: _searchCtrl,
                 hint: AppLocalizations.of(context).searchOrderHint,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(right: 8.0, top: 12.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: IconButton(
+                  tooltip: 'Export vouchers',
+                  onPressed: _exporting ? null : _exportVouchers,
+                  icon: _exporting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Icon(
+                          Icons.download,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                ),
               ),
             ),
             Padding(
