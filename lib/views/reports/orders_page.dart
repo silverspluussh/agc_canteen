@@ -175,7 +175,7 @@ class ReportsPage extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: cs.primary,
         foregroundColor: cs.onPrimary,
-        title: Text(AppLocalizations.of(context).orders),
+        title: Text("Vouchers"),
         leading: const BackButton(color: Colors.white),
         centerTitle: true,
       ),

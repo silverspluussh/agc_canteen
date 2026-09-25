@@ -6,15 +6,12 @@ import 'package:agc_canteen/views/widgets/avatarglow.widget.dart';
 import 'package:agc_canteen/views/widgets/department_search_field.widget.dart';
 import 'package:agc_canteen/views/widgets/voucher_card.widget.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../controllers/auth_controller.dart';
 import '../../controllers/auth_settings_controller.dart';
 import '../../controllers/providers.dart';
-import '../../core/di/injection_container.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../views/widgets/pos_meal_time_refresh.widget.dart';
-import '../../services/database/activity_log_service.dart';
 
 class SingleAuthPosPage extends ConsumerStatefulWidget {
   const SingleAuthPosPage({super.key});
@@ -144,140 +141,6 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
     return [const SizedBox(height: 20), Row(children: buttons)];
   }
 
-  Future<void> _showAdminCodeDialog() async {
-    final codeController = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-    bool isWrong = false;
-
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: true,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (ctx, setDialogState) {
-            return AlertDialog(
-              constraints: const BoxConstraints(minWidth: 400),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              title: Row(
-                children: [
-                  Icon(
-                    Icons.admin_panel_settings,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    AppLocalizations.of(context).adminAccess,
-                    style: Theme.of(context).textTheme.titleLarge!.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              content: Form(
-                key: formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      AppLocalizations.of(context).enterAdminPin,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 20),
-                    TextFormField(
-                      controller: codeController,
-                      keyboardType: TextInputType.number,
-                      maxLength: 6,
-                      obscureText: true,
-                      autofocus: true,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 8,
-                      ),
-                      decoration: InputDecoration(
-                        counterText: '',
-                        hintText: '● ● ● ● ● ●',
-                        hintStyle: TextStyle(
-                          fontSize: 18,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withOpacity(0.3),
-                          letterSpacing: 6,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        errorText: isWrong
-                            ? AppLocalizations.of(context).incorrectCode
-                            : null,
-                      ),
-                      onChanged: (_) {
-                        if (isWrong) {
-                          setDialogState(() => isWrong = false);
-                        }
-                      },
-                      validator: (v) {
-                        if (v == null || v.trim().length != 6) {
-                          return AppLocalizations.of(context).enter6Digits;
-                        }
-                        return null;
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              actionsAlignment: MainAxisAlignment.spaceBetween,
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  child: Text(
-                    AppLocalizations.of(context).cancel,
-                    style: const TextStyle(color: Colors.red, fontSize: 18),
-                  ),
-                ),
-
-                PrimaryButton(
-                  width: 120,
-                  height: 48,
-                  onPressed: () {
-                    final accessCode = dotenv.env['ADMIN_ACCESS_CODE'];
-                    if (!formKey.currentState!.validate()) return;
-                    if (accessCode == null || accessCode.isEmpty) {
-                      setDialogState(() => isWrong = true);
-                      codeController.clear();
-                      return;
-                    }
-                    if (codeController.text.trim() == accessCode) {
-                      Navigator.of(context).pop();
-                      getIt<ActivityLogService>().log(
-                        type: 'admin_code_access',
-                        message:
-                            'Admin accessed settings via PIN from staff auth screen',
-                        actorType: 'admin',
-                      );
-                      Navigator.pushNamed(context, '/settings');
-                    } else {
-                      setDialogState(() => isWrong = true);
-                      codeController.clear();
-                    }
-                  },
-                  label: Text(
-                    AppLocalizations.of(context).confirm,
-                    style: const TextStyle(color: Colors.white, fontSize: 18),
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(authProvider);
@@ -313,10 +176,10 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
 
             actions: [
               IconButton(
-                onPressed: _showAdminCodeDialog,
+                onPressed: () => Navigator.pushNamed(context, '/settings'),
                 icon: Icon(Icons.settings, size: 30, color: Colors.white),
               ),
-              SizedBox(width: 20),
+              const SizedBox(width: 20),
             ],
           ),
 

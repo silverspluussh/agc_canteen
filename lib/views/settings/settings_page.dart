@@ -1,6 +1,7 @@
 import 'package:adaptive_theme/adaptive_theme.dart';
 import 'package:agc_canteen/views/widgets/app_buttons.widget.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -41,6 +42,137 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         _adminEmail = email;
         _appVersion = 'v${info.version} (${info.buildNumber})';
       });
+    }
+  }
+
+  Future<void> _requireAdminAccessFor(VoidCallback onApproved) async {
+    final codeController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    var isWrong = false;
+
+    final approved = await showDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            return AlertDialog(
+              constraints: const BoxConstraints(minWidth: 400),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: Row(
+                children: [
+                  Icon(
+                    Icons.admin_panel_settings,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    AppLocalizations.of(context).adminAccess,
+                    style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              content: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      AppLocalizations.of(context).enterAdminPin,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 20),
+                    TextFormField(
+                      controller: codeController,
+                      keyboardType: TextInputType.number,
+                      maxLength: 6,
+                      obscureText: true,
+                      autofocus: true,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 8,
+                      ),
+                      decoration: InputDecoration(
+                        counterText: '',
+                        hintText: '● ● ● ● ● ●',
+                        hintStyle: TextStyle(
+                          fontSize: 18,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.3),
+                          letterSpacing: 6,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        errorText: isWrong
+                            ? AppLocalizations.of(context).incorrectCode
+                            : null,
+                      ),
+                      onChanged: (_) {
+                        if (isWrong) {
+                          setDialogState(() => isWrong = false);
+                        }
+                      },
+                      validator: (v) {
+                        if (v == null || v.trim().length != 6) {
+                          return AppLocalizations.of(context).enter6Digits;
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actionsAlignment: MainAxisAlignment.spaceBetween,
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(false),
+                  child: Text(
+                    AppLocalizations.of(context).cancel,
+                    style: const TextStyle(color: Colors.red, fontSize: 18),
+                  ),
+                ),
+                PrimaryButton(
+                  width: 120,
+                  height: 48,
+                  onPressed: () {
+                    final accessCode = dotenv.env['ADMIN_ACCESS_CODE'];
+                    if (!formKey.currentState!.validate()) return;
+                    if (accessCode == null || accessCode.isEmpty) {
+                      setDialogState(() => isWrong = true);
+                      codeController.clear();
+                      return;
+                    }
+                    if (codeController.text.trim() == accessCode) {
+                      Navigator.of(ctx).pop(true);
+                    } else {
+                      setDialogState(() => isWrong = true);
+                      codeController.clear();
+                    }
+                  },
+                  label: Text(
+                    AppLocalizations.of(context).confirm,
+                    style: const TextStyle(color: Colors.white, fontSize: 18),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (approved == true && mounted) {
+      onApproved();
     }
   }
 
@@ -393,7 +525,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             title: "Personnel Management", // "Staff Management"
             subtitle:
                 "View and enroll personnel bio data", // "Register and remove fingerprints for staff access"
-            onTap: () => Navigator.of(context).pushNamed('/staff'),
+            onTap: () => _requireAdminAccessFor(
+              () => Navigator.of(context).pushNamed('/staff'),
+            ),
           ),
           //POS managment
 
@@ -404,13 +538,17 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             title: l10n.posSettings, // "POS Settings"
             subtitle: l10n
                 .managePosSubtitle, // "Manage POS devices and configurations"
-            onTap: () => Navigator.of(context).pushNamed('/pos'),
+            onTap: () => _requireAdminAccessFor(
+              () => Navigator.of(context).pushNamed('/pos'),
+            ),
           ),
           _SettingsTile(
             icon: Icons.print_outlined,
             title: l10n.printerSettings,
             subtitle: 'Manage built-in and external (USB/Bluetooth) printers',
-            onTap: () => Navigator.of(context).pushNamed('/printer-settings'),
+            onTap: () => _requireAdminAccessFor(
+              () => Navigator.of(context).pushNamed('/printer-settings'),
+            ),
           ),
           // _SettingsTile(
           //   icon: Icons.language_outlined,
@@ -418,12 +556,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           //   subtitle: l10n.changeLanguage,
           //   onTap: _showLanguageDialog,
           // ),
-          _SettingsTile(
-            icon: Icons.brightness_6_outlined,
-            title: l10n.appearance,
-            subtitle: l10n.appearanceSubtitle,
-            onTap: _showThemeDialog,
-          ),
+          // _SettingsTile(
+          //   icon: Icons.brightness_6_outlined,
+          //   title: l10n.appearance,
+          //   subtitle: l10n.appearanceSubtitle,
+          //   onTap: _showThemeDialog,
+          // ),
 
           // ── Authentication ───────────────────────────────────────────
           _SectionHeader(label: 'Authentication'),
@@ -459,55 +597,42 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ),
 
           // ── System ─────────────────────────────────────────────────────────
-          _SectionHeader(label: l10n.system),
+          // _SectionHeader(label: l10n.system),
 
-          _SettingsTile(
-            icon: Icons.info_outline_rounded,
-            title: l10n.about,
-            subtitle: _appVersion.isNotEmpty ? _appVersion : l10n.appTitle,
-            onTap: () {
-              showAboutDialog(
-                context: context,
-                applicationName: l10n.appTitle,
-                applicationVersion: _appVersion,
-                applicationIcon: Image.asset(
-                  'assets/app_logo.png',
-                  width: 48,
-                  height: 48,
-                ),
-              );
-            },
-          ),
+          // _SettingsTile(
+          //   icon: Icons.info_outline_rounded,
+          //   title: l10n.about,
+          //   subtitle: _appVersion.isNotEmpty ? _appVersion : l10n.appTitle,
+          //   onTap: () {
+          //     showAboutDialog(
+          //       context: context,
+          //       applicationName: l10n.appTitle,
+          //       applicationVersion: _appVersion,
+          //       applicationIcon: Image.asset(
+          //         'assets/app_logo.png',
+          //         width: 48,
+          //         height: 48,
+          //       ),
+          //     );
+          //   },
+          // ),
 
-          // // ── Diagnostics ──────────────────────────────────────────
-          // _SectionHeader(label: 'Diagnostics'),
-          // _SettingsTile(
-          //   icon: Icons.credit_card_outlined,
-          //   title: 'Card Test',
-          //   subtitle: 'Test IC/PSAM smart card operations',
-          //   onTap: () => Navigator.of(context).pushNamed('/card-test'),
-          // ),
-          // _SettingsTile(
-          //   icon: Icons.nfc_outlined,
-          //   title: 'NFC Test',
-          //   subtitle: 'Test contactless NFC tag reading',
-          //   onTap: () => Navigator.of(context).pushNamed('/nfc-test'),
-          // ),
+         
           const Divider(height: 32),
 
-          ListTile(
-            leading: CircleAvatar(
-              backgroundColor: Colors.red.shade900,
-              child: const Icon(Icons.dangerous, color: Colors.white, size: 20),
-            ),
-            title: const Text(
-              'Reset Switch',
-              style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
-            ),
-            subtitle: const Text('Clear all data & reset POS terminal'),
-            onTap: _killSwitch,
-          ),
-          const SizedBox(height: 8),
+          // ListTile(
+          //   leading: CircleAvatar(
+          //     backgroundColor: Colors.red.shade900,
+          //     child: const Icon(Icons.dangerous, color: Colors.white, size: 20),
+          //   ),
+          //   title: const Text(
+          //     'Reset Switch',
+          //     style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
+          //   ),
+          //   subtitle: const Text('Clear all data & reset POS terminal'),
+          //   onTap: _killSwitch,
+          // ),
+          // const SizedBox(height: 8),
 
           ListTile(
             leading: CircleAvatar(
