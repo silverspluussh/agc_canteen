@@ -223,7 +223,6 @@ class _OrdersTabState extends ConsumerState<_OrdersTab>
   int _offset = 0;
   List<_ReportOrder> _loadedOrders = [];
   int _totalCount = 0;
-  double _totalRevenue = 0;
   String? _loadError;
 
   ({
@@ -313,13 +312,7 @@ class _OrdersTabState extends ConsumerState<_OrdersTab>
           synced: _syncedDbFilter(),
           mealType: _mealTypeFilter,
         );
-        _totalRevenue = await db.sumUnifiedOrdersRevenue(
-          createdAtFrom: _dateFromIso(),
-          createdAtToInclusive: _dateToInclusiveIso(),
-          status: _statusFilter,
-          synced: _syncedDbFilter(),
-          mealType: _mealTypeFilter,
-        );
+        
       }
 
       final mapped = rows.map((r) => _mapRow(r, names)).toList();
@@ -684,7 +677,6 @@ class _OrdersTabState extends ConsumerState<_OrdersTab>
     }
 
     final items = _filter(_loadedOrders);
-    final total = _totalRevenue;
 
     return Column(
       children: [
@@ -739,11 +731,7 @@ class _OrdersTabState extends ConsumerState<_OrdersTab>
           ],
         ),
         const SizedBox(height: 10),
-        if (_totalCount > 0)
-          _SummaryStrip(
-            '${_totalCount} ${AppLocalizations.of(context).orders}',
-            '${AppLocalizations.of(context).total}: \$ ${_currency.format(total)}',
-          ),
+        
         Expanded(
           child: items.isEmpty
               ? _EmptyView(
