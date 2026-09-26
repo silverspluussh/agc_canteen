@@ -7107,6 +7107,29 @@ class $OrdersTable extends Orders with TableInfo<$OrdersTable, Order> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _syncAttemptsMeta = const VerificationMeta(
+    'syncAttempts',
+  );
+  @override
+  late final GeneratedColumn<int> syncAttempts = GeneratedColumn<int>(
+    'sync_attempts',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _lastSyncErrorMeta = const VerificationMeta(
+    'lastSyncError',
+  );
+  @override
+  late final GeneratedColumn<String> lastSyncError = GeneratedColumn<String>(
+    'last_sync_error',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -7124,6 +7147,8 @@ class $OrdersTable extends Orders with TableInfo<$OrdersTable, Order> {
     updatedAt,
     syncStatus,
     syncUpdatedAt,
+    syncAttempts,
+    lastSyncError,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -7258,6 +7283,24 @@ class $OrdersTable extends Orders with TableInfo<$OrdersTable, Order> {
         ),
       );
     }
+    if (data.containsKey('sync_attempts')) {
+      context.handle(
+        _syncAttemptsMeta,
+        syncAttempts.isAcceptableOrUnknown(
+          data['sync_attempts']!,
+          _syncAttemptsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_sync_error')) {
+      context.handle(
+        _lastSyncErrorMeta,
+        lastSyncError.isAcceptableOrUnknown(
+          data['last_sync_error']!,
+          _lastSyncErrorMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -7327,6 +7370,14 @@ class $OrdersTable extends Orders with TableInfo<$OrdersTable, Order> {
         DriftSqlType.string,
         data['${effectivePrefix}sync_updated_at'],
       ),
+      syncAttempts: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sync_attempts'],
+      )!,
+      lastSyncError: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_sync_error'],
+      ),
     );
   }
 
@@ -7352,6 +7403,8 @@ class Order extends DataClass implements Insertable<Order> {
   final String updatedAt;
   final int syncStatus;
   final String? syncUpdatedAt;
+  final int syncAttempts;
+  final String? lastSyncError;
   const Order({
     required this.id,
     required this.uuid,
@@ -7368,6 +7421,8 @@ class Order extends DataClass implements Insertable<Order> {
     required this.updatedAt,
     required this.syncStatus,
     this.syncUpdatedAt,
+    required this.syncAttempts,
+    this.lastSyncError,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -7390,6 +7445,10 @@ class Order extends DataClass implements Insertable<Order> {
     map['sync_status'] = Variable<int>(syncStatus);
     if (!nullToAbsent || syncUpdatedAt != null) {
       map['sync_updated_at'] = Variable<String>(syncUpdatedAt);
+    }
+    map['sync_attempts'] = Variable<int>(syncAttempts);
+    if (!nullToAbsent || lastSyncError != null) {
+      map['last_sync_error'] = Variable<String>(lastSyncError);
     }
     return map;
   }
@@ -7415,6 +7474,10 @@ class Order extends DataClass implements Insertable<Order> {
       syncUpdatedAt: syncUpdatedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(syncUpdatedAt),
+      syncAttempts: Value(syncAttempts),
+      lastSyncError: lastSyncError == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastSyncError),
     );
   }
 
@@ -7439,6 +7502,8 @@ class Order extends DataClass implements Insertable<Order> {
       updatedAt: serializer.fromJson<String>(json['updatedAt']),
       syncStatus: serializer.fromJson<int>(json['syncStatus']),
       syncUpdatedAt: serializer.fromJson<String?>(json['syncUpdatedAt']),
+      syncAttempts: serializer.fromJson<int>(json['syncAttempts']),
+      lastSyncError: serializer.fromJson<String?>(json['lastSyncError']),
     );
   }
   @override
@@ -7460,6 +7525,8 @@ class Order extends DataClass implements Insertable<Order> {
       'updatedAt': serializer.toJson<String>(updatedAt),
       'syncStatus': serializer.toJson<int>(syncStatus),
       'syncUpdatedAt': serializer.toJson<String?>(syncUpdatedAt),
+      'syncAttempts': serializer.toJson<int>(syncAttempts),
+      'lastSyncError': serializer.toJson<String?>(lastSyncError),
     };
   }
 
@@ -7479,6 +7546,8 @@ class Order extends DataClass implements Insertable<Order> {
     String? updatedAt,
     int? syncStatus,
     Value<String?> syncUpdatedAt = const Value.absent(),
+    int? syncAttempts,
+    Value<String?> lastSyncError = const Value.absent(),
   }) => Order(
     id: id ?? this.id,
     uuid: uuid ?? this.uuid,
@@ -7497,6 +7566,10 @@ class Order extends DataClass implements Insertable<Order> {
     syncUpdatedAt: syncUpdatedAt.present
         ? syncUpdatedAt.value
         : this.syncUpdatedAt,
+    syncAttempts: syncAttempts ?? this.syncAttempts,
+    lastSyncError: lastSyncError.present
+        ? lastSyncError.value
+        : this.lastSyncError,
   );
   Order copyWithCompanion(OrdersCompanion data) {
     return Order(
@@ -7527,6 +7600,12 @@ class Order extends DataClass implements Insertable<Order> {
       syncUpdatedAt: data.syncUpdatedAt.present
           ? data.syncUpdatedAt.value
           : this.syncUpdatedAt,
+      syncAttempts: data.syncAttempts.present
+          ? data.syncAttempts.value
+          : this.syncAttempts,
+      lastSyncError: data.lastSyncError.present
+          ? data.lastSyncError.value
+          : this.lastSyncError,
     );
   }
 
@@ -7547,7 +7626,9 @@ class Order extends DataClass implements Insertable<Order> {
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('syncStatus: $syncStatus, ')
-          ..write('syncUpdatedAt: $syncUpdatedAt')
+          ..write('syncUpdatedAt: $syncUpdatedAt, ')
+          ..write('syncAttempts: $syncAttempts, ')
+          ..write('lastSyncError: $lastSyncError')
           ..write(')'))
         .toString();
   }
@@ -7569,6 +7650,8 @@ class Order extends DataClass implements Insertable<Order> {
     updatedAt,
     syncStatus,
     syncUpdatedAt,
+    syncAttempts,
+    lastSyncError,
   );
   @override
   bool operator ==(Object other) =>
@@ -7588,7 +7671,9 @@ class Order extends DataClass implements Insertable<Order> {
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.syncStatus == this.syncStatus &&
-          other.syncUpdatedAt == this.syncUpdatedAt);
+          other.syncUpdatedAt == this.syncUpdatedAt &&
+          other.syncAttempts == this.syncAttempts &&
+          other.lastSyncError == this.lastSyncError);
 }
 
 class OrdersCompanion extends UpdateCompanion<Order> {
@@ -7607,6 +7692,8 @@ class OrdersCompanion extends UpdateCompanion<Order> {
   final Value<String> updatedAt;
   final Value<int> syncStatus;
   final Value<String?> syncUpdatedAt;
+  final Value<int> syncAttempts;
+  final Value<String?> lastSyncError;
   const OrdersCompanion({
     this.id = const Value.absent(),
     this.uuid = const Value.absent(),
@@ -7623,6 +7710,8 @@ class OrdersCompanion extends UpdateCompanion<Order> {
     this.updatedAt = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.syncUpdatedAt = const Value.absent(),
+    this.syncAttempts = const Value.absent(),
+    this.lastSyncError = const Value.absent(),
   });
   OrdersCompanion.insert({
     this.id = const Value.absent(),
@@ -7640,6 +7729,8 @@ class OrdersCompanion extends UpdateCompanion<Order> {
     required String updatedAt,
     this.syncStatus = const Value.absent(),
     this.syncUpdatedAt = const Value.absent(),
+    this.syncAttempts = const Value.absent(),
+    this.lastSyncError = const Value.absent(),
   }) : uuid = Value(uuid),
        orderCode = Value(orderCode),
        status = Value(status),
@@ -7667,6 +7758,8 @@ class OrdersCompanion extends UpdateCompanion<Order> {
     Expression<String>? updatedAt,
     Expression<int>? syncStatus,
     Expression<String>? syncUpdatedAt,
+    Expression<int>? syncAttempts,
+    Expression<String>? lastSyncError,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -7684,6 +7777,8 @@ class OrdersCompanion extends UpdateCompanion<Order> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (syncStatus != null) 'sync_status': syncStatus,
       if (syncUpdatedAt != null) 'sync_updated_at': syncUpdatedAt,
+      if (syncAttempts != null) 'sync_attempts': syncAttempts,
+      if (lastSyncError != null) 'last_sync_error': lastSyncError,
     });
   }
 
@@ -7703,6 +7798,8 @@ class OrdersCompanion extends UpdateCompanion<Order> {
     Value<String>? updatedAt,
     Value<int>? syncStatus,
     Value<String?>? syncUpdatedAt,
+    Value<int>? syncAttempts,
+    Value<String?>? lastSyncError,
   }) {
     return OrdersCompanion(
       id: id ?? this.id,
@@ -7720,6 +7817,8 @@ class OrdersCompanion extends UpdateCompanion<Order> {
       updatedAt: updatedAt ?? this.updatedAt,
       syncStatus: syncStatus ?? this.syncStatus,
       syncUpdatedAt: syncUpdatedAt ?? this.syncUpdatedAt,
+      syncAttempts: syncAttempts ?? this.syncAttempts,
+      lastSyncError: lastSyncError ?? this.lastSyncError,
     );
   }
 
@@ -7771,6 +7870,12 @@ class OrdersCompanion extends UpdateCompanion<Order> {
     if (syncUpdatedAt.present) {
       map['sync_updated_at'] = Variable<String>(syncUpdatedAt.value);
     }
+    if (syncAttempts.present) {
+      map['sync_attempts'] = Variable<int>(syncAttempts.value);
+    }
+    if (lastSyncError.present) {
+      map['last_sync_error'] = Variable<String>(lastSyncError.value);
+    }
     return map;
   }
 
@@ -7791,7 +7896,9 @@ class OrdersCompanion extends UpdateCompanion<Order> {
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('syncStatus: $syncStatus, ')
-          ..write('syncUpdatedAt: $syncUpdatedAt')
+          ..write('syncUpdatedAt: $syncUpdatedAt, ')
+          ..write('syncAttempts: $syncAttempts, ')
+          ..write('lastSyncError: $lastSyncError')
           ..write(')'))
         .toString();
   }
@@ -17454,6 +17561,8 @@ typedef $$OrdersTableCreateCompanionBuilder =
       required String updatedAt,
       Value<int> syncStatus,
       Value<String?> syncUpdatedAt,
+      Value<int> syncAttempts,
+      Value<String?> lastSyncError,
     });
 typedef $$OrdersTableUpdateCompanionBuilder =
     OrdersCompanion Function({
@@ -17472,6 +17581,8 @@ typedef $$OrdersTableUpdateCompanionBuilder =
       Value<String> updatedAt,
       Value<int> syncStatus,
       Value<String?> syncUpdatedAt,
+      Value<int> syncAttempts,
+      Value<String?> lastSyncError,
     });
 
 class $$OrdersTableFilterComposer
@@ -17555,6 +17666,16 @@ class $$OrdersTableFilterComposer
 
   ColumnFilters<String> get syncUpdatedAt => $composableBuilder(
     column: $table.syncUpdatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get syncAttempts => $composableBuilder(
+    column: $table.syncAttempts,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastSyncError => $composableBuilder(
+    column: $table.lastSyncError,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -17642,6 +17763,16 @@ class $$OrdersTableOrderingComposer
     column: $table.syncUpdatedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get syncAttempts => $composableBuilder(
+    column: $table.syncAttempts,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lastSyncError => $composableBuilder(
+    column: $table.lastSyncError,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$OrdersTableAnnotationComposer
@@ -17709,6 +17840,16 @@ class $$OrdersTableAnnotationComposer
     column: $table.syncUpdatedAt,
     builder: (column) => column,
   );
+
+  GeneratedColumn<int> get syncAttempts => $composableBuilder(
+    column: $table.syncAttempts,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get lastSyncError => $composableBuilder(
+    column: $table.lastSyncError,
+    builder: (column) => column,
+  );
 }
 
 class $$OrdersTableTableManager
@@ -17754,6 +17895,8 @@ class $$OrdersTableTableManager
                 Value<String> updatedAt = const Value.absent(),
                 Value<int> syncStatus = const Value.absent(),
                 Value<String?> syncUpdatedAt = const Value.absent(),
+                Value<int> syncAttempts = const Value.absent(),
+                Value<String?> lastSyncError = const Value.absent(),
               }) => OrdersCompanion(
                 id: id,
                 uuid: uuid,
@@ -17770,6 +17913,8 @@ class $$OrdersTableTableManager
                 updatedAt: updatedAt,
                 syncStatus: syncStatus,
                 syncUpdatedAt: syncUpdatedAt,
+                syncAttempts: syncAttempts,
+                lastSyncError: lastSyncError,
               ),
           createCompanionCallback:
               ({
@@ -17788,6 +17933,8 @@ class $$OrdersTableTableManager
                 required String updatedAt,
                 Value<int> syncStatus = const Value.absent(),
                 Value<String?> syncUpdatedAt = const Value.absent(),
+                Value<int> syncAttempts = const Value.absent(),
+                Value<String?> lastSyncError = const Value.absent(),
               }) => OrdersCompanion.insert(
                 id: id,
                 uuid: uuid,
@@ -17804,6 +17951,8 @@ class $$OrdersTableTableManager
                 updatedAt: updatedAt,
                 syncStatus: syncStatus,
                 syncUpdatedAt: syncUpdatedAt,
+                syncAttempts: syncAttempts,
+                lastSyncError: lastSyncError,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

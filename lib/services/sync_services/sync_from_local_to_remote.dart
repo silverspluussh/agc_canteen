@@ -116,18 +116,26 @@ class LocalToRemoteSyncService {
       final List<Map<String, dynamic>> payloads = [];
       final List<Order> ordersToSync = [];
       for (final order in orders) {
-        if (order.total <= 0) {
-          _logger.w('Skipping order ${order.orderCode}: total is ${order.total}');
+        final payload = _buildSingleOrderPayload(
+          order,
+          posId: posId,
+          kitchenId: kitchenId,
+          mealTypeByName: mealTypeByName,
+        );
+        if (payload == null) {
+          // Incomplete data (unresolved meal type, or no POS/kitchen) would make
+          // the server reject the whole batch — isolate it instead.
+          _logger.w(
+            'Skipping order ${order.orderCode}: incomplete data (mealType/pos/kitchen)',
+          );
+          errors.add('Order ${order.orderCode}: incomplete data, not synced');
+          await _db.markOrderFailed(
+            order.id,
+            error: 'Incomplete data (mealType/pos/kitchen)',
+          );
           continue;
         }
-        payloads.add(
-          _buildSingleOrderPayload(
-            order,
-            posId: posId,
-            kitchenId: kitchenId,
-            mealTypeByName: mealTypeByName,
-          ),
-        );
+        payloads.add(payload);
         ordersToSync.add(order);
       }
 
@@ -155,17 +163,11 @@ class LocalToRemoteSyncService {
           }
           pushed['orders'] = (pushed['orders'] ?? 0) + batchOrders.length;
         } on APIException catch (e) {
-          _logger.w('Failed to push bulk orders batch ${i ~/ _orderUploadBatchSize + 1}: ${e.message}');
-          for (final order in batchOrders) {
-            errors.add('Order ${order.orderCode}: ${e.message}');
-            await _db.markOrderFailed(order.id);
-          }
+          _logger.w('Bulk batch ${i ~/ _orderUploadBatchSize + 1} failed (${e.message}) — retrying per order');
+          await _pushOrdersIndividually(batchPayloads, batchOrders, pushed, errors);
         } catch (e) {
-          _logger.w('Failed to push bulk orders batch ${i ~/ _orderUploadBatchSize + 1}: $e');
-          for (final order in batchOrders) {
-            errors.add('Order ${order.orderCode}: $e');
-            await _db.markOrderFailed(order.id);
-          }
+          _logger.w('Bulk batch ${i ~/ _orderUploadBatchSize + 1} failed ($e) — retrying per order');
+          await _pushOrdersIndividually(batchPayloads, batchOrders, pushed, errors);
         }
       }
       await _saveLastSync();
@@ -173,6 +175,36 @@ class LocalToRemoteSyncService {
       errors.add(e.toString());
     }
     return SyncResult(pushed: pushed, pulled: pulled, errors: errors);
+  }
+
+  /// Sends orders one-by-one. Used when a batch is rejected (e.g. 422) so a
+  /// single bad order doesn't block the rest of the batch.
+  Future<void> _pushOrdersIndividually(
+    List<Map<String, dynamic>> payloads,
+    List<Order> orders,
+    Map<String, int> pushed,
+    List<String> errors,
+  ) async {
+    for (var i = 0; i < payloads.length; i++) {
+      final order = orders[i];
+      try {
+        await _networkAPI.postData(
+          '/pos/order/create-bulk',
+          data: {'orders': [payloads[i]]},
+          builder: (data) {
+            return data;
+          },
+        );
+        await _db.markOrderSynced(order.id);
+        pushed['orders'] = (pushed['orders'] ?? 0) + 1;
+      } on APIException catch (e) {
+        errors.add('Order ${order.orderCode}: ${e.message}');
+        await _db.markOrderFailed(order.id, error: e.message);
+      } catch (e) {
+        errors.add('Order ${order.orderCode}: $e');
+        await _db.markOrderFailed(order.id, error: '$e');
+      }
+    }
   }
 
   // ─── BioData Sync ──────────────────────────────────────────
@@ -319,25 +351,28 @@ class LocalToRemoteSyncService {
     return 0;
   }
 
-  Map<String, dynamic> _buildSingleOrderPayload(
+  Map<String, dynamic>? _buildSingleOrderPayload(
     Order order, {
     required int? posId,
     required int? kitchenId,
     required Map<String, int> mealTypeByName,
   }) {
     final mealTypeId = mealTypeByName[order.mealType.toLowerCase()];
+    if (mealTypeId == null || posId == null || kitchenId == null) {
+      return null;
+    }
 
     return {
       'orderCode': order.orderCode,
       'uuid': order.uuid,
       'employeeType': order.employeeType,
       'orderType': order.orderType,
-      'mealTypeId': mealTypeId ?? 0,
+      'mealTypeId': mealTypeId,
       'total': order.total,
       'orderedBy': order.orderedById,
       'description': order.description ?? '',
       'isAlaCarte': false,
-      'posProfileId': posId ?? 0,
+      'posProfileId': posId,
       'kitchenId': kitchenId,
       'quantity': 1,
       'createdAt': '',

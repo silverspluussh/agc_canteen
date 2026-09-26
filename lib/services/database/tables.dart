@@ -204,6 +204,8 @@ class Orders extends Table {
   TextColumn get updatedAt => text()();
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();
   TextColumn get syncUpdatedAt => text().nullable()();
+  IntColumn get syncAttempts => integer().withDefault(const Constant(0))();
+  TextColumn get lastSyncError => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};

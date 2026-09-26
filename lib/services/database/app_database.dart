@@ -36,8 +36,11 @@ part 'app_database.g.dart';
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
+  /// Max push attempts before an order is parked in the terminal state (4).
+  static const int _maxOrderSyncAttempts = 5;
+
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -58,6 +61,10 @@ class AppDatabase extends _$AppDatabase {
           contractorStaffTable,
           contractorStaffTable.maxOrderCount,
         );
+      }
+      if (from < 4) {
+        await m.addColumn(orders, orders.syncAttempts);
+        await m.addColumn(orders, orders.lastSyncError);
       }
     },
     beforeOpen: (details) async {
@@ -1249,8 +1256,11 @@ class AppDatabase extends _$AppDatabase {
   Future<Order?> getOrder(int id) =>
       (select(orders)..where((t) => t.id.equals(id))).getSingleOrNull();
 
-  Future<List<Order>> getUnsyncedOrders() =>
-      (select(orders)..where((t) => t.syncStatus.isNotValue(2))).get();
+  Future<List<Order>> getUnsyncedOrders() => (select(orders)..where(
+        (t) =>
+            t.syncStatus.isIn([0, 3]) &
+            t.syncAttempts.isSmallerThanValue(_maxOrderSyncAttempts),
+      )).get();
 
   Future<({int count, double revenue})> aggregateOrders({
     String? createdAtFrom,
@@ -1521,13 +1531,23 @@ SELECT COALESCE(SUM(total), 0) AS revenue FROM (
         ),
       );
 
-  Future<void> markOrderFailed(int id) =>
-      (update(orders)..where((t) => t.id.equals(id))).write(
-        OrdersCompanion(
-          syncStatus: const Value(3),
-          syncUpdatedAt: Value(DateTime.now().toIso8601String()),
-        ),
-      );
+  /// Records a failed push. Increments the attempt counter and parks the order
+  /// in the terminal state ([syncStatus] == 4) once [_maxOrderSyncAttempts] is
+  /// reached, so permanently-bad orders stop being retried forever.
+  Future<void> markOrderFailed(int id, {String? error}) async {
+    final order = await getOrder(id);
+    if (order == null) return;
+    final attempts = order.syncAttempts + 1;
+    final terminal = attempts >= _maxOrderSyncAttempts;
+    await (update(orders)..where((t) => t.id.equals(id))).write(
+      OrdersCompanion(
+        syncStatus: Value(terminal ? 4 : 3),
+        syncAttempts: Value(attempts),
+        lastSyncError: Value(error),
+        syncUpdatedAt: Value(DateTime.now().toIso8601String()),
+      ),
+    );
+  }
 
   // ─── Group Orders ───────────────────────────────────────────
 
