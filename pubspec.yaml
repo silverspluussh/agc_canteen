@@ -49,6 +49,7 @@ flutter:
     - assets/
     - assets/certs/
     - assets/illustrations/
+    - assets/license.txt
   fonts:
     - family: SF Pro Display
       fonts:
