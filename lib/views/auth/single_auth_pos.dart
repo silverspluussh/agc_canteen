@@ -35,9 +35,19 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
   }
 
   Future<void> _initFingerprint() async {
-    appLog('[StaffAuthPage] Initializing fingerprint SDK...', name: 'POS_AUTH');
+    // Give the kernel SPI driver time to probe before first launch() — the
+    // sensor needs ~9s from cold boot (see logs: 5752→5826) while the old
+    // 1s/2s/3s retry only covered ~6s.
+    await Future.delayed(const Duration(seconds: 2));
+    // Skip init if another page already brought the SDK up.
     try {
       final posAuth = ref.read(posAuthProvider);
+      if (await posAuth.isFingerprintAvailable) {
+        appLog('[StaffAuthPage] Fingerprint already available — skipping init',
+            name: 'POS_AUTH');
+        if (mounted) setState(() => _fingerprintReady = true);
+        return;
+      }
       final ok = await posAuth.init();
       if (mounted) {
         setState(() {

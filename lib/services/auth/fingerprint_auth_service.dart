@@ -30,6 +30,16 @@ class FingerprintAuthService {
 
   Future<bool> init() async {
     if (_initialized) return true;
+    // Extra grace for kernel SPI probe before the first launch() — see
+    // SingleAuthPosPage 2s delay + 9s observed spidev ready window.
+    await Future.delayed(const Duration(seconds: 2));
+    // Fast-path if another page already initialized.
+    try {
+      if (await _fingerprint.isAvailable()) {
+        _initialized = true;
+        return true;
+      }
+    } catch (_) {}
     appLog('[FingerprintAuth] Initializing fingerprint device...',
         name: 'POS_AUTH');
     const maxRetries = 4;
@@ -54,7 +64,8 @@ class FingerprintAuthService {
         }
       }
       if (attempt < maxRetries) {
-        await Future.delayed(Duration(seconds: attempt));
+        // Exponential backoff: 2s, 4s, 8s — covers the ~9s spidev probe + jitter.
+        await Future.delayed(Duration(seconds: 1 << attempt));
       }
     }
     throw Exception('Fingerprint device initialization failed after $maxRetries attempts');

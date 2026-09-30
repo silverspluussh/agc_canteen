@@ -15,6 +15,7 @@ import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import java.io.ByteArrayOutputStream
+import java.io.File
 
 class FingerprintPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, EventChannel.StreamHandler, ActivityAware {
     private lateinit var methodChannel: MethodChannel
@@ -24,7 +25,7 @@ class FingerprintPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, EventC
     private var currentTemplate: ByteArray? = null
     private var isSdkReady = false
     private var activity: Activity? = null
-    private var pendingInitResult: MethodChannel.Result? = null
+    private var pendingInitResults = mutableListOf<MethodChannel.Result>()
     private var pendingCaptureResult: MethodChannel.Result? = null
 
     override fun onAttachedToEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
@@ -130,8 +131,32 @@ class FingerprintPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, EventC
         return if (index in list.indices) list[index] else list[0]
     }
 
+    private fun ensureOfflineLicenseFile(): File? {
+        val ctx = activity ?: return null
+        val appCtx = ctx.applicationContext ?: ctx
+        val dir = appCtx.getExternalFilesDir(null) ?: ctx.getExternalFilesDir(null) ?: return null
+        val dst = File(dir, "license.txt")
+        if (dst.exists() && dst.length() > 0) {
+            Log.d("FingerprintPlugin", "Offline license already at ${dst.absolutePath} (${dst.length()} bytes)")
+            return dst
+        }
+        return try {
+            appCtx.assets.open("flutter_assets/assets/license.txt").use { input ->
+                dst.outputStream().use { output -> input.copyTo(output) }
+            }
+            Log.d("FingerprintPlugin", "Copied offline license to ${dst.absolutePath} (${dst.length()} bytes)")
+            dst
+        } catch (e: Exception) {
+            Log.w("FingerprintPlugin", "No bundled offline license found or copy failed: ${e.message}")
+            null
+        }
+    }
+
     private fun initSdkAndLaunch() {
         val ctx = activity ?: return
+        ensureOfflineLicenseFile()?.let { file ->
+            Log.d("FingerprintPlugin", "Offline license ready at ${file.absolutePath}, SDK will use it (fallback online if invalid)")
+        }
         val oldSdk = fingerSDK
         if (oldSdk != null) {
             try { oldSdk.release() } catch (_: Exception) {}
@@ -146,13 +171,15 @@ class FingerprintPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, EventC
                     Log.d("FingerprintPlugin", "SDK init result: code=$code msg=$msg")
                     if (code == FingerSDK.RESULT_OK) {
                         isSdkReady = true
-                        pendingInitResult?.success(true)
-                        pendingInitResult = null
+                        val results = pendingInitResults.toList()
+                        pendingInitResults.clear()
+                        results.forEach { it.success(true) }
                     } else {
                         isSdkReady = false
                         Log.e("FingerprintPlugin", "SDK init FAILED: $msg")
-                        pendingInitResult?.error("FINGER_INIT_ERROR", "SDK init failed: $msg", null)
-                        pendingInitResult = null
+                        val results = pendingInitResults.toList()
+                        pendingInitResults.clear()
+                        results.forEach { it.error("FINGER_INIT_ERROR", "SDK init failed: $msg", null) }
                     }
                 }
             })
@@ -161,8 +188,9 @@ class FingerprintPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, EventC
         } catch (e: Exception) {
             Log.e("FingerprintPlugin", "Init exception: ${e.message}", e)
             isSdkReady = false
-            pendingInitResult?.error("FINGER_INIT_ERROR", e.message, null)
-            pendingInitResult = null
+            val results = pendingInitResults.toList()
+            pendingInitResults.clear()
+            results.forEach { it.error("FINGER_INIT_ERROR", e.message, null) }
         }
     }
 
@@ -175,12 +203,13 @@ class FingerprintPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, EventC
             result.error("FINGER_INIT_ERROR", "Activity context not available", null)
             return
         }
-        if (pendingInitResult != null) {
-            result.error("FINGER_INIT_ERROR", "SDK initialization already in progress", null)
+        val wasEmpty = pendingInitResults.isEmpty()
+        pendingInitResults.add(result)
+        if (!wasEmpty) {
+            Log.d("FingerprintPlugin", "SDK init already in progress — queued caller (${pendingInitResults.size})")
             return
         }
         Log.d("FingerprintPlugin", "init called — (re)starting SDK init")
-        pendingInitResult = result
         initSdkAndLaunch()
     }
 
