@@ -28,6 +28,7 @@ class RemoteToLocalSyncService {
     _jobs.add(SyncJob(name: 'contractorStaff', execute: _syncContractorStaff));
     _jobs.add(SyncJob(name: 'dependents', execute: _syncDependents));
     _jobs.add(SyncJob(name: 'shifts', execute: _syncShifts));
+    _jobs.add(SyncJob(name: 'workFunctions', execute: _syncWorkFunctions));
   }
 
   void registerSyncJob(String name, SyncTask execute) {
@@ -67,6 +68,12 @@ class RemoteToLocalSyncService {
 
   Future<void> syncBioDataOnly() async {
     await _syncBioData();
+  }
+
+  /// Refreshes the cached list of orderable work functions. Safe to call often;
+  /// the server returns only functions that can be ordered right now.
+  Future<void> syncWorkFunctionsOnly() async {
+    await _syncWorkFunctions();
   }
 
   Future<void> syncCardsOnly() async {
@@ -270,6 +277,8 @@ class RemoteToLocalSyncService {
       final shiftMap = staffMap['shift'] as Map<String, dynamic>?;
       final shiftId = _safeParseInt(shiftMap?['id']);
 
+      final manualQuota = _activeManualQuota(staffMap['quotas']);
+
       final companion = StaffCompanion(
         id: Value(staffId),
         empId: Value(
@@ -288,6 +297,10 @@ class RemoteToLocalSyncService {
         ),
         departmentId: Value.absentIfNull(departmentId),
         shiftId: Value.absentIfNull(shiftId),
+        manualDailyQuota: Value(manualQuota?.daily ?? 0),
+        manualMonthlyQuota: Value(manualQuota?.monthly ?? 0),
+        quotaPeriodStart: Value.absentIfNull(manualQuota?.periodStart),
+        quotaPeriodEnd: Value.absentIfNull(manualQuota?.periodEnd),
         jobTitle: Value.absentIfNull(
           staffMap['job_title'] as String? ?? staffMap['jobTitle'] as String?,
         ),
@@ -784,6 +797,9 @@ class RemoteToLocalSyncService {
         gender: Value.absentIfNull(map['gender'] as String?),
         startDate: Value.absentIfNull(map['startDate'] as String?),
         endTime: Value.absentIfNull(map['endDate'] as String?),
+        dailyQuota: Value.absentIfNull(
+          _safeParseInt(map['dailyQuota']) ?? _safeParseInt(map['daily_quota']),
+        ),
         company: Value.absentIfNull(map['company'] as String?),
         companyId: Value.absentIfNull(_safeParseInt(map['companyId'])),
         department: Value.absentIfNull(map['department'] as String?),
@@ -929,6 +945,9 @@ class RemoteToLocalSyncService {
         startDate: Value(map['startDate'] as String? ?? now),
         endDate: Value(map['endDate'] as String? ?? now),
         isCharged: Value(map['isCharged'] as bool? ?? false),
+        dailyQuota: Value.absentIfNull(
+          _safeParseInt(map['dailyQuota']) ?? _safeParseInt(map['daily_quota']),
+        ),
         allowGroupOrder: Value.absentIfNull(
           map['allowGroupOrder'] as bool? ?? map['allow_group_order'] as bool?,
         ),
@@ -1068,11 +1087,41 @@ class RemoteToLocalSyncService {
         status: Value(map['status'] as String? ?? 'active'),
         gender: Value.absentIfNull(map['gender'] as String?),
         staffId: Value.absentIfNull(_safeParseInt(map['staffId'])),
+        contractorStaffId: Value.absentIfNull(
+          _safeParseInt(map['contractorStaffId']),
+        ),
+        parentStatus: Value.absentIfNull(map['parentStatus'] as String?),
         syncStatus: const Value(2),
         syncUpdatedAt: Value(now),
       );
 
       await _db.insertDependent(companion, mode: InsertMode.insertOrReplace);
+
+      // Upsert visits (renewable stay windows; quota is per visit)
+      final depVisits = map['visits'] as List<dynamic>?;
+      if (depVisits != null) {
+        final remoteVisitIds = <int>{};
+        for (final visit in depVisits) {
+          if (visit is Map<String, dynamic>) {
+            final visitId = _safeParseInt(visit['id']) ?? 0;
+            if (visitId == 0) continue;
+            remoteVisitIds.add(visitId);
+            await _db.insertDependentVisit(
+              DependentVisitsCompanion(
+                id: Value(visitId),
+                dependentId: Value(id),
+                startDate: Value(visit['startDate']?.toString() ?? now),
+                endDate: Value(visit['endDate']?.toString() ?? now),
+                status: Value(visit['status']?.toString() ?? 'scheduled'),
+                syncStatus: const Value(2),
+                syncUpdatedAt: Value(now),
+              ),
+              mode: InsertMode.insertOrReplace,
+            );
+          }
+        }
+        await _db.deleteDependentVisitsNotIn(id, remoteVisitIds);
+      }
 
       // Upsert kitchens
       final depKitchens = map['kitchens'] as List<dynamic>?;
@@ -1129,6 +1178,94 @@ class RemoteToLocalSyncService {
   }
 
   // ─── Shifts Sync ───────────────────────────────────────────
+
+  /// Caches the functions that can be ordered at this moment.
+  ///
+  /// Runs on every sync so the POS picker never offers a function whose window
+  /// has closed. On failure the existing cache is left intact: the POS still
+  /// re-validates the window locally, so a stale cache cannot authorise an order.
+  Future<bool> _syncWorkFunctions() async {
+    try {
+      _logger.i('RemoteToLocalSyncService: fetching active work functions...');
+
+      final responseData = await _networkAPI.getData(
+        '/hr/work-functions/active',
+        builder: (data) => data,
+      );
+
+      List<dynamic>? functionList;
+      if (responseData is Map && responseData['data'] is Map) {
+        final inner = responseData['data'];
+        if (inner['workFunctions'] is List) {
+          functionList = inner['workFunctions'] as List<dynamic>;
+        }
+      } else if (responseData is Map && responseData['workFunctions'] is List) {
+        functionList = responseData['workFunctions'] as List<dynamic>;
+      }
+
+      if (functionList == null) {
+        _logger.w(
+          'RemoteToLocalSyncService: unexpected active work function payload',
+        );
+        return false;
+      }
+
+      final now = DateTime.now().toIso8601String();
+      final rows = <WorkFunctionsCompanion>[];
+
+      for (final item in functionList) {
+        if (item is! Map) continue;
+        final map = item;
+        final id = _safeParseInt(map['id']);
+        if (id == null) continue;
+
+        rows.add(
+          WorkFunctionsCompanion.insert(
+            id: Value(id),
+            functionName: (map['functionName'] as String?) ?? '',
+            functionLocation: Value(map['functionLocation'] as String?),
+            catererId: Value(_safeParseInt(map['catererId'])),
+            ratePerVoucher: Value(
+              _safeParseDouble(map['ratePerVoucher']) ?? 0,
+            ),
+            totalQuantity: Value(_safeParseInt(map['totalQuantity']) ?? 0),
+            functionDate: _isoDate(map['functionDate']) ?? '',
+            functionStartTime: _timeOnly(map['functionStartTime']),
+            functionEndTime: _timeOnly(map['functionEndTime']),
+            status: (map['status'] as String?) ?? 'scheduled',
+            syncStatus: const Value(2),
+            syncUpdatedAt: Value(now),
+          ),
+        );
+      }
+
+      await _db.replaceWorkFunctions(rows);
+      _logger.i(
+        'RemoteToLocalSyncService: cached ${rows.length} orderable work function(s)',
+      );
+
+      return true;
+    } catch (e, stack) {
+      _logger.e(
+        'RemoteToLocalSyncService: failed to sync active work functions: $e',
+        stackTrace: stack,
+      );
+      return false;
+    }
+  }
+
+  /// Normalises H:i, H:i:s or a full ISO timestamp to H:i:ss for local
+  /// string comparison against the current clock.
+  String _timeOnly(dynamic value) {
+    if (value == null) return '';
+    final text = value.toString();
+    if (text.contains('T')) {
+      final time = text.substring(text.indexOf('T') + 1);
+      return time.length >= 8 ? time.substring(0, 8) : time.padRight(8, ':0');
+    }
+    if (text.length == 5) return '$text:00';
+    return text;
+  }
 
   Future<bool> _syncShifts() async {
     try {
@@ -1193,6 +1330,16 @@ class RemoteToLocalSyncService {
         name: Value(map['name'] as String? ?? ''),
         hours: Value(_safeParseInt(map['hours']) ?? 0),
         companyId: Value.absentIfNull(_safeParseInt(map['companyId'])),
+        dailyMealQuota: Value(
+          _safeParseInt(map['dailyMealQuota']) ??
+              _safeParseInt(map['daily_meal_quota']) ??
+              0,
+        ),
+        workingDaysPerMonth: Value(
+          _safeParseInt(map['workingDaysPerMonth']) ??
+              _safeParseInt(map['working_days_per_month']) ??
+              0,
+        ),
         syncStatus: const Value(2),
         syncUpdatedAt: Value(now),
       );
@@ -1217,6 +1364,73 @@ class RemoteToLocalSyncService {
     return null;
   }
 
+  /// The manual (no-shift) quota period covering today, if the server has one.
+  ///
+  /// Shift-derived staff read their allowance from the Shifts row, so only
+  /// `source == 'manual'` rows are considered here. Legacy per-meal-type rows
+  /// carry no period and are ignored, matching the server's own gate.
+  _ManualQuota? _activeManualQuota(dynamic quotas) {
+    if (quotas is! List) return null;
+
+    final now = DateTime.now();
+    final today = _dateOnly(now);
+
+    _ManualQuota? best;
+
+    for (final item in quotas) {
+      if (item is! Map) continue;
+
+      final source =
+          (item['source'] as String?)?.trim().toLowerCase() ?? '';
+      if (source != 'manual') continue;
+
+      final start = _parseDate(item['periodStart'] ?? item['period_start']);
+      final end = _parseDate(item['periodEnd'] ?? item['period_end']);
+
+      final startDay = start == null ? null : _dateOnly(start);
+      final endDay = end == null ? null : _dateOnly(end);
+
+      // A window that has not opened yet, or has already closed, is not the
+      // period in force. An open-ended window is treated as still running.
+      if (startDay != null && startDay.isAfter(today)) continue;
+      if (endDay != null && endDay.isBefore(today)) continue;
+
+      // Prefer the most specific window when several overlap.
+      if (best == null ||
+          (startDay != null && startDay.isAfter(best.start))) {
+        best = _ManualQuota(
+          daily: _safeParseInt(item['dailyQuota'] ?? item['daily_quota']) ?? 0,
+          monthly:
+              _safeParseInt(item['monthlyQuota'] ?? item['monthly_quota']) ??
+              _safeParseInt(item['total'] ?? item['totalOrderQty']) ??
+              0,
+          periodStart: _isoDate(item['periodStart'] ?? item['period_start']),
+          periodEnd: _isoDate(item['periodEnd'] ?? item['period_end']),
+          start: startDay ?? DateTime(1970),
+        );
+      }
+    }
+
+    return best;
+  }
+
+  DateTime? _parseDate(dynamic value) {
+    if (value == null) return null;
+    if (value is DateTime) return value;
+    return DateTime.tryParse(value.toString());
+  }
+
+  DateTime _dateOnly(DateTime value) =>
+      DateTime(value.year, value.month, value.day);
+
+  String? _isoDate(dynamic value) {
+    final parsed = _parseDate(value);
+    if (parsed == null) return null;
+    return '${parsed.year.toString().padLeft(4, '0')}-'
+        '${parsed.month.toString().padLeft(2, '0')}-'
+        '${parsed.day.toString().padLeft(2, '0')}';
+  }
+
   double? _safeParseDouble(dynamic value) {
     if (value is double) return value;
     if (value is int) return value.toDouble();
@@ -1224,4 +1438,21 @@ class RemoteToLocalSyncService {
     if (value is String) return double.tryParse(value);
     return null;
   }
+}
+
+/// A person-level quota period set directly on a staff member with no shift.
+class _ManualQuota {
+  const _ManualQuota({
+    required this.daily,
+    required this.monthly,
+    required this.periodStart,
+    required this.periodEnd,
+    required this.start,
+  });
+
+  final int daily;
+  final int monthly;
+  final String? periodStart;
+  final String? periodEnd;
+  final DateTime start;
 }

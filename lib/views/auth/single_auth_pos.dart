@@ -6,6 +6,7 @@ import 'package:agc_canteen/views/widgets/avatarglow.widget.dart';
 import 'package:agc_canteen/views/widgets/department_search_field.widget.dart';
 import 'package:agc_canteen/views/widgets/voucher_card.widget.dart';
 import 'package:flutter/material.dart';
+import 'package:agc_canteen/views/widgets/pos_mode_switcher.widget.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../controllers/auth_controller.dart';
 import '../../controllers/auth_settings_controller.dart';
@@ -213,6 +214,8 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 10),
+                  const PosModeSwitcher(),
+                  const SizedBox(height: 12),
                   DepartmentSearchField(
                     value: _selectedDepartmentId,
                     onChanged: (id) =>

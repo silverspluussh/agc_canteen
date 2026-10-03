@@ -5,11 +5,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import 'package:drift/drift.dart';
 import '../core/di/injection_container.dart';
+import '../core/network/network_api_dio.dart';
+import '../repositories/function_order.repo.dart';
+import 'pos_mode_controller.dart';
 import '../core/utils/app_log.dart';
 import '../services/database/activity_log_service.dart';
 import '../services/auth/pos_auth_service.dart';
+import '../services/pos/quota_gate_service.dart';
 import '../services/database/app_database.dart';
 import '../services/print/print_service_manager.dart';
+import '../services/pos/pos_mode_store.dart';
 import '../services/sync_services/sync_from_local_to_remote.dart';
 import 'providers.dart';
 
@@ -294,6 +299,113 @@ class AuthController extends Notifier<AuthState> {
     }
   }
 
+  /// Handles the order in function mode. Returns true when the order was
+  /// placed as a function order, false when the caller should continue down the
+  /// general path.
+  ///
+  /// Blocks (and returns true) when function mode is on but no usable function
+  /// is selected, so the operator is told why rather than silently falling back
+  /// to a general order.
+  Future<bool> _tryPlaceFunctionOrder({
+    required AuthResult staff,
+    required String mealType,
+  }) async {
+    PosModeState checked;
+    try {
+      final modeState = ref.read(posModeControllerProvider);
+
+      if (!modeState.isFunctionMode) return false;
+
+      // Re-check against the clock on every order: a selection persisted before
+      // a restart may have gone stale.
+      ref.read(posModeControllerProvider.notifier).revalidate();
+      checked = ref.read(posModeControllerProvider);
+    } catch (e) {
+      // If the function-mode state cannot be read, fall back to the general
+      // flow rather than blocking an order that has nothing to do with events.
+      appLog('[FunctionOrder] mode read failed ($e) — using general flow.',
+          name: 'FUNCTION_ORDER');
+      return false;
+    }
+
+    if (checked.problem != FunctionSelectionProblem.none ||
+        checked.selectedFunction == null) {
+      state = state.copyWith(
+        step: AuthStep.error,
+        error: checked.message ?? 'Select a work function before ordering.',
+      );
+      return true;
+    }
+
+    final db = getIt<AppDatabase>();
+    final printer = getIt<PrintServiceManager>();
+    final sync = getIt<LocalToRemoteSyncService>();
+    final posDevice = await _loadRegisteredPosDevice(db);
+
+    if (posDevice == null) {
+      state = state.copyWith(step: AuthStep.error, error: _posNotRegisteredError);
+      return true;
+    }
+
+    if (staff.entityType != null && staff.entityId != null) {
+      final decision = await QuotaGateService(db: db).checkCanOrder(
+        type: staff.entityType!,
+        personId: staff.entityId!,
+        inFunctionMode: true,
+      );
+      if (!decision.allowed) {
+        state = state.copyWith(step: AuthStep.error, error: decision.reason);
+        return true;
+      }
+    }
+
+    final function = checked.selectedFunction!;
+    final now = DateTime.now();
+
+    final orderId = await FunctionOrderRepository(
+      db: db,
+      networkAPI: getIt<NetworkAPI>(),
+    ).createFunctionOrder(
+      function: function,
+      orderedById: staff.entityId!,
+      employeeType: staff.entityType!.name,
+      mealType: mealType,
+      posId: posDevice.id,
+    );
+
+    final orders = await db.getAllFunctionOrders();
+    final orderCode = orders
+        .where((o) => o.id == orderId)
+        .map((o) => o.orderCode)
+        .firstOrNull ??
+        '';
+
+    unawaited(sync.syncFunctionOrders());
+
+    await _printVoucher(
+      printer: printer,
+      orderCode: orderCode,
+      staffName: staff.displayName ?? 'Unknown',
+      mealType: mealType,
+      orderTime: now,
+    );
+
+    getIt<ActivityLogService>().log(
+      type: 'function_order_placed',
+      message:
+          'Function voucher printed: $orderCode — ${function.functionName} '
+          '(${staff.displayName ?? 'Unknown'}, $mealType)',
+      actorType: staff.entityType?.entityName ?? 'Staff',
+      actorId: staff.entityId,
+      actorName: staff.displayName,
+      sourceTable: 'function_orders',
+      recordId: orderId.toString(),
+    );
+
+    state = state.copyWith(step: AuthStep.completed);
+    return true;
+  }
+
   Future<void> _placeVoucherOrder(AuthResult staff) async {
     state = state.copyWith(step: AuthStep.placingOrder);
 
@@ -312,6 +424,10 @@ class AuthController extends Notifier<AuthState> {
       }
       final (mealTypeId, mealType, price) = result;
 
+      if (await _tryPlaceFunctionOrder(staff: staff, mealType: mealType)) {
+        return;
+      }
+
       // Check shift meal restrictions for staff-type employees
       if (staff.entityType != null && staff.entityType!.isStaffType) {
         final staffData = await db.getStaff(staff.entityId!);
@@ -325,6 +441,19 @@ class AuthController extends Notifier<AuthState> {
             );
             return;
           }
+        }
+      }
+
+      // Quota gate: blocks when synced data shows the pool is exhausted.
+      // Offline/stale data allows the order through for server reconciliation.
+      if (staff.entityType != null && staff.entityId != null) {
+        final decision = await QuotaGateService(db: db).checkCanOrder(
+          type: staff.entityType!,
+          personId: staff.entityId!,
+        );
+        if (!decision.allowed) {
+          state = state.copyWith(step: AuthStep.error, error: decision.reason);
+          return;
         }
       }
 
@@ -477,6 +606,10 @@ class AuthController extends Notifier<AuthState> {
       }
       final (mealTypeId, mealType, price) = result;
 
+      if (await _tryPlaceFunctionOrder(staff: staff, mealType: mealType)) {
+        return;
+      }
+
       // Check shift meal restrictions for staff-type employees
       if (staff.entityType != null && staff.entityType!.isStaffType) {
         final staffData = await db.getStaff(staff.entityId!);
@@ -490,6 +623,19 @@ class AuthController extends Notifier<AuthState> {
             );
             return;
           }
+        }
+      }
+
+      // Quota gate: blocks when synced data shows the pool is exhausted.
+      // Offline/stale data allows the order through for server reconciliation.
+      if (staff.entityType != null && staff.entityId != null) {
+        final decision = await QuotaGateService(db: db).checkCanOrder(
+          type: staff.entityType!,
+          personId: staff.entityId!,
+        );
+        if (!decision.allowed) {
+          state = state.copyWith(step: AuthStep.error, error: decision.reason);
+          return;
         }
       }
 

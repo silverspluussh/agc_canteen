@@ -19,6 +19,10 @@ Future<int> seedStaff(
   String employeeType = 'permanent',
   int? shiftId,
   int? departmentId,
+  int manualDailyQuota = 0,
+  int manualMonthlyQuota = 0,
+  String? quotaPeriodStart,
+  String? quotaPeriodEnd,
 }) async {
   await db.insertStaff(
     StaffCompanion.insert(
@@ -29,6 +33,10 @@ Future<int> seedStaff(
       employeeType: employeeType,
       shiftId: Value.absentIfNull(shiftId),
       departmentId: Value.absentIfNull(departmentId),
+      manualDailyQuota: Value(manualDailyQuota),
+      manualMonthlyQuota: Value(manualMonthlyQuota),
+      quotaPeriodStart: Value.absentIfNull(quotaPeriodStart),
+      quotaPeriodEnd: Value.absentIfNull(quotaPeriodEnd),
     ),
   );
   return id;

@@ -30,6 +30,8 @@ class Shifts extends Table {
   TextColumn get name => text()();
   IntColumn get hours => integer()();
   IntColumn get companyId => integer().nullable()();
+  IntColumn get dailyMealQuota => integer().withDefault(const Constant(0))();
+  IntColumn get workingDaysPerMonth => integer().withDefault(const Constant(0))();
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();
   TextColumn get syncUpdatedAt => text().nullable()();
 
@@ -107,6 +109,13 @@ class Staff extends Table {
   IntColumn get totalDependent => integer().nullable()();
   IntColumn get noOfDependentAssigned => integer().nullable()();
   IntColumn get departmentId => integer().nullable()();
+
+  // Quota set directly on the person for staff with no shift. Shift-derived
+  // staff read their allowance from the Shifts row instead.
+  IntColumn get manualDailyQuota => integer().withDefault(const Constant(0))();
+  IntColumn get manualMonthlyQuota => integer().withDefault(const Constant(0))();
+  TextColumn get quotaPeriodStart => text().nullable()();
+  TextColumn get quotaPeriodEnd => text().nullable()();
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();
   TextColumn get syncUpdatedAt => text().nullable()();
 
@@ -128,6 +137,22 @@ class Dependents extends Table {
   TextColumn get status => text()();
   TextColumn get gender => text().nullable()();
   IntColumn get staffId => integer().nullable().references(Staff, #id)();
+  IntColumn get contractorStaffId => integer().nullable()();
+  TextColumn get parentStatus => text().nullable()();
+  IntColumn get syncStatus => integer().withDefault(const Constant(0))();
+  TextColumn get syncUpdatedAt => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@TableIndex(name: 'idx_dependent_visits_dependent_id', columns: {#dependentId})
+class DependentVisits extends Table {
+  IntColumn get id => integer()();
+  IntColumn get dependentId => integer().references(Dependents, #id)();
+  TextColumn get startDate => text()();
+  TextColumn get endDate => text()();
+  TextColumn get status => text().withDefault(const Constant('scheduled'))();
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();
   TextColumn get syncUpdatedAt => text().nullable()();
 
@@ -197,6 +222,55 @@ class Orders extends Table {
   TextColumn get mealType => text()();
   RealColumn get total => real()();
   IntColumn get groupCount => integer()();
+  TextColumn get description => text().nullable()();
+  IntColumn get orderedById => integer()();
+  TextColumn get employeeType => text()();
+  TextColumn get createdAt => text()();
+  TextColumn get updatedAt => text()();
+  IntColumn get syncStatus => integer().withDefault(const Constant(0))();
+  TextColumn get syncUpdatedAt => text().nullable()();
+  IntColumn get syncAttempts => integer().withDefault(const Constant(0))();
+  TextColumn get lastSyncError => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Local cache of work functions the POS may offer, pulled from
+/// GET /hr/work-functions/active. Holds just enough scheduling data to decide
+/// locally whether a function is still orderable.
+class WorkFunctions extends Table {
+  IntColumn get id => integer()();
+  TextColumn get functionName => text()();
+  TextColumn get functionLocation => text().nullable()();
+  IntColumn get catererId => integer().nullable()();
+  RealColumn get ratePerVoucher => real().withDefault(const Constant(0))();
+  IntColumn get totalQuantity => integer().withDefault(const Constant(0))();
+  TextColumn get functionDate => text()();
+  TextColumn get functionStartTime => text()();
+  TextColumn get functionEndTime => text()();
+  TextColumn get status => text()();
+  IntColumn get syncStatus => integer().withDefault(const Constant(0))();
+  TextColumn get syncUpdatedAt => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Orders taken while the POS was in function mode. Deliberately separate from
+/// [Orders] so general quota/overcharge/reporting logic never sees them.
+class FunctionOrders extends Table {
+  IntColumn get id => integer()();
+  TextColumn get uuid => text()();
+  TextColumn get orderCode => text()();
+  IntColumn get functionId => integer()();
+  TextColumn get functionName => text()();
+  TextColumn get status => text()();
+  TextColumn get mealType => text()();
+  IntColumn get quantity => integer().withDefault(const Constant(1))();
+  /// Snapshotted from the function's rate per voucher at order time.
+  RealColumn get rate => real().withDefault(const Constant(0))();
+  RealColumn get total => real().withDefault(const Constant(0))();
   TextColumn get description => text().nullable()();
   IntColumn get orderedById => integer()();
   TextColumn get employeeType => text()();
@@ -295,6 +369,7 @@ class ContractorStaffTable extends Table {
   TextColumn get startDate => text()();
   TextColumn get endDate => text()();
   BoolColumn get isCharged => boolean().withDefault(const Constant(false))();
+  IntColumn get dailyQuota => integer().nullable()();
   BoolColumn get allowGroupOrder => boolean().nullable()();
   IntColumn get maxOrderCount => integer().nullable()();
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();
@@ -310,6 +385,7 @@ class Visitors extends Table {
   TextColumn get gender => text().nullable()();
   TextColumn get startDate => text().nullable()();
   TextColumn get endTime => text().nullable()();
+  IntColumn get dailyQuota => integer().nullable()();
   IntColumn get companyId => integer().nullable()();
   TextColumn get company => text().nullable()();
   IntColumn get departmentId => integer().nullable()();

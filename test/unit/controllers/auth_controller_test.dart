@@ -13,6 +13,10 @@ import '../../helpers/test_database.dart';
 import '../../helpers/test_service_locator.dart';
 
 void main() {
+  // PosModeStore reads SharedPreferences; without a binding that throws, so the
+  // mode would silently fall back to general mode via an unhandled async error.
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   late AppDatabase db;
   late MockPosAuthService posAuth;
   late MockPrintServiceManager printer;

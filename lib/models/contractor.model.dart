@@ -56,6 +56,7 @@ class ContractorStaff {
   final DateTime startDate;
   final DateTime endDate;
   final bool isCharged;
+  final int? dailyQuota;
   final List<BioData>? bioData;
   final List<Kitchen>? kitchens;
 
@@ -72,6 +73,7 @@ class ContractorStaff {
     required this.startDate,
     required this.endDate,
     required this.isCharged,
+    this.dailyQuota,
     this.kitchens,
     this.bioData,
   });
@@ -90,6 +92,8 @@ class ContractorStaff {
       startDate: DateTime.parse(map['start_date'] as String),
       endDate: DateTime.parse(map['end_date'] as String),
       isCharged: map['is_charged'] as bool,
+      dailyQuota: (map['dailyQuota'] as num?)?.toInt() ??
+          (map['daily_quota'] as num?)?.toInt(),
       bioData: map['bioData'] != null
           ? (map['bioData'] as List<dynamic>)
                 .map((item) => BioData.fromMap(item as Map<String, dynamic>))
@@ -116,6 +120,7 @@ class ContractorStaff {
     DateTime? startDate,
     DateTime? endDate,
     bool? isCharged,
+    int? dailyQuota,
     List<BioData>? bioData,
     List<Kitchen>? kitchens,
   }) {
@@ -132,6 +137,7 @@ class ContractorStaff {
       startDate: startDate ?? this.startDate,
       endDate: endDate ?? this.endDate,
       isCharged: isCharged ?? this.isCharged,
+      dailyQuota: dailyQuota ?? this.dailyQuota,
       bioData: bioData ?? this.bioData,
       kitchens: kitchens ?? this.kitchens,
     );

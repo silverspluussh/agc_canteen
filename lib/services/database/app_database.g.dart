@@ -906,6 +906,29 @@ class $ShiftsTable extends Shifts with TableInfo<$ShiftsTable, Shift> {
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _dailyMealQuotaMeta = const VerificationMeta(
+    'dailyMealQuota',
+  );
+  @override
+  late final GeneratedColumn<int> dailyMealQuota = GeneratedColumn<int>(
+    'daily_meal_quota',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _workingDaysPerMonthMeta =
+      const VerificationMeta('workingDaysPerMonth');
+  @override
+  late final GeneratedColumn<int> workingDaysPerMonth = GeneratedColumn<int>(
+    'working_days_per_month',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   static const VerificationMeta _syncStatusMeta = const VerificationMeta(
     'syncStatus',
   );
@@ -935,6 +958,8 @@ class $ShiftsTable extends Shifts with TableInfo<$ShiftsTable, Shift> {
     name,
     hours,
     companyId,
+    dailyMealQuota,
+    workingDaysPerMonth,
     syncStatus,
     syncUpdatedAt,
   ];
@@ -973,6 +998,24 @@ class $ShiftsTable extends Shifts with TableInfo<$ShiftsTable, Shift> {
       context.handle(
         _companyIdMeta,
         companyId.isAcceptableOrUnknown(data['company_id']!, _companyIdMeta),
+      );
+    }
+    if (data.containsKey('daily_meal_quota')) {
+      context.handle(
+        _dailyMealQuotaMeta,
+        dailyMealQuota.isAcceptableOrUnknown(
+          data['daily_meal_quota']!,
+          _dailyMealQuotaMeta,
+        ),
+      );
+    }
+    if (data.containsKey('working_days_per_month')) {
+      context.handle(
+        _workingDaysPerMonthMeta,
+        workingDaysPerMonth.isAcceptableOrUnknown(
+          data['working_days_per_month']!,
+          _workingDaysPerMonthMeta,
+        ),
       );
     }
     if (data.containsKey('sync_status')) {
@@ -1015,6 +1058,14 @@ class $ShiftsTable extends Shifts with TableInfo<$ShiftsTable, Shift> {
         DriftSqlType.int,
         data['${effectivePrefix}company_id'],
       ),
+      dailyMealQuota: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}daily_meal_quota'],
+      )!,
+      workingDaysPerMonth: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}working_days_per_month'],
+      )!,
       syncStatus: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}sync_status'],
@@ -1037,6 +1088,8 @@ class Shift extends DataClass implements Insertable<Shift> {
   final String name;
   final int hours;
   final int? companyId;
+  final int dailyMealQuota;
+  final int workingDaysPerMonth;
   final int syncStatus;
   final String? syncUpdatedAt;
   const Shift({
@@ -1044,6 +1097,8 @@ class Shift extends DataClass implements Insertable<Shift> {
     required this.name,
     required this.hours,
     this.companyId,
+    required this.dailyMealQuota,
+    required this.workingDaysPerMonth,
     required this.syncStatus,
     this.syncUpdatedAt,
   });
@@ -1056,6 +1111,8 @@ class Shift extends DataClass implements Insertable<Shift> {
     if (!nullToAbsent || companyId != null) {
       map['company_id'] = Variable<int>(companyId);
     }
+    map['daily_meal_quota'] = Variable<int>(dailyMealQuota);
+    map['working_days_per_month'] = Variable<int>(workingDaysPerMonth);
     map['sync_status'] = Variable<int>(syncStatus);
     if (!nullToAbsent || syncUpdatedAt != null) {
       map['sync_updated_at'] = Variable<String>(syncUpdatedAt);
@@ -1071,6 +1128,8 @@ class Shift extends DataClass implements Insertable<Shift> {
       companyId: companyId == null && nullToAbsent
           ? const Value.absent()
           : Value(companyId),
+      dailyMealQuota: Value(dailyMealQuota),
+      workingDaysPerMonth: Value(workingDaysPerMonth),
       syncStatus: Value(syncStatus),
       syncUpdatedAt: syncUpdatedAt == null && nullToAbsent
           ? const Value.absent()
@@ -1088,6 +1147,10 @@ class Shift extends DataClass implements Insertable<Shift> {
       name: serializer.fromJson<String>(json['name']),
       hours: serializer.fromJson<int>(json['hours']),
       companyId: serializer.fromJson<int?>(json['companyId']),
+      dailyMealQuota: serializer.fromJson<int>(json['dailyMealQuota']),
+      workingDaysPerMonth: serializer.fromJson<int>(
+        json['workingDaysPerMonth'],
+      ),
       syncStatus: serializer.fromJson<int>(json['syncStatus']),
       syncUpdatedAt: serializer.fromJson<String?>(json['syncUpdatedAt']),
     );
@@ -1100,6 +1163,8 @@ class Shift extends DataClass implements Insertable<Shift> {
       'name': serializer.toJson<String>(name),
       'hours': serializer.toJson<int>(hours),
       'companyId': serializer.toJson<int?>(companyId),
+      'dailyMealQuota': serializer.toJson<int>(dailyMealQuota),
+      'workingDaysPerMonth': serializer.toJson<int>(workingDaysPerMonth),
       'syncStatus': serializer.toJson<int>(syncStatus),
       'syncUpdatedAt': serializer.toJson<String?>(syncUpdatedAt),
     };
@@ -1110,6 +1175,8 @@ class Shift extends DataClass implements Insertable<Shift> {
     String? name,
     int? hours,
     Value<int?> companyId = const Value.absent(),
+    int? dailyMealQuota,
+    int? workingDaysPerMonth,
     int? syncStatus,
     Value<String?> syncUpdatedAt = const Value.absent(),
   }) => Shift(
@@ -1117,6 +1184,8 @@ class Shift extends DataClass implements Insertable<Shift> {
     name: name ?? this.name,
     hours: hours ?? this.hours,
     companyId: companyId.present ? companyId.value : this.companyId,
+    dailyMealQuota: dailyMealQuota ?? this.dailyMealQuota,
+    workingDaysPerMonth: workingDaysPerMonth ?? this.workingDaysPerMonth,
     syncStatus: syncStatus ?? this.syncStatus,
     syncUpdatedAt: syncUpdatedAt.present
         ? syncUpdatedAt.value
@@ -1128,6 +1197,12 @@ class Shift extends DataClass implements Insertable<Shift> {
       name: data.name.present ? data.name.value : this.name,
       hours: data.hours.present ? data.hours.value : this.hours,
       companyId: data.companyId.present ? data.companyId.value : this.companyId,
+      dailyMealQuota: data.dailyMealQuota.present
+          ? data.dailyMealQuota.value
+          : this.dailyMealQuota,
+      workingDaysPerMonth: data.workingDaysPerMonth.present
+          ? data.workingDaysPerMonth.value
+          : this.workingDaysPerMonth,
       syncStatus: data.syncStatus.present
           ? data.syncStatus.value
           : this.syncStatus,
@@ -1144,6 +1219,8 @@ class Shift extends DataClass implements Insertable<Shift> {
           ..write('name: $name, ')
           ..write('hours: $hours, ')
           ..write('companyId: $companyId, ')
+          ..write('dailyMealQuota: $dailyMealQuota, ')
+          ..write('workingDaysPerMonth: $workingDaysPerMonth, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('syncUpdatedAt: $syncUpdatedAt')
           ..write(')'))
@@ -1151,8 +1228,16 @@ class Shift extends DataClass implements Insertable<Shift> {
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, name, hours, companyId, syncStatus, syncUpdatedAt);
+  int get hashCode => Object.hash(
+    id,
+    name,
+    hours,
+    companyId,
+    dailyMealQuota,
+    workingDaysPerMonth,
+    syncStatus,
+    syncUpdatedAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1161,6 +1246,8 @@ class Shift extends DataClass implements Insertable<Shift> {
           other.name == this.name &&
           other.hours == this.hours &&
           other.companyId == this.companyId &&
+          other.dailyMealQuota == this.dailyMealQuota &&
+          other.workingDaysPerMonth == this.workingDaysPerMonth &&
           other.syncStatus == this.syncStatus &&
           other.syncUpdatedAt == this.syncUpdatedAt);
 }
@@ -1170,6 +1257,8 @@ class ShiftsCompanion extends UpdateCompanion<Shift> {
   final Value<String> name;
   final Value<int> hours;
   final Value<int?> companyId;
+  final Value<int> dailyMealQuota;
+  final Value<int> workingDaysPerMonth;
   final Value<int> syncStatus;
   final Value<String?> syncUpdatedAt;
   const ShiftsCompanion({
@@ -1177,6 +1266,8 @@ class ShiftsCompanion extends UpdateCompanion<Shift> {
     this.name = const Value.absent(),
     this.hours = const Value.absent(),
     this.companyId = const Value.absent(),
+    this.dailyMealQuota = const Value.absent(),
+    this.workingDaysPerMonth = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.syncUpdatedAt = const Value.absent(),
   });
@@ -1185,6 +1276,8 @@ class ShiftsCompanion extends UpdateCompanion<Shift> {
     required String name,
     required int hours,
     this.companyId = const Value.absent(),
+    this.dailyMealQuota = const Value.absent(),
+    this.workingDaysPerMonth = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.syncUpdatedAt = const Value.absent(),
   }) : name = Value(name),
@@ -1194,6 +1287,8 @@ class ShiftsCompanion extends UpdateCompanion<Shift> {
     Expression<String>? name,
     Expression<int>? hours,
     Expression<int>? companyId,
+    Expression<int>? dailyMealQuota,
+    Expression<int>? workingDaysPerMonth,
     Expression<int>? syncStatus,
     Expression<String>? syncUpdatedAt,
   }) {
@@ -1202,6 +1297,9 @@ class ShiftsCompanion extends UpdateCompanion<Shift> {
       if (name != null) 'name': name,
       if (hours != null) 'hours': hours,
       if (companyId != null) 'company_id': companyId,
+      if (dailyMealQuota != null) 'daily_meal_quota': dailyMealQuota,
+      if (workingDaysPerMonth != null)
+        'working_days_per_month': workingDaysPerMonth,
       if (syncStatus != null) 'sync_status': syncStatus,
       if (syncUpdatedAt != null) 'sync_updated_at': syncUpdatedAt,
     });
@@ -1212,6 +1310,8 @@ class ShiftsCompanion extends UpdateCompanion<Shift> {
     Value<String>? name,
     Value<int>? hours,
     Value<int?>? companyId,
+    Value<int>? dailyMealQuota,
+    Value<int>? workingDaysPerMonth,
     Value<int>? syncStatus,
     Value<String?>? syncUpdatedAt,
   }) {
@@ -1220,6 +1320,8 @@ class ShiftsCompanion extends UpdateCompanion<Shift> {
       name: name ?? this.name,
       hours: hours ?? this.hours,
       companyId: companyId ?? this.companyId,
+      dailyMealQuota: dailyMealQuota ?? this.dailyMealQuota,
+      workingDaysPerMonth: workingDaysPerMonth ?? this.workingDaysPerMonth,
       syncStatus: syncStatus ?? this.syncStatus,
       syncUpdatedAt: syncUpdatedAt ?? this.syncUpdatedAt,
     );
@@ -1240,6 +1342,12 @@ class ShiftsCompanion extends UpdateCompanion<Shift> {
     if (companyId.present) {
       map['company_id'] = Variable<int>(companyId.value);
     }
+    if (dailyMealQuota.present) {
+      map['daily_meal_quota'] = Variable<int>(dailyMealQuota.value);
+    }
+    if (workingDaysPerMonth.present) {
+      map['working_days_per_month'] = Variable<int>(workingDaysPerMonth.value);
+    }
     if (syncStatus.present) {
       map['sync_status'] = Variable<int>(syncStatus.value);
     }
@@ -1256,6 +1364,8 @@ class ShiftsCompanion extends UpdateCompanion<Shift> {
           ..write('name: $name, ')
           ..write('hours: $hours, ')
           ..write('companyId: $companyId, ')
+          ..write('dailyMealQuota: $dailyMealQuota, ')
+          ..write('workingDaysPerMonth: $workingDaysPerMonth, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('syncUpdatedAt: $syncUpdatedAt')
           ..write(')'))
@@ -3272,6 +3382,51 @@ class $StaffTable extends Staff with TableInfo<$StaffTable, StaffData> {
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _manualDailyQuotaMeta = const VerificationMeta(
+    'manualDailyQuota',
+  );
+  @override
+  late final GeneratedColumn<int> manualDailyQuota = GeneratedColumn<int>(
+    'manual_daily_quota',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _manualMonthlyQuotaMeta =
+      const VerificationMeta('manualMonthlyQuota');
+  @override
+  late final GeneratedColumn<int> manualMonthlyQuota = GeneratedColumn<int>(
+    'manual_monthly_quota',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _quotaPeriodStartMeta = const VerificationMeta(
+    'quotaPeriodStart',
+  );
+  @override
+  late final GeneratedColumn<String> quotaPeriodStart = GeneratedColumn<String>(
+    'quota_period_start',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _quotaPeriodEndMeta = const VerificationMeta(
+    'quotaPeriodEnd',
+  );
+  @override
+  late final GeneratedColumn<String> quotaPeriodEnd = GeneratedColumn<String>(
+    'quota_period_end',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _syncStatusMeta = const VerificationMeta(
     'syncStatus',
   );
@@ -3313,6 +3468,10 @@ class $StaffTable extends Staff with TableInfo<$StaffTable, StaffData> {
     totalDependent,
     noOfDependentAssigned,
     departmentId,
+    manualDailyQuota,
+    manualMonthlyQuota,
+    quotaPeriodStart,
+    quotaPeriodEnd,
     syncStatus,
     syncUpdatedAt,
   ];
@@ -3447,6 +3606,42 @@ class $StaffTable extends Staff with TableInfo<$StaffTable, StaffData> {
         ),
       );
     }
+    if (data.containsKey('manual_daily_quota')) {
+      context.handle(
+        _manualDailyQuotaMeta,
+        manualDailyQuota.isAcceptableOrUnknown(
+          data['manual_daily_quota']!,
+          _manualDailyQuotaMeta,
+        ),
+      );
+    }
+    if (data.containsKey('manual_monthly_quota')) {
+      context.handle(
+        _manualMonthlyQuotaMeta,
+        manualMonthlyQuota.isAcceptableOrUnknown(
+          data['manual_monthly_quota']!,
+          _manualMonthlyQuotaMeta,
+        ),
+      );
+    }
+    if (data.containsKey('quota_period_start')) {
+      context.handle(
+        _quotaPeriodStartMeta,
+        quotaPeriodStart.isAcceptableOrUnknown(
+          data['quota_period_start']!,
+          _quotaPeriodStartMeta,
+        ),
+      );
+    }
+    if (data.containsKey('quota_period_end')) {
+      context.handle(
+        _quotaPeriodEndMeta,
+        quotaPeriodEnd.isAcceptableOrUnknown(
+          data['quota_period_end']!,
+          _quotaPeriodEndMeta,
+        ),
+      );
+    }
     if (data.containsKey('sync_status')) {
       context.handle(
         _syncStatusMeta,
@@ -3535,6 +3730,22 @@ class $StaffTable extends Staff with TableInfo<$StaffTable, StaffData> {
         DriftSqlType.int,
         data['${effectivePrefix}department_id'],
       ),
+      manualDailyQuota: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}manual_daily_quota'],
+      )!,
+      manualMonthlyQuota: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}manual_monthly_quota'],
+      )!,
+      quotaPeriodStart: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}quota_period_start'],
+      ),
+      quotaPeriodEnd: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}quota_period_end'],
+      ),
       syncStatus: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}sync_status'],
@@ -3569,6 +3780,10 @@ class StaffData extends DataClass implements Insertable<StaffData> {
   final int? totalDependent;
   final int? noOfDependentAssigned;
   final int? departmentId;
+  final int manualDailyQuota;
+  final int manualMonthlyQuota;
+  final String? quotaPeriodStart;
+  final String? quotaPeriodEnd;
   final int syncStatus;
   final String? syncUpdatedAt;
   const StaffData({
@@ -3588,6 +3803,10 @@ class StaffData extends DataClass implements Insertable<StaffData> {
     this.totalDependent,
     this.noOfDependentAssigned,
     this.departmentId,
+    required this.manualDailyQuota,
+    required this.manualMonthlyQuota,
+    this.quotaPeriodStart,
+    this.quotaPeriodEnd,
     required this.syncStatus,
     this.syncUpdatedAt,
   });
@@ -3631,6 +3850,14 @@ class StaffData extends DataClass implements Insertable<StaffData> {
     }
     if (!nullToAbsent || departmentId != null) {
       map['department_id'] = Variable<int>(departmentId);
+    }
+    map['manual_daily_quota'] = Variable<int>(manualDailyQuota);
+    map['manual_monthly_quota'] = Variable<int>(manualMonthlyQuota);
+    if (!nullToAbsent || quotaPeriodStart != null) {
+      map['quota_period_start'] = Variable<String>(quotaPeriodStart);
+    }
+    if (!nullToAbsent || quotaPeriodEnd != null) {
+      map['quota_period_end'] = Variable<String>(quotaPeriodEnd);
     }
     map['sync_status'] = Variable<int>(syncStatus);
     if (!nullToAbsent || syncUpdatedAt != null) {
@@ -3679,6 +3906,14 @@ class StaffData extends DataClass implements Insertable<StaffData> {
       departmentId: departmentId == null && nullToAbsent
           ? const Value.absent()
           : Value(departmentId),
+      manualDailyQuota: Value(manualDailyQuota),
+      manualMonthlyQuota: Value(manualMonthlyQuota),
+      quotaPeriodStart: quotaPeriodStart == null && nullToAbsent
+          ? const Value.absent()
+          : Value(quotaPeriodStart),
+      quotaPeriodEnd: quotaPeriodEnd == null && nullToAbsent
+          ? const Value.absent()
+          : Value(quotaPeriodEnd),
       syncStatus: Value(syncStatus),
       syncUpdatedAt: syncUpdatedAt == null && nullToAbsent
           ? const Value.absent()
@@ -3710,6 +3945,10 @@ class StaffData extends DataClass implements Insertable<StaffData> {
         json['noOfDependentAssigned'],
       ),
       departmentId: serializer.fromJson<int?>(json['departmentId']),
+      manualDailyQuota: serializer.fromJson<int>(json['manualDailyQuota']),
+      manualMonthlyQuota: serializer.fromJson<int>(json['manualMonthlyQuota']),
+      quotaPeriodStart: serializer.fromJson<String?>(json['quotaPeriodStart']),
+      quotaPeriodEnd: serializer.fromJson<String?>(json['quotaPeriodEnd']),
       syncStatus: serializer.fromJson<int>(json['syncStatus']),
       syncUpdatedAt: serializer.fromJson<String?>(json['syncUpdatedAt']),
     );
@@ -3734,6 +3973,10 @@ class StaffData extends DataClass implements Insertable<StaffData> {
       'totalDependent': serializer.toJson<int?>(totalDependent),
       'noOfDependentAssigned': serializer.toJson<int?>(noOfDependentAssigned),
       'departmentId': serializer.toJson<int?>(departmentId),
+      'manualDailyQuota': serializer.toJson<int>(manualDailyQuota),
+      'manualMonthlyQuota': serializer.toJson<int>(manualMonthlyQuota),
+      'quotaPeriodStart': serializer.toJson<String?>(quotaPeriodStart),
+      'quotaPeriodEnd': serializer.toJson<String?>(quotaPeriodEnd),
       'syncStatus': serializer.toJson<int>(syncStatus),
       'syncUpdatedAt': serializer.toJson<String?>(syncUpdatedAt),
     };
@@ -3756,6 +3999,10 @@ class StaffData extends DataClass implements Insertable<StaffData> {
     Value<int?> totalDependent = const Value.absent(),
     Value<int?> noOfDependentAssigned = const Value.absent(),
     Value<int?> departmentId = const Value.absent(),
+    int? manualDailyQuota,
+    int? manualMonthlyQuota,
+    Value<String?> quotaPeriodStart = const Value.absent(),
+    Value<String?> quotaPeriodEnd = const Value.absent(),
     int? syncStatus,
     Value<String?> syncUpdatedAt = const Value.absent(),
   }) => StaffData(
@@ -3783,6 +4030,14 @@ class StaffData extends DataClass implements Insertable<StaffData> {
         ? noOfDependentAssigned.value
         : this.noOfDependentAssigned,
     departmentId: departmentId.present ? departmentId.value : this.departmentId,
+    manualDailyQuota: manualDailyQuota ?? this.manualDailyQuota,
+    manualMonthlyQuota: manualMonthlyQuota ?? this.manualMonthlyQuota,
+    quotaPeriodStart: quotaPeriodStart.present
+        ? quotaPeriodStart.value
+        : this.quotaPeriodStart,
+    quotaPeriodEnd: quotaPeriodEnd.present
+        ? quotaPeriodEnd.value
+        : this.quotaPeriodEnd,
     syncStatus: syncStatus ?? this.syncStatus,
     syncUpdatedAt: syncUpdatedAt.present
         ? syncUpdatedAt.value
@@ -3818,6 +4073,18 @@ class StaffData extends DataClass implements Insertable<StaffData> {
       departmentId: data.departmentId.present
           ? data.departmentId.value
           : this.departmentId,
+      manualDailyQuota: data.manualDailyQuota.present
+          ? data.manualDailyQuota.value
+          : this.manualDailyQuota,
+      manualMonthlyQuota: data.manualMonthlyQuota.present
+          ? data.manualMonthlyQuota.value
+          : this.manualMonthlyQuota,
+      quotaPeriodStart: data.quotaPeriodStart.present
+          ? data.quotaPeriodStart.value
+          : this.quotaPeriodStart,
+      quotaPeriodEnd: data.quotaPeriodEnd.present
+          ? data.quotaPeriodEnd.value
+          : this.quotaPeriodEnd,
       syncStatus: data.syncStatus.present
           ? data.syncStatus.value
           : this.syncStatus,
@@ -3846,6 +4113,10 @@ class StaffData extends DataClass implements Insertable<StaffData> {
           ..write('totalDependent: $totalDependent, ')
           ..write('noOfDependentAssigned: $noOfDependentAssigned, ')
           ..write('departmentId: $departmentId, ')
+          ..write('manualDailyQuota: $manualDailyQuota, ')
+          ..write('manualMonthlyQuota: $manualMonthlyQuota, ')
+          ..write('quotaPeriodStart: $quotaPeriodStart, ')
+          ..write('quotaPeriodEnd: $quotaPeriodEnd, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('syncUpdatedAt: $syncUpdatedAt')
           ..write(')'))
@@ -3853,7 +4124,7 @@ class StaffData extends DataClass implements Insertable<StaffData> {
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     empId,
     firstName,
@@ -3870,9 +4141,13 @@ class StaffData extends DataClass implements Insertable<StaffData> {
     totalDependent,
     noOfDependentAssigned,
     departmentId,
+    manualDailyQuota,
+    manualMonthlyQuota,
+    quotaPeriodStart,
+    quotaPeriodEnd,
     syncStatus,
     syncUpdatedAt,
-  );
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -3893,6 +4168,10 @@ class StaffData extends DataClass implements Insertable<StaffData> {
           other.totalDependent == this.totalDependent &&
           other.noOfDependentAssigned == this.noOfDependentAssigned &&
           other.departmentId == this.departmentId &&
+          other.manualDailyQuota == this.manualDailyQuota &&
+          other.manualMonthlyQuota == this.manualMonthlyQuota &&
+          other.quotaPeriodStart == this.quotaPeriodStart &&
+          other.quotaPeriodEnd == this.quotaPeriodEnd &&
           other.syncStatus == this.syncStatus &&
           other.syncUpdatedAt == this.syncUpdatedAt);
 }
@@ -3914,6 +4193,10 @@ class StaffCompanion extends UpdateCompanion<StaffData> {
   final Value<int?> totalDependent;
   final Value<int?> noOfDependentAssigned;
   final Value<int?> departmentId;
+  final Value<int> manualDailyQuota;
+  final Value<int> manualMonthlyQuota;
+  final Value<String?> quotaPeriodStart;
+  final Value<String?> quotaPeriodEnd;
   final Value<int> syncStatus;
   final Value<String?> syncUpdatedAt;
   const StaffCompanion({
@@ -3933,6 +4216,10 @@ class StaffCompanion extends UpdateCompanion<StaffData> {
     this.totalDependent = const Value.absent(),
     this.noOfDependentAssigned = const Value.absent(),
     this.departmentId = const Value.absent(),
+    this.manualDailyQuota = const Value.absent(),
+    this.manualMonthlyQuota = const Value.absent(),
+    this.quotaPeriodStart = const Value.absent(),
+    this.quotaPeriodEnd = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.syncUpdatedAt = const Value.absent(),
   });
@@ -3953,6 +4240,10 @@ class StaffCompanion extends UpdateCompanion<StaffData> {
     this.totalDependent = const Value.absent(),
     this.noOfDependentAssigned = const Value.absent(),
     this.departmentId = const Value.absent(),
+    this.manualDailyQuota = const Value.absent(),
+    this.manualMonthlyQuota = const Value.absent(),
+    this.quotaPeriodStart = const Value.absent(),
+    this.quotaPeriodEnd = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.syncUpdatedAt = const Value.absent(),
   }) : empId = Value(empId),
@@ -3976,6 +4267,10 @@ class StaffCompanion extends UpdateCompanion<StaffData> {
     Expression<int>? totalDependent,
     Expression<int>? noOfDependentAssigned,
     Expression<int>? departmentId,
+    Expression<int>? manualDailyQuota,
+    Expression<int>? manualMonthlyQuota,
+    Expression<String>? quotaPeriodStart,
+    Expression<String>? quotaPeriodEnd,
     Expression<int>? syncStatus,
     Expression<String>? syncUpdatedAt,
   }) {
@@ -3997,6 +4292,11 @@ class StaffCompanion extends UpdateCompanion<StaffData> {
       if (noOfDependentAssigned != null)
         'no_of_dependent_assigned': noOfDependentAssigned,
       if (departmentId != null) 'department_id': departmentId,
+      if (manualDailyQuota != null) 'manual_daily_quota': manualDailyQuota,
+      if (manualMonthlyQuota != null)
+        'manual_monthly_quota': manualMonthlyQuota,
+      if (quotaPeriodStart != null) 'quota_period_start': quotaPeriodStart,
+      if (quotaPeriodEnd != null) 'quota_period_end': quotaPeriodEnd,
       if (syncStatus != null) 'sync_status': syncStatus,
       if (syncUpdatedAt != null) 'sync_updated_at': syncUpdatedAt,
     });
@@ -4019,6 +4319,10 @@ class StaffCompanion extends UpdateCompanion<StaffData> {
     Value<int?>? totalDependent,
     Value<int?>? noOfDependentAssigned,
     Value<int?>? departmentId,
+    Value<int>? manualDailyQuota,
+    Value<int>? manualMonthlyQuota,
+    Value<String?>? quotaPeriodStart,
+    Value<String?>? quotaPeriodEnd,
     Value<int>? syncStatus,
     Value<String?>? syncUpdatedAt,
   }) {
@@ -4040,6 +4344,10 @@ class StaffCompanion extends UpdateCompanion<StaffData> {
       noOfDependentAssigned:
           noOfDependentAssigned ?? this.noOfDependentAssigned,
       departmentId: departmentId ?? this.departmentId,
+      manualDailyQuota: manualDailyQuota ?? this.manualDailyQuota,
+      manualMonthlyQuota: manualMonthlyQuota ?? this.manualMonthlyQuota,
+      quotaPeriodStart: quotaPeriodStart ?? this.quotaPeriodStart,
+      quotaPeriodEnd: quotaPeriodEnd ?? this.quotaPeriodEnd,
       syncStatus: syncStatus ?? this.syncStatus,
       syncUpdatedAt: syncUpdatedAt ?? this.syncUpdatedAt,
     );
@@ -4098,6 +4406,18 @@ class StaffCompanion extends UpdateCompanion<StaffData> {
     if (departmentId.present) {
       map['department_id'] = Variable<int>(departmentId.value);
     }
+    if (manualDailyQuota.present) {
+      map['manual_daily_quota'] = Variable<int>(manualDailyQuota.value);
+    }
+    if (manualMonthlyQuota.present) {
+      map['manual_monthly_quota'] = Variable<int>(manualMonthlyQuota.value);
+    }
+    if (quotaPeriodStart.present) {
+      map['quota_period_start'] = Variable<String>(quotaPeriodStart.value);
+    }
+    if (quotaPeriodEnd.present) {
+      map['quota_period_end'] = Variable<String>(quotaPeriodEnd.value);
+    }
     if (syncStatus.present) {
       map['sync_status'] = Variable<int>(syncStatus.value);
     }
@@ -4126,6 +4446,10 @@ class StaffCompanion extends UpdateCompanion<StaffData> {
           ..write('totalDependent: $totalDependent, ')
           ..write('noOfDependentAssigned: $noOfDependentAssigned, ')
           ..write('departmentId: $departmentId, ')
+          ..write('manualDailyQuota: $manualDailyQuota, ')
+          ..write('manualMonthlyQuota: $manualMonthlyQuota, ')
+          ..write('quotaPeriodStart: $quotaPeriodStart, ')
+          ..write('quotaPeriodEnd: $quotaPeriodEnd, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('syncUpdatedAt: $syncUpdatedAt')
           ..write(')'))
@@ -4408,6 +4732,28 @@ class $DependentsTable extends Dependents
       'REFERENCES staff (id)',
     ),
   );
+  static const VerificationMeta _contractorStaffIdMeta = const VerificationMeta(
+    'contractorStaffId',
+  );
+  @override
+  late final GeneratedColumn<int> contractorStaffId = GeneratedColumn<int>(
+    'contractor_staff_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _parentStatusMeta = const VerificationMeta(
+    'parentStatus',
+  );
+  @override
+  late final GeneratedColumn<String> parentStatus = GeneratedColumn<String>(
+    'parent_status',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _syncStatusMeta = const VerificationMeta(
     'syncStatus',
   );
@@ -4438,6 +4784,8 @@ class $DependentsTable extends Dependents
     status,
     gender,
     staffId,
+    contractorStaffId,
+    parentStatus,
     syncStatus,
     syncUpdatedAt,
   ];
@@ -4484,6 +4832,24 @@ class $DependentsTable extends Dependents
         staffId.isAcceptableOrUnknown(data['staff_id']!, _staffIdMeta),
       );
     }
+    if (data.containsKey('contractor_staff_id')) {
+      context.handle(
+        _contractorStaffIdMeta,
+        contractorStaffId.isAcceptableOrUnknown(
+          data['contractor_staff_id']!,
+          _contractorStaffIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('parent_status')) {
+      context.handle(
+        _parentStatusMeta,
+        parentStatus.isAcceptableOrUnknown(
+          data['parent_status']!,
+          _parentStatusMeta,
+        ),
+      );
+    }
     if (data.containsKey('sync_status')) {
       context.handle(
         _syncStatusMeta,
@@ -4528,6 +4894,14 @@ class $DependentsTable extends Dependents
         DriftSqlType.int,
         data['${effectivePrefix}staff_id'],
       ),
+      contractorStaffId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}contractor_staff_id'],
+      ),
+      parentStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}parent_status'],
+      ),
       syncStatus: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}sync_status'],
@@ -4551,6 +4925,8 @@ class Dependent extends DataClass implements Insertable<Dependent> {
   final String status;
   final String? gender;
   final int? staffId;
+  final int? contractorStaffId;
+  final String? parentStatus;
   final int syncStatus;
   final String? syncUpdatedAt;
   const Dependent({
@@ -4559,6 +4935,8 @@ class Dependent extends DataClass implements Insertable<Dependent> {
     required this.status,
     this.gender,
     this.staffId,
+    this.contractorStaffId,
+    this.parentStatus,
     required this.syncStatus,
     this.syncUpdatedAt,
   });
@@ -4573,6 +4951,12 @@ class Dependent extends DataClass implements Insertable<Dependent> {
     }
     if (!nullToAbsent || staffId != null) {
       map['staff_id'] = Variable<int>(staffId);
+    }
+    if (!nullToAbsent || contractorStaffId != null) {
+      map['contractor_staff_id'] = Variable<int>(contractorStaffId);
+    }
+    if (!nullToAbsent || parentStatus != null) {
+      map['parent_status'] = Variable<String>(parentStatus);
     }
     map['sync_status'] = Variable<int>(syncStatus);
     if (!nullToAbsent || syncUpdatedAt != null) {
@@ -4592,6 +4976,12 @@ class Dependent extends DataClass implements Insertable<Dependent> {
       staffId: staffId == null && nullToAbsent
           ? const Value.absent()
           : Value(staffId),
+      contractorStaffId: contractorStaffId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(contractorStaffId),
+      parentStatus: parentStatus == null && nullToAbsent
+          ? const Value.absent()
+          : Value(parentStatus),
       syncStatus: Value(syncStatus),
       syncUpdatedAt: syncUpdatedAt == null && nullToAbsent
           ? const Value.absent()
@@ -4610,6 +5000,8 @@ class Dependent extends DataClass implements Insertable<Dependent> {
       status: serializer.fromJson<String>(json['status']),
       gender: serializer.fromJson<String?>(json['gender']),
       staffId: serializer.fromJson<int?>(json['staffId']),
+      contractorStaffId: serializer.fromJson<int?>(json['contractorStaffId']),
+      parentStatus: serializer.fromJson<String?>(json['parentStatus']),
       syncStatus: serializer.fromJson<int>(json['syncStatus']),
       syncUpdatedAt: serializer.fromJson<String?>(json['syncUpdatedAt']),
     );
@@ -4623,6 +5015,8 @@ class Dependent extends DataClass implements Insertable<Dependent> {
       'status': serializer.toJson<String>(status),
       'gender': serializer.toJson<String?>(gender),
       'staffId': serializer.toJson<int?>(staffId),
+      'contractorStaffId': serializer.toJson<int?>(contractorStaffId),
+      'parentStatus': serializer.toJson<String?>(parentStatus),
       'syncStatus': serializer.toJson<int>(syncStatus),
       'syncUpdatedAt': serializer.toJson<String?>(syncUpdatedAt),
     };
@@ -4634,6 +5028,8 @@ class Dependent extends DataClass implements Insertable<Dependent> {
     String? status,
     Value<String?> gender = const Value.absent(),
     Value<int?> staffId = const Value.absent(),
+    Value<int?> contractorStaffId = const Value.absent(),
+    Value<String?> parentStatus = const Value.absent(),
     int? syncStatus,
     Value<String?> syncUpdatedAt = const Value.absent(),
   }) => Dependent(
@@ -4642,6 +5038,10 @@ class Dependent extends DataClass implements Insertable<Dependent> {
     status: status ?? this.status,
     gender: gender.present ? gender.value : this.gender,
     staffId: staffId.present ? staffId.value : this.staffId,
+    contractorStaffId: contractorStaffId.present
+        ? contractorStaffId.value
+        : this.contractorStaffId,
+    parentStatus: parentStatus.present ? parentStatus.value : this.parentStatus,
     syncStatus: syncStatus ?? this.syncStatus,
     syncUpdatedAt: syncUpdatedAt.present
         ? syncUpdatedAt.value
@@ -4654,6 +5054,12 @@ class Dependent extends DataClass implements Insertable<Dependent> {
       status: data.status.present ? data.status.value : this.status,
       gender: data.gender.present ? data.gender.value : this.gender,
       staffId: data.staffId.present ? data.staffId.value : this.staffId,
+      contractorStaffId: data.contractorStaffId.present
+          ? data.contractorStaffId.value
+          : this.contractorStaffId,
+      parentStatus: data.parentStatus.present
+          ? data.parentStatus.value
+          : this.parentStatus,
       syncStatus: data.syncStatus.present
           ? data.syncStatus.value
           : this.syncStatus,
@@ -4671,6 +5077,8 @@ class Dependent extends DataClass implements Insertable<Dependent> {
           ..write('status: $status, ')
           ..write('gender: $gender, ')
           ..write('staffId: $staffId, ')
+          ..write('contractorStaffId: $contractorStaffId, ')
+          ..write('parentStatus: $parentStatus, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('syncUpdatedAt: $syncUpdatedAt')
           ..write(')'))
@@ -4684,6 +5092,8 @@ class Dependent extends DataClass implements Insertable<Dependent> {
     status,
     gender,
     staffId,
+    contractorStaffId,
+    parentStatus,
     syncStatus,
     syncUpdatedAt,
   );
@@ -4696,6 +5106,8 @@ class Dependent extends DataClass implements Insertable<Dependent> {
           other.status == this.status &&
           other.gender == this.gender &&
           other.staffId == this.staffId &&
+          other.contractorStaffId == this.contractorStaffId &&
+          other.parentStatus == this.parentStatus &&
           other.syncStatus == this.syncStatus &&
           other.syncUpdatedAt == this.syncUpdatedAt);
 }
@@ -4706,6 +5118,8 @@ class DependentsCompanion extends UpdateCompanion<Dependent> {
   final Value<String> status;
   final Value<String?> gender;
   final Value<int?> staffId;
+  final Value<int?> contractorStaffId;
+  final Value<String?> parentStatus;
   final Value<int> syncStatus;
   final Value<String?> syncUpdatedAt;
   const DependentsCompanion({
@@ -4714,6 +5128,8 @@ class DependentsCompanion extends UpdateCompanion<Dependent> {
     this.status = const Value.absent(),
     this.gender = const Value.absent(),
     this.staffId = const Value.absent(),
+    this.contractorStaffId = const Value.absent(),
+    this.parentStatus = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.syncUpdatedAt = const Value.absent(),
   });
@@ -4723,6 +5139,8 @@ class DependentsCompanion extends UpdateCompanion<Dependent> {
     required String status,
     this.gender = const Value.absent(),
     this.staffId = const Value.absent(),
+    this.contractorStaffId = const Value.absent(),
+    this.parentStatus = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.syncUpdatedAt = const Value.absent(),
   }) : fullname = Value(fullname),
@@ -4733,6 +5151,8 @@ class DependentsCompanion extends UpdateCompanion<Dependent> {
     Expression<String>? status,
     Expression<String>? gender,
     Expression<int>? staffId,
+    Expression<int>? contractorStaffId,
+    Expression<String>? parentStatus,
     Expression<int>? syncStatus,
     Expression<String>? syncUpdatedAt,
   }) {
@@ -4742,6 +5162,8 @@ class DependentsCompanion extends UpdateCompanion<Dependent> {
       if (status != null) 'status': status,
       if (gender != null) 'gender': gender,
       if (staffId != null) 'staff_id': staffId,
+      if (contractorStaffId != null) 'contractor_staff_id': contractorStaffId,
+      if (parentStatus != null) 'parent_status': parentStatus,
       if (syncStatus != null) 'sync_status': syncStatus,
       if (syncUpdatedAt != null) 'sync_updated_at': syncUpdatedAt,
     });
@@ -4753,6 +5175,8 @@ class DependentsCompanion extends UpdateCompanion<Dependent> {
     Value<String>? status,
     Value<String?>? gender,
     Value<int?>? staffId,
+    Value<int?>? contractorStaffId,
+    Value<String?>? parentStatus,
     Value<int>? syncStatus,
     Value<String?>? syncUpdatedAt,
   }) {
@@ -4762,6 +5186,8 @@ class DependentsCompanion extends UpdateCompanion<Dependent> {
       status: status ?? this.status,
       gender: gender ?? this.gender,
       staffId: staffId ?? this.staffId,
+      contractorStaffId: contractorStaffId ?? this.contractorStaffId,
+      parentStatus: parentStatus ?? this.parentStatus,
       syncStatus: syncStatus ?? this.syncStatus,
       syncUpdatedAt: syncUpdatedAt ?? this.syncUpdatedAt,
     );
@@ -4785,6 +5211,12 @@ class DependentsCompanion extends UpdateCompanion<Dependent> {
     if (staffId.present) {
       map['staff_id'] = Variable<int>(staffId.value);
     }
+    if (contractorStaffId.present) {
+      map['contractor_staff_id'] = Variable<int>(contractorStaffId.value);
+    }
+    if (parentStatus.present) {
+      map['parent_status'] = Variable<String>(parentStatus.value);
+    }
     if (syncStatus.present) {
       map['sync_status'] = Variable<int>(syncStatus.value);
     }
@@ -4802,6 +5234,470 @@ class DependentsCompanion extends UpdateCompanion<Dependent> {
           ..write('status: $status, ')
           ..write('gender: $gender, ')
           ..write('staffId: $staffId, ')
+          ..write('contractorStaffId: $contractorStaffId, ')
+          ..write('parentStatus: $parentStatus, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('syncUpdatedAt: $syncUpdatedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $DependentVisitsTable extends DependentVisits
+    with TableInfo<$DependentVisitsTable, DependentVisit> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DependentVisitsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _dependentIdMeta = const VerificationMeta(
+    'dependentId',
+  );
+  @override
+  late final GeneratedColumn<int> dependentId = GeneratedColumn<int>(
+    'dependent_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES dependents (id)',
+    ),
+  );
+  static const VerificationMeta _startDateMeta = const VerificationMeta(
+    'startDate',
+  );
+  @override
+  late final GeneratedColumn<String> startDate = GeneratedColumn<String>(
+    'start_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _endDateMeta = const VerificationMeta(
+    'endDate',
+  );
+  @override
+  late final GeneratedColumn<String> endDate = GeneratedColumn<String>(
+    'end_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('scheduled'),
+  );
+  static const VerificationMeta _syncStatusMeta = const VerificationMeta(
+    'syncStatus',
+  );
+  @override
+  late final GeneratedColumn<int> syncStatus = GeneratedColumn<int>(
+    'sync_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _syncUpdatedAtMeta = const VerificationMeta(
+    'syncUpdatedAt',
+  );
+  @override
+  late final GeneratedColumn<String> syncUpdatedAt = GeneratedColumn<String>(
+    'sync_updated_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    dependentId,
+    startDate,
+    endDate,
+    status,
+    syncStatus,
+    syncUpdatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'dependent_visits';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DependentVisit> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('dependent_id')) {
+      context.handle(
+        _dependentIdMeta,
+        dependentId.isAcceptableOrUnknown(
+          data['dependent_id']!,
+          _dependentIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_dependentIdMeta);
+    }
+    if (data.containsKey('start_date')) {
+      context.handle(
+        _startDateMeta,
+        startDate.isAcceptableOrUnknown(data['start_date']!, _startDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_startDateMeta);
+    }
+    if (data.containsKey('end_date')) {
+      context.handle(
+        _endDateMeta,
+        endDate.isAcceptableOrUnknown(data['end_date']!, _endDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_endDateMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('sync_status')) {
+      context.handle(
+        _syncStatusMeta,
+        syncStatus.isAcceptableOrUnknown(data['sync_status']!, _syncStatusMeta),
+      );
+    }
+    if (data.containsKey('sync_updated_at')) {
+      context.handle(
+        _syncUpdatedAtMeta,
+        syncUpdatedAt.isAcceptableOrUnknown(
+          data['sync_updated_at']!,
+          _syncUpdatedAtMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  DependentVisit map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DependentVisit(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      dependentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}dependent_id'],
+      )!,
+      startDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}start_date'],
+      )!,
+      endDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}end_date'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      syncStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sync_status'],
+      )!,
+      syncUpdatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_updated_at'],
+      ),
+    );
+  }
+
+  @override
+  $DependentVisitsTable createAlias(String alias) {
+    return $DependentVisitsTable(attachedDatabase, alias);
+  }
+}
+
+class DependentVisit extends DataClass implements Insertable<DependentVisit> {
+  final int id;
+  final int dependentId;
+  final String startDate;
+  final String endDate;
+  final String status;
+  final int syncStatus;
+  final String? syncUpdatedAt;
+  const DependentVisit({
+    required this.id,
+    required this.dependentId,
+    required this.startDate,
+    required this.endDate,
+    required this.status,
+    required this.syncStatus,
+    this.syncUpdatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['dependent_id'] = Variable<int>(dependentId);
+    map['start_date'] = Variable<String>(startDate);
+    map['end_date'] = Variable<String>(endDate);
+    map['status'] = Variable<String>(status);
+    map['sync_status'] = Variable<int>(syncStatus);
+    if (!nullToAbsent || syncUpdatedAt != null) {
+      map['sync_updated_at'] = Variable<String>(syncUpdatedAt);
+    }
+    return map;
+  }
+
+  DependentVisitsCompanion toCompanion(bool nullToAbsent) {
+    return DependentVisitsCompanion(
+      id: Value(id),
+      dependentId: Value(dependentId),
+      startDate: Value(startDate),
+      endDate: Value(endDate),
+      status: Value(status),
+      syncStatus: Value(syncStatus),
+      syncUpdatedAt: syncUpdatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncUpdatedAt),
+    );
+  }
+
+  factory DependentVisit.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DependentVisit(
+      id: serializer.fromJson<int>(json['id']),
+      dependentId: serializer.fromJson<int>(json['dependentId']),
+      startDate: serializer.fromJson<String>(json['startDate']),
+      endDate: serializer.fromJson<String>(json['endDate']),
+      status: serializer.fromJson<String>(json['status']),
+      syncStatus: serializer.fromJson<int>(json['syncStatus']),
+      syncUpdatedAt: serializer.fromJson<String?>(json['syncUpdatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'dependentId': serializer.toJson<int>(dependentId),
+      'startDate': serializer.toJson<String>(startDate),
+      'endDate': serializer.toJson<String>(endDate),
+      'status': serializer.toJson<String>(status),
+      'syncStatus': serializer.toJson<int>(syncStatus),
+      'syncUpdatedAt': serializer.toJson<String?>(syncUpdatedAt),
+    };
+  }
+
+  DependentVisit copyWith({
+    int? id,
+    int? dependentId,
+    String? startDate,
+    String? endDate,
+    String? status,
+    int? syncStatus,
+    Value<String?> syncUpdatedAt = const Value.absent(),
+  }) => DependentVisit(
+    id: id ?? this.id,
+    dependentId: dependentId ?? this.dependentId,
+    startDate: startDate ?? this.startDate,
+    endDate: endDate ?? this.endDate,
+    status: status ?? this.status,
+    syncStatus: syncStatus ?? this.syncStatus,
+    syncUpdatedAt: syncUpdatedAt.present
+        ? syncUpdatedAt.value
+        : this.syncUpdatedAt,
+  );
+  DependentVisit copyWithCompanion(DependentVisitsCompanion data) {
+    return DependentVisit(
+      id: data.id.present ? data.id.value : this.id,
+      dependentId: data.dependentId.present
+          ? data.dependentId.value
+          : this.dependentId,
+      startDate: data.startDate.present ? data.startDate.value : this.startDate,
+      endDate: data.endDate.present ? data.endDate.value : this.endDate,
+      status: data.status.present ? data.status.value : this.status,
+      syncStatus: data.syncStatus.present
+          ? data.syncStatus.value
+          : this.syncStatus,
+      syncUpdatedAt: data.syncUpdatedAt.present
+          ? data.syncUpdatedAt.value
+          : this.syncUpdatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DependentVisit(')
+          ..write('id: $id, ')
+          ..write('dependentId: $dependentId, ')
+          ..write('startDate: $startDate, ')
+          ..write('endDate: $endDate, ')
+          ..write('status: $status, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('syncUpdatedAt: $syncUpdatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    dependentId,
+    startDate,
+    endDate,
+    status,
+    syncStatus,
+    syncUpdatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DependentVisit &&
+          other.id == this.id &&
+          other.dependentId == this.dependentId &&
+          other.startDate == this.startDate &&
+          other.endDate == this.endDate &&
+          other.status == this.status &&
+          other.syncStatus == this.syncStatus &&
+          other.syncUpdatedAt == this.syncUpdatedAt);
+}
+
+class DependentVisitsCompanion extends UpdateCompanion<DependentVisit> {
+  final Value<int> id;
+  final Value<int> dependentId;
+  final Value<String> startDate;
+  final Value<String> endDate;
+  final Value<String> status;
+  final Value<int> syncStatus;
+  final Value<String?> syncUpdatedAt;
+  const DependentVisitsCompanion({
+    this.id = const Value.absent(),
+    this.dependentId = const Value.absent(),
+    this.startDate = const Value.absent(),
+    this.endDate = const Value.absent(),
+    this.status = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.syncUpdatedAt = const Value.absent(),
+  });
+  DependentVisitsCompanion.insert({
+    this.id = const Value.absent(),
+    required int dependentId,
+    required String startDate,
+    required String endDate,
+    this.status = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.syncUpdatedAt = const Value.absent(),
+  }) : dependentId = Value(dependentId),
+       startDate = Value(startDate),
+       endDate = Value(endDate);
+  static Insertable<DependentVisit> custom({
+    Expression<int>? id,
+    Expression<int>? dependentId,
+    Expression<String>? startDate,
+    Expression<String>? endDate,
+    Expression<String>? status,
+    Expression<int>? syncStatus,
+    Expression<String>? syncUpdatedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (dependentId != null) 'dependent_id': dependentId,
+      if (startDate != null) 'start_date': startDate,
+      if (endDate != null) 'end_date': endDate,
+      if (status != null) 'status': status,
+      if (syncStatus != null) 'sync_status': syncStatus,
+      if (syncUpdatedAt != null) 'sync_updated_at': syncUpdatedAt,
+    });
+  }
+
+  DependentVisitsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? dependentId,
+    Value<String>? startDate,
+    Value<String>? endDate,
+    Value<String>? status,
+    Value<int>? syncStatus,
+    Value<String?>? syncUpdatedAt,
+  }) {
+    return DependentVisitsCompanion(
+      id: id ?? this.id,
+      dependentId: dependentId ?? this.dependentId,
+      startDate: startDate ?? this.startDate,
+      endDate: endDate ?? this.endDate,
+      status: status ?? this.status,
+      syncStatus: syncStatus ?? this.syncStatus,
+      syncUpdatedAt: syncUpdatedAt ?? this.syncUpdatedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (dependentId.present) {
+      map['dependent_id'] = Variable<int>(dependentId.value);
+    }
+    if (startDate.present) {
+      map['start_date'] = Variable<String>(startDate.value);
+    }
+    if (endDate.present) {
+      map['end_date'] = Variable<String>(endDate.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (syncStatus.present) {
+      map['sync_status'] = Variable<int>(syncStatus.value);
+    }
+    if (syncUpdatedAt.present) {
+      map['sync_updated_at'] = Variable<String>(syncUpdatedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DependentVisitsCompanion(')
+          ..write('id: $id, ')
+          ..write('dependentId: $dependentId, ')
+          ..write('startDate: $startDate, ')
+          ..write('endDate: $endDate, ')
+          ..write('status: $status, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('syncUpdatedAt: $syncUpdatedAt')
           ..write(')'))
@@ -7904,6 +8800,1794 @@ class OrdersCompanion extends UpdateCompanion<Order> {
   }
 }
 
+class $WorkFunctionsTable extends WorkFunctions
+    with TableInfo<$WorkFunctionsTable, WorkFunction> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $WorkFunctionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _functionNameMeta = const VerificationMeta(
+    'functionName',
+  );
+  @override
+  late final GeneratedColumn<String> functionName = GeneratedColumn<String>(
+    'function_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _functionLocationMeta = const VerificationMeta(
+    'functionLocation',
+  );
+  @override
+  late final GeneratedColumn<String> functionLocation = GeneratedColumn<String>(
+    'function_location',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _catererIdMeta = const VerificationMeta(
+    'catererId',
+  );
+  @override
+  late final GeneratedColumn<int> catererId = GeneratedColumn<int>(
+    'caterer_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _ratePerVoucherMeta = const VerificationMeta(
+    'ratePerVoucher',
+  );
+  @override
+  late final GeneratedColumn<double> ratePerVoucher = GeneratedColumn<double>(
+    'rate_per_voucher',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _totalQuantityMeta = const VerificationMeta(
+    'totalQuantity',
+  );
+  @override
+  late final GeneratedColumn<int> totalQuantity = GeneratedColumn<int>(
+    'total_quantity',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _functionDateMeta = const VerificationMeta(
+    'functionDate',
+  );
+  @override
+  late final GeneratedColumn<String> functionDate = GeneratedColumn<String>(
+    'function_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _functionStartTimeMeta = const VerificationMeta(
+    'functionStartTime',
+  );
+  @override
+  late final GeneratedColumn<String> functionStartTime =
+      GeneratedColumn<String>(
+        'function_start_time',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _functionEndTimeMeta = const VerificationMeta(
+    'functionEndTime',
+  );
+  @override
+  late final GeneratedColumn<String> functionEndTime = GeneratedColumn<String>(
+    'function_end_time',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _syncStatusMeta = const VerificationMeta(
+    'syncStatus',
+  );
+  @override
+  late final GeneratedColumn<int> syncStatus = GeneratedColumn<int>(
+    'sync_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _syncUpdatedAtMeta = const VerificationMeta(
+    'syncUpdatedAt',
+  );
+  @override
+  late final GeneratedColumn<String> syncUpdatedAt = GeneratedColumn<String>(
+    'sync_updated_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    functionName,
+    functionLocation,
+    catererId,
+    ratePerVoucher,
+    totalQuantity,
+    functionDate,
+    functionStartTime,
+    functionEndTime,
+    status,
+    syncStatus,
+    syncUpdatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'work_functions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<WorkFunction> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('function_name')) {
+      context.handle(
+        _functionNameMeta,
+        functionName.isAcceptableOrUnknown(
+          data['function_name']!,
+          _functionNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_functionNameMeta);
+    }
+    if (data.containsKey('function_location')) {
+      context.handle(
+        _functionLocationMeta,
+        functionLocation.isAcceptableOrUnknown(
+          data['function_location']!,
+          _functionLocationMeta,
+        ),
+      );
+    }
+    if (data.containsKey('caterer_id')) {
+      context.handle(
+        _catererIdMeta,
+        catererId.isAcceptableOrUnknown(data['caterer_id']!, _catererIdMeta),
+      );
+    }
+    if (data.containsKey('rate_per_voucher')) {
+      context.handle(
+        _ratePerVoucherMeta,
+        ratePerVoucher.isAcceptableOrUnknown(
+          data['rate_per_voucher']!,
+          _ratePerVoucherMeta,
+        ),
+      );
+    }
+    if (data.containsKey('total_quantity')) {
+      context.handle(
+        _totalQuantityMeta,
+        totalQuantity.isAcceptableOrUnknown(
+          data['total_quantity']!,
+          _totalQuantityMeta,
+        ),
+      );
+    }
+    if (data.containsKey('function_date')) {
+      context.handle(
+        _functionDateMeta,
+        functionDate.isAcceptableOrUnknown(
+          data['function_date']!,
+          _functionDateMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_functionDateMeta);
+    }
+    if (data.containsKey('function_start_time')) {
+      context.handle(
+        _functionStartTimeMeta,
+        functionStartTime.isAcceptableOrUnknown(
+          data['function_start_time']!,
+          _functionStartTimeMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_functionStartTimeMeta);
+    }
+    if (data.containsKey('function_end_time')) {
+      context.handle(
+        _functionEndTimeMeta,
+        functionEndTime.isAcceptableOrUnknown(
+          data['function_end_time']!,
+          _functionEndTimeMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_functionEndTimeMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_statusMeta);
+    }
+    if (data.containsKey('sync_status')) {
+      context.handle(
+        _syncStatusMeta,
+        syncStatus.isAcceptableOrUnknown(data['sync_status']!, _syncStatusMeta),
+      );
+    }
+    if (data.containsKey('sync_updated_at')) {
+      context.handle(
+        _syncUpdatedAtMeta,
+        syncUpdatedAt.isAcceptableOrUnknown(
+          data['sync_updated_at']!,
+          _syncUpdatedAtMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  WorkFunction map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return WorkFunction(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      functionName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}function_name'],
+      )!,
+      functionLocation: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}function_location'],
+      ),
+      catererId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}caterer_id'],
+      ),
+      ratePerVoucher: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}rate_per_voucher'],
+      )!,
+      totalQuantity: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}total_quantity'],
+      )!,
+      functionDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}function_date'],
+      )!,
+      functionStartTime: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}function_start_time'],
+      )!,
+      functionEndTime: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}function_end_time'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      syncStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sync_status'],
+      )!,
+      syncUpdatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_updated_at'],
+      ),
+    );
+  }
+
+  @override
+  $WorkFunctionsTable createAlias(String alias) {
+    return $WorkFunctionsTable(attachedDatabase, alias);
+  }
+}
+
+class WorkFunction extends DataClass implements Insertable<WorkFunction> {
+  final int id;
+  final String functionName;
+  final String? functionLocation;
+  final int? catererId;
+  final double ratePerVoucher;
+  final int totalQuantity;
+  final String functionDate;
+  final String functionStartTime;
+  final String functionEndTime;
+  final String status;
+  final int syncStatus;
+  final String? syncUpdatedAt;
+  const WorkFunction({
+    required this.id,
+    required this.functionName,
+    this.functionLocation,
+    this.catererId,
+    required this.ratePerVoucher,
+    required this.totalQuantity,
+    required this.functionDate,
+    required this.functionStartTime,
+    required this.functionEndTime,
+    required this.status,
+    required this.syncStatus,
+    this.syncUpdatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['function_name'] = Variable<String>(functionName);
+    if (!nullToAbsent || functionLocation != null) {
+      map['function_location'] = Variable<String>(functionLocation);
+    }
+    if (!nullToAbsent || catererId != null) {
+      map['caterer_id'] = Variable<int>(catererId);
+    }
+    map['rate_per_voucher'] = Variable<double>(ratePerVoucher);
+    map['total_quantity'] = Variable<int>(totalQuantity);
+    map['function_date'] = Variable<String>(functionDate);
+    map['function_start_time'] = Variable<String>(functionStartTime);
+    map['function_end_time'] = Variable<String>(functionEndTime);
+    map['status'] = Variable<String>(status);
+    map['sync_status'] = Variable<int>(syncStatus);
+    if (!nullToAbsent || syncUpdatedAt != null) {
+      map['sync_updated_at'] = Variable<String>(syncUpdatedAt);
+    }
+    return map;
+  }
+
+  WorkFunctionsCompanion toCompanion(bool nullToAbsent) {
+    return WorkFunctionsCompanion(
+      id: Value(id),
+      functionName: Value(functionName),
+      functionLocation: functionLocation == null && nullToAbsent
+          ? const Value.absent()
+          : Value(functionLocation),
+      catererId: catererId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(catererId),
+      ratePerVoucher: Value(ratePerVoucher),
+      totalQuantity: Value(totalQuantity),
+      functionDate: Value(functionDate),
+      functionStartTime: Value(functionStartTime),
+      functionEndTime: Value(functionEndTime),
+      status: Value(status),
+      syncStatus: Value(syncStatus),
+      syncUpdatedAt: syncUpdatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncUpdatedAt),
+    );
+  }
+
+  factory WorkFunction.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return WorkFunction(
+      id: serializer.fromJson<int>(json['id']),
+      functionName: serializer.fromJson<String>(json['functionName']),
+      functionLocation: serializer.fromJson<String?>(json['functionLocation']),
+      catererId: serializer.fromJson<int?>(json['catererId']),
+      ratePerVoucher: serializer.fromJson<double>(json['ratePerVoucher']),
+      totalQuantity: serializer.fromJson<int>(json['totalQuantity']),
+      functionDate: serializer.fromJson<String>(json['functionDate']),
+      functionStartTime: serializer.fromJson<String>(json['functionStartTime']),
+      functionEndTime: serializer.fromJson<String>(json['functionEndTime']),
+      status: serializer.fromJson<String>(json['status']),
+      syncStatus: serializer.fromJson<int>(json['syncStatus']),
+      syncUpdatedAt: serializer.fromJson<String?>(json['syncUpdatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'functionName': serializer.toJson<String>(functionName),
+      'functionLocation': serializer.toJson<String?>(functionLocation),
+      'catererId': serializer.toJson<int?>(catererId),
+      'ratePerVoucher': serializer.toJson<double>(ratePerVoucher),
+      'totalQuantity': serializer.toJson<int>(totalQuantity),
+      'functionDate': serializer.toJson<String>(functionDate),
+      'functionStartTime': serializer.toJson<String>(functionStartTime),
+      'functionEndTime': serializer.toJson<String>(functionEndTime),
+      'status': serializer.toJson<String>(status),
+      'syncStatus': serializer.toJson<int>(syncStatus),
+      'syncUpdatedAt': serializer.toJson<String?>(syncUpdatedAt),
+    };
+  }
+
+  WorkFunction copyWith({
+    int? id,
+    String? functionName,
+    Value<String?> functionLocation = const Value.absent(),
+    Value<int?> catererId = const Value.absent(),
+    double? ratePerVoucher,
+    int? totalQuantity,
+    String? functionDate,
+    String? functionStartTime,
+    String? functionEndTime,
+    String? status,
+    int? syncStatus,
+    Value<String?> syncUpdatedAt = const Value.absent(),
+  }) => WorkFunction(
+    id: id ?? this.id,
+    functionName: functionName ?? this.functionName,
+    functionLocation: functionLocation.present
+        ? functionLocation.value
+        : this.functionLocation,
+    catererId: catererId.present ? catererId.value : this.catererId,
+    ratePerVoucher: ratePerVoucher ?? this.ratePerVoucher,
+    totalQuantity: totalQuantity ?? this.totalQuantity,
+    functionDate: functionDate ?? this.functionDate,
+    functionStartTime: functionStartTime ?? this.functionStartTime,
+    functionEndTime: functionEndTime ?? this.functionEndTime,
+    status: status ?? this.status,
+    syncStatus: syncStatus ?? this.syncStatus,
+    syncUpdatedAt: syncUpdatedAt.present
+        ? syncUpdatedAt.value
+        : this.syncUpdatedAt,
+  );
+  WorkFunction copyWithCompanion(WorkFunctionsCompanion data) {
+    return WorkFunction(
+      id: data.id.present ? data.id.value : this.id,
+      functionName: data.functionName.present
+          ? data.functionName.value
+          : this.functionName,
+      functionLocation: data.functionLocation.present
+          ? data.functionLocation.value
+          : this.functionLocation,
+      catererId: data.catererId.present ? data.catererId.value : this.catererId,
+      ratePerVoucher: data.ratePerVoucher.present
+          ? data.ratePerVoucher.value
+          : this.ratePerVoucher,
+      totalQuantity: data.totalQuantity.present
+          ? data.totalQuantity.value
+          : this.totalQuantity,
+      functionDate: data.functionDate.present
+          ? data.functionDate.value
+          : this.functionDate,
+      functionStartTime: data.functionStartTime.present
+          ? data.functionStartTime.value
+          : this.functionStartTime,
+      functionEndTime: data.functionEndTime.present
+          ? data.functionEndTime.value
+          : this.functionEndTime,
+      status: data.status.present ? data.status.value : this.status,
+      syncStatus: data.syncStatus.present
+          ? data.syncStatus.value
+          : this.syncStatus,
+      syncUpdatedAt: data.syncUpdatedAt.present
+          ? data.syncUpdatedAt.value
+          : this.syncUpdatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WorkFunction(')
+          ..write('id: $id, ')
+          ..write('functionName: $functionName, ')
+          ..write('functionLocation: $functionLocation, ')
+          ..write('catererId: $catererId, ')
+          ..write('ratePerVoucher: $ratePerVoucher, ')
+          ..write('totalQuantity: $totalQuantity, ')
+          ..write('functionDate: $functionDate, ')
+          ..write('functionStartTime: $functionStartTime, ')
+          ..write('functionEndTime: $functionEndTime, ')
+          ..write('status: $status, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('syncUpdatedAt: $syncUpdatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    functionName,
+    functionLocation,
+    catererId,
+    ratePerVoucher,
+    totalQuantity,
+    functionDate,
+    functionStartTime,
+    functionEndTime,
+    status,
+    syncStatus,
+    syncUpdatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is WorkFunction &&
+          other.id == this.id &&
+          other.functionName == this.functionName &&
+          other.functionLocation == this.functionLocation &&
+          other.catererId == this.catererId &&
+          other.ratePerVoucher == this.ratePerVoucher &&
+          other.totalQuantity == this.totalQuantity &&
+          other.functionDate == this.functionDate &&
+          other.functionStartTime == this.functionStartTime &&
+          other.functionEndTime == this.functionEndTime &&
+          other.status == this.status &&
+          other.syncStatus == this.syncStatus &&
+          other.syncUpdatedAt == this.syncUpdatedAt);
+}
+
+class WorkFunctionsCompanion extends UpdateCompanion<WorkFunction> {
+  final Value<int> id;
+  final Value<String> functionName;
+  final Value<String?> functionLocation;
+  final Value<int?> catererId;
+  final Value<double> ratePerVoucher;
+  final Value<int> totalQuantity;
+  final Value<String> functionDate;
+  final Value<String> functionStartTime;
+  final Value<String> functionEndTime;
+  final Value<String> status;
+  final Value<int> syncStatus;
+  final Value<String?> syncUpdatedAt;
+  const WorkFunctionsCompanion({
+    this.id = const Value.absent(),
+    this.functionName = const Value.absent(),
+    this.functionLocation = const Value.absent(),
+    this.catererId = const Value.absent(),
+    this.ratePerVoucher = const Value.absent(),
+    this.totalQuantity = const Value.absent(),
+    this.functionDate = const Value.absent(),
+    this.functionStartTime = const Value.absent(),
+    this.functionEndTime = const Value.absent(),
+    this.status = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.syncUpdatedAt = const Value.absent(),
+  });
+  WorkFunctionsCompanion.insert({
+    this.id = const Value.absent(),
+    required String functionName,
+    this.functionLocation = const Value.absent(),
+    this.catererId = const Value.absent(),
+    this.ratePerVoucher = const Value.absent(),
+    this.totalQuantity = const Value.absent(),
+    required String functionDate,
+    required String functionStartTime,
+    required String functionEndTime,
+    required String status,
+    this.syncStatus = const Value.absent(),
+    this.syncUpdatedAt = const Value.absent(),
+  }) : functionName = Value(functionName),
+       functionDate = Value(functionDate),
+       functionStartTime = Value(functionStartTime),
+       functionEndTime = Value(functionEndTime),
+       status = Value(status);
+  static Insertable<WorkFunction> custom({
+    Expression<int>? id,
+    Expression<String>? functionName,
+    Expression<String>? functionLocation,
+    Expression<int>? catererId,
+    Expression<double>? ratePerVoucher,
+    Expression<int>? totalQuantity,
+    Expression<String>? functionDate,
+    Expression<String>? functionStartTime,
+    Expression<String>? functionEndTime,
+    Expression<String>? status,
+    Expression<int>? syncStatus,
+    Expression<String>? syncUpdatedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (functionName != null) 'function_name': functionName,
+      if (functionLocation != null) 'function_location': functionLocation,
+      if (catererId != null) 'caterer_id': catererId,
+      if (ratePerVoucher != null) 'rate_per_voucher': ratePerVoucher,
+      if (totalQuantity != null) 'total_quantity': totalQuantity,
+      if (functionDate != null) 'function_date': functionDate,
+      if (functionStartTime != null) 'function_start_time': functionStartTime,
+      if (functionEndTime != null) 'function_end_time': functionEndTime,
+      if (status != null) 'status': status,
+      if (syncStatus != null) 'sync_status': syncStatus,
+      if (syncUpdatedAt != null) 'sync_updated_at': syncUpdatedAt,
+    });
+  }
+
+  WorkFunctionsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? functionName,
+    Value<String?>? functionLocation,
+    Value<int?>? catererId,
+    Value<double>? ratePerVoucher,
+    Value<int>? totalQuantity,
+    Value<String>? functionDate,
+    Value<String>? functionStartTime,
+    Value<String>? functionEndTime,
+    Value<String>? status,
+    Value<int>? syncStatus,
+    Value<String?>? syncUpdatedAt,
+  }) {
+    return WorkFunctionsCompanion(
+      id: id ?? this.id,
+      functionName: functionName ?? this.functionName,
+      functionLocation: functionLocation ?? this.functionLocation,
+      catererId: catererId ?? this.catererId,
+      ratePerVoucher: ratePerVoucher ?? this.ratePerVoucher,
+      totalQuantity: totalQuantity ?? this.totalQuantity,
+      functionDate: functionDate ?? this.functionDate,
+      functionStartTime: functionStartTime ?? this.functionStartTime,
+      functionEndTime: functionEndTime ?? this.functionEndTime,
+      status: status ?? this.status,
+      syncStatus: syncStatus ?? this.syncStatus,
+      syncUpdatedAt: syncUpdatedAt ?? this.syncUpdatedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (functionName.present) {
+      map['function_name'] = Variable<String>(functionName.value);
+    }
+    if (functionLocation.present) {
+      map['function_location'] = Variable<String>(functionLocation.value);
+    }
+    if (catererId.present) {
+      map['caterer_id'] = Variable<int>(catererId.value);
+    }
+    if (ratePerVoucher.present) {
+      map['rate_per_voucher'] = Variable<double>(ratePerVoucher.value);
+    }
+    if (totalQuantity.present) {
+      map['total_quantity'] = Variable<int>(totalQuantity.value);
+    }
+    if (functionDate.present) {
+      map['function_date'] = Variable<String>(functionDate.value);
+    }
+    if (functionStartTime.present) {
+      map['function_start_time'] = Variable<String>(functionStartTime.value);
+    }
+    if (functionEndTime.present) {
+      map['function_end_time'] = Variable<String>(functionEndTime.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (syncStatus.present) {
+      map['sync_status'] = Variable<int>(syncStatus.value);
+    }
+    if (syncUpdatedAt.present) {
+      map['sync_updated_at'] = Variable<String>(syncUpdatedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WorkFunctionsCompanion(')
+          ..write('id: $id, ')
+          ..write('functionName: $functionName, ')
+          ..write('functionLocation: $functionLocation, ')
+          ..write('catererId: $catererId, ')
+          ..write('ratePerVoucher: $ratePerVoucher, ')
+          ..write('totalQuantity: $totalQuantity, ')
+          ..write('functionDate: $functionDate, ')
+          ..write('functionStartTime: $functionStartTime, ')
+          ..write('functionEndTime: $functionEndTime, ')
+          ..write('status: $status, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('syncUpdatedAt: $syncUpdatedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $FunctionOrdersTable extends FunctionOrders
+    with TableInfo<$FunctionOrdersTable, FunctionOrder> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $FunctionOrdersTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _uuidMeta = const VerificationMeta('uuid');
+  @override
+  late final GeneratedColumn<String> uuid = GeneratedColumn<String>(
+    'uuid',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _orderCodeMeta = const VerificationMeta(
+    'orderCode',
+  );
+  @override
+  late final GeneratedColumn<String> orderCode = GeneratedColumn<String>(
+    'order_code',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _functionIdMeta = const VerificationMeta(
+    'functionId',
+  );
+  @override
+  late final GeneratedColumn<int> functionId = GeneratedColumn<int>(
+    'function_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _functionNameMeta = const VerificationMeta(
+    'functionName',
+  );
+  @override
+  late final GeneratedColumn<String> functionName = GeneratedColumn<String>(
+    'function_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _mealTypeMeta = const VerificationMeta(
+    'mealType',
+  );
+  @override
+  late final GeneratedColumn<String> mealType = GeneratedColumn<String>(
+    'meal_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _quantityMeta = const VerificationMeta(
+    'quantity',
+  );
+  @override
+  late final GeneratedColumn<int> quantity = GeneratedColumn<int>(
+    'quantity',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _rateMeta = const VerificationMeta('rate');
+  @override
+  late final GeneratedColumn<double> rate = GeneratedColumn<double>(
+    'rate',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _totalMeta = const VerificationMeta('total');
+  @override
+  late final GeneratedColumn<double> total = GeneratedColumn<double>(
+    'total',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _orderedByIdMeta = const VerificationMeta(
+    'orderedById',
+  );
+  @override
+  late final GeneratedColumn<int> orderedById = GeneratedColumn<int>(
+    'ordered_by_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _employeeTypeMeta = const VerificationMeta(
+    'employeeType',
+  );
+  @override
+  late final GeneratedColumn<String> employeeType = GeneratedColumn<String>(
+    'employee_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<String> createdAt = GeneratedColumn<String>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<String> updatedAt = GeneratedColumn<String>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _syncStatusMeta = const VerificationMeta(
+    'syncStatus',
+  );
+  @override
+  late final GeneratedColumn<int> syncStatus = GeneratedColumn<int>(
+    'sync_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _syncUpdatedAtMeta = const VerificationMeta(
+    'syncUpdatedAt',
+  );
+  @override
+  late final GeneratedColumn<String> syncUpdatedAt = GeneratedColumn<String>(
+    'sync_updated_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _syncAttemptsMeta = const VerificationMeta(
+    'syncAttempts',
+  );
+  @override
+  late final GeneratedColumn<int> syncAttempts = GeneratedColumn<int>(
+    'sync_attempts',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _lastSyncErrorMeta = const VerificationMeta(
+    'lastSyncError',
+  );
+  @override
+  late final GeneratedColumn<String> lastSyncError = GeneratedColumn<String>(
+    'last_sync_error',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    uuid,
+    orderCode,
+    functionId,
+    functionName,
+    status,
+    mealType,
+    quantity,
+    rate,
+    total,
+    description,
+    orderedById,
+    employeeType,
+    createdAt,
+    updatedAt,
+    syncStatus,
+    syncUpdatedAt,
+    syncAttempts,
+    lastSyncError,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'function_orders';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<FunctionOrder> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('uuid')) {
+      context.handle(
+        _uuidMeta,
+        uuid.isAcceptableOrUnknown(data['uuid']!, _uuidMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_uuidMeta);
+    }
+    if (data.containsKey('order_code')) {
+      context.handle(
+        _orderCodeMeta,
+        orderCode.isAcceptableOrUnknown(data['order_code']!, _orderCodeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_orderCodeMeta);
+    }
+    if (data.containsKey('function_id')) {
+      context.handle(
+        _functionIdMeta,
+        functionId.isAcceptableOrUnknown(data['function_id']!, _functionIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_functionIdMeta);
+    }
+    if (data.containsKey('function_name')) {
+      context.handle(
+        _functionNameMeta,
+        functionName.isAcceptableOrUnknown(
+          data['function_name']!,
+          _functionNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_functionNameMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_statusMeta);
+    }
+    if (data.containsKey('meal_type')) {
+      context.handle(
+        _mealTypeMeta,
+        mealType.isAcceptableOrUnknown(data['meal_type']!, _mealTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_mealTypeMeta);
+    }
+    if (data.containsKey('quantity')) {
+      context.handle(
+        _quantityMeta,
+        quantity.isAcceptableOrUnknown(data['quantity']!, _quantityMeta),
+      );
+    }
+    if (data.containsKey('rate')) {
+      context.handle(
+        _rateMeta,
+        rate.isAcceptableOrUnknown(data['rate']!, _rateMeta),
+      );
+    }
+    if (data.containsKey('total')) {
+      context.handle(
+        _totalMeta,
+        total.isAcceptableOrUnknown(data['total']!, _totalMeta),
+      );
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('ordered_by_id')) {
+      context.handle(
+        _orderedByIdMeta,
+        orderedById.isAcceptableOrUnknown(
+          data['ordered_by_id']!,
+          _orderedByIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_orderedByIdMeta);
+    }
+    if (data.containsKey('employee_type')) {
+      context.handle(
+        _employeeTypeMeta,
+        employeeType.isAcceptableOrUnknown(
+          data['employee_type']!,
+          _employeeTypeMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_employeeTypeMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('sync_status')) {
+      context.handle(
+        _syncStatusMeta,
+        syncStatus.isAcceptableOrUnknown(data['sync_status']!, _syncStatusMeta),
+      );
+    }
+    if (data.containsKey('sync_updated_at')) {
+      context.handle(
+        _syncUpdatedAtMeta,
+        syncUpdatedAt.isAcceptableOrUnknown(
+          data['sync_updated_at']!,
+          _syncUpdatedAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('sync_attempts')) {
+      context.handle(
+        _syncAttemptsMeta,
+        syncAttempts.isAcceptableOrUnknown(
+          data['sync_attempts']!,
+          _syncAttemptsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_sync_error')) {
+      context.handle(
+        _lastSyncErrorMeta,
+        lastSyncError.isAcceptableOrUnknown(
+          data['last_sync_error']!,
+          _lastSyncErrorMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  FunctionOrder map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return FunctionOrder(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      uuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}uuid'],
+      )!,
+      orderCode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}order_code'],
+      )!,
+      functionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}function_id'],
+      )!,
+      functionName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}function_name'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      mealType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}meal_type'],
+      )!,
+      quantity: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}quantity'],
+      )!,
+      rate: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}rate'],
+      )!,
+      total: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}total'],
+      )!,
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      ),
+      orderedById: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}ordered_by_id'],
+      )!,
+      employeeType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}employee_type'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      syncStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sync_status'],
+      )!,
+      syncUpdatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_updated_at'],
+      ),
+      syncAttempts: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sync_attempts'],
+      )!,
+      lastSyncError: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_sync_error'],
+      ),
+    );
+  }
+
+  @override
+  $FunctionOrdersTable createAlias(String alias) {
+    return $FunctionOrdersTable(attachedDatabase, alias);
+  }
+}
+
+class FunctionOrder extends DataClass implements Insertable<FunctionOrder> {
+  final int id;
+  final String uuid;
+  final String orderCode;
+  final int functionId;
+  final String functionName;
+  final String status;
+  final String mealType;
+  final int quantity;
+
+  /// Snapshotted from the function's rate per voucher at order time.
+  final double rate;
+  final double total;
+  final String? description;
+  final int orderedById;
+  final String employeeType;
+  final String createdAt;
+  final String updatedAt;
+  final int syncStatus;
+  final String? syncUpdatedAt;
+  final int syncAttempts;
+  final String? lastSyncError;
+  const FunctionOrder({
+    required this.id,
+    required this.uuid,
+    required this.orderCode,
+    required this.functionId,
+    required this.functionName,
+    required this.status,
+    required this.mealType,
+    required this.quantity,
+    required this.rate,
+    required this.total,
+    this.description,
+    required this.orderedById,
+    required this.employeeType,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.syncStatus,
+    this.syncUpdatedAt,
+    required this.syncAttempts,
+    this.lastSyncError,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['uuid'] = Variable<String>(uuid);
+    map['order_code'] = Variable<String>(orderCode);
+    map['function_id'] = Variable<int>(functionId);
+    map['function_name'] = Variable<String>(functionName);
+    map['status'] = Variable<String>(status);
+    map['meal_type'] = Variable<String>(mealType);
+    map['quantity'] = Variable<int>(quantity);
+    map['rate'] = Variable<double>(rate);
+    map['total'] = Variable<double>(total);
+    if (!nullToAbsent || description != null) {
+      map['description'] = Variable<String>(description);
+    }
+    map['ordered_by_id'] = Variable<int>(orderedById);
+    map['employee_type'] = Variable<String>(employeeType);
+    map['created_at'] = Variable<String>(createdAt);
+    map['updated_at'] = Variable<String>(updatedAt);
+    map['sync_status'] = Variable<int>(syncStatus);
+    if (!nullToAbsent || syncUpdatedAt != null) {
+      map['sync_updated_at'] = Variable<String>(syncUpdatedAt);
+    }
+    map['sync_attempts'] = Variable<int>(syncAttempts);
+    if (!nullToAbsent || lastSyncError != null) {
+      map['last_sync_error'] = Variable<String>(lastSyncError);
+    }
+    return map;
+  }
+
+  FunctionOrdersCompanion toCompanion(bool nullToAbsent) {
+    return FunctionOrdersCompanion(
+      id: Value(id),
+      uuid: Value(uuid),
+      orderCode: Value(orderCode),
+      functionId: Value(functionId),
+      functionName: Value(functionName),
+      status: Value(status),
+      mealType: Value(mealType),
+      quantity: Value(quantity),
+      rate: Value(rate),
+      total: Value(total),
+      description: description == null && nullToAbsent
+          ? const Value.absent()
+          : Value(description),
+      orderedById: Value(orderedById),
+      employeeType: Value(employeeType),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      syncStatus: Value(syncStatus),
+      syncUpdatedAt: syncUpdatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncUpdatedAt),
+      syncAttempts: Value(syncAttempts),
+      lastSyncError: lastSyncError == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastSyncError),
+    );
+  }
+
+  factory FunctionOrder.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return FunctionOrder(
+      id: serializer.fromJson<int>(json['id']),
+      uuid: serializer.fromJson<String>(json['uuid']),
+      orderCode: serializer.fromJson<String>(json['orderCode']),
+      functionId: serializer.fromJson<int>(json['functionId']),
+      functionName: serializer.fromJson<String>(json['functionName']),
+      status: serializer.fromJson<String>(json['status']),
+      mealType: serializer.fromJson<String>(json['mealType']),
+      quantity: serializer.fromJson<int>(json['quantity']),
+      rate: serializer.fromJson<double>(json['rate']),
+      total: serializer.fromJson<double>(json['total']),
+      description: serializer.fromJson<String?>(json['description']),
+      orderedById: serializer.fromJson<int>(json['orderedById']),
+      employeeType: serializer.fromJson<String>(json['employeeType']),
+      createdAt: serializer.fromJson<String>(json['createdAt']),
+      updatedAt: serializer.fromJson<String>(json['updatedAt']),
+      syncStatus: serializer.fromJson<int>(json['syncStatus']),
+      syncUpdatedAt: serializer.fromJson<String?>(json['syncUpdatedAt']),
+      syncAttempts: serializer.fromJson<int>(json['syncAttempts']),
+      lastSyncError: serializer.fromJson<String?>(json['lastSyncError']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'uuid': serializer.toJson<String>(uuid),
+      'orderCode': serializer.toJson<String>(orderCode),
+      'functionId': serializer.toJson<int>(functionId),
+      'functionName': serializer.toJson<String>(functionName),
+      'status': serializer.toJson<String>(status),
+      'mealType': serializer.toJson<String>(mealType),
+      'quantity': serializer.toJson<int>(quantity),
+      'rate': serializer.toJson<double>(rate),
+      'total': serializer.toJson<double>(total),
+      'description': serializer.toJson<String?>(description),
+      'orderedById': serializer.toJson<int>(orderedById),
+      'employeeType': serializer.toJson<String>(employeeType),
+      'createdAt': serializer.toJson<String>(createdAt),
+      'updatedAt': serializer.toJson<String>(updatedAt),
+      'syncStatus': serializer.toJson<int>(syncStatus),
+      'syncUpdatedAt': serializer.toJson<String?>(syncUpdatedAt),
+      'syncAttempts': serializer.toJson<int>(syncAttempts),
+      'lastSyncError': serializer.toJson<String?>(lastSyncError),
+    };
+  }
+
+  FunctionOrder copyWith({
+    int? id,
+    String? uuid,
+    String? orderCode,
+    int? functionId,
+    String? functionName,
+    String? status,
+    String? mealType,
+    int? quantity,
+    double? rate,
+    double? total,
+    Value<String?> description = const Value.absent(),
+    int? orderedById,
+    String? employeeType,
+    String? createdAt,
+    String? updatedAt,
+    int? syncStatus,
+    Value<String?> syncUpdatedAt = const Value.absent(),
+    int? syncAttempts,
+    Value<String?> lastSyncError = const Value.absent(),
+  }) => FunctionOrder(
+    id: id ?? this.id,
+    uuid: uuid ?? this.uuid,
+    orderCode: orderCode ?? this.orderCode,
+    functionId: functionId ?? this.functionId,
+    functionName: functionName ?? this.functionName,
+    status: status ?? this.status,
+    mealType: mealType ?? this.mealType,
+    quantity: quantity ?? this.quantity,
+    rate: rate ?? this.rate,
+    total: total ?? this.total,
+    description: description.present ? description.value : this.description,
+    orderedById: orderedById ?? this.orderedById,
+    employeeType: employeeType ?? this.employeeType,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    syncStatus: syncStatus ?? this.syncStatus,
+    syncUpdatedAt: syncUpdatedAt.present
+        ? syncUpdatedAt.value
+        : this.syncUpdatedAt,
+    syncAttempts: syncAttempts ?? this.syncAttempts,
+    lastSyncError: lastSyncError.present
+        ? lastSyncError.value
+        : this.lastSyncError,
+  );
+  FunctionOrder copyWithCompanion(FunctionOrdersCompanion data) {
+    return FunctionOrder(
+      id: data.id.present ? data.id.value : this.id,
+      uuid: data.uuid.present ? data.uuid.value : this.uuid,
+      orderCode: data.orderCode.present ? data.orderCode.value : this.orderCode,
+      functionId: data.functionId.present
+          ? data.functionId.value
+          : this.functionId,
+      functionName: data.functionName.present
+          ? data.functionName.value
+          : this.functionName,
+      status: data.status.present ? data.status.value : this.status,
+      mealType: data.mealType.present ? data.mealType.value : this.mealType,
+      quantity: data.quantity.present ? data.quantity.value : this.quantity,
+      rate: data.rate.present ? data.rate.value : this.rate,
+      total: data.total.present ? data.total.value : this.total,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
+      orderedById: data.orderedById.present
+          ? data.orderedById.value
+          : this.orderedById,
+      employeeType: data.employeeType.present
+          ? data.employeeType.value
+          : this.employeeType,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      syncStatus: data.syncStatus.present
+          ? data.syncStatus.value
+          : this.syncStatus,
+      syncUpdatedAt: data.syncUpdatedAt.present
+          ? data.syncUpdatedAt.value
+          : this.syncUpdatedAt,
+      syncAttempts: data.syncAttempts.present
+          ? data.syncAttempts.value
+          : this.syncAttempts,
+      lastSyncError: data.lastSyncError.present
+          ? data.lastSyncError.value
+          : this.lastSyncError,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FunctionOrder(')
+          ..write('id: $id, ')
+          ..write('uuid: $uuid, ')
+          ..write('orderCode: $orderCode, ')
+          ..write('functionId: $functionId, ')
+          ..write('functionName: $functionName, ')
+          ..write('status: $status, ')
+          ..write('mealType: $mealType, ')
+          ..write('quantity: $quantity, ')
+          ..write('rate: $rate, ')
+          ..write('total: $total, ')
+          ..write('description: $description, ')
+          ..write('orderedById: $orderedById, ')
+          ..write('employeeType: $employeeType, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('syncUpdatedAt: $syncUpdatedAt, ')
+          ..write('syncAttempts: $syncAttempts, ')
+          ..write('lastSyncError: $lastSyncError')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    uuid,
+    orderCode,
+    functionId,
+    functionName,
+    status,
+    mealType,
+    quantity,
+    rate,
+    total,
+    description,
+    orderedById,
+    employeeType,
+    createdAt,
+    updatedAt,
+    syncStatus,
+    syncUpdatedAt,
+    syncAttempts,
+    lastSyncError,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is FunctionOrder &&
+          other.id == this.id &&
+          other.uuid == this.uuid &&
+          other.orderCode == this.orderCode &&
+          other.functionId == this.functionId &&
+          other.functionName == this.functionName &&
+          other.status == this.status &&
+          other.mealType == this.mealType &&
+          other.quantity == this.quantity &&
+          other.rate == this.rate &&
+          other.total == this.total &&
+          other.description == this.description &&
+          other.orderedById == this.orderedById &&
+          other.employeeType == this.employeeType &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.syncStatus == this.syncStatus &&
+          other.syncUpdatedAt == this.syncUpdatedAt &&
+          other.syncAttempts == this.syncAttempts &&
+          other.lastSyncError == this.lastSyncError);
+}
+
+class FunctionOrdersCompanion extends UpdateCompanion<FunctionOrder> {
+  final Value<int> id;
+  final Value<String> uuid;
+  final Value<String> orderCode;
+  final Value<int> functionId;
+  final Value<String> functionName;
+  final Value<String> status;
+  final Value<String> mealType;
+  final Value<int> quantity;
+  final Value<double> rate;
+  final Value<double> total;
+  final Value<String?> description;
+  final Value<int> orderedById;
+  final Value<String> employeeType;
+  final Value<String> createdAt;
+  final Value<String> updatedAt;
+  final Value<int> syncStatus;
+  final Value<String?> syncUpdatedAt;
+  final Value<int> syncAttempts;
+  final Value<String?> lastSyncError;
+  const FunctionOrdersCompanion({
+    this.id = const Value.absent(),
+    this.uuid = const Value.absent(),
+    this.orderCode = const Value.absent(),
+    this.functionId = const Value.absent(),
+    this.functionName = const Value.absent(),
+    this.status = const Value.absent(),
+    this.mealType = const Value.absent(),
+    this.quantity = const Value.absent(),
+    this.rate = const Value.absent(),
+    this.total = const Value.absent(),
+    this.description = const Value.absent(),
+    this.orderedById = const Value.absent(),
+    this.employeeType = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.syncUpdatedAt = const Value.absent(),
+    this.syncAttempts = const Value.absent(),
+    this.lastSyncError = const Value.absent(),
+  });
+  FunctionOrdersCompanion.insert({
+    this.id = const Value.absent(),
+    required String uuid,
+    required String orderCode,
+    required int functionId,
+    required String functionName,
+    required String status,
+    required String mealType,
+    this.quantity = const Value.absent(),
+    this.rate = const Value.absent(),
+    this.total = const Value.absent(),
+    this.description = const Value.absent(),
+    required int orderedById,
+    required String employeeType,
+    required String createdAt,
+    required String updatedAt,
+    this.syncStatus = const Value.absent(),
+    this.syncUpdatedAt = const Value.absent(),
+    this.syncAttempts = const Value.absent(),
+    this.lastSyncError = const Value.absent(),
+  }) : uuid = Value(uuid),
+       orderCode = Value(orderCode),
+       functionId = Value(functionId),
+       functionName = Value(functionName),
+       status = Value(status),
+       mealType = Value(mealType),
+       orderedById = Value(orderedById),
+       employeeType = Value(employeeType),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<FunctionOrder> custom({
+    Expression<int>? id,
+    Expression<String>? uuid,
+    Expression<String>? orderCode,
+    Expression<int>? functionId,
+    Expression<String>? functionName,
+    Expression<String>? status,
+    Expression<String>? mealType,
+    Expression<int>? quantity,
+    Expression<double>? rate,
+    Expression<double>? total,
+    Expression<String>? description,
+    Expression<int>? orderedById,
+    Expression<String>? employeeType,
+    Expression<String>? createdAt,
+    Expression<String>? updatedAt,
+    Expression<int>? syncStatus,
+    Expression<String>? syncUpdatedAt,
+    Expression<int>? syncAttempts,
+    Expression<String>? lastSyncError,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (uuid != null) 'uuid': uuid,
+      if (orderCode != null) 'order_code': orderCode,
+      if (functionId != null) 'function_id': functionId,
+      if (functionName != null) 'function_name': functionName,
+      if (status != null) 'status': status,
+      if (mealType != null) 'meal_type': mealType,
+      if (quantity != null) 'quantity': quantity,
+      if (rate != null) 'rate': rate,
+      if (total != null) 'total': total,
+      if (description != null) 'description': description,
+      if (orderedById != null) 'ordered_by_id': orderedById,
+      if (employeeType != null) 'employee_type': employeeType,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (syncStatus != null) 'sync_status': syncStatus,
+      if (syncUpdatedAt != null) 'sync_updated_at': syncUpdatedAt,
+      if (syncAttempts != null) 'sync_attempts': syncAttempts,
+      if (lastSyncError != null) 'last_sync_error': lastSyncError,
+    });
+  }
+
+  FunctionOrdersCompanion copyWith({
+    Value<int>? id,
+    Value<String>? uuid,
+    Value<String>? orderCode,
+    Value<int>? functionId,
+    Value<String>? functionName,
+    Value<String>? status,
+    Value<String>? mealType,
+    Value<int>? quantity,
+    Value<double>? rate,
+    Value<double>? total,
+    Value<String?>? description,
+    Value<int>? orderedById,
+    Value<String>? employeeType,
+    Value<String>? createdAt,
+    Value<String>? updatedAt,
+    Value<int>? syncStatus,
+    Value<String?>? syncUpdatedAt,
+    Value<int>? syncAttempts,
+    Value<String?>? lastSyncError,
+  }) {
+    return FunctionOrdersCompanion(
+      id: id ?? this.id,
+      uuid: uuid ?? this.uuid,
+      orderCode: orderCode ?? this.orderCode,
+      functionId: functionId ?? this.functionId,
+      functionName: functionName ?? this.functionName,
+      status: status ?? this.status,
+      mealType: mealType ?? this.mealType,
+      quantity: quantity ?? this.quantity,
+      rate: rate ?? this.rate,
+      total: total ?? this.total,
+      description: description ?? this.description,
+      orderedById: orderedById ?? this.orderedById,
+      employeeType: employeeType ?? this.employeeType,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      syncStatus: syncStatus ?? this.syncStatus,
+      syncUpdatedAt: syncUpdatedAt ?? this.syncUpdatedAt,
+      syncAttempts: syncAttempts ?? this.syncAttempts,
+      lastSyncError: lastSyncError ?? this.lastSyncError,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (uuid.present) {
+      map['uuid'] = Variable<String>(uuid.value);
+    }
+    if (orderCode.present) {
+      map['order_code'] = Variable<String>(orderCode.value);
+    }
+    if (functionId.present) {
+      map['function_id'] = Variable<int>(functionId.value);
+    }
+    if (functionName.present) {
+      map['function_name'] = Variable<String>(functionName.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (mealType.present) {
+      map['meal_type'] = Variable<String>(mealType.value);
+    }
+    if (quantity.present) {
+      map['quantity'] = Variable<int>(quantity.value);
+    }
+    if (rate.present) {
+      map['rate'] = Variable<double>(rate.value);
+    }
+    if (total.present) {
+      map['total'] = Variable<double>(total.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
+    if (orderedById.present) {
+      map['ordered_by_id'] = Variable<int>(orderedById.value);
+    }
+    if (employeeType.present) {
+      map['employee_type'] = Variable<String>(employeeType.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<String>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<String>(updatedAt.value);
+    }
+    if (syncStatus.present) {
+      map['sync_status'] = Variable<int>(syncStatus.value);
+    }
+    if (syncUpdatedAt.present) {
+      map['sync_updated_at'] = Variable<String>(syncUpdatedAt.value);
+    }
+    if (syncAttempts.present) {
+      map['sync_attempts'] = Variable<int>(syncAttempts.value);
+    }
+    if (lastSyncError.present) {
+      map['last_sync_error'] = Variable<String>(lastSyncError.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FunctionOrdersCompanion(')
+          ..write('id: $id, ')
+          ..write('uuid: $uuid, ')
+          ..write('orderCode: $orderCode, ')
+          ..write('functionId: $functionId, ')
+          ..write('functionName: $functionName, ')
+          ..write('status: $status, ')
+          ..write('mealType: $mealType, ')
+          ..write('quantity: $quantity, ')
+          ..write('rate: $rate, ')
+          ..write('total: $total, ')
+          ..write('description: $description, ')
+          ..write('orderedById: $orderedById, ')
+          ..write('employeeType: $employeeType, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('syncUpdatedAt: $syncUpdatedAt, ')
+          ..write('syncAttempts: $syncAttempts, ')
+          ..write('lastSyncError: $lastSyncError')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $PosDevicesTable extends PosDevices
     with TableInfo<$PosDevicesTable, PosDevice> {
   @override
@@ -10711,6 +13395,17 @@ class $ContractorStaffTableTable extends ContractorStaffTable
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _dailyQuotaMeta = const VerificationMeta(
+    'dailyQuota',
+  );
+  @override
+  late final GeneratedColumn<int> dailyQuota = GeneratedColumn<int>(
+    'daily_quota',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _allowGroupOrderMeta = const VerificationMeta(
     'allowGroupOrder',
   );
@@ -10773,6 +13468,7 @@ class $ContractorStaffTableTable extends ContractorStaffTable
     startDate,
     endDate,
     isCharged,
+    dailyQuota,
     allowGroupOrder,
     maxOrderCount,
     syncStatus,
@@ -10874,6 +13570,12 @@ class $ContractorStaffTableTable extends ContractorStaffTable
         isCharged.isAcceptableOrUnknown(data['is_charged']!, _isChargedMeta),
       );
     }
+    if (data.containsKey('daily_quota')) {
+      context.handle(
+        _dailyQuotaMeta,
+        dailyQuota.isAcceptableOrUnknown(data['daily_quota']!, _dailyQuotaMeta),
+      );
+    }
     if (data.containsKey('allow_group_order')) {
       context.handle(
         _allowGroupOrderMeta,
@@ -10967,6 +13669,10 @@ class $ContractorStaffTableTable extends ContractorStaffTable
         DriftSqlType.bool,
         data['${effectivePrefix}is_charged'],
       )!,
+      dailyQuota: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}daily_quota'],
+      ),
       allowGroupOrder: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}allow_group_order'],
@@ -11006,6 +13712,7 @@ class ContractorStaffTableData extends DataClass
   final String startDate;
   final String endDate;
   final bool isCharged;
+  final int? dailyQuota;
   final bool? allowGroupOrder;
   final int? maxOrderCount;
   final int syncStatus;
@@ -11023,6 +13730,7 @@ class ContractorStaffTableData extends DataClass
     required this.startDate,
     required this.endDate,
     required this.isCharged,
+    this.dailyQuota,
     this.allowGroupOrder,
     this.maxOrderCount,
     required this.syncStatus,
@@ -11057,6 +13765,9 @@ class ContractorStaffTableData extends DataClass
     map['start_date'] = Variable<String>(startDate);
     map['end_date'] = Variable<String>(endDate);
     map['is_charged'] = Variable<bool>(isCharged);
+    if (!nullToAbsent || dailyQuota != null) {
+      map['daily_quota'] = Variable<int>(dailyQuota);
+    }
     if (!nullToAbsent || allowGroupOrder != null) {
       map['allow_group_order'] = Variable<bool>(allowGroupOrder);
     }
@@ -11098,6 +13809,9 @@ class ContractorStaffTableData extends DataClass
       startDate: Value(startDate),
       endDate: Value(endDate),
       isCharged: Value(isCharged),
+      dailyQuota: dailyQuota == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dailyQuota),
       allowGroupOrder: allowGroupOrder == null && nullToAbsent
           ? const Value.absent()
           : Value(allowGroupOrder),
@@ -11129,6 +13843,7 @@ class ContractorStaffTableData extends DataClass
       startDate: serializer.fromJson<String>(json['startDate']),
       endDate: serializer.fromJson<String>(json['endDate']),
       isCharged: serializer.fromJson<bool>(json['isCharged']),
+      dailyQuota: serializer.fromJson<int?>(json['dailyQuota']),
       allowGroupOrder: serializer.fromJson<bool?>(json['allowGroupOrder']),
       maxOrderCount: serializer.fromJson<int?>(json['maxOrderCount']),
       syncStatus: serializer.fromJson<int>(json['syncStatus']),
@@ -11151,6 +13866,7 @@ class ContractorStaffTableData extends DataClass
       'startDate': serializer.toJson<String>(startDate),
       'endDate': serializer.toJson<String>(endDate),
       'isCharged': serializer.toJson<bool>(isCharged),
+      'dailyQuota': serializer.toJson<int?>(dailyQuota),
       'allowGroupOrder': serializer.toJson<bool?>(allowGroupOrder),
       'maxOrderCount': serializer.toJson<int?>(maxOrderCount),
       'syncStatus': serializer.toJson<int>(syncStatus),
@@ -11171,6 +13887,7 @@ class ContractorStaffTableData extends DataClass
     String? startDate,
     String? endDate,
     bool? isCharged,
+    Value<int?> dailyQuota = const Value.absent(),
     Value<bool?> allowGroupOrder = const Value.absent(),
     Value<int?> maxOrderCount = const Value.absent(),
     int? syncStatus,
@@ -11190,6 +13907,7 @@ class ContractorStaffTableData extends DataClass
     startDate: startDate ?? this.startDate,
     endDate: endDate ?? this.endDate,
     isCharged: isCharged ?? this.isCharged,
+    dailyQuota: dailyQuota.present ? dailyQuota.value : this.dailyQuota,
     allowGroupOrder: allowGroupOrder.present
         ? allowGroupOrder.value
         : this.allowGroupOrder,
@@ -11225,6 +13943,9 @@ class ContractorStaffTableData extends DataClass
       startDate: data.startDate.present ? data.startDate.value : this.startDate,
       endDate: data.endDate.present ? data.endDate.value : this.endDate,
       isCharged: data.isCharged.present ? data.isCharged.value : this.isCharged,
+      dailyQuota: data.dailyQuota.present
+          ? data.dailyQuota.value
+          : this.dailyQuota,
       allowGroupOrder: data.allowGroupOrder.present
           ? data.allowGroupOrder.value
           : this.allowGroupOrder,
@@ -11255,6 +13976,7 @@ class ContractorStaffTableData extends DataClass
           ..write('startDate: $startDate, ')
           ..write('endDate: $endDate, ')
           ..write('isCharged: $isCharged, ')
+          ..write('dailyQuota: $dailyQuota, ')
           ..write('allowGroupOrder: $allowGroupOrder, ')
           ..write('maxOrderCount: $maxOrderCount, ')
           ..write('syncStatus: $syncStatus, ')
@@ -11277,6 +13999,7 @@ class ContractorStaffTableData extends DataClass
     startDate,
     endDate,
     isCharged,
+    dailyQuota,
     allowGroupOrder,
     maxOrderCount,
     syncStatus,
@@ -11298,6 +14021,7 @@ class ContractorStaffTableData extends DataClass
           other.startDate == this.startDate &&
           other.endDate == this.endDate &&
           other.isCharged == this.isCharged &&
+          other.dailyQuota == this.dailyQuota &&
           other.allowGroupOrder == this.allowGroupOrder &&
           other.maxOrderCount == this.maxOrderCount &&
           other.syncStatus == this.syncStatus &&
@@ -11318,6 +14042,7 @@ class ContractorStaffTableCompanion
   final Value<String> startDate;
   final Value<String> endDate;
   final Value<bool> isCharged;
+  final Value<int?> dailyQuota;
   final Value<bool?> allowGroupOrder;
   final Value<int?> maxOrderCount;
   final Value<int> syncStatus;
@@ -11335,6 +14060,7 @@ class ContractorStaffTableCompanion
     this.startDate = const Value.absent(),
     this.endDate = const Value.absent(),
     this.isCharged = const Value.absent(),
+    this.dailyQuota = const Value.absent(),
     this.allowGroupOrder = const Value.absent(),
     this.maxOrderCount = const Value.absent(),
     this.syncStatus = const Value.absent(),
@@ -11353,6 +14079,7 @@ class ContractorStaffTableCompanion
     required String startDate,
     required String endDate,
     this.isCharged = const Value.absent(),
+    this.dailyQuota = const Value.absent(),
     this.allowGroupOrder = const Value.absent(),
     this.maxOrderCount = const Value.absent(),
     this.syncStatus = const Value.absent(),
@@ -11373,6 +14100,7 @@ class ContractorStaffTableCompanion
     Expression<String>? startDate,
     Expression<String>? endDate,
     Expression<bool>? isCharged,
+    Expression<int>? dailyQuota,
     Expression<bool>? allowGroupOrder,
     Expression<int>? maxOrderCount,
     Expression<int>? syncStatus,
@@ -11391,6 +14119,7 @@ class ContractorStaffTableCompanion
       if (startDate != null) 'start_date': startDate,
       if (endDate != null) 'end_date': endDate,
       if (isCharged != null) 'is_charged': isCharged,
+      if (dailyQuota != null) 'daily_quota': dailyQuota,
       if (allowGroupOrder != null) 'allow_group_order': allowGroupOrder,
       if (maxOrderCount != null) 'max_order_count': maxOrderCount,
       if (syncStatus != null) 'sync_status': syncStatus,
@@ -11411,6 +14140,7 @@ class ContractorStaffTableCompanion
     Value<String>? startDate,
     Value<String>? endDate,
     Value<bool>? isCharged,
+    Value<int?>? dailyQuota,
     Value<bool?>? allowGroupOrder,
     Value<int?>? maxOrderCount,
     Value<int>? syncStatus,
@@ -11429,6 +14159,7 @@ class ContractorStaffTableCompanion
       startDate: startDate ?? this.startDate,
       endDate: endDate ?? this.endDate,
       isCharged: isCharged ?? this.isCharged,
+      dailyQuota: dailyQuota ?? this.dailyQuota,
       allowGroupOrder: allowGroupOrder ?? this.allowGroupOrder,
       maxOrderCount: maxOrderCount ?? this.maxOrderCount,
       syncStatus: syncStatus ?? this.syncStatus,
@@ -11475,6 +14206,9 @@ class ContractorStaffTableCompanion
     if (isCharged.present) {
       map['is_charged'] = Variable<bool>(isCharged.value);
     }
+    if (dailyQuota.present) {
+      map['daily_quota'] = Variable<int>(dailyQuota.value);
+    }
     if (allowGroupOrder.present) {
       map['allow_group_order'] = Variable<bool>(allowGroupOrder.value);
     }
@@ -11505,6 +14239,7 @@ class ContractorStaffTableCompanion
           ..write('startDate: $startDate, ')
           ..write('endDate: $endDate, ')
           ..write('isCharged: $isCharged, ')
+          ..write('dailyQuota: $dailyQuota, ')
           ..write('allowGroupOrder: $allowGroupOrder, ')
           ..write('maxOrderCount: $maxOrderCount, ')
           ..write('syncStatus: $syncStatus, ')
@@ -11798,6 +14533,17 @@ class $VisitorsTable extends Visitors with TableInfo<$VisitorsTable, Visitor> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _dailyQuotaMeta = const VerificationMeta(
+    'dailyQuota',
+  );
+  @override
+  late final GeneratedColumn<int> dailyQuota = GeneratedColumn<int>(
+    'daily_quota',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _companyIdMeta = const VerificationMeta(
     'companyId',
   );
@@ -11872,6 +14618,7 @@ class $VisitorsTable extends Visitors with TableInfo<$VisitorsTable, Visitor> {
     gender,
     startDate,
     endTime,
+    dailyQuota,
     companyId,
     company,
     departmentId,
@@ -11918,6 +14665,12 @@ class $VisitorsTable extends Visitors with TableInfo<$VisitorsTable, Visitor> {
       context.handle(
         _endTimeMeta,
         endTime.isAcceptableOrUnknown(data['end_time']!, _endTimeMeta),
+      );
+    }
+    if (data.containsKey('daily_quota')) {
+      context.handle(
+        _dailyQuotaMeta,
+        dailyQuota.isAcceptableOrUnknown(data['daily_quota']!, _dailyQuotaMeta),
       );
     }
     if (data.containsKey('company_id')) {
@@ -11991,6 +14744,10 @@ class $VisitorsTable extends Visitors with TableInfo<$VisitorsTable, Visitor> {
         DriftSqlType.string,
         data['${effectivePrefix}end_time'],
       ),
+      dailyQuota: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}daily_quota'],
+      ),
       companyId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}company_id'],
@@ -12030,6 +14787,7 @@ class Visitor extends DataClass implements Insertable<Visitor> {
   final String? gender;
   final String? startDate;
   final String? endTime;
+  final int? dailyQuota;
   final int? companyId;
   final String? company;
   final int? departmentId;
@@ -12042,6 +14800,7 @@ class Visitor extends DataClass implements Insertable<Visitor> {
     this.gender,
     this.startDate,
     this.endTime,
+    this.dailyQuota,
     this.companyId,
     this.company,
     this.departmentId,
@@ -12062,6 +14821,9 @@ class Visitor extends DataClass implements Insertable<Visitor> {
     }
     if (!nullToAbsent || endTime != null) {
       map['end_time'] = Variable<String>(endTime);
+    }
+    if (!nullToAbsent || dailyQuota != null) {
+      map['daily_quota'] = Variable<int>(dailyQuota);
     }
     if (!nullToAbsent || companyId != null) {
       map['company_id'] = Variable<int>(companyId);
@@ -12095,6 +14857,9 @@ class Visitor extends DataClass implements Insertable<Visitor> {
       endTime: endTime == null && nullToAbsent
           ? const Value.absent()
           : Value(endTime),
+      dailyQuota: dailyQuota == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dailyQuota),
       companyId: companyId == null && nullToAbsent
           ? const Value.absent()
           : Value(companyId),
@@ -12125,6 +14890,7 @@ class Visitor extends DataClass implements Insertable<Visitor> {
       gender: serializer.fromJson<String?>(json['gender']),
       startDate: serializer.fromJson<String?>(json['startDate']),
       endTime: serializer.fromJson<String?>(json['endTime']),
+      dailyQuota: serializer.fromJson<int?>(json['dailyQuota']),
       companyId: serializer.fromJson<int?>(json['companyId']),
       company: serializer.fromJson<String?>(json['company']),
       departmentId: serializer.fromJson<int?>(json['departmentId']),
@@ -12142,6 +14908,7 @@ class Visitor extends DataClass implements Insertable<Visitor> {
       'gender': serializer.toJson<String?>(gender),
       'startDate': serializer.toJson<String?>(startDate),
       'endTime': serializer.toJson<String?>(endTime),
+      'dailyQuota': serializer.toJson<int?>(dailyQuota),
       'companyId': serializer.toJson<int?>(companyId),
       'company': serializer.toJson<String?>(company),
       'departmentId': serializer.toJson<int?>(departmentId),
@@ -12157,6 +14924,7 @@ class Visitor extends DataClass implements Insertable<Visitor> {
     Value<String?> gender = const Value.absent(),
     Value<String?> startDate = const Value.absent(),
     Value<String?> endTime = const Value.absent(),
+    Value<int?> dailyQuota = const Value.absent(),
     Value<int?> companyId = const Value.absent(),
     Value<String?> company = const Value.absent(),
     Value<int?> departmentId = const Value.absent(),
@@ -12169,6 +14937,7 @@ class Visitor extends DataClass implements Insertable<Visitor> {
     gender: gender.present ? gender.value : this.gender,
     startDate: startDate.present ? startDate.value : this.startDate,
     endTime: endTime.present ? endTime.value : this.endTime,
+    dailyQuota: dailyQuota.present ? dailyQuota.value : this.dailyQuota,
     companyId: companyId.present ? companyId.value : this.companyId,
     company: company.present ? company.value : this.company,
     departmentId: departmentId.present ? departmentId.value : this.departmentId,
@@ -12185,6 +14954,9 @@ class Visitor extends DataClass implements Insertable<Visitor> {
       gender: data.gender.present ? data.gender.value : this.gender,
       startDate: data.startDate.present ? data.startDate.value : this.startDate,
       endTime: data.endTime.present ? data.endTime.value : this.endTime,
+      dailyQuota: data.dailyQuota.present
+          ? data.dailyQuota.value
+          : this.dailyQuota,
       companyId: data.companyId.present ? data.companyId.value : this.companyId,
       company: data.company.present ? data.company.value : this.company,
       departmentId: data.departmentId.present
@@ -12210,6 +14982,7 @@ class Visitor extends DataClass implements Insertable<Visitor> {
           ..write('gender: $gender, ')
           ..write('startDate: $startDate, ')
           ..write('endTime: $endTime, ')
+          ..write('dailyQuota: $dailyQuota, ')
           ..write('companyId: $companyId, ')
           ..write('company: $company, ')
           ..write('departmentId: $departmentId, ')
@@ -12227,6 +15000,7 @@ class Visitor extends DataClass implements Insertable<Visitor> {
     gender,
     startDate,
     endTime,
+    dailyQuota,
     companyId,
     company,
     departmentId,
@@ -12243,6 +15017,7 @@ class Visitor extends DataClass implements Insertable<Visitor> {
           other.gender == this.gender &&
           other.startDate == this.startDate &&
           other.endTime == this.endTime &&
+          other.dailyQuota == this.dailyQuota &&
           other.companyId == this.companyId &&
           other.company == this.company &&
           other.departmentId == this.departmentId &&
@@ -12257,6 +15032,7 @@ class VisitorsCompanion extends UpdateCompanion<Visitor> {
   final Value<String?> gender;
   final Value<String?> startDate;
   final Value<String?> endTime;
+  final Value<int?> dailyQuota;
   final Value<int?> companyId;
   final Value<String?> company;
   final Value<int?> departmentId;
@@ -12269,6 +15045,7 @@ class VisitorsCompanion extends UpdateCompanion<Visitor> {
     this.gender = const Value.absent(),
     this.startDate = const Value.absent(),
     this.endTime = const Value.absent(),
+    this.dailyQuota = const Value.absent(),
     this.companyId = const Value.absent(),
     this.company = const Value.absent(),
     this.departmentId = const Value.absent(),
@@ -12282,6 +15059,7 @@ class VisitorsCompanion extends UpdateCompanion<Visitor> {
     this.gender = const Value.absent(),
     this.startDate = const Value.absent(),
     this.endTime = const Value.absent(),
+    this.dailyQuota = const Value.absent(),
     this.companyId = const Value.absent(),
     this.company = const Value.absent(),
     this.departmentId = const Value.absent(),
@@ -12295,6 +15073,7 @@ class VisitorsCompanion extends UpdateCompanion<Visitor> {
     Expression<String>? gender,
     Expression<String>? startDate,
     Expression<String>? endTime,
+    Expression<int>? dailyQuota,
     Expression<int>? companyId,
     Expression<String>? company,
     Expression<int>? departmentId,
@@ -12308,6 +15087,7 @@ class VisitorsCompanion extends UpdateCompanion<Visitor> {
       if (gender != null) 'gender': gender,
       if (startDate != null) 'start_date': startDate,
       if (endTime != null) 'end_time': endTime,
+      if (dailyQuota != null) 'daily_quota': dailyQuota,
       if (companyId != null) 'company_id': companyId,
       if (company != null) 'company': company,
       if (departmentId != null) 'department_id': departmentId,
@@ -12323,6 +15103,7 @@ class VisitorsCompanion extends UpdateCompanion<Visitor> {
     Value<String?>? gender,
     Value<String?>? startDate,
     Value<String?>? endTime,
+    Value<int?>? dailyQuota,
     Value<int?>? companyId,
     Value<String?>? company,
     Value<int?>? departmentId,
@@ -12336,6 +15117,7 @@ class VisitorsCompanion extends UpdateCompanion<Visitor> {
       gender: gender ?? this.gender,
       startDate: startDate ?? this.startDate,
       endTime: endTime ?? this.endTime,
+      dailyQuota: dailyQuota ?? this.dailyQuota,
       companyId: companyId ?? this.companyId,
       company: company ?? this.company,
       departmentId: departmentId ?? this.departmentId,
@@ -12362,6 +15144,9 @@ class VisitorsCompanion extends UpdateCompanion<Visitor> {
     }
     if (endTime.present) {
       map['end_time'] = Variable<String>(endTime.value);
+    }
+    if (dailyQuota.present) {
+      map['daily_quota'] = Variable<int>(dailyQuota.value);
     }
     if (companyId.present) {
       map['company_id'] = Variable<int>(companyId.value);
@@ -12392,6 +15177,7 @@ class VisitorsCompanion extends UpdateCompanion<Visitor> {
           ..write('gender: $gender, ')
           ..write('startDate: $startDate, ')
           ..write('endTime: $endTime, ')
+          ..write('dailyQuota: $dailyQuota, ')
           ..write('companyId: $companyId, ')
           ..write('company: $company, ')
           ..write('departmentId: $departmentId, ')
@@ -13514,12 +16300,17 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $StaffTable staff = $StaffTable(this);
   late final $StaffKitchensTable staffKitchens = $StaffKitchensTable(this);
   late final $DependentsTable dependents = $DependentsTable(this);
+  late final $DependentVisitsTable dependentVisits = $DependentVisitsTable(
+    this,
+  );
   late final $DependentKitchensTable dependentKitchens =
       $DependentKitchensTable(this);
   late final $CardsTable cards = $CardsTable(this);
   late final $UsersTable users = $UsersTable(this);
   late final $UserKitchensTable userKitchens = $UserKitchensTable(this);
   late final $OrdersTable orders = $OrdersTable(this);
+  late final $WorkFunctionsTable workFunctions = $WorkFunctionsTable(this);
+  late final $FunctionOrdersTable functionOrders = $FunctionOrdersTable(this);
   late final $PosDevicesTable posDevices = $PosDevicesTable(this);
   late final $ActivityLogsTable activityLogs = $ActivityLogsTable(this);
   late final $GroupOrdersTable groupOrders = $GroupOrdersTable(this);
@@ -13536,6 +16327,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final Index idxStaffDepartmentId = Index(
     'idx_staff_department_id',
     'CREATE INDEX idx_staff_department_id ON staff (department_id)',
+  );
+  late final Index idxDependentVisitsDependentId = Index(
+    'idx_dependent_visits_dependent_id',
+    'CREATE INDEX idx_dependent_visits_dependent_id ON dependent_visits (dependent_id)',
   );
   late final Index idxCardsTagId = Index(
     'idx_cards_tag_id',
@@ -13588,11 +16383,14 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     staff,
     staffKitchens,
     dependents,
+    dependentVisits,
     dependentKitchens,
     cards,
     users,
     userKitchens,
     orders,
+    workFunctions,
+    functionOrders,
     posDevices,
     activityLogs,
     groupOrders,
@@ -13603,6 +16401,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     visitorKitchens,
     bioDataEntries,
     idxStaffDepartmentId,
+    idxDependentVisitsDependentId,
     idxCardsTagId,
     idxOrdersSyncStatus,
     idxOrdersCreatedAt,
@@ -14167,6 +16966,8 @@ typedef $$ShiftsTableCreateCompanionBuilder =
       required String name,
       required int hours,
       Value<int?> companyId,
+      Value<int> dailyMealQuota,
+      Value<int> workingDaysPerMonth,
       Value<int> syncStatus,
       Value<String?> syncUpdatedAt,
     });
@@ -14176,6 +16977,8 @@ typedef $$ShiftsTableUpdateCompanionBuilder =
       Value<String> name,
       Value<int> hours,
       Value<int?> companyId,
+      Value<int> dailyMealQuota,
+      Value<int> workingDaysPerMonth,
       Value<int> syncStatus,
       Value<String?> syncUpdatedAt,
     });
@@ -14206,6 +17009,16 @@ class $$ShiftsTableFilterComposer
 
   ColumnFilters<int> get companyId => $composableBuilder(
     column: $table.companyId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get dailyMealQuota => $composableBuilder(
+    column: $table.dailyMealQuota,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get workingDaysPerMonth => $composableBuilder(
+    column: $table.workingDaysPerMonth,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -14249,6 +17062,16 @@ class $$ShiftsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get dailyMealQuota => $composableBuilder(
+    column: $table.dailyMealQuota,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get workingDaysPerMonth => $composableBuilder(
+    column: $table.workingDaysPerMonth,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get syncStatus => $composableBuilder(
     column: $table.syncStatus,
     builder: (column) => ColumnOrderings(column),
@@ -14280,6 +17103,16 @@ class $$ShiftsTableAnnotationComposer
 
   GeneratedColumn<int> get companyId =>
       $composableBuilder(column: $table.companyId, builder: (column) => column);
+
+  GeneratedColumn<int> get dailyMealQuota => $composableBuilder(
+    column: $table.dailyMealQuota,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get workingDaysPerMonth => $composableBuilder(
+    column: $table.workingDaysPerMonth,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<int> get syncStatus => $composableBuilder(
     column: $table.syncStatus,
@@ -14324,6 +17157,8 @@ class $$ShiftsTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<int> hours = const Value.absent(),
                 Value<int?> companyId = const Value.absent(),
+                Value<int> dailyMealQuota = const Value.absent(),
+                Value<int> workingDaysPerMonth = const Value.absent(),
                 Value<int> syncStatus = const Value.absent(),
                 Value<String?> syncUpdatedAt = const Value.absent(),
               }) => ShiftsCompanion(
@@ -14331,6 +17166,8 @@ class $$ShiftsTableTableManager
                 name: name,
                 hours: hours,
                 companyId: companyId,
+                dailyMealQuota: dailyMealQuota,
+                workingDaysPerMonth: workingDaysPerMonth,
                 syncStatus: syncStatus,
                 syncUpdatedAt: syncUpdatedAt,
               ),
@@ -14340,6 +17177,8 @@ class $$ShiftsTableTableManager
                 required String name,
                 required int hours,
                 Value<int?> companyId = const Value.absent(),
+                Value<int> dailyMealQuota = const Value.absent(),
+                Value<int> workingDaysPerMonth = const Value.absent(),
                 Value<int> syncStatus = const Value.absent(),
                 Value<String?> syncUpdatedAt = const Value.absent(),
               }) => ShiftsCompanion.insert(
@@ -14347,6 +17186,8 @@ class $$ShiftsTableTableManager
                 name: name,
                 hours: hours,
                 companyId: companyId,
+                dailyMealQuota: dailyMealQuota,
+                workingDaysPerMonth: workingDaysPerMonth,
                 syncStatus: syncStatus,
                 syncUpdatedAt: syncUpdatedAt,
               ),
@@ -15448,6 +18289,10 @@ typedef $$StaffTableCreateCompanionBuilder =
       Value<int?> totalDependent,
       Value<int?> noOfDependentAssigned,
       Value<int?> departmentId,
+      Value<int> manualDailyQuota,
+      Value<int> manualMonthlyQuota,
+      Value<String?> quotaPeriodStart,
+      Value<String?> quotaPeriodEnd,
       Value<int> syncStatus,
       Value<String?> syncUpdatedAt,
     });
@@ -15469,6 +18314,10 @@ typedef $$StaffTableUpdateCompanionBuilder =
       Value<int?> totalDependent,
       Value<int?> noOfDependentAssigned,
       Value<int?> departmentId,
+      Value<int> manualDailyQuota,
+      Value<int> manualMonthlyQuota,
+      Value<String?> quotaPeriodStart,
+      Value<String?> quotaPeriodEnd,
       Value<int> syncStatus,
       Value<String?> syncUpdatedAt,
     });
@@ -15581,6 +18430,26 @@ class $$StaffTableFilterComposer extends Composer<_$AppDatabase, $StaffTable> {
 
   ColumnFilters<int> get departmentId => $composableBuilder(
     column: $table.departmentId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get manualDailyQuota => $composableBuilder(
+    column: $table.manualDailyQuota,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get manualMonthlyQuota => $composableBuilder(
+    column: $table.manualMonthlyQuota,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get quotaPeriodStart => $composableBuilder(
+    column: $table.quotaPeriodStart,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get quotaPeriodEnd => $composableBuilder(
+    column: $table.quotaPeriodEnd,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -15709,6 +18578,26 @@ class $$StaffTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get manualDailyQuota => $composableBuilder(
+    column: $table.manualDailyQuota,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get manualMonthlyQuota => $composableBuilder(
+    column: $table.manualMonthlyQuota,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get quotaPeriodStart => $composableBuilder(
+    column: $table.quotaPeriodStart,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get quotaPeriodEnd => $composableBuilder(
+    column: $table.quotaPeriodEnd,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get syncStatus => $composableBuilder(
     column: $table.syncStatus,
     builder: (column) => ColumnOrderings(column),
@@ -15786,6 +18675,26 @@ class $$StaffTableAnnotationComposer
 
   GeneratedColumn<int> get departmentId => $composableBuilder(
     column: $table.departmentId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get manualDailyQuota => $composableBuilder(
+    column: $table.manualDailyQuota,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get manualMonthlyQuota => $composableBuilder(
+    column: $table.manualMonthlyQuota,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get quotaPeriodStart => $composableBuilder(
+    column: $table.quotaPeriodStart,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get quotaPeriodEnd => $composableBuilder(
+    column: $table.quotaPeriodEnd,
     builder: (column) => column,
   );
 
@@ -15869,6 +18778,10 @@ class $$StaffTableTableManager
                 Value<int?> totalDependent = const Value.absent(),
                 Value<int?> noOfDependentAssigned = const Value.absent(),
                 Value<int?> departmentId = const Value.absent(),
+                Value<int> manualDailyQuota = const Value.absent(),
+                Value<int> manualMonthlyQuota = const Value.absent(),
+                Value<String?> quotaPeriodStart = const Value.absent(),
+                Value<String?> quotaPeriodEnd = const Value.absent(),
                 Value<int> syncStatus = const Value.absent(),
                 Value<String?> syncUpdatedAt = const Value.absent(),
               }) => StaffCompanion(
@@ -15888,6 +18801,10 @@ class $$StaffTableTableManager
                 totalDependent: totalDependent,
                 noOfDependentAssigned: noOfDependentAssigned,
                 departmentId: departmentId,
+                manualDailyQuota: manualDailyQuota,
+                manualMonthlyQuota: manualMonthlyQuota,
+                quotaPeriodStart: quotaPeriodStart,
+                quotaPeriodEnd: quotaPeriodEnd,
                 syncStatus: syncStatus,
                 syncUpdatedAt: syncUpdatedAt,
               ),
@@ -15909,6 +18826,10 @@ class $$StaffTableTableManager
                 Value<int?> totalDependent = const Value.absent(),
                 Value<int?> noOfDependentAssigned = const Value.absent(),
                 Value<int?> departmentId = const Value.absent(),
+                Value<int> manualDailyQuota = const Value.absent(),
+                Value<int> manualMonthlyQuota = const Value.absent(),
+                Value<String?> quotaPeriodStart = const Value.absent(),
+                Value<String?> quotaPeriodEnd = const Value.absent(),
                 Value<int> syncStatus = const Value.absent(),
                 Value<String?> syncUpdatedAt = const Value.absent(),
               }) => StaffCompanion.insert(
@@ -15928,6 +18849,10 @@ class $$StaffTableTableManager
                 totalDependent: totalDependent,
                 noOfDependentAssigned: noOfDependentAssigned,
                 departmentId: departmentId,
+                manualDailyQuota: manualDailyQuota,
+                manualMonthlyQuota: manualMonthlyQuota,
+                quotaPeriodStart: quotaPeriodStart,
+                quotaPeriodEnd: quotaPeriodEnd,
                 syncStatus: syncStatus,
                 syncUpdatedAt: syncUpdatedAt,
               ),
@@ -16131,6 +19056,8 @@ typedef $$DependentsTableCreateCompanionBuilder =
       required String status,
       Value<String?> gender,
       Value<int?> staffId,
+      Value<int?> contractorStaffId,
+      Value<String?> parentStatus,
       Value<int> syncStatus,
       Value<String?> syncUpdatedAt,
     });
@@ -16141,6 +19068,8 @@ typedef $$DependentsTableUpdateCompanionBuilder =
       Value<String> status,
       Value<String?> gender,
       Value<int?> staffId,
+      Value<int?> contractorStaffId,
+      Value<String?> parentStatus,
       Value<int> syncStatus,
       Value<String?> syncUpdatedAt,
     });
@@ -16164,6 +19093,29 @@ final class $$DependentsTableReferences
     if (item == null) return manager;
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static MultiTypedResultKey<$DependentVisitsTable, List<DependentVisit>>
+  _dependentVisitsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.dependentVisits,
+    aliasName: $_aliasNameGenerator(
+      db.dependents.id,
+      db.dependentVisits.dependentId,
+    ),
+  );
+
+  $$DependentVisitsTableProcessedTableManager get dependentVisitsRefs {
+    final manager = $$DependentVisitsTableTableManager(
+      $_db,
+      $_db.dependentVisits,
+    ).filter((f) => f.dependentId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _dependentVisitsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
     );
   }
 }
@@ -16194,6 +19146,16 @@ class $$DependentsTableFilterComposer
 
   ColumnFilters<String> get gender => $composableBuilder(
     column: $table.gender,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get contractorStaffId => $composableBuilder(
+    column: $table.contractorStaffId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get parentStatus => $composableBuilder(
+    column: $table.parentStatus,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -16229,6 +19191,31 @@ class $$DependentsTableFilterComposer
     );
     return composer;
   }
+
+  Expression<bool> dependentVisitsRefs(
+    Expression<bool> Function($$DependentVisitsTableFilterComposer f) f,
+  ) {
+    final $$DependentVisitsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.dependentVisits,
+      getReferencedColumn: (t) => t.dependentId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DependentVisitsTableFilterComposer(
+            $db: $db,
+            $table: $db.dependentVisits,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$DependentsTableOrderingComposer
@@ -16257,6 +19244,16 @@ class $$DependentsTableOrderingComposer
 
   ColumnOrderings<String> get gender => $composableBuilder(
     column: $table.gender,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get contractorStaffId => $composableBuilder(
+    column: $table.contractorStaffId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get parentStatus => $composableBuilder(
+    column: $table.parentStatus,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -16315,6 +19312,16 @@ class $$DependentsTableAnnotationComposer
   GeneratedColumn<String> get gender =>
       $composableBuilder(column: $table.gender, builder: (column) => column);
 
+  GeneratedColumn<int> get contractorStaffId => $composableBuilder(
+    column: $table.contractorStaffId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get parentStatus => $composableBuilder(
+    column: $table.parentStatus,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get syncStatus => $composableBuilder(
     column: $table.syncStatus,
     builder: (column) => column,
@@ -16347,6 +19354,31 @@ class $$DependentsTableAnnotationComposer
     );
     return composer;
   }
+
+  Expression<T> dependentVisitsRefs<T extends Object>(
+    Expression<T> Function($$DependentVisitsTableAnnotationComposer a) f,
+  ) {
+    final $$DependentVisitsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.dependentVisits,
+      getReferencedColumn: (t) => t.dependentId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DependentVisitsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.dependentVisits,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$DependentsTableTableManager
@@ -16362,7 +19394,7 @@ class $$DependentsTableTableManager
           $$DependentsTableUpdateCompanionBuilder,
           (Dependent, $$DependentsTableReferences),
           Dependent,
-          PrefetchHooks Function({bool staffId})
+          PrefetchHooks Function({bool staffId, bool dependentVisitsRefs})
         > {
   $$DependentsTableTableManager(_$AppDatabase db, $DependentsTable table)
     : super(
@@ -16382,6 +19414,8 @@ class $$DependentsTableTableManager
                 Value<String> status = const Value.absent(),
                 Value<String?> gender = const Value.absent(),
                 Value<int?> staffId = const Value.absent(),
+                Value<int?> contractorStaffId = const Value.absent(),
+                Value<String?> parentStatus = const Value.absent(),
                 Value<int> syncStatus = const Value.absent(),
                 Value<String?> syncUpdatedAt = const Value.absent(),
               }) => DependentsCompanion(
@@ -16390,6 +19424,8 @@ class $$DependentsTableTableManager
                 status: status,
                 gender: gender,
                 staffId: staffId,
+                contractorStaffId: contractorStaffId,
+                parentStatus: parentStatus,
                 syncStatus: syncStatus,
                 syncUpdatedAt: syncUpdatedAt,
               ),
@@ -16400,6 +19436,8 @@ class $$DependentsTableTableManager
                 required String status,
                 Value<String?> gender = const Value.absent(),
                 Value<int?> staffId = const Value.absent(),
+                Value<int?> contractorStaffId = const Value.absent(),
+                Value<String?> parentStatus = const Value.absent(),
                 Value<int> syncStatus = const Value.absent(),
                 Value<String?> syncUpdatedAt = const Value.absent(),
               }) => DependentsCompanion.insert(
@@ -16408,6 +19446,8 @@ class $$DependentsTableTableManager
                 status: status,
                 gender: gender,
                 staffId: staffId,
+                contractorStaffId: contractorStaffId,
+                parentStatus: parentStatus,
                 syncStatus: syncStatus,
                 syncUpdatedAt: syncUpdatedAt,
               ),
@@ -16419,7 +19459,395 @@ class $$DependentsTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({staffId = false}) {
+          prefetchHooksCallback:
+              ({staffId = false, dependentVisitsRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (dependentVisitsRefs) db.dependentVisits,
+                  ],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (staffId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.staffId,
+                                    referencedTable: $$DependentsTableReferences
+                                        ._staffIdTable(db),
+                                    referencedColumn:
+                                        $$DependentsTableReferences
+                                            ._staffIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (dependentVisitsRefs)
+                        await $_getPrefetchedData<
+                          Dependent,
+                          $DependentsTable,
+                          DependentVisit
+                        >(
+                          currentTable: table,
+                          referencedTable: $$DependentsTableReferences
+                              ._dependentVisitsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$DependentsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).dependentVisitsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.dependentId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$DependentsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $DependentsTable,
+      Dependent,
+      $$DependentsTableFilterComposer,
+      $$DependentsTableOrderingComposer,
+      $$DependentsTableAnnotationComposer,
+      $$DependentsTableCreateCompanionBuilder,
+      $$DependentsTableUpdateCompanionBuilder,
+      (Dependent, $$DependentsTableReferences),
+      Dependent,
+      PrefetchHooks Function({bool staffId, bool dependentVisitsRefs})
+    >;
+typedef $$DependentVisitsTableCreateCompanionBuilder =
+    DependentVisitsCompanion Function({
+      Value<int> id,
+      required int dependentId,
+      required String startDate,
+      required String endDate,
+      Value<String> status,
+      Value<int> syncStatus,
+      Value<String?> syncUpdatedAt,
+    });
+typedef $$DependentVisitsTableUpdateCompanionBuilder =
+    DependentVisitsCompanion Function({
+      Value<int> id,
+      Value<int> dependentId,
+      Value<String> startDate,
+      Value<String> endDate,
+      Value<String> status,
+      Value<int> syncStatus,
+      Value<String?> syncUpdatedAt,
+    });
+
+final class $$DependentVisitsTableReferences
+    extends
+        BaseReferences<_$AppDatabase, $DependentVisitsTable, DependentVisit> {
+  $$DependentVisitsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $DependentsTable _dependentIdTable(_$AppDatabase db) =>
+      db.dependents.createAlias(
+        $_aliasNameGenerator(db.dependentVisits.dependentId, db.dependents.id),
+      );
+
+  $$DependentsTableProcessedTableManager get dependentId {
+    final $_column = $_itemColumn<int>('dependent_id')!;
+
+    final manager = $$DependentsTableTableManager(
+      $_db,
+      $_db.dependents,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_dependentIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$DependentVisitsTableFilterComposer
+    extends Composer<_$AppDatabase, $DependentVisitsTable> {
+  $$DependentVisitsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get startDate => $composableBuilder(
+    column: $table.startDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get endDate => $composableBuilder(
+    column: $table.endDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get syncUpdatedAt => $composableBuilder(
+    column: $table.syncUpdatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$DependentsTableFilterComposer get dependentId {
+    final $$DependentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.dependentId,
+      referencedTable: $db.dependents,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DependentsTableFilterComposer(
+            $db: $db,
+            $table: $db.dependents,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$DependentVisitsTableOrderingComposer
+    extends Composer<_$AppDatabase, $DependentVisitsTable> {
+  $$DependentVisitsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get startDate => $composableBuilder(
+    column: $table.startDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get endDate => $composableBuilder(
+    column: $table.endDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get syncUpdatedAt => $composableBuilder(
+    column: $table.syncUpdatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$DependentsTableOrderingComposer get dependentId {
+    final $$DependentsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.dependentId,
+      referencedTable: $db.dependents,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DependentsTableOrderingComposer(
+            $db: $db,
+            $table: $db.dependents,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$DependentVisitsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DependentVisitsTable> {
+  $$DependentVisitsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get startDate =>
+      $composableBuilder(column: $table.startDate, builder: (column) => column);
+
+  GeneratedColumn<String> get endDate =>
+      $composableBuilder(column: $table.endDate, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<int> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get syncUpdatedAt => $composableBuilder(
+    column: $table.syncUpdatedAt,
+    builder: (column) => column,
+  );
+
+  $$DependentsTableAnnotationComposer get dependentId {
+    final $$DependentsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.dependentId,
+      referencedTable: $db.dependents,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DependentsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.dependents,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$DependentVisitsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $DependentVisitsTable,
+          DependentVisit,
+          $$DependentVisitsTableFilterComposer,
+          $$DependentVisitsTableOrderingComposer,
+          $$DependentVisitsTableAnnotationComposer,
+          $$DependentVisitsTableCreateCompanionBuilder,
+          $$DependentVisitsTableUpdateCompanionBuilder,
+          (DependentVisit, $$DependentVisitsTableReferences),
+          DependentVisit,
+          PrefetchHooks Function({bool dependentId})
+        > {
+  $$DependentVisitsTableTableManager(
+    _$AppDatabase db,
+    $DependentVisitsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DependentVisitsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$DependentVisitsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$DependentVisitsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> dependentId = const Value.absent(),
+                Value<String> startDate = const Value.absent(),
+                Value<String> endDate = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<int> syncStatus = const Value.absent(),
+                Value<String?> syncUpdatedAt = const Value.absent(),
+              }) => DependentVisitsCompanion(
+                id: id,
+                dependentId: dependentId,
+                startDate: startDate,
+                endDate: endDate,
+                status: status,
+                syncStatus: syncStatus,
+                syncUpdatedAt: syncUpdatedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int dependentId,
+                required String startDate,
+                required String endDate,
+                Value<String> status = const Value.absent(),
+                Value<int> syncStatus = const Value.absent(),
+                Value<String?> syncUpdatedAt = const Value.absent(),
+              }) => DependentVisitsCompanion.insert(
+                id: id,
+                dependentId: dependentId,
+                startDate: startDate,
+                endDate: endDate,
+                status: status,
+                syncStatus: syncStatus,
+                syncUpdatedAt: syncUpdatedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$DependentVisitsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({dependentId = false}) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [],
@@ -16439,16 +19867,18 @@ class $$DependentsTableTableManager
                       dynamic
                     >
                   >(state) {
-                    if (staffId) {
+                    if (dependentId) {
                       state =
                           state.withJoin(
                                 currentTable: table,
-                                currentColumn: table.staffId,
-                                referencedTable: $$DependentsTableReferences
-                                    ._staffIdTable(db),
-                                referencedColumn: $$DependentsTableReferences
-                                    ._staffIdTable(db)
-                                    .id,
+                                currentColumn: table.dependentId,
+                                referencedTable:
+                                    $$DependentVisitsTableReferences
+                                        ._dependentIdTable(db),
+                                referencedColumn:
+                                    $$DependentVisitsTableReferences
+                                        ._dependentIdTable(db)
+                                        .id,
                               )
                               as T;
                     }
@@ -16464,19 +19894,19 @@ class $$DependentsTableTableManager
       );
 }
 
-typedef $$DependentsTableProcessedTableManager =
+typedef $$DependentVisitsTableProcessedTableManager =
     ProcessedTableManager<
       _$AppDatabase,
-      $DependentsTable,
-      Dependent,
-      $$DependentsTableFilterComposer,
-      $$DependentsTableOrderingComposer,
-      $$DependentsTableAnnotationComposer,
-      $$DependentsTableCreateCompanionBuilder,
-      $$DependentsTableUpdateCompanionBuilder,
-      (Dependent, $$DependentsTableReferences),
-      Dependent,
-      PrefetchHooks Function({bool staffId})
+      $DependentVisitsTable,
+      DependentVisit,
+      $$DependentVisitsTableFilterComposer,
+      $$DependentVisitsTableOrderingComposer,
+      $$DependentVisitsTableAnnotationComposer,
+      $$DependentVisitsTableCreateCompanionBuilder,
+      $$DependentVisitsTableUpdateCompanionBuilder,
+      (DependentVisit, $$DependentVisitsTableReferences),
+      DependentVisit,
+      PrefetchHooks Function({bool dependentId})
     >;
 typedef $$DependentKitchensTableCreateCompanionBuilder =
     DependentKitchensCompanion Function({
@@ -17976,6 +21406,831 @@ typedef $$OrdersTableProcessedTableManager =
       Order,
       PrefetchHooks Function()
     >;
+typedef $$WorkFunctionsTableCreateCompanionBuilder =
+    WorkFunctionsCompanion Function({
+      Value<int> id,
+      required String functionName,
+      Value<String?> functionLocation,
+      Value<int?> catererId,
+      Value<double> ratePerVoucher,
+      Value<int> totalQuantity,
+      required String functionDate,
+      required String functionStartTime,
+      required String functionEndTime,
+      required String status,
+      Value<int> syncStatus,
+      Value<String?> syncUpdatedAt,
+    });
+typedef $$WorkFunctionsTableUpdateCompanionBuilder =
+    WorkFunctionsCompanion Function({
+      Value<int> id,
+      Value<String> functionName,
+      Value<String?> functionLocation,
+      Value<int?> catererId,
+      Value<double> ratePerVoucher,
+      Value<int> totalQuantity,
+      Value<String> functionDate,
+      Value<String> functionStartTime,
+      Value<String> functionEndTime,
+      Value<String> status,
+      Value<int> syncStatus,
+      Value<String?> syncUpdatedAt,
+    });
+
+class $$WorkFunctionsTableFilterComposer
+    extends Composer<_$AppDatabase, $WorkFunctionsTable> {
+  $$WorkFunctionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get functionName => $composableBuilder(
+    column: $table.functionName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get functionLocation => $composableBuilder(
+    column: $table.functionLocation,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get catererId => $composableBuilder(
+    column: $table.catererId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get ratePerVoucher => $composableBuilder(
+    column: $table.ratePerVoucher,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get totalQuantity => $composableBuilder(
+    column: $table.totalQuantity,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get functionDate => $composableBuilder(
+    column: $table.functionDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get functionStartTime => $composableBuilder(
+    column: $table.functionStartTime,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get functionEndTime => $composableBuilder(
+    column: $table.functionEndTime,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get syncUpdatedAt => $composableBuilder(
+    column: $table.syncUpdatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$WorkFunctionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $WorkFunctionsTable> {
+  $$WorkFunctionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get functionName => $composableBuilder(
+    column: $table.functionName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get functionLocation => $composableBuilder(
+    column: $table.functionLocation,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get catererId => $composableBuilder(
+    column: $table.catererId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get ratePerVoucher => $composableBuilder(
+    column: $table.ratePerVoucher,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get totalQuantity => $composableBuilder(
+    column: $table.totalQuantity,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get functionDate => $composableBuilder(
+    column: $table.functionDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get functionStartTime => $composableBuilder(
+    column: $table.functionStartTime,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get functionEndTime => $composableBuilder(
+    column: $table.functionEndTime,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get syncUpdatedAt => $composableBuilder(
+    column: $table.syncUpdatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$WorkFunctionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $WorkFunctionsTable> {
+  $$WorkFunctionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get functionName => $composableBuilder(
+    column: $table.functionName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get functionLocation => $composableBuilder(
+    column: $table.functionLocation,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get catererId =>
+      $composableBuilder(column: $table.catererId, builder: (column) => column);
+
+  GeneratedColumn<double> get ratePerVoucher => $composableBuilder(
+    column: $table.ratePerVoucher,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get totalQuantity => $composableBuilder(
+    column: $table.totalQuantity,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get functionDate => $composableBuilder(
+    column: $table.functionDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get functionStartTime => $composableBuilder(
+    column: $table.functionStartTime,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get functionEndTime => $composableBuilder(
+    column: $table.functionEndTime,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<int> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get syncUpdatedAt => $composableBuilder(
+    column: $table.syncUpdatedAt,
+    builder: (column) => column,
+  );
+}
+
+class $$WorkFunctionsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $WorkFunctionsTable,
+          WorkFunction,
+          $$WorkFunctionsTableFilterComposer,
+          $$WorkFunctionsTableOrderingComposer,
+          $$WorkFunctionsTableAnnotationComposer,
+          $$WorkFunctionsTableCreateCompanionBuilder,
+          $$WorkFunctionsTableUpdateCompanionBuilder,
+          (
+            WorkFunction,
+            BaseReferences<_$AppDatabase, $WorkFunctionsTable, WorkFunction>,
+          ),
+          WorkFunction,
+          PrefetchHooks Function()
+        > {
+  $$WorkFunctionsTableTableManager(_$AppDatabase db, $WorkFunctionsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$WorkFunctionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$WorkFunctionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$WorkFunctionsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> functionName = const Value.absent(),
+                Value<String?> functionLocation = const Value.absent(),
+                Value<int?> catererId = const Value.absent(),
+                Value<double> ratePerVoucher = const Value.absent(),
+                Value<int> totalQuantity = const Value.absent(),
+                Value<String> functionDate = const Value.absent(),
+                Value<String> functionStartTime = const Value.absent(),
+                Value<String> functionEndTime = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<int> syncStatus = const Value.absent(),
+                Value<String?> syncUpdatedAt = const Value.absent(),
+              }) => WorkFunctionsCompanion(
+                id: id,
+                functionName: functionName,
+                functionLocation: functionLocation,
+                catererId: catererId,
+                ratePerVoucher: ratePerVoucher,
+                totalQuantity: totalQuantity,
+                functionDate: functionDate,
+                functionStartTime: functionStartTime,
+                functionEndTime: functionEndTime,
+                status: status,
+                syncStatus: syncStatus,
+                syncUpdatedAt: syncUpdatedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String functionName,
+                Value<String?> functionLocation = const Value.absent(),
+                Value<int?> catererId = const Value.absent(),
+                Value<double> ratePerVoucher = const Value.absent(),
+                Value<int> totalQuantity = const Value.absent(),
+                required String functionDate,
+                required String functionStartTime,
+                required String functionEndTime,
+                required String status,
+                Value<int> syncStatus = const Value.absent(),
+                Value<String?> syncUpdatedAt = const Value.absent(),
+              }) => WorkFunctionsCompanion.insert(
+                id: id,
+                functionName: functionName,
+                functionLocation: functionLocation,
+                catererId: catererId,
+                ratePerVoucher: ratePerVoucher,
+                totalQuantity: totalQuantity,
+                functionDate: functionDate,
+                functionStartTime: functionStartTime,
+                functionEndTime: functionEndTime,
+                status: status,
+                syncStatus: syncStatus,
+                syncUpdatedAt: syncUpdatedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$WorkFunctionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $WorkFunctionsTable,
+      WorkFunction,
+      $$WorkFunctionsTableFilterComposer,
+      $$WorkFunctionsTableOrderingComposer,
+      $$WorkFunctionsTableAnnotationComposer,
+      $$WorkFunctionsTableCreateCompanionBuilder,
+      $$WorkFunctionsTableUpdateCompanionBuilder,
+      (
+        WorkFunction,
+        BaseReferences<_$AppDatabase, $WorkFunctionsTable, WorkFunction>,
+      ),
+      WorkFunction,
+      PrefetchHooks Function()
+    >;
+typedef $$FunctionOrdersTableCreateCompanionBuilder =
+    FunctionOrdersCompanion Function({
+      Value<int> id,
+      required String uuid,
+      required String orderCode,
+      required int functionId,
+      required String functionName,
+      required String status,
+      required String mealType,
+      Value<int> quantity,
+      Value<double> rate,
+      Value<double> total,
+      Value<String?> description,
+      required int orderedById,
+      required String employeeType,
+      required String createdAt,
+      required String updatedAt,
+      Value<int> syncStatus,
+      Value<String?> syncUpdatedAt,
+      Value<int> syncAttempts,
+      Value<String?> lastSyncError,
+    });
+typedef $$FunctionOrdersTableUpdateCompanionBuilder =
+    FunctionOrdersCompanion Function({
+      Value<int> id,
+      Value<String> uuid,
+      Value<String> orderCode,
+      Value<int> functionId,
+      Value<String> functionName,
+      Value<String> status,
+      Value<String> mealType,
+      Value<int> quantity,
+      Value<double> rate,
+      Value<double> total,
+      Value<String?> description,
+      Value<int> orderedById,
+      Value<String> employeeType,
+      Value<String> createdAt,
+      Value<String> updatedAt,
+      Value<int> syncStatus,
+      Value<String?> syncUpdatedAt,
+      Value<int> syncAttempts,
+      Value<String?> lastSyncError,
+    });
+
+class $$FunctionOrdersTableFilterComposer
+    extends Composer<_$AppDatabase, $FunctionOrdersTable> {
+  $$FunctionOrdersTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get uuid => $composableBuilder(
+    column: $table.uuid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get orderCode => $composableBuilder(
+    column: $table.orderCode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get functionId => $composableBuilder(
+    column: $table.functionId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get functionName => $composableBuilder(
+    column: $table.functionName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get mealType => $composableBuilder(
+    column: $table.mealType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get quantity => $composableBuilder(
+    column: $table.quantity,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get rate => $composableBuilder(
+    column: $table.rate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get total => $composableBuilder(
+    column: $table.total,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get orderedById => $composableBuilder(
+    column: $table.orderedById,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get employeeType => $composableBuilder(
+    column: $table.employeeType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get syncUpdatedAt => $composableBuilder(
+    column: $table.syncUpdatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get syncAttempts => $composableBuilder(
+    column: $table.syncAttempts,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastSyncError => $composableBuilder(
+    column: $table.lastSyncError,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$FunctionOrdersTableOrderingComposer
+    extends Composer<_$AppDatabase, $FunctionOrdersTable> {
+  $$FunctionOrdersTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get uuid => $composableBuilder(
+    column: $table.uuid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get orderCode => $composableBuilder(
+    column: $table.orderCode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get functionId => $composableBuilder(
+    column: $table.functionId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get functionName => $composableBuilder(
+    column: $table.functionName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get mealType => $composableBuilder(
+    column: $table.mealType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get quantity => $composableBuilder(
+    column: $table.quantity,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get rate => $composableBuilder(
+    column: $table.rate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get total => $composableBuilder(
+    column: $table.total,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get orderedById => $composableBuilder(
+    column: $table.orderedById,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get employeeType => $composableBuilder(
+    column: $table.employeeType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get syncUpdatedAt => $composableBuilder(
+    column: $table.syncUpdatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get syncAttempts => $composableBuilder(
+    column: $table.syncAttempts,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lastSyncError => $composableBuilder(
+    column: $table.lastSyncError,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$FunctionOrdersTableAnnotationComposer
+    extends Composer<_$AppDatabase, $FunctionOrdersTable> {
+  $$FunctionOrdersTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get uuid =>
+      $composableBuilder(column: $table.uuid, builder: (column) => column);
+
+  GeneratedColumn<String> get orderCode =>
+      $composableBuilder(column: $table.orderCode, builder: (column) => column);
+
+  GeneratedColumn<int> get functionId => $composableBuilder(
+    column: $table.functionId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get functionName => $composableBuilder(
+    column: $table.functionName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get mealType =>
+      $composableBuilder(column: $table.mealType, builder: (column) => column);
+
+  GeneratedColumn<int> get quantity =>
+      $composableBuilder(column: $table.quantity, builder: (column) => column);
+
+  GeneratedColumn<double> get rate =>
+      $composableBuilder(column: $table.rate, builder: (column) => column);
+
+  GeneratedColumn<double> get total =>
+      $composableBuilder(column: $table.total, builder: (column) => column);
+
+  GeneratedColumn<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get orderedById => $composableBuilder(
+    column: $table.orderedById,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get employeeType => $composableBuilder(
+    column: $table.employeeType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<String> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get syncUpdatedAt => $composableBuilder(
+    column: $table.syncUpdatedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get syncAttempts => $composableBuilder(
+    column: $table.syncAttempts,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get lastSyncError => $composableBuilder(
+    column: $table.lastSyncError,
+    builder: (column) => column,
+  );
+}
+
+class $$FunctionOrdersTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $FunctionOrdersTable,
+          FunctionOrder,
+          $$FunctionOrdersTableFilterComposer,
+          $$FunctionOrdersTableOrderingComposer,
+          $$FunctionOrdersTableAnnotationComposer,
+          $$FunctionOrdersTableCreateCompanionBuilder,
+          $$FunctionOrdersTableUpdateCompanionBuilder,
+          (
+            FunctionOrder,
+            BaseReferences<_$AppDatabase, $FunctionOrdersTable, FunctionOrder>,
+          ),
+          FunctionOrder,
+          PrefetchHooks Function()
+        > {
+  $$FunctionOrdersTableTableManager(
+    _$AppDatabase db,
+    $FunctionOrdersTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$FunctionOrdersTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$FunctionOrdersTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$FunctionOrdersTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> uuid = const Value.absent(),
+                Value<String> orderCode = const Value.absent(),
+                Value<int> functionId = const Value.absent(),
+                Value<String> functionName = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<String> mealType = const Value.absent(),
+                Value<int> quantity = const Value.absent(),
+                Value<double> rate = const Value.absent(),
+                Value<double> total = const Value.absent(),
+                Value<String?> description = const Value.absent(),
+                Value<int> orderedById = const Value.absent(),
+                Value<String> employeeType = const Value.absent(),
+                Value<String> createdAt = const Value.absent(),
+                Value<String> updatedAt = const Value.absent(),
+                Value<int> syncStatus = const Value.absent(),
+                Value<String?> syncUpdatedAt = const Value.absent(),
+                Value<int> syncAttempts = const Value.absent(),
+                Value<String?> lastSyncError = const Value.absent(),
+              }) => FunctionOrdersCompanion(
+                id: id,
+                uuid: uuid,
+                orderCode: orderCode,
+                functionId: functionId,
+                functionName: functionName,
+                status: status,
+                mealType: mealType,
+                quantity: quantity,
+                rate: rate,
+                total: total,
+                description: description,
+                orderedById: orderedById,
+                employeeType: employeeType,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                syncStatus: syncStatus,
+                syncUpdatedAt: syncUpdatedAt,
+                syncAttempts: syncAttempts,
+                lastSyncError: lastSyncError,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String uuid,
+                required String orderCode,
+                required int functionId,
+                required String functionName,
+                required String status,
+                required String mealType,
+                Value<int> quantity = const Value.absent(),
+                Value<double> rate = const Value.absent(),
+                Value<double> total = const Value.absent(),
+                Value<String?> description = const Value.absent(),
+                required int orderedById,
+                required String employeeType,
+                required String createdAt,
+                required String updatedAt,
+                Value<int> syncStatus = const Value.absent(),
+                Value<String?> syncUpdatedAt = const Value.absent(),
+                Value<int> syncAttempts = const Value.absent(),
+                Value<String?> lastSyncError = const Value.absent(),
+              }) => FunctionOrdersCompanion.insert(
+                id: id,
+                uuid: uuid,
+                orderCode: orderCode,
+                functionId: functionId,
+                functionName: functionName,
+                status: status,
+                mealType: mealType,
+                quantity: quantity,
+                rate: rate,
+                total: total,
+                description: description,
+                orderedById: orderedById,
+                employeeType: employeeType,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                syncStatus: syncStatus,
+                syncUpdatedAt: syncUpdatedAt,
+                syncAttempts: syncAttempts,
+                lastSyncError: lastSyncError,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$FunctionOrdersTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $FunctionOrdersTable,
+      FunctionOrder,
+      $$FunctionOrdersTableFilterComposer,
+      $$FunctionOrdersTableOrderingComposer,
+      $$FunctionOrdersTableAnnotationComposer,
+      $$FunctionOrdersTableCreateCompanionBuilder,
+      $$FunctionOrdersTableUpdateCompanionBuilder,
+      (
+        FunctionOrder,
+        BaseReferences<_$AppDatabase, $FunctionOrdersTable, FunctionOrder>,
+      ),
+      FunctionOrder,
+      PrefetchHooks Function()
+    >;
 typedef $$PosDevicesTableCreateCompanionBuilder =
     PosDevicesCompanion Function({
       Value<int> id,
@@ -19268,6 +23523,7 @@ typedef $$ContractorStaffTableTableCreateCompanionBuilder =
       required String startDate,
       required String endDate,
       Value<bool> isCharged,
+      Value<int?> dailyQuota,
       Value<bool?> allowGroupOrder,
       Value<int?> maxOrderCount,
       Value<int> syncStatus,
@@ -19287,6 +23543,7 @@ typedef $$ContractorStaffTableTableUpdateCompanionBuilder =
       Value<String> startDate,
       Value<String> endDate,
       Value<bool> isCharged,
+      Value<int?> dailyQuota,
       Value<bool?> allowGroupOrder,
       Value<int?> maxOrderCount,
       Value<int> syncStatus,
@@ -19359,6 +23616,11 @@ class $$ContractorStaffTableTableFilterComposer
 
   ColumnFilters<bool> get isCharged => $composableBuilder(
     column: $table.isCharged,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get dailyQuota => $composableBuilder(
+    column: $table.dailyQuota,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -19452,6 +23714,11 @@ class $$ContractorStaffTableTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get dailyQuota => $composableBuilder(
+    column: $table.dailyQuota,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get allowGroupOrder => $composableBuilder(
     column: $table.allowGroupOrder,
     builder: (column) => ColumnOrderings(column),
@@ -19525,6 +23792,11 @@ class $$ContractorStaffTableTableAnnotationComposer
 
   GeneratedColumn<bool> get isCharged =>
       $composableBuilder(column: $table.isCharged, builder: (column) => column);
+
+  GeneratedColumn<int> get dailyQuota => $composableBuilder(
+    column: $table.dailyQuota,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<bool> get allowGroupOrder => $composableBuilder(
     column: $table.allowGroupOrder,
@@ -19602,6 +23874,7 @@ class $$ContractorStaffTableTableTableManager
                 Value<String> startDate = const Value.absent(),
                 Value<String> endDate = const Value.absent(),
                 Value<bool> isCharged = const Value.absent(),
+                Value<int?> dailyQuota = const Value.absent(),
                 Value<bool?> allowGroupOrder = const Value.absent(),
                 Value<int?> maxOrderCount = const Value.absent(),
                 Value<int> syncStatus = const Value.absent(),
@@ -19619,6 +23892,7 @@ class $$ContractorStaffTableTableTableManager
                 startDate: startDate,
                 endDate: endDate,
                 isCharged: isCharged,
+                dailyQuota: dailyQuota,
                 allowGroupOrder: allowGroupOrder,
                 maxOrderCount: maxOrderCount,
                 syncStatus: syncStatus,
@@ -19638,6 +23912,7 @@ class $$ContractorStaffTableTableTableManager
                 required String startDate,
                 required String endDate,
                 Value<bool> isCharged = const Value.absent(),
+                Value<int?> dailyQuota = const Value.absent(),
                 Value<bool?> allowGroupOrder = const Value.absent(),
                 Value<int?> maxOrderCount = const Value.absent(),
                 Value<int> syncStatus = const Value.absent(),
@@ -19655,6 +23930,7 @@ class $$ContractorStaffTableTableTableManager
                 startDate: startDate,
                 endDate: endDate,
                 isCharged: isCharged,
+                dailyQuota: dailyQuota,
                 allowGroupOrder: allowGroupOrder,
                 maxOrderCount: maxOrderCount,
                 syncStatus: syncStatus,
@@ -19860,6 +24136,7 @@ typedef $$VisitorsTableCreateCompanionBuilder =
       Value<String?> gender,
       Value<String?> startDate,
       Value<String?> endTime,
+      Value<int?> dailyQuota,
       Value<int?> companyId,
       Value<String?> company,
       Value<int?> departmentId,
@@ -19874,6 +24151,7 @@ typedef $$VisitorsTableUpdateCompanionBuilder =
       Value<String?> gender,
       Value<String?> startDate,
       Value<String?> endTime,
+      Value<int?> dailyQuota,
       Value<int?> companyId,
       Value<String?> company,
       Value<int?> departmentId,
@@ -19913,6 +24191,11 @@ class $$VisitorsTableFilterComposer
 
   ColumnFilters<String> get endTime => $composableBuilder(
     column: $table.endTime,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get dailyQuota => $composableBuilder(
+    column: $table.dailyQuota,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -19981,6 +24264,11 @@ class $$VisitorsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get dailyQuota => $composableBuilder(
+    column: $table.dailyQuota,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get companyId => $composableBuilder(
     column: $table.companyId,
     builder: (column) => ColumnOrderings(column),
@@ -20035,6 +24323,11 @@ class $$VisitorsTableAnnotationComposer
 
   GeneratedColumn<String> get endTime =>
       $composableBuilder(column: $table.endTime, builder: (column) => column);
+
+  GeneratedColumn<int> get dailyQuota => $composableBuilder(
+    column: $table.dailyQuota,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<int> get companyId =>
       $composableBuilder(column: $table.companyId, builder: (column) => column);
@@ -20096,6 +24389,7 @@ class $$VisitorsTableTableManager
                 Value<String?> gender = const Value.absent(),
                 Value<String?> startDate = const Value.absent(),
                 Value<String?> endTime = const Value.absent(),
+                Value<int?> dailyQuota = const Value.absent(),
                 Value<int?> companyId = const Value.absent(),
                 Value<String?> company = const Value.absent(),
                 Value<int?> departmentId = const Value.absent(),
@@ -20108,6 +24402,7 @@ class $$VisitorsTableTableManager
                 gender: gender,
                 startDate: startDate,
                 endTime: endTime,
+                dailyQuota: dailyQuota,
                 companyId: companyId,
                 company: company,
                 departmentId: departmentId,
@@ -20122,6 +24417,7 @@ class $$VisitorsTableTableManager
                 Value<String?> gender = const Value.absent(),
                 Value<String?> startDate = const Value.absent(),
                 Value<String?> endTime = const Value.absent(),
+                Value<int?> dailyQuota = const Value.absent(),
                 Value<int?> companyId = const Value.absent(),
                 Value<String?> company = const Value.absent(),
                 Value<int?> departmentId = const Value.absent(),
@@ -20134,6 +24430,7 @@ class $$VisitorsTableTableManager
                 gender: gender,
                 startDate: startDate,
                 endTime: endTime,
+                dailyQuota: dailyQuota,
                 companyId: companyId,
                 company: company,
                 departmentId: departmentId,
@@ -20738,6 +25035,8 @@ class $AppDatabaseManager {
       $$StaffKitchensTableTableManager(_db, _db.staffKitchens);
   $$DependentsTableTableManager get dependents =>
       $$DependentsTableTableManager(_db, _db.dependents);
+  $$DependentVisitsTableTableManager get dependentVisits =>
+      $$DependentVisitsTableTableManager(_db, _db.dependentVisits);
   $$DependentKitchensTableTableManager get dependentKitchens =>
       $$DependentKitchensTableTableManager(_db, _db.dependentKitchens);
   $$CardsTableTableManager get cards =>
@@ -20748,6 +25047,10 @@ class $AppDatabaseManager {
       $$UserKitchensTableTableManager(_db, _db.userKitchens);
   $$OrdersTableTableManager get orders =>
       $$OrdersTableTableManager(_db, _db.orders);
+  $$WorkFunctionsTableTableManager get workFunctions =>
+      $$WorkFunctionsTableTableManager(_db, _db.workFunctions);
+  $$FunctionOrdersTableTableManager get functionOrders =>
+      $$FunctionOrdersTableTableManager(_db, _db.functionOrders);
   $$PosDevicesTableTableManager get posDevices =>
       $$PosDevicesTableTableManager(_db, _db.posDevices);
   $$ActivityLogsTableTableManager get activityLogs =>

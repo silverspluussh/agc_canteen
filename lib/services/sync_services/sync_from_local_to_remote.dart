@@ -73,6 +73,10 @@ class LocalToRemoteSyncService {
       pushed.addAll(bioResult.pushed);
       errors.addAll(bioResult.errors);
 
+      final functionOrderResult = await syncFunctionOrders();
+      pushed.addAll(functionOrderResult.pushed);
+      errors.addAll(functionOrderResult.errors);
+
       await _saveLastSync();
     } catch (e) {
       errors.add(e.toString());
@@ -85,6 +89,150 @@ class LocalToRemoteSyncService {
     return _syncOrdersInFlight ??= _syncSingleOrdersImpl().whenComplete(() {
       _syncOrdersInFlight = null;
     });
+  }
+
+  Future<SyncResult>? _syncFunctionOrdersInFlight;
+
+  /// Pushes function orders. Mirrors [syncSingleOrders]: batch first, then fall
+  /// back to per-row pushes so one rejected order cannot block the batch.
+  ///
+  /// The uuid is the server's idempotency key, so a retried batch is safe.
+  Future<SyncResult> syncFunctionOrders() {
+    return _syncFunctionOrdersInFlight ??= _syncFunctionOrdersImpl()
+        .whenComplete(() {
+          _syncFunctionOrdersInFlight = null;
+        });
+  }
+
+  Future<SyncResult> _syncFunctionOrdersImpl() async {
+    final pushed = <String, int>{};
+    final pulled = <String, int>{};
+    final errors = <String>[];
+
+    if (!await isOnline) {
+      return SyncResult(
+        pushed: pushed,
+        pulled: pulled,
+        errors: ['No internet connection'],
+      );
+    }
+
+    try {
+      final orders = await _db.getUnsyncedFunctionOrders();
+      if (orders.isEmpty) {
+        return SyncResult(pushed: pushed, pulled: pulled, errors: errors);
+      }
+
+      final posDevices = await _db.getAllPosDevices();
+      final posId = posDevices.firstOrNull?.id;
+      final kitchenId = posDevices.firstOrNull?.kitchenId;
+      final mealTypeByName = {
+        for (final t in await _db.getAllMealTypes()) t.name.toLowerCase(): t.id,
+      };
+
+      final payloads = <Map<String, dynamic>>[];
+      final rows = <FunctionOrder>[];
+
+      for (final order in orders) {
+        final mealTypeId = mealTypeByName[order.mealType.toLowerCase()];
+        if (mealTypeId == null || posId == null || kitchenId == null) {
+          _logger.w(
+            'Skipping function order ${order.orderCode}: incomplete data',
+          );
+          errors.add(
+            'Function order ${order.orderCode}: incomplete data, not synced',
+          );
+          await _db.markFunctionOrderFailed(
+            order.id,
+            error: 'Incomplete data (mealType/pos/kitchen)',
+          );
+          continue;
+        }
+
+        payloads.add({
+          'functionId': order.functionId,
+          'uuid': order.uuid,
+          'employeeType': order.employeeType,
+          'orderedBy': order.orderedById,
+          'mealTypeId': mealTypeId,
+          'kitchenId': kitchenId,
+          'posProfileId': posId,
+          'quantity': order.quantity,
+          'description': order.description ?? '',
+          'status': order.status,
+          // rate/total are intentionally omitted: the server snapshots them
+          // from the work function so they can never be forged.
+          'createdAt': '',
+        });
+        rows.add(order);
+      }
+
+      if (payloads.isEmpty) {
+        return SyncResult(pushed: pushed, pulled: pulled, errors: errors);
+      }
+
+      for (var i = 0; i < payloads.length; i += _orderUploadBatchSize) {
+        final end = (i + _orderUploadBatchSize < payloads.length)
+            ? i + _orderUploadBatchSize
+            : payloads.length;
+        final batchPayloads = payloads.sublist(i, end);
+        final batchRows = rows.sublist(i, end);
+
+        try {
+          await _networkAPI.postData(
+            '/hr/function-order/create-bulk',
+            data: {'functionOrders': batchPayloads},
+            builder: (data) => data,
+          );
+          for (final row in batchRows) {
+            await _db.markFunctionOrderSynced(row.id);
+          }
+          pushed['functionOrders'] =
+              (pushed['functionOrders'] ?? 0) + batchRows.length;
+        } catch (e) {
+          _logger.w(
+            'Function order batch ${i ~/ _orderUploadBatchSize + 1} failed ($e) — retrying per order',
+          );
+          await _pushFunctionOrdersIndividually(
+            batchPayloads,
+            batchRows,
+            pushed,
+            errors,
+          );
+        }
+      }
+      await _saveLastSync();
+    } catch (e) {
+      errors.add(e.toString());
+    }
+    return SyncResult(pushed: pushed, pulled: pulled, errors: errors);
+  }
+
+  Future<void> _pushFunctionOrdersIndividually(
+    List<Map<String, dynamic>> payloads,
+    List<FunctionOrder> rows,
+    Map<String, int> pushed,
+    List<String> errors,
+  ) async {
+    for (var i = 0; i < payloads.length; i++) {
+      final row = rows[i];
+      try {
+        await _networkAPI.postData(
+          '/hr/function-order/create-bulk',
+          data: {'functionOrders': [payloads[i]]},
+          builder: (data) => data,
+        );
+        await _db.markFunctionOrderSynced(row.id);
+        pushed['functionOrders'] = (pushed['functionOrders'] ?? 0) + 1;
+      } on APIException catch (e) {
+        _logger.w('Function order ${row.orderCode} rejected: ${e.message}');
+        errors.add('Function order ${row.orderCode}: ${e.message}');
+        await _db.markFunctionOrderFailed(row.id, error: e.message);
+      } catch (e) {
+        errors.add('Function order ${row.orderCode}: $e');
+        await _db.markFunctionOrderFailed(row.id, error: e.toString());
+      }
+    }
   }
 
   Future<SyncResult> _syncSingleOrdersImpl() async {

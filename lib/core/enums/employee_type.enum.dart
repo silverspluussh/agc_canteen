@@ -3,12 +3,17 @@ enum EmployeeType {
   graduateTrainee,
   nationalService,
   intern,
+  shortTermContractor,
   contractor,
   visitor,
   dependent;
 
   bool get isStaffType => switch (this) {
-    permanent || graduateTrainee || nationalService || intern => true,
+    permanent ||
+    graduateTrainee ||
+    nationalService ||
+    intern ||
+    shortTermContractor => true,
     _ => false,
   };
 
@@ -17,6 +22,7 @@ enum EmployeeType {
     graduateTrainee => 'Graduate Trainee',
     nationalService => 'National Service',
     intern => 'Intern',
+    shortTermContractor => 'Short-Term Contractor',
     contractor => 'Contractor',
     visitor => 'Visitor',
     dependent => 'Dependent',
@@ -66,6 +72,8 @@ extension EmployeeTypeExtension on EmployeeType {
         return 'National Service';
       case EmployeeType.intern:
         return 'Intern';
+      case EmployeeType.shortTermContractor:
+        return 'Short-Term Contractor';
       case EmployeeType.contractor:
         return 'Contractor';
       case EmployeeType.visitor:

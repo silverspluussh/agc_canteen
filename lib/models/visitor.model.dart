@@ -7,6 +7,7 @@ class Visitor {
   final String? gender;
   final DateTime? startDate;
   final DateTime? endTime;
+  final int? dailyQuota;
   final int? companyId;
   final String? company;
   final int? departmentId;
@@ -20,6 +21,7 @@ class Visitor {
     this.gender,
     this.startDate,
     this.endTime,
+    this.dailyQuota,
     this.companyId,
     this.company,
     this.departmentId,
@@ -39,6 +41,8 @@ class Visitor {
       endTime: map['end_time'] != null
           ? DateTime.parse(map['end_time'] as String)
           : null,
+      dailyQuota: (map['dailyQuota'] as num?)?.toInt() ??
+          (map['daily_quota'] as num?)?.toInt(),
       companyId: map['company_id'] as int?,
       company: map['company'] as String?,
       departmentId: map['department_id'] as int?,
@@ -62,6 +66,7 @@ class Visitor {
     String? gender,
     DateTime? startDate,
     DateTime? endTime,
+    int? dailyQuota,
     int? companyId,
     String? company,
     int? departmentId,
@@ -75,6 +80,7 @@ class Visitor {
       gender: gender ?? this.gender,
       startDate: startDate ?? this.startDate,
       endTime: endTime ?? this.endTime,
+      dailyQuota: dailyQuota ?? this.dailyQuota,
       companyId: companyId ?? this.companyId,
       company: company ?? this.company,
       departmentId: departmentId ?? this.departmentId,

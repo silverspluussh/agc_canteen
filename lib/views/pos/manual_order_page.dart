@@ -1,17 +1,21 @@
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:agc_canteen/views/widgets/app_buttons.widget.dart';
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
+import '../../controllers/pos_mode_controller.dart';
 import '../../core/di/injection_container.dart';
 import '../../core/enums/employee_type.enum.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../services/database/activity_log_service.dart';
 import '../../services/database/app_database.dart';
+import '../../services/pos/quota_gate_service.dart';
 import '../../services/print/print_service_manager.dart';
 import '../../services/sync_services/sync_from_local_to_remote.dart';
 import '../widgets/staff_search_field.widget.dart';
+import '../widgets/quota_indicator.widget.dart';
 Future<void> _printManualReceipt({
   required String orderCode,
   required String mealType,
@@ -62,13 +66,56 @@ Future<void> _printManualReceipt({
   } catch (_) {}
 }
 
-class ManualOrderPage extends StatelessWidget {
+class ManualOrderPage extends ConsumerWidget {
   const ManualOrderPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context);
+
+    // Function mode is voucher-only (NFC / fingerprint). Manual entry would
+    // write a general order that bypasses the selected function, so it is
+    // closed off entirely while a function is active.
+    final isFunctionMode = ref.watch(
+      posModeControllerProvider.select((s) => s.isFunctionMode),
+    );
+
+    if (isFunctionMode) {
+      return Scaffold(
+        appBar: AppBar(
+          backgroundColor: cs.primary,
+          foregroundColor: cs.onPrimary,
+          title: Text(l10n.manualPosOrder),
+          leading: const BackButton(color: Colors.white),
+          centerTitle: true,
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.qr_code_scanner, size: 56, color: cs.primary),
+                const SizedBox(height: 16),
+                Text(
+                  'Function mode is active',
+                  style: Theme.of(context).textTheme.titleMedium,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Work function orders are voucher-only.\n\n'
+                  'Scan an NFC card or use a fingerprint to take the order, '
+                  'or switch back to General mode.',
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     return DefaultTabController(
       length: 2,
@@ -178,6 +225,23 @@ class _SingleOrderTabState extends State<_SingleOrderTab> {
 
     try {
       final db = getIt<AppDatabase>();
+      final staffType = EmployeeType.tryParse(_selectedStaff!.employeeType);
+      if (staffType != null) {
+        final decision = await QuotaGateService(db: db).checkCanOrder(
+          type: staffType,
+          personId: _selectedStaff!.id,
+        );
+        if (!decision.allowed) {
+          if (!mounted) return;
+          ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+            SnackBar(
+              content: Text(decision.reason ?? 'Meal quota exhausted.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+      }
       final now = DateTime.now().toIso8601String();
       final orderId = DateTime.now().millisecondsSinceEpoch;
       final orderCode = await _generateOrderCode();
@@ -306,6 +370,13 @@ class _SingleOrderTabState extends State<_SingleOrderTab> {
             onChanged: (staff) => setState(() => _selectedStaff = staff),
             validator: (v) => v == null ? 'Required' : null,
           ),
+          if (_selectedStaff != null &&
+              EmployeeType.tryParse(_selectedStaff!.employeeType) != null)
+            QuotaIndicator(
+              db: getIt<AppDatabase>(),
+              type: EmployeeType.tryParse(_selectedStaff!.employeeType)!,
+              personId: _selectedStaff!.id,
+            ),
          
           const SizedBox(height: 30),
 
@@ -418,6 +489,26 @@ class _GroupOrderTabState extends State<_GroupOrderTab> {
     final db = getIt<AppDatabase>();
     final now = DateTime.now().toIso8601String();
     final staffName = '${_selectedStaff!.firstName} ${_selectedStaff!.lastName}';
+
+    final staffType = EmployeeType.tryParse(_selectedStaff!.employeeType);
+    if (staffType != null) {
+      final decision = await QuotaGateService(db: db).checkCanOrder(
+        type: staffType,
+        personId: _selectedStaff!.id,
+        quantity: _totalQty,
+      );
+      if (!decision.allowed) {
+        if (!mounted) return;
+        setState(() => _isSubmitting = false);
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          SnackBar(
+            content: Text(decision.reason ?? 'Meal quota exhausted.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+    }
 
     try {
       final posDevices = await db.getAllPosDevices();
@@ -567,6 +658,13 @@ class _GroupOrderTabState extends State<_GroupOrderTab> {
             onChanged: (staff) => setState(() => _selectedStaff = staff),
             validator: (v) => v == null ? 'Required' : null,
           ),
+          if (_selectedStaff != null &&
+              EmployeeType.tryParse(_selectedStaff!.employeeType) != null)
+            QuotaIndicator(
+              db: getIt<AppDatabase>(),
+              type: EmployeeType.tryParse(_selectedStaff!.employeeType)!,
+              personId: _selectedStaff!.id,
+            ),
           const SizedBox(height: 20),
           _sectionLabel('Number of Vouchers'),
           const SizedBox(height: 8),

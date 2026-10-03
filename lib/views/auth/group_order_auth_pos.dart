@@ -20,6 +20,7 @@ import '../../core/di/injection_container.dart';
 import '../../services/database/activity_log_service.dart';
 import '../../services/database/app_database.dart';
 import '../../services/auth/pos_auth_service.dart';
+import '../../services/pos/quota_gate_service.dart';
 import '../../services/print/print_service_manager.dart';
 import '../../services/sync_services/sync_from_local_to_remote.dart';
 
@@ -310,6 +311,27 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
 
     _mealType = mealType;
     _staffName = staffName;
+
+    // Quota gate for the whole group quantity.
+    if (staff.entityType != null && staff.entityId != null) {
+      final decision = await QuotaGateService(db: db).checkCanOrder(
+        type: staff.entityType!,
+        personId: staff.entityId!,
+        quantity: _groupCount,
+      );
+      if (!decision.allowed) {
+        if (!mounted) return;
+        setState(_resetOrderState);
+        ref.read(authProvider.notifier).reset();
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          SnackBar(
+            content: Text(decision.reason ?? 'Meal quota exhausted.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+    }
 
     try {
       final posDevices = await db.getAllPosDevices();

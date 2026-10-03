@@ -142,6 +142,7 @@ class FingerprintAuthService {
       case EmployeeType.graduateTrainee:
       case EmployeeType.nationalService:
       case EmployeeType.intern:
+      case EmployeeType.shortTermContractor:
         await _db.insertBioData(companion.copyWith(staffId: Value(entityId)));
       case EmployeeType.dependent:
         await _db.insertBioData(companion.copyWith(dependentId: Value(entityId)));

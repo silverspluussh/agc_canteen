@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'tables.dart';
 import '../../models/biodata_fingerprint_summary.dart';
+import '../../models/work_function.model.dart';
 import '../../models/unified_report_order_row.dart';
 
 part 'app_database.g.dart';
@@ -17,11 +18,14 @@ part 'app_database.g.dart';
     Staff,
     StaffKitchens,
     Dependents,
+    DependentVisits,
     DependentKitchens,
     Cards,
     Users,
     UserKitchens,
     Orders,
+    WorkFunctions,
+    FunctionOrders,
     PosDevices,
     ActivityLogs,
     GroupOrders,
@@ -40,7 +44,7 @@ class AppDatabase extends _$AppDatabase {
   static const int _maxOrderSyncAttempts = 5;
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -65,6 +69,25 @@ class AppDatabase extends _$AppDatabase {
       if (from < 4) {
         await m.addColumn(orders, orders.syncAttempts);
         await m.addColumn(orders, orders.lastSyncError);
+      }
+      if (from < 5) {
+        await m.addColumn(shifts, shifts.dailyMealQuota);
+        await m.addColumn(shifts, shifts.workingDaysPerMonth);
+        await m.addColumn(dependents, dependents.contractorStaffId);
+        await m.addColumn(dependents, dependents.parentStatus);
+        await m.createTable(dependentVisits);
+        await m.addColumn(contractorStaffTable, contractorStaffTable.dailyQuota);
+        await m.addColumn(visitors, visitors.dailyQuota);
+      }
+      if (from < 6) {
+        await m.addColumn(staff, staff.manualDailyQuota);
+        await m.addColumn(staff, staff.manualMonthlyQuota);
+        await m.addColumn(staff, staff.quotaPeriodStart);
+        await m.addColumn(staff, staff.quotaPeriodEnd);
+      }
+      if (from < 7) {
+        await m.createTable(workFunctions);
+        await m.createTable(functionOrders);
       }
     },
     beforeOpen: (details) async {
@@ -120,6 +143,7 @@ class AppDatabase extends _$AppDatabase {
       await delete(staffKitchens).go();
       await delete(contractorStaffKitchens).go();
       await delete(dependentKitchens).go();
+      await delete(dependentVisits).go();
       await delete(visitorKitchens).go();
       await delete(dependents).go();
       await delete(cards).go();
@@ -900,6 +924,7 @@ class AppDatabase extends _$AppDatabase {
   Future<void> deleteDependent(int id) async {
     await transaction(() async {
       await deleteDependentKitchensByDependent(id);
+      await deleteDependentVisitsByDependent(id);
       await deleteBioDataByDependent(id);
       await (delete(dependents)..where((t) => t.id.equals(id))).go();
     });
@@ -914,6 +939,76 @@ class AppDatabase extends _$AppDatabase {
 
   Future<List<Dependent>> getDependentsByStaff(int staffId) =>
       (select(dependents)..where((t) => t.staffId.equals(staffId))).get();
+
+  Future<List<Dependent>> getDependentsByContractorStaff(
+    int contractorStaffId,
+  ) =>
+      (select(dependents)
+            ..where((t) => t.contractorStaffId.equals(contractorStaffId)))
+          .get();
+
+  // ─── DependentVisits ───────────────────────────────────────
+
+  Future<void> insertDependentVisit(
+    DependentVisitsCompanion visit, {
+    InsertMode mode = InsertMode.insert,
+  }) => into(dependentVisits).insert(visit, mode: mode);
+
+  Future<void> deleteDependentVisitsByDependent(int dependentId) =>
+      (delete(dependentVisits)..where((t) => t.dependentId.equals(dependentId)))
+          .go();
+
+  Future<int> deleteDependentVisitsNotIn(
+    int dependentId,
+    Set<int> keepIds,
+  ) async {
+    if (keepIds.isEmpty) {
+      return (delete(dependentVisits)
+            ..where((t) =>
+                t.dependentId.equals(dependentId) & t.syncStatus.equals(2)))
+          .go();
+    }
+    final toDelete = await (select(dependentVisits)
+          ..where((t) =>
+              t.dependentId.equals(dependentId) &
+              t.syncStatus.equals(2) &
+              t.id.isNotIn(keepIds)))
+        .get();
+    for (final record in toDelete) {
+      await (delete(dependentVisits)..where((t) => t.id.equals(record.id)))
+          .go();
+    }
+    return toDelete.length;
+  }
+
+  Future<List<DependentVisit>> getVisitsByDependent(int dependentId) =>
+      (select(dependentVisits)
+            ..where((t) => t.dependentId.equals(dependentId))
+            ..orderBy([(t) => OrderingTerm.desc(t.startDate)]))
+          .get();
+
+  /// Visit covering [day] (yyyy-MM-dd) that is not cancelled, if any.
+  Future<DependentVisit?> getActiveVisitForDependent(
+    int dependentId,
+    String day,
+  ) =>
+      (select(dependentVisits)
+            ..where((t) =>
+                t.dependentId.equals(dependentId) &
+                t.status.isNotValue('cancelled') &
+                t.startDate.isSmallerOrEqualValue(day) &
+                t.endDate.isBiggerOrEqualValue(day))
+            ..orderBy([(t) => OrderingTerm.desc(t.endDate)])
+            ..limit(1))
+          .getSingleOrNull();
+
+  Future<bool> hasAnyVisitForDependent(int dependentId) async {
+    final count = countAll();
+    final query = selectOnly(dependentVisits)
+      ..addColumns([count])
+      ..where(dependentVisits.dependentId.equals(dependentId));
+    return ((await query.getSingle()).read(count) ?? 0) > 0;
+  }
 
   Future<void> markDependentSynced(int id) =>
       (update(dependents)..where((t) => t.id.equals(id))).write(
@@ -1256,6 +1351,35 @@ class AppDatabase extends _$AppDatabase {
   Future<Order?> getOrder(int id) =>
       (select(orders)..where((t) => t.id.equals(id))).getSingleOrNull();
 
+  /// Orders placed by one person, optionally bounded to a day (yyyy-MM-dd
+  /// prefix) and/or an ISO window. Local orders only (all rows count —
+  /// synced or not — since the device is the source of truth offline).
+  Future<int> countOrdersByPerson({
+    required int personId,
+    required String employeeType,
+    String? dayPrefix,
+    String? windowStartIso,
+    String? windowEndIso,
+  }) async {
+    final count = countAll();
+    final query = selectOnly(orders)
+      ..addColumns([count])
+      ..where(
+        orders.orderedById.equals(personId) &
+            orders.employeeType.equals(employeeType),
+      );
+    if (dayPrefix != null) {
+      query.where(orders.createdAt.like('$dayPrefix%'));
+    }
+    if (windowStartIso != null) {
+      query.where(orders.createdAt.isBiggerOrEqualValue(windowStartIso));
+    }
+    if (windowEndIso != null) {
+      query.where(orders.createdAt.isSmallerOrEqualValue(windowEndIso));
+    }
+    return (await query.getSingle()).read(count) ?? 0;
+  }
+
   Future<List<Order>> getUnsyncedOrders() => (select(orders)..where(
         (t) =>
             t.syncStatus.isIn([0, 3]) &
@@ -1549,6 +1673,124 @@ SELECT COALESCE(SUM(total), 0) AS revenue FROM (
     );
   }
 
+  // ─── Work Functions ───────────────────────────────────────
+
+  /// Replaces the cached picker list. Called after a successful pull from
+  /// /hr/work-functions/active, which already returns only orderable functions.
+  Future<void> replaceWorkFunctions(List<WorkFunctionsCompanion> rows) async {
+    await transaction(() async {
+      await delete(workFunctions).go();
+      if (rows.isNotEmpty) {
+        await batch((b) => b.insertAll(workFunctions, rows));
+      }
+    });
+  }
+
+  Future<List<WorkFunction>> getAllWorkFunctions() =>
+      (select(workFunctions)..orderBy([
+          (t) => OrderingTerm(expression: t.functionStartTime),
+        ]))
+          .get();
+
+  Future<WorkFunction?> getWorkFunction(int id) =>
+      (select(workFunctions)..where((t) => t.id.equals(id)))
+          .getSingleOrNull();
+
+  /// Orderable right now: dated today and inside the start/end window.
+  ///
+  /// The server already filters, but the POS re-checks locally so an offline or
+  /// stale cache can never authorise an order outside the window.
+  Future<List<WorkFunction>> getOrderableWorkFunctions([DateTime? now]) async {
+    final at = now ?? DateTime.now();
+    final all = await getAllWorkFunctions();
+
+    // Delegates to the model so the cache filter, the picker and the order
+    // guard all apply exactly the same window rule.
+    return all
+        .where(
+          (fn) => WorkFunctionModel.isWindowOpenAt(
+            fn.functionDate,
+            fn.functionStartTime,
+            fn.functionEndTime,
+            at,
+          ),
+        )
+        .toList();
+  }
+
+  // ─── Function Orders ──────────────────────────────────────
+
+  Future<void> insertFunctionOrder(
+    FunctionOrdersCompanion order, {
+    InsertMode mode = InsertMode.insert,
+  }) async {
+    await into(functionOrders).insert(order, mode: mode);
+  }
+
+  Future<List<FunctionOrder>> getAllFunctionOrders() =>
+      (select(functionOrders)..orderBy([
+          (t) => OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc),
+        ]))
+          .get();
+
+  Future<FunctionOrder?> getFunctionOrder(int id) =>
+      (select(functionOrders)..where((t) => t.id.equals(id)))
+          .getSingleOrNull();
+
+  Future<List<FunctionOrder>> getUnsyncedFunctionOrders() =>
+      (select(functionOrders)
+            ..where(
+              (t) =>
+                  t.syncStatus.isIn([0, 3]) &
+                  t.syncAttempts.isSmallerThanValue(_maxOrderSyncAttempts),
+            )
+            ..orderBy([(t) => OrderingTerm(expression: t.createdAt)]))
+          .get();
+
+  Future<void> markFunctionOrderSynced(int id) =>
+      (update(functionOrders)..where((t) => t.id.equals(id))).write(
+        FunctionOrdersCompanion(
+          syncStatus: const Value(2),
+          syncUpdatedAt: Value(DateTime.now().toIso8601String()),
+          lastSyncError: const Value(null),
+        ),
+      );
+
+  /// Mirrors [markOrderFailed]: retries up to [_maxOrderSyncAttempts], then
+  /// parks the row in the terminal state (4) so it stops being retried.
+  Future<void> markFunctionOrderFailed(int id, {String? error}) async {
+    final order = await getFunctionOrder(id);
+    if (order == null) return;
+    final attempts = order.syncAttempts + 1;
+    final terminal = attempts >= _maxOrderSyncAttempts;
+    await (update(functionOrders)..where((t) => t.id.equals(id))).write(
+      FunctionOrdersCompanion(
+        syncStatus: Value(terminal ? 4 : 3),
+        syncAttempts: Value(attempts),
+        lastSyncError: Value(error),
+        syncUpdatedAt: Value(DateTime.now().toIso8601String()),
+      ),
+    );
+  }
+
+  /// Function orders taken by a person today. Used for reporting only — these
+  /// deliberately do NOT feed the general meal quota pool.
+  Future<int> countFunctionOrdersByPerson({
+    required int personId,
+    required String employeeType,
+    required String dayPrefix,
+  }) async {
+    final count = functionOrders.id.count();
+    final query = selectOnly(functionOrders)
+      ..addColumns([count])
+      ..where(
+        functionOrders.orderedById.equals(personId) &
+            functionOrders.employeeType.equals(employeeType) &
+            functionOrders.createdAt.like('$dayPrefix%'),
+      );
+    return (await query.getSingle()).read(count) ?? 0;
+  }
+
   // ─── Group Orders ───────────────────────────────────────────
 
   Future<void> insertGroupOrder(
@@ -1798,6 +2040,35 @@ SELECT COALESCE(SUM(total), 0) AS revenue FROM (
 
       final next = maxCode + 1;
       return '$prefix${next.toString().padLeft(4, '0')}';
+    });
+  }
+
+  /// Sequence for function order codes.
+  ///
+  /// Numbered per function so the printed voucher shows which event it belongs
+  /// to, and counted independently of [nextOrderCode] so the two streams can
+  /// never collide.
+  Future<String> nextFunctionOrderCode({
+    required int functionId,
+    required int posId,
+  }) async {
+    return transaction(() async {
+      final prefix = 'FNF$functionId-$posId-';
+      final rows = await customSelect(
+        'SELECT MAX(CAST(SUBSTR(order_code, ?) AS INTEGER)) FROM function_orders WHERE order_code LIKE ?',
+        variables: [
+          Variable<int>(prefix.length + 1),
+          Variable<String>('$prefix%'),
+        ],
+        readsFrom: {functionOrders},
+      ).get();
+
+      final value = rows.isEmpty ? null : rows.first.data.values.firstOrNull;
+      final maxCode = value is int
+          ? value
+          : (value is num ? value.toInt() : 0);
+
+      return '$prefix${(maxCode + 1).toString().padLeft(4, '0')}';
     });
   }
 }
