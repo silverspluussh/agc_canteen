@@ -237,7 +237,7 @@ class RemoteToLocalSyncService {
         }
         await _purgeMissingRows(
           label: 'department',
-          received: list.length,
+          received: list?.length ?? 0,
           limit: 100,
           remoteIds: remoteIds,
           purge: _db.deleteDepartmentsNotIn,
@@ -469,7 +469,7 @@ class RemoteToLocalSyncService {
         }
         await _purgeMissingRows(
           label: 'meal type',
-          received: mealTypesList.length,
+          received: mealTypesList?.length ?? 0,
           limit: 30,
           remoteIds: remoteIds,
           purge: _db.deleteMealTypesNotIn,
@@ -553,7 +553,7 @@ class RemoteToLocalSyncService {
       }
 
       _logger.i(
-        'RemoteToLocalSyncService: received ${bioDataList.length} remote bio-data records, upserting...',
+        'RemoteToLocalSyncService: received ${bioDataList.length } remote bio-data records, upserting...',
       );
 
       await _db.transaction(() async {
@@ -669,7 +669,7 @@ class RemoteToLocalSyncService {
         }
         await _purgeMissingRows(
           label: 'NFC card',
-          received: list.length,
+          received: list?.length  ?? 0,
           limit: 100,
           remoteIds: remoteIds,
           purge: _db.deleteCardsNotIn,
@@ -1402,7 +1402,7 @@ class RemoteToLocalSyncService {
         }
         await _purgeMissingRows(
           label: 'shift',
-          received: list.length,
+          received: list?.length ?? 0,
           limit: 50,
           remoteIds: remoteIds,
           purge: _db.deleteShiftsNotIn,

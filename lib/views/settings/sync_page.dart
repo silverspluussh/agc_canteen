@@ -442,6 +442,11 @@ class _SyncPageState extends ConsumerState<SyncPage>
               const Color(0xFFB45309),
               'Background sync issue: $e',
             ),
+          SyncSnapshot(pullSkipped: true, lastSyncedAt: final t?) => (
+              Icons.cloud_done_outlined,
+              const Color(0xFF2E7D32),
+              'Up to date (checked ${DateFormat('hh:mm a').format(t)})',
+            ),
           SyncSnapshot(lastSyncedAt: final t?) => (
               Icons.cloud_done_outlined,
               const Color(0xFF2E7D32),

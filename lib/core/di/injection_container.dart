@@ -14,7 +14,9 @@ import '../../services/export/file_export_service.dart';
 import '../../repositories/biodata.repo.dart';
 import '../../repositories/orders.repo.dart';
 import '../../services/sync_services/sync_from_remote_to_local.dart';
+import '../../services/sync_services/sync_pull_gate.dart';
 import '../../services/sync_services/sync_scheduler.dart';
+import '../../services/sync_services/sync_version_service.dart';
 import '../../services/pos/pos_card_service.dart';
 import '../../services/pos/pos_device_service.dart';
 import '../../services/pos/device_info_service.dart';
@@ -102,12 +104,21 @@ Future<void> setupServiceLocator() async {
         isOnline: isOnline,
       ));
 
+  getIt.registerLazySingleton<SyncVersionService>(() => SyncVersionService(
+        networkAPI: getIt<NetworkAPI>(),
+      ));
+
+  getIt.registerLazySingleton<RemotePullGate>(() => VersionPullGate(
+        versions: getIt<SyncVersionService>(),
+      ));
+
   getIt.registerLazySingleton<SyncScheduler>(() => SyncScheduler(
         remoteToLocal: getIt<RemoteToLocalSyncService>(),
         localToRemote: getIt<LocalToRemoteSyncService>(),
         connectivity: getIt<Connectivity>(),
         isOnline: isOnline,
         activityLog: getIt<ActivityLogService>(),
+        pullGate: getIt<RemotePullGate>(),
       ));
 
   getIt.registerLazySingleton<ActivityLogService>(

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:agc_canteen/models/sync.model.dart';
+import 'package:agc_canteen/services/sync_services/sync_pull_gate.dart';
 import 'package:agc_canteen/services/sync_services/sync_scheduler.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -50,6 +51,7 @@ void main() {
 
   SyncScheduler build({
     Duration interval = const Duration(minutes: 3),
+    RemotePullGate? pullGate,
   }) {
     final scheduler = SyncScheduler(
       remoteToLocal: remote,
@@ -59,6 +61,7 @@ void main() {
       now: () => now,
       interval: interval,
       observeLifecycle: false,
+      pullGate: pullGate,
       logger: Logger(level: Level.off),
     );
     schedulers.add(scheduler);
@@ -66,8 +69,14 @@ void main() {
   }
 
   /// Starts the scheduler and lets its immediate cycle settle.
-  Future<SyncScheduler> started({Duration? interval}) async {
-    final scheduler = build(interval: interval ?? const Duration(minutes: 3));
+  Future<SyncScheduler> started({
+    Duration? interval,
+    RemotePullGate? pullGate,
+  }) async {
+    final scheduler = build(
+      interval: interval ?? const Duration(minutes: 3),
+      pullGate: pullGate,
+    );
     await scheduler.start();
     await pumpEventQueue();
     clearInteractions(remote);
@@ -202,4 +211,69 @@ void main() {
     await scheduler.runCycle();
     verify(() => remote.syncAll(background: false)).called(1);
   });
+
+  test('an unchanged gate skips the remote pull but still pushes local work',
+      () async {
+    final gate = _FakeGate(false);
+    final scheduler = await started(pullGate: gate);
+    final baseGateCalls = gate.shouldPullCalls;
+
+    // Non-forced tick must get past the post-success backoff window.
+    now = now.add(const Duration(minutes: 4));
+    await scheduler.tick();
+
+    verifyNever(() => remote.syncAll(background: false));
+    verify(() => local.syncAll()).called(1);
+    expect(gate.shouldPullCalls, baseGateCalls + 1);
+    expect(gate.succeededCalls, 0);
+    expect(scheduler.snapshot.value.pullSkipped, isTrue);
+  });
+
+  test('a changed gate pulls and records success', () async {
+    final gate = _FakeGate(true);
+    final scheduler = await started(pullGate: gate);
+
+    now = now.add(const Duration(minutes: 4));
+    await scheduler.tick();
+
+    verify(() => remote.syncAll(background: false)).called(1);
+    verify(() => local.syncAll()).called(1);
+    expect(gate.succeededCalls, greaterThanOrEqualTo(1));
+    expect(scheduler.snapshot.value.pullSkipped, isFalse);
+  });
+
+  test('manual syncNow bypasses the gate and always pulls', () async {
+    final gate = _FakeGate(false);
+    final scheduler = await started(pullGate: gate);
+    final baseGateCalls = gate.shouldPullCalls;
+
+    await scheduler.syncNow();
+
+    verify(() => remote.syncAll(background: false)).called(1);
+    expect(
+      gate.shouldPullCalls,
+      baseGateCalls,
+      reason: 'a forced pull must not even consult the gate',
+    );
+  });
+}
+
+/// Minimal [RemotePullGate] stub with call counters.
+class _FakeGate implements RemotePullGate {
+  _FakeGate(this.result);
+
+  final bool result;
+  int shouldPullCalls = 0;
+  int succeededCalls = 0;
+
+  @override
+  Future<bool> shouldPull() async {
+    shouldPullCalls++;
+    return result;
+  }
+
+  @override
+  Future<void> onPullSucceeded() async {
+    succeededCalls++;
+  }
 }
