@@ -10,6 +10,7 @@ import 'package:agc_canteen/services/pos/pos_print_service.dart';
 import 'package:agc_canteen/services/print/external_thermal_print_service.dart';
 import 'package:agc_canteen/services/print/print_service_manager.dart';
 import 'package:agc_canteen/services/sync_services/sync_from_local_to_remote.dart';
+import 'package:agc_canteen/services/sync_services/sync_from_remote_to_local.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -37,6 +38,9 @@ class MockPosAuthService extends Mock implements PosAuthService {}
 
 class MockLocalToRemoteSyncService extends Mock
     implements LocalToRemoteSyncService {}
+
+class MockRemoteToLocalSyncService extends Mock
+    implements RemoteToLocalSyncService {}
 
 /// Registers mocktail fallback values needed for `any()` matchers.
 /// Call this once in a `setUpAll` before using `any()` with these types.

@@ -9,15 +9,18 @@ class RemoteToLocalSyncService {
   final NetworkAPI _networkAPI;
   final AppDatabase _db;
   final Logger _logger;
+  final Future<bool> Function()? _isOnline;
   final List<SyncJob> _jobs = [];
 
   RemoteToLocalSyncService({
     required NetworkAPI networkAPI,
     required AppDatabase db,
     Logger? logger,
+    Future<bool> Function()? isOnline,
   }) : _networkAPI = networkAPI,
        _db = db,
-       _logger = logger ?? Logger() {
+       _logger = logger ?? Logger(),
+       _isOnline = isOnline {
     _jobs.add(SyncJob(name: 'posDevice', execute: _syncPosDevice));
     _jobs.add(SyncJob(name: 'departments', execute: _syncDepartments));
     _jobs.add(SyncJob(name: 'staff', execute: _syncStaff));
@@ -48,7 +51,27 @@ class RemoteToLocalSyncService {
   ///
   /// Concurrent callers coalesce: they wait for the run in flight and then
   /// perform a single follow-up run rather than piling up.
+  /// Whether the terminal currently has a usable connection. Defaults to true
+  /// when no probe was injected, so tests/legacy callers keep running.
+  Future<bool> get isOnline async {
+    if (_isOnline == null) return true;
+    try {
+      return await _isOnline();
+    } catch (e) {
+      _logger.w('RemoteToLocalSyncService: connectivity probe failed ($e)');
+      return false;
+    }
+  }
+
   Future<void> syncAll({bool background = true}) async {
+    // Skip the whole run while offline: every job would fail at the socket and
+    // the scheduler would log a wall of errors on each tick. Reconnect triggers
+    // a catch-up run.
+    if (!await isOnline) {
+      _logger.i('RemoteToLocalSyncService: offline, skipping sync');
+      return;
+    }
+
     if (background) {
       unawaited(_guardedRun());
     } else {
@@ -214,7 +237,7 @@ class RemoteToLocalSyncService {
         }
         await _purgeMissingRows(
           label: 'department',
-          received: list!.length,
+          received: list.length,
           limit: 100,
           remoteIds: remoteIds,
           purge: _db.deleteDepartmentsNotIn,
@@ -446,7 +469,7 @@ class RemoteToLocalSyncService {
         }
         await _purgeMissingRows(
           label: 'meal type',
-          received: mealTypesList!.length,
+          received: mealTypesList.length,
           limit: 30,
           remoteIds: remoteIds,
           purge: _db.deleteMealTypesNotIn,
@@ -646,7 +669,7 @@ class RemoteToLocalSyncService {
         }
         await _purgeMissingRows(
           label: 'NFC card',
-          received: list!.length,
+          received: list.length,
           limit: 100,
           remoteIds: remoteIds,
           purge: _db.deleteCardsNotIn,
@@ -716,7 +739,7 @@ class RemoteToLocalSyncService {
       '/pos/profiles',
       queryParameters: {'status': 'active', 'limit': 100, 'offset': 0},
       builder: (d) {
-        print('fetchAllPosProfiles: $d');
+        _logger.i('fetchAllPosProfiles: $d');
         return d;
       },
     );
@@ -1379,7 +1402,7 @@ class RemoteToLocalSyncService {
         }
         await _purgeMissingRows(
           label: 'shift',
-          received: list!.length,
+          received: list.length,
           limit: 50,
           remoteIds: remoteIds,
           purge: _db.deleteShiftsNotIn,

@@ -14,6 +14,7 @@ import '../../services/export/file_export_service.dart';
 import '../../repositories/biodata.repo.dart';
 import '../../repositories/orders.repo.dart';
 import '../../services/sync_services/sync_from_remote_to_local.dart';
+import '../../services/sync_services/sync_scheduler.dart';
 import '../../services/pos/pos_card_service.dart';
 import '../../services/pos/pos_device_service.dart';
 import '../../services/pos/device_info_service.dart';
@@ -68,6 +69,13 @@ Future<void> setupServiceLocator() async {
         nfcAuth: getIt<NfcAuthService>(),
       ));
 
+  getIt.registerLazySingleton<Connectivity>(() => Connectivity());
+
+  Future<bool> isOnline() async {
+    final results = await getIt<Connectivity>().checkConnectivity();
+    return results.any((r) => r != ConnectivityResult.none);
+  }
+
   getIt.registerLazySingleton<LocalToRemoteSyncService>(() => LocalToRemoteSyncService(
         db: getIt<AppDatabase>(),
         networkAPI: getIt<NetworkAPI>(),
@@ -91,9 +99,16 @@ Future<void> setupServiceLocator() async {
   getIt.registerLazySingleton<RemoteToLocalSyncService>(() => RemoteToLocalSyncService(
         networkAPI: getIt<NetworkAPI>(),
         db: getIt<AppDatabase>(),
+        isOnline: isOnline,
       ));
 
-  getIt.registerLazySingleton<Connectivity>(() => Connectivity());
+  getIt.registerLazySingleton<SyncScheduler>(() => SyncScheduler(
+        remoteToLocal: getIt<RemoteToLocalSyncService>(),
+        localToRemote: getIt<LocalToRemoteSyncService>(),
+        connectivity: getIt<Connectivity>(),
+        isOnline: isOnline,
+        activityLog: getIt<ActivityLogService>(),
+      ));
 
   getIt.registerLazySingleton<ActivityLogService>(
       () => ActivityLogService(getIt<AppDatabase>()));

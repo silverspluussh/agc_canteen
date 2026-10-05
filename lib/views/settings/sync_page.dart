@@ -8,6 +8,7 @@ import '../../core/di/injection_container.dart';
 import '../../services/database/app_database.dart';
 import '../../services/sync_services/sync_from_local_to_remote.dart';
 import '../../services/sync_services/sync_from_remote_to_local.dart';
+import '../../services/sync_services/sync_scheduler.dart';
 
 class SyncPage extends ConsumerStatefulWidget {
   const SyncPage({super.key});
@@ -20,6 +21,7 @@ class _SyncPageState extends ConsumerState<SyncPage>
     with SingleTickerProviderStateMixin {
   late final LocalToRemoteSyncService _uploadService;
   late final RemoteToLocalSyncService _downloadService;
+  late final SyncScheduler _scheduler;
   late final AppDatabase _db;
   late final TabController _tabController;
 
@@ -73,6 +75,7 @@ class _SyncPageState extends ConsumerState<SyncPage>
     _tabController = TabController(length: 2, vsync: this);
     _uploadService = getIt<LocalToRemoteSyncService>();
     _downloadService = getIt<RemoteToLocalSyncService>();
+    _scheduler = getIt<SyncScheduler>();
     _db = getIt<AppDatabase>();
     _loadCounts();
     _loadUploadLastSync();
@@ -225,6 +228,10 @@ class _SyncPageState extends ConsumerState<SyncPage>
       _syncingAllDownload = true;
     });
     try {
+      if (!await _downloadService.isOnline) {
+        if (mounted) _showDownloadSnackBar('No internet connection', ok: false);
+        return;
+      }
       await _downloadService.syncAll(background: false);
       if (mounted) _showDownloadSnackBar('All data synced');
     } catch (e) {
@@ -299,6 +306,7 @@ class _SyncPageState extends ConsumerState<SyncPage>
     if (!mounted) return;
 
     final orders = await _db.getUnsyncedOrders();
+    if (!mounted) return;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -405,10 +413,77 @@ class _SyncPageState extends ConsumerState<SyncPage>
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [_buildUploadTab(cs), _buildDownloadTab(cs)],
+      body: Column(
+        children: [
+          _buildSchedulerStatus(context, cs),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [_buildUploadTab(cs), _buildDownloadTab(cs)],
+            ),
+          ),
+        ],
       ),
+    );
+  }
+
+  Widget _buildSchedulerStatus(BuildContext context, ColorScheme cs) {
+    return ValueListenableBuilder<SyncSnapshot>(
+      valueListenable: _scheduler.snapshot,
+      builder: (context, snap, _) {
+        final (icon, color, label) = switch (snap) {
+          SyncSnapshot(isSyncing: true) => (
+              Icons.sync,
+              cs.primary,
+              'Syncing…',
+            ),
+          SyncSnapshot(lastError: final e?) => (
+              Icons.error_outline,
+              const Color(0xFFB45309),
+              'Background sync issue: $e',
+            ),
+          SyncSnapshot(lastSyncedAt: final t?) => (
+              Icons.cloud_done_outlined,
+              const Color(0xFF2E7D32),
+              'Last background sync: '
+                  '${DateFormat('dd MMM, hh:mm a').format(t)}',
+            ),
+          _ => (
+              Icons.cloud_queue,
+              cs.onSurfaceVariant,
+              'Background sync has not run yet',
+            ),
+        };
+
+        return Material(
+          color: color.withOpacity(0.08),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                Icon(icon, size: 18, color: color),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: TextStyle(fontSize: 13, color: color),
+                  ),
+                ),
+                TextButton(
+                  onPressed: snap.isSyncing
+                      ? null
+                      : () async {
+                          await _scheduler.syncNow();
+                          await _loadCounts();
+                          await _loadDownloadCounts();
+                        },
+                  child: const Text('Sync Now'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

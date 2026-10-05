@@ -21,6 +21,7 @@ class LocalToRemoteSyncService {
 
   Future<SyncResult>? _syncOrdersInFlight;
   Future<SyncResult>? _syncBioInFlight;
+  Future<SyncResult>? _syncAllInFlight;
 
   LocalToRemoteSyncService({
     required AppDatabase db,
@@ -51,7 +52,17 @@ class LocalToRemoteSyncService {
   }
 
   /// Runs all local-to-remote sync functions.
-  Future<SyncResult> syncAll() async {
+  ///
+  /// Single-flight: the periodic scheduler, manual Sync screen and post-write
+  /// triggers can all call this at once, and overlapping runs would re-push the
+  /// same pending rows. Concurrent callers share the run in flight.
+  Future<SyncResult> syncAll() {
+    return _syncAllInFlight ??= _syncAllImpl().whenComplete(() {
+      _syncAllInFlight = null;
+    });
+  }
+
+  Future<SyncResult> _syncAllImpl() async {
     final pushed = <String, int>{};
     final errors = <String>[];
 

@@ -516,7 +516,6 @@ class _OrdersTabState extends ConsumerState<_OrdersTab>
                     children: [
                       null,
                       'completed',
-                      'pending',
                       'cancelled'
                     ].map((status) {
                       final isSelected = tempStatus == status;
