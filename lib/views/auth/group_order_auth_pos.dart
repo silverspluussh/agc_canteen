@@ -23,6 +23,7 @@ import '../../services/database/app_database.dart';
 import '../../services/auth/pos_auth_service.dart';
 import '../../services/pos/quota_gate_service.dart';
 import '../../services/print/print_service_manager.dart';
+import '../../services/print/receipt_header.dart';
 import '../../services/sync_services/sync_from_local_to_remote.dart';
 
 class GroupOrderAuthPos extends ConsumerStatefulWidget {
@@ -522,7 +523,7 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
 
       centerOn();
       ln('====================');
-      ln('    AGCL CANTEEN');
+      ln(await receiptHeaderName(getIt<AppDatabase>()));
       ln('   [Group Order]');
       ln('====================');
       centerOn();

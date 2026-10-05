@@ -11,9 +11,18 @@ import '../services/auth/fingerprint_auth_service.dart';
 import '../services/auth/nfc_auth_service.dart';
 import '../services/auth/pos_auth_service.dart';
 import '../services/nfc/nfc_service.dart';
+import '../services/print/receipt_header.dart';
 
 final databaseProvider = Provider<AppDatabase>((ref) {
   return DatabaseService.instance.db;
+});
+
+/// Receipt header for the on-screen voucher card: the operating kitchen/location
+/// name, falling back to the legacy label when none is provisioned. Shared with
+/// the physical receipt builders via [receiptHeaderName].
+final receiptHeaderProvider = FutureProvider<String>((ref) async {
+  final db = ref.watch(databaseProvider);
+  return receiptHeaderName(db);
 });
 
 final staffListProvider = FutureProvider<List<StaffData>>((ref) async {

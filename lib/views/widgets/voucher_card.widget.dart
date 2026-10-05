@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../controllers/providers.dart';
 
-class VoucherCard extends StatelessWidget {
+class VoucherCard extends ConsumerWidget {
   final String orderCode;
   final String staffName;
   final String mealType;
@@ -15,7 +17,7 @@ class VoucherCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
     final mealLabel =
         mealType[0].toUpperCase() + mealType.substring(1).replaceAll('_', ' ');
@@ -30,9 +32,9 @@ class VoucherCard extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'AGCL CANTEEN',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            Text(
+              ref.watch(receiptHeaderProvider).asData?.value ?? 'AGCL CANTEEN',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
             ),
             const SizedBox(height: 4),
             Text(

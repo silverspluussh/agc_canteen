@@ -11,6 +11,7 @@ import '../../models/unified_report_order_row.dart';
 import '../../services/database/app_database.dart';
 import '../../services/export/file_export_service.dart';
 import '../../services/print/print_service_manager.dart';
+import '../../services/print/receipt_header.dart';
 
 final _currency = NumberFormat('#,##0.00', 'en_US');
 String _cap(String s) => s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
@@ -49,9 +50,11 @@ Future<void> _printReportReceipt(_ReportOrder order) async {
     void doubleOn() => b.add(const [0x1D, 0x21, 0x11]);
     void doubleOff() => b.add(const [0x1D, 0x21, 0x00]);
 
+    final header = await receiptHeaderName(GetIt.instance<AppDatabase>());
+
     centerOn();
     ln('====================');
-    ln('    AGCL CANTEEN');
+    ln(header);
     if (isGroup) {
       ln('  [Group Order]');
     }

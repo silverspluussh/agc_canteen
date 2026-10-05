@@ -216,6 +216,7 @@ class AppDatabase extends _$AppDatabase {
       'staff': await _countUnsyncedStaff(),
       'users': await _countUnsyncedUsers(),
       'orders': await _countUnsyncedOrders(),
+      'function_orders': await _countUnsyncedFunctionOrders(),
       'pos_devices': await _countUnsyncedPosDevices(),
       'bio_data': await _countUnsyncedBioData(),
     };
@@ -309,6 +310,14 @@ class AppDatabase extends _$AppDatabase {
     return (await query.getSingle()).read(count) ?? 0;
   }
 
+  Future<int> _countUnsyncedFunctionOrders() async {
+    final count = countAll();
+    final query = selectOnly(functionOrders)
+      ..addColumns([count])
+      ..where(functionOrders.syncStatus.isNotValue(2));
+    return (await query.getSingle()).read(count) ?? 0;
+  }
+
   Future<int> _countUnsyncedPosDevices() async {
     final count = countAll();
     final query = selectOnly(posDevices)
@@ -326,6 +335,8 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<int> countUnsyncedOrders() => _countUnsyncedOrders();
+
+  Future<int> countUnsyncedFunctionOrders() => _countUnsyncedFunctionOrders();
 
   Future<int> countUnsyncedBioData() => _countUnsyncedBioData();
 
@@ -1826,6 +1837,20 @@ SELECT COALESCE(SUM(total), 0) AS revenue FROM (
   Future<List<PosDevice>> getAllPosDevices() => select(posDevices).get();
   Future<PosDevice?> getPosDevice(int id) =>
       (select(posDevices)..where((t) => t.id.equals(id))).getSingleOrNull();
+
+  /// Kitchen/location name of the provisioned POS terminal, used as the receipt
+  /// header. Falls back to the first cached kitchen when the device has no
+  /// kitchen recorded, and null when nothing is known yet.
+  Future<String?> getRegisteredKitchenName() async {
+    final devices = await getAllPosDevices();
+    final deviceKitchen =
+        devices.isNotEmpty ? devices.first.kitchenName?.trim() : null;
+    if (deviceKitchen != null && deviceKitchen.isNotEmpty) {
+      return deviceKitchen;
+    }
+    final kitchens = await getAllKitchens();
+    return kitchens.isNotEmpty ? kitchens.first.name : null;
+  }
 
   Future<List<PosDevice>> getUnsyncedPosDevices() =>
       (select(posDevices)..where((t) => t.syncStatus.isNotValue(2))).get();

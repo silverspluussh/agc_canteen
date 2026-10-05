@@ -13,6 +13,7 @@ import '../../services/database/activity_log_service.dart';
 import '../../services/database/app_database.dart';
 import '../../services/pos/quota_gate_service.dart';
 import '../../services/print/print_service_manager.dart';
+import '../../services/print/receipt_header.dart';
 import '../../services/sync_services/sync_from_local_to_remote.dart';
 import '../widgets/staff_search_field.widget.dart';
 import '../widgets/quota_indicator.widget.dart';
@@ -38,9 +39,11 @@ Future<void> _printManualReceipt({
     void centerOn() => b.add(const [0x1B, 0x61, 0x01]);
     void centerOff() => b.add(const [0x1B, 0x61, 0x00]);
 
+    final header = await receiptHeaderName(getIt<AppDatabase>());
+
     centerOn();
     ln('====================');
-    ln('    AGCL CANTEEN');
+    ln(header);
     if (isGroup) ln('   [Group Order]');
     ln('====================');
     centerOn();

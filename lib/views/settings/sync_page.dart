@@ -25,9 +25,11 @@ class _SyncPageState extends ConsumerState<SyncPage>
 
   // ── Upload state ──
   int _unsyncedOrders = 0;
+  int _unsyncedFunctionOrders = 0;
   int _unsyncedBioData = 0;
   DateTime? _uploadLastSync;
   bool _syncingOrders = false;
+  bool _syncingFunctionOrders = false;
   bool _syncingBioData = false;
   bool _syncingAllUpload = false;
 
@@ -52,7 +54,8 @@ class _SyncPageState extends ConsumerState<SyncPage>
   bool _syncingCards = false;
   bool _syncingAllDownload = false;
 
-  int get _totalUploadPending => _unsyncedOrders + _unsyncedBioData;
+  int get _totalUploadPending =>
+      _unsyncedOrders + _unsyncedFunctionOrders + _unsyncedBioData;
   int get _totalLocalRecords =>
       _staffCount +
       _mealTypeCount +
@@ -86,10 +89,12 @@ class _SyncPageState extends ConsumerState<SyncPage>
 
   Future<void> _loadCounts() async {
     final unsyncedOrders = await _db.countUnsyncedOrders();
+    final unsyncedFunctionOrders = await _db.countUnsyncedFunctionOrders();
     final unsyncedBioData = await _db.countUnsyncedBioData();
     if (mounted) {
       setState(() {
         _unsyncedOrders = unsyncedOrders;
+        _unsyncedFunctionOrders = unsyncedFunctionOrders;
         _unsyncedBioData = unsyncedBioData;
       });
     }
@@ -137,6 +142,20 @@ class _SyncPageState extends ConsumerState<SyncPage>
     } finally {
       if (mounted) {
         setState(() => _syncingOrders = false);
+        await _loadCounts();
+        await _loadUploadLastSync();
+      }
+    }
+  }
+
+  Future<void> _syncFunctionOrders() async {
+    setState(() => _syncingFunctionOrders = true);
+    try {
+      final result = await _uploadService.syncFunctionOrders();
+      if (mounted) _showResultSnackBar(result, 'Function Vouchers');
+    } finally {
+      if (mounted) {
+        setState(() => _syncingFunctionOrders = false);
         await _loadCounts();
         await _loadUploadLastSync();
       }
@@ -428,6 +447,15 @@ class _SyncPageState extends ConsumerState<SyncPage>
             syncing: _syncingOrders,
             onSync: _unsyncedOrders > 0 ? _syncOrders : null,
             onView: _unsyncedOrders > 0 ? _viewUnsyncedOrders : null,
+          ),
+          const SizedBox(height: 12),
+          _SyncStatCard(
+            icon: Icons.event_available_outlined,
+            label: 'Function Vouchers',
+            count: _unsyncedFunctionOrders,
+            syncing: _syncingFunctionOrders,
+            onSync: _unsyncedFunctionOrders > 0 ? _syncFunctionOrders : null,
+            onView: null,
           ),
           const SizedBox(height: 12),
           _SyncStatCard(

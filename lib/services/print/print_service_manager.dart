@@ -1,8 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../core/di/injection_container.dart';
+import '../database/app_database.dart';
 import 'abstract_print_service.dart';
 import '../pos/pos_print_service.dart';
 import 'external_thermal_print_service.dart';
+import 'receipt_header.dart';
 
 enum PrinterType { inbuilt, external }
 
@@ -115,18 +118,28 @@ class PrintServiceManager extends ChangeNotifier implements AbstractPrintService
   /// Sends a short ESC/POS test receipt to whichever printer is currently
   /// resolved (respects the same fallback-to-inbuilt logic as real prints).
   Future<bool> testPrint() async {
-    final bytes = _buildTestReceipt();
+    final header = await _resolveTestHeader();
+    final bytes = _buildTestReceipt(header);
     final ok = await printRawBytes(bytes);
     if (ok) await cutPaper();
     return ok;
   }
 
-  Uint8List _buildTestReceipt() {
+  /// Kitchen/location name for the test receipt, falling back to the legacy
+  /// label when the terminal has no provisioned kitchen (or no DB yet).
+  Future<String> _resolveTestHeader() async {
+    try {
+      return await receiptHeaderName(getIt<AppDatabase>());
+    } catch (_) {
+      return 'AGCL CANTEEN';
+    }
+  }
+
+  Uint8List _buildTestReceipt(String header) {
     const init = [0x1B, 0x40]; // ESC @ (initialize)
     const alignCenter = [0x1B, 0x61, 0x01];
     const alignLeft = [0x1B, 0x61, 0x00];
-    final text = 'AGCL Canteen\nPrinter Test\n${DateTime.now()}\n\n\n'
-        .codeUnits;
+    final text = '$header\nPrinter Test\n${DateTime.now()}\n\n\n'.codeUnits;
     return Uint8List.fromList([
       ...init,
       ...alignCenter,
