@@ -1,6 +1,6 @@
-# AGC Canteen POS System — Standard Operating Procedures (SOPs)
+# AGCL Canteen POS System — Standard Operating Procedures (SOPs)
 
-This directory contains the operational Standard Operating Procedures (SOPs) for the **AGC Canteen POS System**. These documents establish standardized protocols across device lifecycle, hardware maintenance, daily meal operations, enrollment, data sync, and reconciliation.
+This directory contains the operational Standard Operating Procedures (SOPs) for the **AGCL Canteen POS System**. These documents establish standardized protocols across device lifecycle, hardware maintenance, daily meal operations, enrollment, data sync, and reconciliation.
 
 ---
 

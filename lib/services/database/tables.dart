@@ -319,6 +319,16 @@ class ActivityLogs extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// Retired: group vouchers are written as individual rows in [Orders].
+///
+/// Nothing reads or writes this table any more — the unified report queries, the
+/// sync stats and the order-code sequence no longer reference it.
+///
+/// It is deliberately still declared rather than dropped, because terminals
+/// upgraded from older builds may hold rows here and dropping the table would
+/// destroy that history silently. Once `SELECT COUNT(*) FROM group_orders` has
+/// been confirmed as zero on every device, this class, its two indexes and the
+/// quarantine step in the v8 migration can all be removed together.
 @TableIndex(name: 'idx_group_orders_sync_status', columns: {#syncStatus})
 @TableIndex(name: 'idx_group_orders_order_code', columns: {#orderCode})
 class GroupOrders extends Table {
@@ -414,8 +424,15 @@ class BioDataEntries extends Table {
   TextColumn get personnelName => text().nullable()();
   TextColumn get createdAt => text()();
   TextColumn get updatedAt => text()();
+
+  /// Stable identity for this capture, sent to the server as the idempotency key.
+  /// It must survive retries: regenerating it per attempt made the server insert
+  /// a duplicate row every time a push was retried.
+  TextColumn get uuid => text().nullable()();
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();
   TextColumn get syncUpdatedAt => text().nullable()();
+  IntColumn get syncAttempts => integer().withDefault(const Constant(0))();
+  TextColumn get lastSyncError => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};

@@ -5,6 +5,7 @@ import 'package:agc_canteen/core/utils/app_log.dart';
 import 'package:agc_canteen/models/staff.model.dart';
 import 'package:drift/drift.dart';
 import 'package:logger/logger.dart';
+import 'package:uuid/uuid.dart';
 import '../database/app_database.dart';
 import '../pos/pos_fingerprint_service.dart';
 import '../database/activity_log_service.dart';
@@ -105,7 +106,7 @@ class FingerprintAuthService {
       return null;
     }
 
-    final fingerprintId = DateTime.now().millisecondsSinceEpoch;
+    final fingerprintId = await _db.nextLocalId('bio_data_entries');
     final now = DateTime.now().toIso8601String();
     final base64data = result.templateBase64??"";
 
@@ -133,6 +134,9 @@ class FingerprintAuthService {
       personnelName: Value.absentIfNull(personnelName),
       createdAt: Value(now),
       updatedAt: Value(now),
+      // Stable idempotency key: this exact capture must map to exactly one
+      // server row no matter how many times the push is retried.
+      uuid: Value(const Uuid().v4()),
       syncStatus: const Value(0),
       syncUpdatedAt: const Value.absent(),
     );

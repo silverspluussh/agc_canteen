@@ -5,12 +5,12 @@
 | **Title** | Staff Biometric & NFC Credential Enrollment |
 | **Category** | Identity & Access Management |
 | **Target Roles** | Canteen Administrator, HR Operations, IT Support |
-| **Effective Version** | AGC Canteen POS v0.1.0+ |
+| **Effective Version** | AGCL Canteen POS v0.1.0+ |
 
 ---
 
 ## 1. Purpose & Scope
-This Standard Operating Procedure establishes the protocol for enrolling staff biometric fingerprint templates, linking NFC cards, and managing biometric lifecycle states (active, deactivated, deleted) in the AGC Canteen system.
+This Standard Operating Procedure establishes the protocol for enrolling staff biometric fingerprint templates, linking NFC cards, and managing biometric lifecycle states (active, deactivated, deleted) in the AGCL Canteen system.
 
 ---
 

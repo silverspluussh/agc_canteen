@@ -51,7 +51,7 @@ Future<void> _printReportReceipt(_ReportOrder order) async {
 
     centerOn();
     ln('====================');
-    ln('    AGC CANTEEN');
+    ln('    AGCL CANTEEN');
     if (isGroup) {
       ln('  [Group Order]');
     }
@@ -300,6 +300,7 @@ class _OrdersTabState extends ConsumerState<_OrdersTab>
         status: _statusFilter,
         synced: _syncedDbFilter(),
         mealType: _mealTypeFilter,
+        search: _query,
         limit: _ordersPageSize,
         offset: _offset,
       );
@@ -337,14 +338,13 @@ class _OrdersTabState extends ConsumerState<_OrdersTab>
     }
   }
 
+  /// Order code, meal type and status are filtered in SQL by [queryUnifiedOrdersPage]
+  /// so paging is not limited to the rows already loaded. Only the staff name is
+  /// matched here, because it lives in the name maps rather than the projection.
   List<_ReportOrder> _filter(List<_ReportOrder> orders) {
     return orders.where((o) {
-      final q = _query;
-      final matchQ = q.isEmpty ||
-          o.orderCode.toLowerCase().contains(q) ||
-          o.mealType.toLowerCase().contains(q) ||
-          (o.staffName?.toLowerCase().contains(q) ?? false) ||
-          o.status.toLowerCase().contains(q);
+      final q = _query.trim().toLowerCase();
+      final matchQ = q.isEmpty || (o.staffName?.toLowerCase().contains(q) ?? false);
       final matchS = _statusFilter == null || o.status == _statusFilter;
       final matchM = _mealTypeFilter == null || o.mealType == _mealTypeFilter;
       final matchSync = _syncFilter == null ||
@@ -367,6 +367,7 @@ class _OrdersTabState extends ConsumerState<_OrdersTab>
         status: _statusFilter,
         synced: _syncedDbFilter(),
         mealType: _mealTypeFilter,
+        search: _query,
         limit: null,
       );
 

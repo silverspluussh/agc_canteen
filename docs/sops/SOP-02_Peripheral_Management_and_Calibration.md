@@ -5,7 +5,7 @@
 | **Title** | Peripheral Management (Printer, Scanner & NFC) |
 | **Category** | Hardware & Peripherals |
 | **Target Roles** | IT Support, Canteen Supervisor, POS Operator |
-| **Effective Version** | AGC Canteen POS v0.1.0+ |
+| **Effective Version** | AGCL Canteen POS v0.1.0+ |
 
 ---
 

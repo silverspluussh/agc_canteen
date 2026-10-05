@@ -35,12 +35,53 @@ class RemoteToLocalSyncService {
     _jobs.add(SyncJob(name: name, execute: execute));
   }
 
+  /// The in-flight whole-sync run, if any.
+  Future<void>? _currentRun;
+
+  /// Guards a full run so two triggers cannot execute the same jobs at once.
+  ///
+  /// Startup fires syncDepartmentsOnly() and syncAll() back to back, and the
+  /// manual sync screen can be opened while a background run is still going.
+  /// Without this, the same job ran concurrently with itself and interleaved
+  /// upserts and delete-not-in passes over the same tables — which is exactly
+  /// how a partial page can delete rows a concurrent job just wrote.
+  ///
+  /// Concurrent callers coalesce: they wait for the run in flight and then
+  /// perform a single follow-up run rather than piling up.
   Future<void> syncAll({bool background = true}) async {
     if (background) {
-      unawaited(_runAll());
+      unawaited(_guardedRun());
     } else {
-      await _runAll();
+      await _guardedRun();
     }
+  }
+
+  Future<void> _guardedRun() async {
+    // Check-and-set with no await in between, so two callers cannot both pass.
+    while (_currentRun != null) {
+      await _currentRun;
+    }
+
+    final run = _runAll();
+    _currentRun = run;
+
+    try {
+      await run;
+    } finally {
+      _currentRun = null;
+    }
+  }
+
+  /// Runs [action] once any in-flight whole-sync run has finished.
+  ///
+  /// A single-entity refresh triggered while the full sync is mid-flight used to
+  /// race it over the same tables.
+  Future<void> _afterCurrentRun(Future<void> Function() action) async {
+    while (_currentRun != null) {
+      await _currentRun;
+    }
+
+    await action();
   }
 
   Future<void> _runAll() async {
@@ -58,26 +99,60 @@ class RemoteToLocalSyncService {
     _logger.i('RemoteToLocalSyncService: sync completed');
   }
 
+  /// Removes local rows the server no longer has — but only when this pull is
+  /// provably the whole dataset.
+  ///
+  /// These endpoints are read one page at a time (`limit` + `offset: 0`). When
+  /// the server holds more rows than the page, everything past it is missing from
+  /// [remoteIds], and `deleteXNotIn` then treated those perfectly valid rows as
+  /// deleted: data disappeared on every sync and came back only if the operator
+  /// happened to filter differently.
+  ///
+  /// A short page proves we saw everything, so purging is safe. A full page means
+  /// there may be more, so the cleanup is skipped and the gap is logged instead of
+  /// silently destroying rows.
+  Future<void> _purgeMissingRows({
+    required String label,
+    required int received,
+    required int limit,
+    required Set<int> remoteIds,
+    required Future<int> Function(Set<int>) purge,
+  }) async {
+    if (received >= limit) {
+      _logger.w(
+        'RemoteToLocalSyncService: $label pull filled its page ($received of $limit); '
+        'skipping stale-row cleanup because rows beyond this page would be deleted',
+      );
+      return;
+    }
+
+    final deleted = await purge(remoteIds);
+
+    if (deleted > 0) {
+      _logger.i('RemoteToLocalSyncService: removed $deleted stale $label records');
+    }
+  }
+
   Future<void> syncStaffOnly() async {
-    await _syncStaff();
+    await _afterCurrentRun(() => _syncStaff());
   }
 
   Future<void> syncMealTypesOnly() async {
-    await _syncMealTypes();
+    await _afterCurrentRun(() => _syncMealTypes());
   }
 
   Future<void> syncBioDataOnly() async {
-    await _syncBioData();
+    await _afterCurrentRun(() => _syncBioData());
   }
 
   /// Refreshes the cached list of orderable work functions. Safe to call often;
   /// the server returns only functions that can be ordered right now.
   Future<void> syncWorkFunctionsOnly() async {
-    await _syncWorkFunctions();
+    await _afterCurrentRun(_syncWorkFunctions);
   }
 
   Future<void> syncCardsOnly() async {
-    await _syncCards();
+    await _afterCurrentRun(() => _syncCards());
   }
 
   Future<void> syncVisitorsOnly() async {
@@ -97,7 +172,7 @@ class RemoteToLocalSyncService {
   }
 
   Future<void> syncDepartmentsOnly() async {
-    await _syncDepartments();
+    await _afterCurrentRun(_syncDepartments);
   }
 
   // ─── Departments Sync ──────────────────────────────────────
@@ -137,12 +212,13 @@ class RemoteToLocalSyncService {
             if (id != null && id != 0) remoteIds.add(id);
           }
         }
-        final deleted = await _db.deleteDepartmentsNotIn(remoteIds);
-        if (deleted > 0) {
-          _logger.i(
-            'RemoteToLocalSyncService: removed $deleted stale department records',
-          );
-        }
+        await _purgeMissingRows(
+          label: 'department',
+          received: list!.length,
+          limit: 100,
+          remoteIds: remoteIds,
+          purge: _db.deleteDepartmentsNotIn,
+        );
       });
 
       _logger.i('RemoteToLocalSyncService: departments sync completed');
@@ -368,12 +444,13 @@ class RemoteToLocalSyncService {
             if (id != null && id != 0) remoteIds.add(id);
           }
         }
-        final deleted = await _db.deleteMealTypesNotIn(remoteIds);
-        if (deleted > 0) {
-          _logger.i(
-            'RemoteToLocalSyncService: removed $deleted stale meal type records',
-          );
-        }
+        await _purgeMissingRows(
+          label: 'meal type',
+          received: mealTypesList!.length,
+          limit: 30,
+          remoteIds: remoteIds,
+          purge: _db.deleteMealTypesNotIn,
+        );
       });
 
       _logger.i('RemoteToLocalSyncService: meal types sync completed');
@@ -567,12 +644,13 @@ class RemoteToLocalSyncService {
             if (id != null && id != 0) remoteIds.add(id);
           }
         }
-        final deleted = await _db.deleteCardsNotIn(remoteIds);
-        if (deleted > 0) {
-          _logger.i(
-            'RemoteToLocalSyncService: removed $deleted stale NFC card records',
-          );
-        }
+        await _purgeMissingRows(
+          label: 'NFC card',
+          received: list!.length,
+          limit: 100,
+          remoteIds: remoteIds,
+          purge: _db.deleteCardsNotIn,
+        );
       });
 
       _logger.i('RemoteToLocalSyncService: NFC cards sync completed');
@@ -638,6 +716,7 @@ class RemoteToLocalSyncService {
       '/pos/profiles',
       queryParameters: {'status': 'active', 'limit': 100, 'offset': 0},
       builder: (d) {
+        print('fetchAllPosProfiles: $d');
         return d;
       },
     );
@@ -1298,10 +1377,13 @@ class RemoteToLocalSyncService {
             if (id != null && id != 0) remoteIds.add(id);
           }
         }
-        final deleted = await _db.deleteShiftsNotIn(remoteIds);
-        if (deleted > 0) {
-          _logger.i('RemoteToLocalSyncService: removed $deleted stale shifts');
-        }
+        await _purgeMissingRows(
+          label: 'shift',
+          received: list!.length,
+          limit: 50,
+          remoteIds: remoteIds,
+          purge: _db.deleteShiftsNotIn,
+        );
       });
 
       _logger.i('RemoteToLocalSyncService: shifts sync completed');

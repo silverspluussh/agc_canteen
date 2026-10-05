@@ -6,7 +6,8 @@ import 'package:agc_canteen/views/widgets/avatarglow.widget.dart';
 import 'package:agc_canteen/views/widgets/department_search_field.widget.dart';
 import 'package:agc_canteen/views/widgets/voucher_card.widget.dart';
 import 'package:flutter/material.dart';
-import 'package:agc_canteen/views/widgets/pos_mode_switcher.widget.dart';
+import 'package:agc_canteen/views/widgets/pos_mode_indicator.widget.dart';
+import 'package:agc_canteen/views/widgets/fingerprint_init_recovery.widget.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../controllers/auth_controller.dart';
 import '../../controllers/auth_settings_controller.dart';
@@ -24,6 +25,8 @@ class SingleAuthPosPage extends ConsumerStatefulWidget {
 class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
   bool _fingerprintReady = false;
   bool _fingerprintInitFailed = false;
+  /// Guards against stacking init attempts; a retry takes ~20s.
+  bool _fingerprintInitInProgress = false;
   int? _selectedDepartmentId;
 
   @override
@@ -71,6 +74,53 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
       );
       if (mounted) setState(() => _fingerprintInitFailed = true);
     }
+  }
+
+  /// Re-runs fingerprint initialisation after a failed first attempt.
+  ///
+  /// Safe to call repeatedly: the auth service short-circuits once the SDK is up
+  /// and clears its own initialised flag when an attempt throws, so a retry
+  /// genuinely re-probes rather than replaying a cached failure. Any auth session
+  /// already in flight is dropped first so the page returns to a clean start.
+  Future<void> _retryFingerprint() async {
+    if (_fingerprintInitInProgress) return;
+
+    setState(() {
+      _fingerprintInitInProgress = true;
+      // Back to the pre-init state so the spinner gives feedback during the retry.
+      _fingerprintReady = false;
+      _fingerprintInitFailed = false;
+    });
+
+    ref.read(authProvider.notifier).reset();
+
+    try {
+      await _initFingerprint();
+    } finally {
+      if (mounted) setState(() => _fingerprintInitInProgress = false);
+    }
+
+    if (!mounted) return;
+
+    final ready = _fingerprintReady;
+    appLog(
+      ready
+          ? '[StaffAuthPage] Fingerprint reload succeeded'
+          : '[StaffAuthPage] Fingerprint reload failed again',
+      name: 'POS_AUTH',
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        content: Text(
+          ready
+              ? 'Fingerprint reader ready.'
+              : 'Fingerprint reader still unavailable. Check the connection '
+                    'and try again.',
+        ),
+      ),
+    );
   }
 
   Future<int?> _effectiveDepartmentId() async {
@@ -186,6 +236,10 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
             ),
 
             actions: [
+              FingerprintReloadAction(
+                busy: _fingerprintInitInProgress,
+                onPressed: _retryFingerprint,
+              ),
               IconButton(
                 onPressed: () => Navigator.pushNamed(context, '/settings'),
                 icon: Icon(Icons.settings, size: 30, color: Colors.white),
@@ -214,7 +268,7 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 10),
-                  const PosModeSwitcher(),
+                  const PosModeIndicator(),
                   const SizedBox(height: 12),
                   DepartmentSearchField(
                     value: _selectedDepartmentId,
@@ -238,6 +292,14 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
                               style: TextStyle(fontSize: 16),
                             ),
                           ],
+                          // The auth buttons below are gated on _fingerprintReady,
+                          // so without this the page renders blank after a failed
+                          // init: no buttons, no spinner, no explanation.
+                          if (_fingerprintInitFailed)
+                            FingerprintInitFailureCard(
+                              busy: _fingerprintInitInProgress,
+                              onRetry: _retryFingerprint,
+                            ),
                           if (state.isUnauthenticated &&
                               !state.isAuthenticating &&
                               !state.hasError &&

@@ -5,7 +5,7 @@
 | **Title** | Reconciliation, Reporting & Fault Troubleshooting |
 | **Category** | Audit, Reporting & Support |
 | **Target Roles** | Canteen Supervisor, IT Support Specialist, System Auditor |
-| **Effective Version** | AGC Canteen POS v0.1.0+ |
+| **Effective Version** | AGCL Canteen POS v0.1.0+ |
 
 ---
 

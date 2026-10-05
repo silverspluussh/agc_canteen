@@ -92,11 +92,6 @@ final reportSummaryProvider =
         createdAtToInclusive: bounds.toInclusive,
         createdAtToExclusive: bounds.toExclusive,
       );
-      final groupAgg = await db.aggregateGroupOrders(
-        createdAtFrom: bounds.from,
-        createdAtToInclusive: bounds.toInclusive,
-        createdAtToExclusive: bounds.toExclusive,
-      );
       final mealTypeCount = await db.countMealTypesInRange(
         createdAtFrom: bounds.from,
         createdAtToInclusive: bounds.toInclusive,
@@ -104,8 +99,10 @@ final reportSummaryProvider =
       );
 
       return _ReportSummary(
-        totalOrders: orderAgg.count + groupAgg.count,
-        totalRevenue: orderAgg.revenue + groupAgg.revenue,
+        // Group vouchers are ordinary rows in `orders`; the retired
+        // `group_orders` table contributed nothing to these totals.
+        totalOrders: orderAgg.count,
+        totalRevenue: orderAgg.revenue,
         totalMealTypes: mealTypeCount,
         totalStaff: (await db.getAllStaff()).length,
       );

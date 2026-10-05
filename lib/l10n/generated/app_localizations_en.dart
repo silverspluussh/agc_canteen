@@ -9,10 +9,10 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appTitle => 'AGC Canteen';
+  String get appTitle => 'AGCL Canteen';
 
   @override
-  String get appDescription => 'Android POS canteen system for AGC';
+  String get appDescription => 'Android POS canteen system for AGCL';
 
   @override
   String get login => 'Login';

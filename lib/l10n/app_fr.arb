@@ -1,7 +1,7 @@
 {
   "@@locale": "fr",
-  "appTitle": "AGC Cantine",
-  "appDescription": "Système de caisse Android pour la cantine AGC",
+  "appTitle": "AGCL Cantine",
+  "appDescription": "Système de caisse Android pour la cantine AGCL",
 
   "@_AUTH": {},
   "login": "Connexion",

@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:uuid/uuid.dart';
 import 'tables.dart';
 import '../../models/biodata_fingerprint_summary.dart';
 import '../../models/work_function.model.dart';
@@ -43,8 +44,12 @@ class AppDatabase extends _$AppDatabase {
   /// Max push attempts before an order is parked in the terminal state (4).
   static const int _maxOrderSyncAttempts = 5;
 
+  /// Same cap for bio-data rows: without it a permanently-bad payload was
+  /// re-pushed on every sync pass and the error log grew without bound.
+  static const int _maxBioDataSyncAttempts = 5;
+
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -89,6 +94,16 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(workFunctions);
         await m.createTable(functionOrders);
       }
+      if (from < 8) {
+        await m.addColumn(bioDataEntries, bioDataEntries.uuid);
+        await m.addColumn(bioDataEntries, bioDataEntries.syncAttempts);
+        await m.addColumn(bioDataEntries, bioDataEntries.lastSyncError);
+        // Backfill a stable idempotency key for rows captured before this
+        // version. Without it those rows would keep pushing a null uuid and the
+        // server would mint a fresh one per attempt.
+        await _backfillBioDataUuids();
+        await _quarantineLegacyGroupOrders();
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
@@ -96,6 +111,35 @@ class AppDatabase extends _$AppDatabase {
       await customStatement('PRAGMA synchronous = NORMAL');
     },
   );
+
+  /// Gives every pre-existing bio-data row a durable uuid, derived from its own
+  /// id so the value is deterministic and never collides.
+  Future<void> _backfillBioDataUuids() async {
+    final missing = await (select(bioDataEntries)
+          ..where((t) => t.uuid.isNull()))
+        .get();
+
+    for (final row in missing) {
+      await (update(bioDataEntries)..where((t) => t.id.equals(row.id))).write(
+        BioDataEntriesCompanion(
+          uuid: Value(_uuidV4()),
+        ),
+      );
+    }
+  }
+
+  /// Group ordering is retired: the POS writes each voucher as an individual
+  /// normal order, so nothing pushes this table any more. Rows left over from
+  /// older builds are parked in the terminal state (4) rather than sitting at 0
+  /// forever, which made the sync screen report a permanently unsynced queue
+  /// that could never drain. The table itself is removed in a later cleanup.
+  Future<void> _quarantineLegacyGroupOrders() async {
+    await customStatement(
+      'UPDATE group_orders SET sync_status = 4 WHERE sync_status != 2',
+    );
+  }
+
+  static String _uuidV4() => const Uuid().v4();
 
   Future<void> _createPerformanceIndexes() async {
     await customStatement(
@@ -156,8 +200,7 @@ class AppDatabase extends _$AppDatabase {
       await delete(contractorStaffTable).go();
       await delete(contractors).go();
       await delete(activityLogs).go();
-      await delete(groupOrders).go();
-    });
+      });
   }
 
   Future<Map<String, int>> getSyncStats() async {
@@ -175,7 +218,6 @@ class AppDatabase extends _$AppDatabase {
       'orders': await _countUnsyncedOrders(),
       'pos_devices': await _countUnsyncedPosDevices(),
       'bio_data': await _countUnsyncedBioData(),
-      'group_orders': await _countUnsyncedGroupOrders(),
     };
   }
 
@@ -272,14 +314,6 @@ class AppDatabase extends _$AppDatabase {
     final query = selectOnly(posDevices)
       ..addColumns([count])
       ..where(posDevices.syncStatus.isNotValue(2));
-    return (await query.getSingle()).read(count) ?? 0;
-  }
-
-  Future<int> _countUnsyncedGroupOrders() async {
-    final count = countAll();
-    final query = selectOnly(groupOrders)
-      ..addColumns([count])
-      ..where(groupOrders.syncStatus.isNotValue(2));
     return (await query.getSingle()).read(count) ?? 0;
   }
 
@@ -1334,6 +1368,33 @@ class AppDatabase extends _$AppDatabase {
 
   // ─── Orders ────────────────────────────────────────────────
 
+  /// Allocates a local primary key that cannot collide.
+  ///
+  /// These ids used to be `DateTime.now().millisecondsSinceEpoch`, which repeats
+  /// whenever two rows are written inside the same millisecond — rapid scans, a
+  /// group batch written in a loop, or two unawaited syncs finishing together.
+  /// The primary key conflict then threw and the row was silently lost, usually
+  /// surfacing to the operator as "failed to print voucher".
+  ///
+  /// MAX(id) on an integer primary key is an O(1) lookup in SQLite, so this stays
+  /// cheap enough to call on every insert, and it is immune to clock skew and
+  /// to same-millisecond writes. Tables that also sync carry their own uuid
+  /// column, which is what the server deduplicates on.
+  Future<int> nextLocalId(String table) async {
+    final row = await customSelect(
+      'SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM $table',
+    ).getSingle();
+
+    return row.read<int>('next_id');
+  }
+
+  /// Allocates [count] consecutive ids in one round trip, for batch inserts.
+  Future<List<int>> nextLocalIds(String table, int count) async {
+    if (count <= 0) return const [];
+    final first = await nextLocalId(table);
+    return List<int>.generate(count, (index) => first + index);
+  }
+
   Future<void> insertOrder(
     OrdersCompanion order, {
     InsertMode mode = InsertMode.insert,
@@ -1409,31 +1470,6 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
-  Future<({int count, double revenue})> aggregateGroupOrders({
-    String? createdAtFrom,
-    String? createdAtToInclusive,
-    String? createdAtToExclusive,
-  }) async {
-    final query = selectOnly(groupOrders)
-      ..addColumns([groupOrders.id.count(), groupOrders.total.sum()]);
-    if (createdAtFrom != null) {
-      query.where(groupOrders.createdAt.isBiggerOrEqualValue(createdAtFrom));
-    }
-    if (createdAtToInclusive != null) {
-      query.where(
-        groupOrders.createdAt.isSmallerOrEqualValue(createdAtToInclusive),
-      );
-    }
-    if (createdAtToExclusive != null) {
-      query.where(groupOrders.createdAt.isSmallerThanValue(createdAtToExclusive));
-    }
-    final row = await query.getSingle();
-    return (
-      count: row.read(groupOrders.id.count()) ?? 0,
-      revenue: row.read(groupOrders.total.sum()) ?? 0.0,
-    );
-  }
-
   Future<int> countMealTypesInRange({
     String? createdAtFrom,
     String? createdAtToInclusive,
@@ -1459,6 +1495,7 @@ class AppDatabase extends _$AppDatabase {
     String? status,
     bool? synced,
     String? mealType,
+    String? search,
     required List<Variable> variables,
   }) {
     final clauses = <String>[];
@@ -1483,6 +1520,20 @@ class AppDatabase extends _$AppDatabase {
       clauses.add('meal_type = ?');
       variables.add(Variable<String>(mealType));
     }
+    // Search is applied here rather than in Dart: filtering the loaded page only
+    // ever matched the newest 50 rows, so anything older was unsearchable.
+    // Only columns carried by the unified projection are searchable; staff name
+    // is resolved client-side from the name maps.
+    if (search != null && search.trim().isNotEmpty) {
+      final pattern = '%${search.trim().toLowerCase()}%';
+      clauses.add(
+        '(LOWER(order_code) LIKE ? OR LOWER(meal_type) LIKE ? OR LOWER(status) LIKE ?)',
+      );
+      variables
+        ..add(Variable<String>(pattern))
+        ..add(Variable<String>(pattern))
+        ..add(Variable<String>(pattern));
+    }
     return clauses;
   }
 
@@ -1495,26 +1546,19 @@ class AppDatabase extends _$AppDatabase {
     String? status,
     bool? synced,
     String? mealType,
+    String? search,
     int? limit = 50,
     int offset = 0,
   }) async {
     final orderVars = <Variable>[];
-    final groupVars = <Variable>[];
     final orderClauses = _reportOrderFilterClauses(
       createdAtFrom: createdAtFrom,
       createdAtToInclusive: createdAtToInclusive,
       status: status,
       synced: synced,
       mealType: mealType,
+      search: search,
       variables: orderVars,
-    );
-    final groupClauses = _reportOrderFilterClauses(
-      createdAtFrom: createdAtFrom,
-      createdAtToInclusive: createdAtToInclusive,
-      status: status,
-      synced: synced,
-      mealType: mealType,
-      variables: groupVars,
     );
 
     final limitVars = <Variable>[
@@ -1530,10 +1574,6 @@ SELECT * FROM (
   SELECT id, order_code, status, order_type, meal_type, total, group_count,
          sync_status, description, created_at, ordered_by_id, employee_type, 0 AS is_group
   FROM orders ${_whereSql(orderClauses)}
-  UNION ALL
-  SELECT id, order_code, status, order_type, meal_type, total, group_count,
-         sync_status, description, created_at, NULL AS ordered_by_id, NULL AS employee_type, 1 AS is_group
-  FROM group_orders ${_whereSql(groupClauses)}
 )
 ORDER BY created_at DESC
 ${limit != null ? 'LIMIT ? OFFSET ?' : ''}
@@ -1541,8 +1581,8 @@ ${limit != null ? 'LIMIT ? OFFSET ?' : ''}
 
     final rows = await customSelect(
       sql,
-      variables: [...orderVars, ...groupVars, ...limitVars],
-      readsFrom: {orders, groupOrders},
+      variables: [...orderVars, ...limitVars],
+      readsFrom: {orders},
     ).get();
 
     return rows.map((row) => UnifiedReportOrderRow.fromData(row.data)).toList();
@@ -1556,7 +1596,6 @@ ${limit != null ? 'LIMIT ? OFFSET ?' : ''}
     String? mealType,
   }) async {
     final orderVars = <Variable>[];
-    final groupVars = <Variable>[];
     final orderClauses = _reportOrderFilterClauses(
       createdAtFrom: createdAtFrom,
       createdAtToInclusive: createdAtToInclusive,
@@ -1565,28 +1604,18 @@ ${limit != null ? 'LIMIT ? OFFSET ?' : ''}
       mealType: mealType,
       variables: orderVars,
     );
-    final groupClauses = _reportOrderFilterClauses(
-      createdAtFrom: createdAtFrom,
-      createdAtToInclusive: createdAtToInclusive,
-      status: status,
-      synced: synced,
-      mealType: mealType,
-      variables: groupVars,
-    );
 
     final sql =
         '''
 SELECT COUNT(*) AS c FROM (
   SELECT id FROM orders ${_whereSql(orderClauses)}
-  UNION ALL
-  SELECT id FROM group_orders ${_whereSql(groupClauses)}
 )
 ''';
 
     final row = await customSelect(
       sql,
-      variables: [...orderVars, ...groupVars],
-      readsFrom: {orders, groupOrders},
+      variables: [...orderVars],
+      readsFrom: {orders},
     ).getSingle();
     return row.read<int>('c');
   }
@@ -1602,17 +1631,11 @@ SELECT COUNT(*) AS c FROM (
       createdAtFrom: createdAtFrom,
       createdAtToInclusive: createdAtToInclusive,
     );
-    final groupAgg = await aggregateGroupOrders(
-      createdAtFrom: createdAtFrom,
-      createdAtToInclusive: createdAtToInclusive,
-    );
-
     if (status == null && synced == null && mealType == null) {
-      return orderAgg.revenue + groupAgg.revenue;
+      return orderAgg.revenue;
     }
 
     final orderVars = <Variable>[];
-    final groupVars = <Variable>[];
     final orderClauses = _reportOrderFilterClauses(
       createdAtFrom: createdAtFrom,
       createdAtToInclusive: createdAtToInclusive,
@@ -1621,28 +1644,18 @@ SELECT COUNT(*) AS c FROM (
       mealType: mealType,
       variables: orderVars,
     );
-    final groupClauses = _reportOrderFilterClauses(
-      createdAtFrom: createdAtFrom,
-      createdAtToInclusive: createdAtToInclusive,
-      status: status,
-      synced: synced,
-      mealType: mealType,
-      variables: groupVars,
-    );
 
     final sql =
         '''
 SELECT COALESCE(SUM(total), 0) AS revenue FROM (
   SELECT total FROM orders ${_whereSql(orderClauses)}
-  UNION ALL
-  SELECT total FROM group_orders ${_whereSql(groupClauses)}
 )
 ''';
 
     final row = await customSelect(
       sql,
-      variables: [...orderVars, ...groupVars],
-      readsFrom: {orders, groupOrders},
+      variables: [...orderVars],
+      readsFrom: {orders},
     ).getSingle();
     return row.read<double>('revenue');
   }
@@ -1793,39 +1806,6 @@ SELECT COALESCE(SUM(total), 0) AS revenue FROM (
 
   // ─── Group Orders ───────────────────────────────────────────
 
-  Future<void> insertGroupOrder(
-    GroupOrdersCompanion order, {
-    InsertMode mode = InsertMode.insert,
-  }) async {
-    await into(groupOrders).insert(order, mode: mode);
-  }
-
-  Future<void> deleteGroupOrder(int id) =>
-      (delete(groupOrders)..where((t) => t.id.equals(id))).go();
-
-  Future<List<GroupOrder>> getAllGroupOrders() => select(groupOrders).get();
-  Future<GroupOrder?> getGroupOrder(int id) =>
-      (select(groupOrders)..where((t) => t.id.equals(id))).getSingleOrNull();
-
-  Future<List<GroupOrder>> getUnsyncedGroupOrders() =>
-      (select(groupOrders)..where((t) => t.syncStatus.isNotValue(2))).get();
-
-  Future<void> markGroupOrderSynced(int id) =>
-      (update(groupOrders)..where((t) => t.id.equals(id))).write(
-        GroupOrdersCompanion(
-          syncStatus: const Value(2),
-          syncUpdatedAt: Value(DateTime.now().toIso8601String()),
-        ),
-      );
-
-  Future<void> markGroupOrderFailed(int id) =>
-      (update(groupOrders)..where((t) => t.id.equals(id))).write(
-        GroupOrdersCompanion(
-          syncStatus: const Value(3),
-          syncUpdatedAt: Value(DateTime.now().toIso8601String()),
-        ),
-      );
-
   // ─── PosDevices ────────────────────────────────────────────
   // ─── Only one PosDevice is stored at a time ──────────────────
 
@@ -1869,10 +1849,17 @@ SELECT COALESCE(SUM(total), 0) AS revenue FROM (
 
   // ─── BioDataEntries ────────────────────────────────
 
+  /// Inserts a locally captured fingerprint.
+  ///
+  /// A uuid is stamped here when the caller did not supply one, so no code path
+  /// can create a row whose push is not idempotent.
   Future<void> insertBioData(
     BioDataEntriesCompanion entry, {
     InsertMode mode = InsertMode.insert,
-  }) => into(bioDataEntries).insert(entry, mode: mode);
+  }) => into(bioDataEntries).insert(
+        entry.uuid.present ? entry : entry.copyWith(uuid: Value(_uuidV4())),
+        mode: mode,
+      );
 
   Future<void> updateBioData(int id, BioDataEntriesCompanion entry) =>
       (update(bioDataEntries)..where((t) => t.id.equals(id))).write(entry);
@@ -1922,27 +1909,50 @@ SELECT COALESCE(SUM(total), 0) AS revenue FROM (
             ..where((t) => t.visitorId.equals(visitorId) & t.isActive.equals(true)))
           .get();
 
+  /// Rows still owed to the server: pending (0) or retryable (3), excluding
+  /// anything that has exhausted [_maxBioDataSyncAttempts] (parked at 4).
   Future<List<BioDataEntry>> getUnsyncedBioData() =>
-      (select(bioDataEntries)..where((t) => t.syncStatus.isNotValue(2))).get();
+      (select(bioDataEntries)
+            ..where(
+              (t) =>
+                  t.syncStatus.isIn([0, 3]) &
+                  t.syncAttempts.isSmallerThanValue(_maxBioDataSyncAttempts),
+            )
+            ..orderBy([(t) => OrderingTerm(expression: t.createdAt)]))
+          .get();
 
   Future<void> markBioDataSynced(int id) =>
       (update(bioDataEntries)..where((t) => t.id.equals(id))).write(
         BioDataEntriesCompanion(
           syncStatus: const Value(2),
           syncUpdatedAt: Value(DateTime.now().toIso8601String()),
+          lastSyncError: const Value(null),
         ),
       );
 
-  Future<void> markBioDataFailed(int id) =>
-      (update(bioDataEntries)..where((t) => t.id.equals(id))).write(
-        BioDataEntriesCompanion(
-          syncStatus: const Value(3),
-          syncUpdatedAt: Value(DateTime.now().toIso8601String()),
-        ),
-      );
+  /// Mirrors [markOrderFailed]: counts the attempt and parks the row in the
+  /// terminal state (4) once the cap is reached, so a permanently-bad payload
+  /// stops being retried on every sync pass.
+  Future<void> markBioDataFailed(int id, {String? error}) async {
+    final entry = await getBioData(id);
+    if (entry == null) return;
+    final attempts = entry.syncAttempts + 1;
+    final terminal = attempts >= _maxBioDataSyncAttempts;
+    await (update(bioDataEntries)..where((t) => t.id.equals(id))).write(
+      BioDataEntriesCompanion(
+        syncStatus: Value(terminal ? 4 : 3),
+        syncAttempts: Value(attempts),
+        lastSyncError: Value(error),
+        syncUpdatedAt: Value(DateTime.now().toIso8601String()),
+      ),
+    );
+  }
 
   Future<void> upsertBioData(BioDataEntriesCompanion entry) =>
-      into(bioDataEntries).insert(entry, mode: InsertMode.insertOrReplace);
+      into(bioDataEntries).insert(
+        entry.uuid.present ? entry : entry.copyWith(uuid: Value(_uuidV4())),
+        mode: InsertMode.insertOrReplace,
+      );
 
   Future<int> deleteBioDataNotIn(Set<int> keepIds) async {
     if (keepIds.isEmpty) {
@@ -2006,37 +2016,26 @@ SELECT COALESCE(SUM(total), 0) AS revenue FROM (
   Future<int> getActivityLogCount() => activityLogs.count().getSingle();
 
   /// Returns the next order code in the format ASG{typeChar}{posId}-{kitchenId}-{seq}
-  /// by scanning existing [orders] and [group_orders] for the highest
+  /// by scanning existing [orders] for the highest
   /// numeric suffix for the given POS and kitchen, and incrementing it.
+  ///
+  /// Group vouchers are rows in [orders] like any other order, so the retired
+  /// `group_orders` table is not consulted here.
   Future<String> nextOrderCode(String typeChar, int posId, int kitchenId) async {
     return transaction(() async {
       final prefix = 'ASG$typeChar$posId-$kitchenId-';
-      int maxCode = 0;
 
-      int? parseMax(List<QueryRow> rows) {
-        if (rows.isEmpty) return null;
-        final val = rows.first.data.values.firstOrNull;
-        return val is int ? val : (val is num ? val.toInt() : null);
-      }
-
-      final orderRows = await customSelect(
-        'SELECT MAX(CAST(SUBSTR(order_code, ?) AS INTEGER)) FROM orders WHERE order_code LIKE ?',
+      final row = await customSelect(
+        'SELECT MAX(CAST(SUBSTR(order_code, ?) AS INTEGER)) AS max_seq '
+        'FROM orders WHERE order_code LIKE ?',
         variables: [
           Variable<int>(prefix.length + 1),
           Variable<String>('$prefix%'),
         ],
-      ).get();
-      final groupOrderRows = await customSelect(
-        'SELECT MAX(CAST(SUBSTR(order_code, ?) AS INTEGER)) FROM group_orders WHERE order_code LIKE ?',
-        variables: [
-          Variable<int>(prefix.length + 1),
-          Variable<String>('$prefix%'),
-        ],
-      ).get();
+      ).getSingleOrNull();
 
-      final orderMax = parseMax(orderRows) ?? 0;
-      final groupMax = parseMax(groupOrderRows) ?? 0;
-      maxCode = orderMax > groupMax ? orderMax : groupMax;
+      final value = row?.data['max_seq'];
+      final maxCode = value is num ? value.toInt() : 0;
 
       final next = maxCode + 1;
       return '$prefix${next.toString().padLeft(4, '0')}';

@@ -5,7 +5,7 @@
 | **Title** | Manual, À La Carte & Group Order Processing |
 | **Category** | POS Operations |
 | **Target Roles** | POS Cashier, Canteen Operator, Canteen Supervisor |
-| **Effective Version** | AGC Canteen POS v0.1.0+ |
+| **Effective Version** | AGCL Canteen POS v0.1.0+ |
 
 ---
 

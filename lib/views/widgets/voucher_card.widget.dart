@@ -31,7 +31,7 @@ class VoucherCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text(
-              'ASG CANTEEN',
+              'AGCL CANTEEN',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
             ),
             const SizedBox(height: 4),

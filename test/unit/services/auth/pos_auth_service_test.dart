@@ -54,6 +54,7 @@ void main() {
       createdAt: DateTime.now().toIso8601String(),
       updatedAt: DateTime.now().toIso8601String(),
       syncStatus: 0,
+      syncAttempts: 0,
     );
   }
 

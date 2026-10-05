@@ -125,7 +125,7 @@ class PrintServiceManager extends ChangeNotifier implements AbstractPrintService
     const init = [0x1B, 0x40]; // ESC @ (initialize)
     const alignCenter = [0x1B, 0x61, 0x01];
     const alignLeft = [0x1B, 0x61, 0x00];
-    final text = 'ASG Canteen\nPrinter Test\n${DateTime.now()}\n\n\n'
+    final text = 'AGCL Canteen\nPrinter Test\n${DateTime.now()}\n\n\n'
         .codeUnits;
     return Uint8List.fromList([
       ...init,

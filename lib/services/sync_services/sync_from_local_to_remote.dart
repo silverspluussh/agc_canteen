@@ -5,7 +5,6 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:agc_canteen/core/utils/app_log.dart';
 import 'package:logger/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:uuid/uuid.dart';
 import '../database/app_database.dart';
 import '../auth/admin_auth_service.dart';
 import '../../core/di/injection_container.dart';
@@ -162,7 +161,7 @@ class LocalToRemoteSyncService {
           'status': order.status,
           // rate/total are intentionally omitted: the server snapshots them
           // from the work function so they can never be forged.
-          'createdAt': '',
+          'createdAt': order.createdAt,
         });
         rows.add(order);
       }
@@ -408,11 +407,17 @@ class LocalToRemoteSyncService {
         for (final referenceId in groups.keys) {
           final entries = groups[referenceId]!;
           final payload = {
-            'uuid': const Uuid().v4(),
             'referenceId': referenceId,
             'employeeType': employeeType,
             'bioDatas': entries
-                .map((e) => {'finger': e.finger, 'data': e.dataBase64})
+                // uuid is the server-side idempotency key and must be the value
+                // minted when the capture was stored locally, not a fresh one per
+                // attempt, or every retry inserts a duplicate fingerprint.
+                .map((e) => {
+                      'finger': e.finger,
+                      'data': e.dataBase64,
+                      if (e.uuid != null) 'uuid': e.uuid,
+                    })
                 .toList(),
           };
 
@@ -432,7 +437,7 @@ class LocalToRemoteSyncService {
             );
             errors.add('BioData $employeeType $referenceId: $e');
             for (final entry in entries) {
-              await _db.markBioDataFailed(entry.id);
+              await _db.markBioDataFailed(entry.id, error: e.toString());
             }
           }
         }
@@ -444,11 +449,14 @@ class LocalToRemoteSyncService {
         final staff = await _db.getStaff(staffId);
         final employeeType = staff?.employeeType ?? 'permanent';
         final payload = {
-          'uuid': const Uuid().v4(),
           'referenceId': staffId,
           'employeeType': employeeType,
           'bioDatas': entries
-              .map((e) => {'finger': e.finger, 'data': e.dataBase64})
+              .map((e) => {
+                    'finger': e.finger,
+                    'data': e.dataBase64,
+                    if (e.uuid != null) 'uuid': e.uuid,
+                  })
               .toList(),
         };
 
@@ -466,7 +474,7 @@ class LocalToRemoteSyncService {
           _logger.w('Failed to push bio-data for staff $staffId: $e');
           errors.add('BioData staff $staffId: $e');
           for (final entry in entries) {
-            await _db.markBioDataFailed(entry.id);
+            await _db.markBioDataFailed(entry.id, error: e.toString());
           }
         }
       }
@@ -522,8 +530,8 @@ class LocalToRemoteSyncService {
       'isAlaCarte': false,
       'posProfileId': posId,
       'kitchenId': kitchenId,
-      'quantity': 1,
-      'createdAt': '',
+      // total is advisory: the server reprices from the meal type.
+      'createdAt': order.createdAt,
     };
   }
 

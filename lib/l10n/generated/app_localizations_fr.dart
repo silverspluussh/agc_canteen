@@ -9,10 +9,10 @@ class AppLocalizationsFr extends AppLocalizations {
   AppLocalizationsFr([String locale = 'fr']) : super(locale);
 
   @override
-  String get appTitle => 'AGC Cantine';
+  String get appTitle => 'AGCL Cantine';
 
   @override
-  String get appDescription => 'Système de caisse Android pour la cantine AGC';
+  String get appDescription => 'Système de caisse Android pour la cantine AGCL';
 
   @override
   String get login => 'Connexion';

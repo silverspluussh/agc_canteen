@@ -50,7 +50,7 @@ class _AdminLoginPageState extends ConsumerState<AdminLoginPage> {
                     Image.asset('assets/app_logo.png', width: 200),
                     const SizedBox(height: 20),
                     Text(
-                      "AGC Canteen",
+                      "AGCL Canteen",
                       style: Theme.of(context).textTheme.headlineMedium
                           ?.copyWith(fontWeight: FontWeight.bold),
                     ),

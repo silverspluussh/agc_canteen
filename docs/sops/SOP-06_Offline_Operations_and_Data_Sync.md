@@ -5,12 +5,12 @@
 | **Title** | Offline Mode & Data Synchronization Protocol |
 | **Category** | Data Management & Network Operations |
 | **Target Roles** | POS Cashier, Canteen Supervisor, IT Support |
-| **Effective Version** | AGC Canteen POS v0.1.0+ |
+| **Effective Version** | AGCL Canteen POS v0.1.0+ |
 
 ---
 
 ## 1. Purpose & Scope
-This Standard Operating Procedure governs the synchronization of data between local POS SQLite storage and the central AGC cloud server. It defines protocols for offline meal issuance, pending data uploads, and remote master data downloads.
+This Standard Operating Procedure governs the synchronization of data between local POS SQLite storage and the central AGCL cloud server. It defines protocols for offline meal issuance, pending data uploads, and remote master data downloads.
 
 ---
 

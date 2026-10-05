@@ -1,7 +1,7 @@
 {
   "@@locale": "es",
-  "appTitle": "AGC Comedor",
-  "appDescription": "Sistema POS Android para el comedor AGC",
+  "appTitle": "AGCL Comedor",
+  "appDescription": "Sistema POS Android para el comedor AGCL",
 
   "@_AUTH": {},
   "login": "Iniciar sesión",

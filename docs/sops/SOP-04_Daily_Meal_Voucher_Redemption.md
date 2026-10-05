@@ -5,12 +5,12 @@
 | **Title** | Daily Meal Voucher Redemption (Fingerprint, NFC & PIN) |
 | **Category** | Daily Operations |
 | **Target Roles** | POS Cashier, Canteen Operator |
-| **Effective Version** | AGC Canteen POS v0.1.0+ |
+| **Effective Version** | AGCL Canteen POS v0.1.0+ |
 
 ---
 
 ## 1. Purpose & Scope
-This Standard Operating Procedure governs the primary point-of-sale workflow for authenticating eligible AGC staff and issuing automated meal voucher tickets during scheduled breakfast, lunch, dinner, and shift meal windows.
+This Standard Operating Procedure governs the primary point-of-sale workflow for authenticating eligible AGCL staff and issuing automated meal voucher tickets during scheduled breakfast, lunch, dinner, and shift meal windows.
 
 ---
 

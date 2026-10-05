@@ -373,12 +373,9 @@ class AuthController extends Notifier<AuthState> {
       posId: posDevice.id,
     );
 
-    final orders = await db.getAllFunctionOrders();
-    final orderCode = orders
-        .where((o) => o.id == orderId)
-        .map((o) => o.orderCode)
-        .firstOrNull ??
-        '';
+    // Read the one row, not the whole table: getAllFunctionOrders() loaded every
+    // function order this terminal had ever cached just to find one by id.
+    final orderCode = (await db.getFunctionOrder(orderId))?.orderCode ?? '';
 
     unawaited(sync.syncFunctionOrders());
 
@@ -459,7 +456,7 @@ class AuthController extends Notifier<AuthState> {
 
       final now = DateTime.now();
       final nowIso = now.toIso8601String();
-      final orderId = DateTime.now().millisecondsSinceEpoch;
+      final orderId = await db.nextLocalId('orders');
       final posDevice = await _loadRegisteredPosDevice(db);
       if (posDevice == null) {
         state = state.copyWith(
@@ -641,7 +638,7 @@ class AuthController extends Notifier<AuthState> {
 
       final now = DateTime.now();
       final nowIso = now.toIso8601String();
-      final orderId = DateTime.now().millisecondsSinceEpoch;
+      final orderId = await db.nextLocalId('orders');
       final posDevice = await _loadRegisteredPosDevice(db);
       if (posDevice == null) {
         state = state.copyWith(
@@ -746,7 +743,7 @@ class AuthController extends Notifier<AuthState> {
 
     centerOn();
     ln('====================');
-    ln('    ASG CANTEEN');
+    ln('    AGCL CANTEEN');
     ln('====================');
     centerOn();
     boldOn();

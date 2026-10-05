@@ -1,7 +1,7 @@
 {
   "@@locale": "en",
-  "appTitle": "AGC Canteen",
-  "appDescription": "Android POS canteen system for AGC",
+  "appTitle": "AGCL Canteen",
+  "appDescription": "Android POS canteen system for AGCL",
 
   "@_AUTH": {},
   "login": "Login",

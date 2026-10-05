@@ -93,7 +93,7 @@ class FunctionOrderRepository {
     required int posId,
   }) async {
     final now = DateTime.now();
-    final id = now.millisecondsSinceEpoch;
+    final id = await db.nextLocalId('function_orders');
     final orderCode = await db.nextFunctionOrderCode(
       functionId: function.id,
       posId: posId,

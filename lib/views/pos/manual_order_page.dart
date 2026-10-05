@@ -40,7 +40,7 @@ Future<void> _printManualReceipt({
 
     centerOn();
     ln('====================');
-    ln('    AGC CANTEEN');
+    ln('    AGCL CANTEEN');
     if (isGroup) ln('   [Group Order]');
     ln('====================');
     centerOn();
@@ -107,7 +107,7 @@ class ManualOrderPage extends ConsumerWidget {
                 const Text(
                   'Work function orders are voucher-only.\n\n'
                   'Scan an NFC card or use a fingerprint to take the order, '
-                  'or switch back to General mode.',
+                  'or switch back to General mode in Settings > Order Mode.',
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -243,7 +243,7 @@ class _SingleOrderTabState extends State<_SingleOrderTab> {
         }
       }
       final now = DateTime.now().toIso8601String();
-      final orderId = DateTime.now().millisecondsSinceEpoch;
+      final orderId = await db.nextLocalId('orders');
       final orderCode = await _generateOrderCode();
       if (orderCode == null) {
         if (!mounted) return;
@@ -528,6 +528,10 @@ class _GroupOrderTabState extends State<_GroupOrderTab> {
 
       final orderCodes = <String>[];
 
+      // One allocation for the whole batch: `millisecondsSinceEpoch + i` could
+      // still repeat whenever the loop ran faster than the millisecond clock.
+      final batchIds = await db.nextLocalIds('orders', _totalQty);
+
       await db.transaction(() async {
         for (int i = 0; i < _totalQty; i++) {
           final orderCode = await db.nextOrderCode('', pos.id, pos.kitchenId!);
@@ -535,7 +539,7 @@ class _GroupOrderTabState extends State<_GroupOrderTab> {
 
           await db.insertOrder(
             OrdersCompanion(
-              id: Value(DateTime.now().millisecondsSinceEpoch + i),
+              id: Value(batchIds[i]),
               uuid: Value(const Uuid().v4()),
               orderCode: Value(orderCode),
               status: const Value('completed'),

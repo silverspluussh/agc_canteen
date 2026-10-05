@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../controllers/admin_auth_controller.dart';
 import '../../controllers/auth_controller.dart';
 import '../../controllers/auth_settings_controller.dart';
+import '../../controllers/pos_mode_controller.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../core/di/injection_container.dart';
 import '../../core/di/securestorage.dart';
@@ -43,6 +44,20 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         _appVersion = 'v${info.version} (${info.buildNumber})';
       });
     }
+  }
+
+
+  String _orderModeSubtitle(PosModeState mode) {
+    if (!mode.isFunctionMode) {
+      return 'General standard meal vouchers';
+    }
+
+    final function = mode.selectedFunction;
+    if (function == null) {
+      return 'Function no work function selected';
+    }
+
+    return 'Function ${function.functionName}';
   }
 
   Future<void> _requireAdminAccessFor(VoidCallback onApproved) async {
@@ -490,6 +505,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final colorScheme = theme.colorScheme;
     final l10n = AppLocalizations.of(context);
 
+    // Drives the Order Mode tile subtitle so the list shows the flow this terminal
+    // is actually set to, not just a link to change it.
+    final posMode = ref.watch(posModeControllerProvider);
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: colorScheme.primary,
@@ -533,6 +552,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
           // ── Preferences ────────────────────────────────────────────────────
           _SectionHeader(label: l10n.preferences),
+          _SettingsTile(
+            icon: Icons.swap_horiz,
+            title: "Order Mode",
+            subtitle: _orderModeSubtitle(posMode),
+            onTap: () => Navigator.of(context).pushNamed('/order-mode'),
+          ),
           _SettingsTile(
             icon: Icons.device_hub_outlined,
             title: l10n.posSettings, // "POS Settings"

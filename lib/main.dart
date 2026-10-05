@@ -14,12 +14,14 @@ import 'core/theme/app_theme.dart';
 import 'l10n/generated/app_localizations.dart';
 import 'views/splash/auth_gate.dart';
 import 'views/settings/settings_page.dart';
+import 'views/settings/order_mode_settings_page.dart';
 import 'views/staff/staff_management_page.dart';
 import 'views/settings/sync_page.dart';
 import 'views/pos/pos_settings_page.dart';
 import 'views/pos/manual_order_page.dart';
 import 'views/auth/group_order_auth_pos.dart';
 import 'views/settings/printer_settings_page.dart';
+
 
 final localeProvider = StateProvider<Locale>((ref) {
   return const Locale('en');
@@ -38,10 +40,7 @@ void main() async => runZoneGuarded(() async {
   final savedLang = prefs.getString('app_language') ?? 'en';
   final savedLocale = Locale(savedLang);
 
-  // Trust the on-prem internal CA before any network access.
   await DioClient.configureTrust();
-
-  // Register dependencies before any network access.
   await setupServiceLocator();
 
   unawaited(getIt<PrintServiceManager>().ensureLoaded());
@@ -109,7 +108,7 @@ class MyApp extends ConsumerWidget {
       dark: AppTheme.dark,
       initial: savedThemeMode ?? AppTheme.initialMode,
       builder: (theme, darkTheme) => MaterialApp(
-        title: 'ASG Canteen',
+        title: 'AGCL Canteen',
         debugShowCheckedModeBanner: false,
         theme: theme,
         darkTheme: darkTheme,
@@ -144,6 +143,9 @@ Route<dynamic>? _onGenerateRoute(RouteSettings settings) {
       break;
     case '/settings':
       page = const SettingsPage();
+      break;
+    case '/order-mode':
+      page = const OrderModeSettingsPage();
       break;
     case '/staff':
       page = const StaffManagementPage();

@@ -46,6 +46,9 @@ class _AuthGateState extends ConsumerState<AuthGate> {
     }
 
     if (mounted) {
+      // Departments first so the picker has data to render, then the full sync.
+      // RemoteToLocalSyncService serialises these, so the departments job does not
+      // run concurrently with itself.
       unawaited(() async {
         await syncService.syncDepartmentsOnly();
         if (mounted) ref.invalidate(departmentsProvider);

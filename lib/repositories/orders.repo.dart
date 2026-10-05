@@ -2,57 +2,6 @@ import 'package:logger/logger.dart';
 import '../core/network/network_api_dio.dart';
 import '../core/utils/app_log.dart';
 
-class OrderItemRequest {
-  final String mealName;
-  final int mealId;
-  final double unitPrice;
-  final int quantity;
-
-  const OrderItemRequest({
-    required this.mealName,
-    required this.mealId,
-    required this.unitPrice,
-    required this.quantity,
-  });
-
-  Map<String, dynamic> toJson() => {
-        'mealName': mealName,
-        'mealId': mealId,
-        'unitPrice': unitPrice,
-        'quantity': quantity,
-      };
-}
-
-class CreateGroupOrderRequest {
-  final String orderType;
-  final String mealType;
-  final double total;
-  final int orderedBy;
-  final int groupCount;
-  final String? description;
-  final List<OrderItemRequest> items;
-
-  const CreateGroupOrderRequest({
-    required this.orderType,
-    required this.mealType,
-    required this.total,
-    required this.orderedBy,
-    required this.groupCount,
-    this.description,
-    required this.items,
-  });
-
-  Map<String, dynamic> toJson() => {
-        'orderType': orderType,
-        'mealType': mealType,
-        'total': total,
-        'orderedBy': orderedBy,
-        'groupCount': groupCount,
-        'description': description ?? '',
-        'items': items.map((i) => i.toJson()).toList(),
-      };
-}
-
 class OrderService {
   final NetworkAPI _networkAPI;
   final Logger _logger;
@@ -145,14 +94,26 @@ class OrderService {
   }
 
   
+  /// Online single-order push.
+  ///
+  /// The payload must match CreateOrderWithOneItemRequest: mealTypeId, kitchenId,
+  /// employeeType and posProfileId are all required, and `total` is ignored by the
+  /// server (it reprices from the meal type). The previous shape sent a mealType
+  /// *name*, an items[] array and no ids, so every call 422'd.
+  ///
+  /// Orders are normally written locally and pushed by the sync service; this
+  /// path exists for callers that already hold a live server connection.
   Future<Map<String, dynamic>> createOrder({
     required String orderType,
-    required String mealType,
-    required double total,
+    required int mealTypeId,
+    required int kitchenId,
+    required String employeeType,
     required int orderedBy,
+    required int posProfileId,
     String? description,
     bool isAlaCarte = false,
-    required List<OrderItemRequest> items,
+    String? uuid,
+    String? createdAt,
   }) async {
     try {
       final result = await _networkAPI.postData(
@@ -160,12 +121,15 @@ class OrderService {
         builder: (data) => data as Map<String, dynamic>,
         data: {
           'orderType': orderType,
-          'mealType': mealType,
-          'total': total,
+          'mealTypeId': mealTypeId,
+          'kitchenId': kitchenId,
+          'employeeType': employeeType,
           'orderedBy': orderedBy,
+          'posProfileId': posProfileId,
           'description': description ?? '',
           'isAlaCarte': isAlaCarte,
-          'items': items.map((i) => i.toJson()).toList(),
+          'uuid': ?uuid,
+          'createdAt': ?createdAt,
         },
       );
       _logger.i('POS order created: $result');

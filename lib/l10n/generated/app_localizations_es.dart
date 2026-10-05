@@ -9,10 +9,10 @@ class AppLocalizationsEs extends AppLocalizations {
   AppLocalizationsEs([String locale = 'es']) : super(locale);
 
   @override
-  String get appTitle => 'AGC Comedor';
+  String get appTitle => 'AGCL Comedor';
 
   @override
-  String get appDescription => 'Sistema POS Android para el comedor AGC';
+  String get appDescription => 'Sistema POS Android para el comedor AGCL';
 
   @override
   String get login => 'Iniciar sesión';

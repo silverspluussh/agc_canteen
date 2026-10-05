@@ -5,12 +5,12 @@
 | **Title** | Terminal Provisioning & Kitchen Profile Setup |
 | **Category** | Setup & Configuration |
 | **Target Roles** | IT Support, System Administrator, Canteen Administrator |
-| **Effective Version** | AGC Canteen POS v0.1.0+ |
+| **Effective Version** | AGCL Canteen POS v0.1.0+ |
 
 ---
 
 ## 1. Purpose & Scope
-This Standard Operating Procedure defines the step-by-step process for provisioning, configuring, and binding a new or factory-reset Android POS terminal to its designated kitchen dining facility within the AGC network.
+This Standard Operating Procedure defines the step-by-step process for provisioning, configuring, and binding a new or factory-reset Android POS terminal to its designated kitchen dining facility within the AGCL network.
 
 ---
 
@@ -27,7 +27,7 @@ This Standard Operating Procedure defines the step-by-step process for provision
 ### Step 3.1: Terminal Unboxing & Initial Boot
 1. Power on the POS terminal.
 2. Ensure battery level is above 50% or connected to mains AC power.
-3. Launch the **AGC Canteen POS** application.
+3. Launch the **AGCL Canteen POS** application.
 4. Verify the splash screen initializes without database corruption or hardware SDK errors.
 
 ### Step 3.2: Administrator Authentication
@@ -37,7 +37,7 @@ This Standard Operating Procedure defines the step-by-step process for provision
 
 ### Step 3.3: POS Device Profile Binding
 1. Navigate to **Settings → POS Selection**.
-2. The terminal queries the central backend server for available POS profiles registered under AGC.
+2. The terminal queries the central backend server for available POS profiles registered under AGCL.
 3. Select the specific POS Terminal Profile representing the physical terminal and target kitchen location (e.g., *Main Plant Kitchen - POS 01*).
 4. Confirm profile binding. This registers the device UUID, kitchen association, and kitchen ID locally.
 

@@ -1,6 +1,6 @@
 # agc_canteen
 
-An Android POS canteen system to support the AGC canteen.
+An Android POS canteen system to support the AGCL canteen.
 
 ## Configuration
 

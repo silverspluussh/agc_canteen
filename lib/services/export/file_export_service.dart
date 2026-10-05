@@ -5,7 +5,7 @@ class FileExportService {
       MethodChannel('com.silverware.agc_canteen/file_export');
 
   /// Saves [bytes] as [fileName] in the device's public Downloads folder
-  /// (inside an "AGC Canteen" subfolder) and returns the saved path.
+  /// (inside an "AGCL Canteen" subfolder) and returns the saved path.
   Future<String> saveToDownloads({
     required String fileName,
     required List<int> bytes,

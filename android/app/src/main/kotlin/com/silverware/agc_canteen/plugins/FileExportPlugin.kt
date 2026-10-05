@@ -16,7 +16,7 @@ class FileExportPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     private var appContext: Context? = null
 
     companion object {
-        private const val SUBFOLDER = "AGC Canteen"
+        private const val SUBFOLDER = "AGCL Canteen"
     }
 
     override fun onAttachedToEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {

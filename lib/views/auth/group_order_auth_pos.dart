@@ -8,6 +8,7 @@ import 'package:agc_canteen/core/enums/employee_type.enum.dart';
 import 'package:agc_canteen/core/theme/app_colors.dart';
 import 'package:agc_canteen/l10n/generated/app_localizations.dart';
 import 'package:agc_canteen/views/widgets/app_buttons.widget.dart';
+import 'package:agc_canteen/views/widgets/fingerprint_init_recovery.widget.dart';
 import 'package:agc_canteen/views/widgets/department_search_field.widget.dart';
 import 'package:agc_canteen/views/widgets/groupselector.widget.dart';
 import 'package:agc_canteen/views/widgets/voucher_card.widget.dart';
@@ -35,6 +36,8 @@ class GroupOrderAuthPos extends ConsumerStatefulWidget {
 class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
   bool _fingerprintReady = false;
   bool _fingerprintInitFailed = false;
+  /// Guards against stacking init attempts; a retry takes ~20s.
+  bool _fingerprintInitInProgress = false;
   int? _selectedDepartmentId;
   int _groupCount = 1;
   bool _isPlacingOrders = false;
@@ -124,11 +127,56 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
       );
       if (mounted) {
         setState(() {
-          _fingerprintInitFailed = true;
           _fingerprintReady = false;
+          _fingerprintInitFailed = true;
         });
       }
     }
+  }
+
+  /// Re-runs fingerprint initialisation after a failed first attempt.
+  ///
+  /// Mirrors SingleAuthPosPage: the reader initialises once on open, and a slow
+  /// kernel probe or late-enumerating device otherwise leaves the operator stuck
+  /// on a page whose auth buttons never appear.
+  Future<void> _retryFingerprint() async {
+    if (_fingerprintInitInProgress) return;
+
+    setState(() {
+      _fingerprintInitInProgress = true;
+      _fingerprintReady = false;
+      _fingerprintInitFailed = false;
+    });
+
+    ref.read(authProvider.notifier).reset();
+
+    try {
+      await _initFingerprint();
+    } finally {
+      if (mounted) setState(() => _fingerprintInitInProgress = false);
+    }
+
+    if (!mounted) return;
+
+    final ready = _fingerprintReady;
+    appLog(
+      ready
+          ? '[GroupOrderAuthPos] Fingerprint reload succeeded'
+          : '[GroupOrderAuthPos] Fingerprint reload failed again',
+      name: 'POS_AUTH',
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        content: Text(
+          ready
+              ? 'Fingerprint reader ready.'
+              : 'Fingerprint reader still unavailable. Check the connection '
+                    'and try again.',
+        ),
+      ),
+    );
   }
 
   Future<void> _startAuth() async {
@@ -354,6 +402,11 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
       final typeChar = staff.entityType?.entityName.substring(0, 1) ?? '';
       final orderCodes = <String>[];
 
+      // Ids are allocated up front: `millisecondsSinceEpoch + i` repeats whenever
+      // the loop outruns the millisecond clock, and the primary key conflict
+      // threw mid-transaction, losing the whole group.
+      final batchIds = await db.nextLocalIds('orders', _groupCount);
+
       // Generate codes and insert inside one transaction for atomic sequencing
       await db.transaction(() async {
         for (int i = 0; i < _groupCount; i++) {
@@ -367,7 +420,7 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
 
           await db.insertOrder(
             OrdersCompanion(
-              id: Value(DateTime.now().millisecondsSinceEpoch + i),
+              id: Value(batchIds[i]),
               uuid: Value(const Uuid().v4()),
               orderCode: Value(orderCode),
               status: const Value('completed'),
@@ -469,7 +522,7 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
 
       centerOn();
       ln('====================');
-      ln('    AGC CANTEEN');
+      ln('    AGCL CANTEEN');
       ln('   [Group Order]');
       ln('====================');
       centerOn();
@@ -506,6 +559,13 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
           leading: BackButton(color: Colors.white),
 
           title: Text("Group Order Page"),
+          actions: [
+            FingerprintReloadAction(
+              busy: _fingerprintInitInProgress,
+              onPressed: _retryFingerprint,
+            ),
+            const SizedBox(width: 12),
+          ],
         ),
 
         body: SafeArea(
@@ -555,6 +615,14 @@ class _GroupOrderAuthPosState extends ConsumerState<GroupOrderAuthPos> {
                             style: TextStyle(fontSize: 16),
                           ),
                         ],
+                        // Without this the page renders blank after a failed
+                        // init, because the auth buttons below are gated on
+                        // _fingerprintReady.
+                        if (_fingerprintInitFailed)
+                          FingerprintInitFailureCard(
+                            busy: _fingerprintInitInProgress,
+                            onRetry: _retryFingerprint,
+                          ),
                         if (state.isUnauthenticated &&
                             !state.isAuthenticating &&
                             !state.hasError &&

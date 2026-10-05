@@ -2,6 +2,9 @@ package com.silverware.agc_canteen.plugins
 
 import android.app.Activity
 import android.graphics.Bitmap
+import android.os.ParcelFileDescriptor
+import android.system.ErrnoException
+import android.system.OsConstants
 import android.util.Base64
 import android.util.Log
 import androidx.annotation.NonNull
@@ -152,8 +155,39 @@ class FingerprintPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, EventC
         }
     }
 
+    /**
+     * Diagnostic probe: attempt the same open() the vendor SDK performs, from
+     * this exact process (UID + SELinux domain), and report the errno.
+     * EACCES = permission/SELinux denial, ENOENT = node missing for us,
+     * EBUSY = held exclusively elsewhere. Read-write open is immediately
+     * closed; spidev allows concurrent opens so this cannot disturb the SDK.
+     */
+    private fun probeSpiDevice(): String {
+        return try {
+            ParcelFileDescriptor.open(
+                File("/dev/spidev2.0"),
+                ParcelFileDescriptor.MODE_READ_WRITE
+            ).close()
+            "OK"
+        } catch (e: ErrnoException) {
+            val name = when (e.errno) {
+                OsConstants.EACCES -> "EACCES"
+                OsConstants.ENOENT -> "ENOENT"
+                OsConstants.EBUSY -> "EBUSY"
+                OsConstants.EPERM -> "EPERM"
+                else -> "errno=${e.errno}"
+            }
+            "$name (${e.message})"
+        } catch (e: Exception) {
+            "${e.javaClass.simpleName} (${e.message})"
+        }
+    }
+
     private fun initSdkAndLaunch() {
         val ctx = activity ?: return
+        // Log.i, not Log.d: this device's global log level is INFO ([log.tag]=I),
+        // so DEBUG lines never reach logcat here.
+        Log.i("FingerprintPlugin", "SPI probe /dev/spidev2.0 from app process: ${probeSpiDevice()}")
         ensureOfflineLicenseFile()?.let { file ->
             Log.d("FingerprintPlugin", "Offline license ready at ${file.absolutePath}, SDK will use it (fallback online if invalid)")
         }
