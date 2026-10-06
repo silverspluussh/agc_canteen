@@ -84,7 +84,13 @@ class NetworkAPI {
             'No internet connection. Please check your connection and try again.',
           );
         default:
-          throw Exception(e.message);
+          final status = e.response?.statusCode;
+          final body = e.response?.data;
+          throw Exception(
+            '${e.message}'
+            '${status != null ? ' (HTTP $status)' : ''}'
+            '${body != null ? ' — $body' : ''}',
+          );
       }
     }
   }

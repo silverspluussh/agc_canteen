@@ -183,7 +183,7 @@ class RemoteToLocalSyncService {
   }
 
   Future<void> syncContractorStaffOnly() async {
-    await _syncContractorStaff();
+    await _afterCurrentRun(_syncContractorStaff);
   }
 
   Future<void> syncDependentsOnly() async {
@@ -968,6 +968,10 @@ class RemoteToLocalSyncService {
 
   // ─── ContractorStaff Sync ──────────────────────────────────
 
+  /// Page size for the contractor staff pull. The server slices the result;
+  /// we loop until a short (or non-advancing) page proves we saw everything.
+  static const int _contractorStaffPageSize = 200;
+
   Future<bool> _syncContractorStaff() async {
     try {
       _logger.i(
@@ -978,60 +982,115 @@ class RemoteToLocalSyncService {
       final posKitchenId = posDevices.isNotEmpty
           ? posDevices.first.kitchenId
           : null;
-      final responseData = await _networkAPI.getData(
-        '/hr/contractor-staff/sync',
-        queryParameters: {
-         
-          if (posKitchenId != null && posKitchenId != 0)
-            'kitchenId': posKitchenId,
-        },
-        builder: (data) => data,
-      );
 
-      List<dynamic>? list;
-      if (responseData is List) {
-        list = responseData;
-      } else if (responseData is Map &&
-          responseData['contractorStaffs'] is List) {
-        list = responseData['contractorStaffs'] as List<dynamic>;
-      }
+      final remoteIds = <int>{};
+      var offset = 0;
+      var received = 0;
+      var upserted = 0;
+      var failed = 0;
+      var reachedEnd = false;
 
-      if (list == null || list.isEmpty) {
-        _logger.w(
-          'RemoteToLocalSyncService: no remote contractor staff available',
+      while (true) {
+        final responseData = await _networkAPI.getData(
+          '/hr/contractor-staff/sync',
+          queryParameters: {
+            if (posKitchenId != null && posKitchenId != 0)
+              'kitchenId': posKitchenId,
+            'limit': _contractorStaffPageSize,
+            'offset': offset,
+          },
+          builder: (data) => data,
         );
-        return false;
+
+        final page = _extractContractorStaffList(responseData);
+        if (page == null) {
+          // Unexpected envelope: keep whatever we have locally rather than
+          // purging on a partial read.
+          _logger.w(
+            'RemoteToLocalSyncService: unexpected contractor staff payload '
+            '(${responseData.runtimeType})',
+          );
+          return false;
+        }
+        if (page.isEmpty) {
+          reachedEnd = true;
+          break;
+        }
+
+        received += page.length;
+        var newThisPage = 0;
+
+        await _db.transaction(() async {
+          for (final item in page) {
+            if (item is! Map<String, dynamic>) continue;
+            // Track every id the server returned, even if the local upsert
+            // fails: purge must only remove rows the server no longer has.
+            final id = _safeParseInt(item['id']);
+            if (id != null && id != 0 && remoteIds.add(id)) {
+              newThisPage++;
+            }
+            if (await _upsertContractorStaffData(item)) {
+              upserted++;
+            } else {
+              failed++;
+            }
+          }
+        });
+
+        // A short page means the end. A full page that added no new ids means
+        // the server ignored `offset` (older build) and already returned
+        // everything — also the end, and safe to purge.
+        if (page.length < _contractorStaffPageSize || newThisPage == 0) {
+          reachedEnd = true;
+          break;
+        }
+
+        offset += _contractorStaffPageSize;
       }
 
-      await _db.transaction(() async {
-        final remoteIds = <int>{};
-        for (final item in list!) {
-          if (item is Map<String, dynamic>) {
-            await _upsertContractorStaffData(item);
-            final id = _safeParseInt(item['id']);
-            if (id != null && id != 0) remoteIds.add(id);
-          }
-        }
-        final deleted = await _db.deleteContractorStaffNotIn(remoteIds);
-        if (deleted > 0) {
-          _logger.i(
-            'RemoteToLocalSyncService: removed $deleted stale contractor staff',
-          );
-        }
-      });
+      var deleted = 0;
+      if (reachedEnd) {
+        deleted = await _db.deleteContractorStaffNotIn(remoteIds);
+      }
 
-      _logger.i('RemoteToLocalSyncService: contractor staff sync completed');
+      _logger.i(
+        'RemoteToLocalSyncService: contractor staff sync completed '
+        '(received=$received, upserted=$upserted, failed=$failed, '
+        'removed=$deleted, complete=$reachedEnd)',
+      );
       return true;
-    } catch (e) {
-      _logger.w('RemoteToLocalSyncService: contractor staff fetch failed ($e)');
+    } catch (e, stack) {
+      _logger.e(
+        'RemoteToLocalSyncService: contractor staff fetch failed ($e)',
+        stackTrace: stack,
+      );
       return false;
     }
   }
 
-  Future<void> _upsertContractorStaffData(Map<String, dynamic> map) async {
+  /// Accepts every envelope the server has used: a bare list, a list under
+  /// `contractorStaffs`, under `data`, or nested `data.contractorStaffs`.
+  List<dynamic>? _extractContractorStaffList(dynamic responseData) {
+    if (responseData is List) return responseData;
+    if (responseData is Map) {
+      if (responseData['contractorStaffs'] is List) {
+        return responseData['contractorStaffs'] as List<dynamic>;
+      }
+      if (responseData['data'] is List) {
+        return responseData['data'] as List<dynamic>;
+      }
+      final inner = responseData['data'];
+      if (inner is Map && inner['contractorStaffs'] is List) {
+        return inner['contractorStaffs'] as List<dynamic>;
+      }
+    }
+    return null;
+  }
+
+  Future<bool> _upsertContractorStaffData(Map<String, dynamic> map) async {
     try {
       final id = _safeParseInt(map['id']) ?? 0;
-      if (id == 0) return;
+      if (id == 0) return false;
 
       final now = DateTime.now().toIso8601String();
       final companion = ContractorStaffTableCompanion(
@@ -1112,11 +1171,13 @@ class RemoteToLocalSyncService {
           }
         }
       }
+      return true;
     } catch (e, stack) {
       _logger.e(
         'RemoteToLocalSyncService: failed to upsert contractor staff: $e',
         stackTrace: stack,
       );
+      return false;
     }
   }
 

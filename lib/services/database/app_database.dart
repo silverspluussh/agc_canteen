@@ -58,10 +58,15 @@ class AppDatabase extends _$AppDatabase {
       await _createPerformanceIndexes();
     },
     onUpgrade: (m, from, to) async {
+      // A database created before ContractorStaffTable existed (the schema was
+      // reset in an earlier release) has no upgrade path that creates it, so
+      // contractor-staff sync silently failed on such terminals. Ensure the
+      // table exists before any of its column migrations below run.
+      final contractorStaffTableCreated = await _ensureContractorStaffTable(m);
       if (from < 2) {
         await _createPerformanceIndexes();
       }
-      if (from < 3) {
+      if (from < 3 && !contractorStaffTableCreated) {
         await m.addColumn(
           contractorStaffTable,
           contractorStaffTable.allowGroupOrder,
@@ -81,7 +86,12 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(dependents, dependents.contractorStaffId);
         await m.addColumn(dependents, dependents.parentStatus);
         await m.createTable(dependentVisits);
-        await m.addColumn(contractorStaffTable, contractorStaffTable.dailyQuota);
+        if (!contractorStaffTableCreated) {
+          await m.addColumn(
+            contractorStaffTable,
+            contractorStaffTable.dailyQuota,
+          );
+        }
         await m.addColumn(visitors, visitors.dailyQuota);
       }
       if (from < 6) {
@@ -111,6 +121,22 @@ class AppDatabase extends _$AppDatabase {
       await customStatement('PRAGMA synchronous = NORMAL');
     },
   );
+
+  /// Creates [contractorStaffTable] when an upgraded database is missing it.
+  ///
+  /// [Migrator.createTable] is not idempotent, so check sqlite_master first.
+  /// Returns true when the table had to be created (its full current schema is
+  /// created, so the later `addColumn` migrations for it must be skipped).
+  Future<bool> _ensureContractorStaffTable(Migrator m) async {
+    final existing = await customSelect(
+      "SELECT name FROM sqlite_master "
+      "WHERE type = 'table' AND name = 'contractor_staff_table'",
+    ).getSingleOrNull();
+    if (existing != null) return false;
+
+    await m.createTable(contractorStaffTable);
+    return true;
+  }
 
   /// Gives every pre-existing bio-data row a durable uuid, derived from its own
   /// id so the value is deterministic and never collides.
