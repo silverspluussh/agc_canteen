@@ -4,13 +4,19 @@ import 'package:get_it/get_it.dart';
 
 import '../../services/auth/admin_auth_service.dart';
 import '../../services/auth/fingerprint_auth_service.dart';
+import '../../services/auth/nfc_auth_service.dart';
 import '../../services/auth/pos_auth_service.dart';
+import '../../services/nfc/nfc_service.dart';
 import '../../services/database/activity_log_service.dart';
 import '../../services/database/app_database.dart';
 import '../../services/database/database_service.dart';
+import '../../services/export/file_export_service.dart';
 import '../../repositories/biodata.repo.dart';
 import '../../repositories/orders.repo.dart';
 import '../../services/sync_services/sync_from_remote_to_local.dart';
+import '../../services/sync_services/sync_pull_gate.dart';
+import '../../services/sync_services/sync_scheduler.dart';
+import '../../services/sync_services/sync_version_service.dart';
 import '../../services/pos/pos_card_service.dart';
 import '../../services/pos/pos_device_service.dart';
 import '../../services/pos/device_info_service.dart';
@@ -40,9 +46,6 @@ Future<void> setupServiceLocator() async {
       () => PosFingerprintService());
   getIt.registerLazySingleton<PosScannerService>(() => PosScannerService());
   getIt.registerLazySingleton<PrintServiceManager>(() => PrintServiceManager());
-  try {
-    await getIt<PrintServiceManager>().loadPrinterType();
-  } catch (_) {}
   getIt.registerLazySingleton<PosCardService>(() => PosCardService());
   getIt.registerLazySingleton<PosDeviceService>(() => PosDeviceService());
   getIt.registerLazySingleton<DeviceInfoService>(() => DeviceInfoService());
@@ -56,10 +59,24 @@ Future<void> setupServiceLocator() async {
         fingerprint: getIt<PosFingerprintService>(),
       ));
 
-  getIt.registerLazySingleton<PosAuthService>(() => PosAuthService(
+  getIt.registerLazySingleton<NfcService>(() => NfcService());
+
+  getIt.registerLazySingleton<NfcAuthService>(() => NfcAuthService(
         db: getIt<AppDatabase>(),
-        fingerprintAuth: getIt<FingerprintAuthService>(),
+        nfc: getIt<NfcService>(),
       ));
+
+  getIt.registerLazySingleton<PosAuthService>(() => PosAuthService(
+        fingerprintAuth: getIt<FingerprintAuthService>(),
+        nfcAuth: getIt<NfcAuthService>(),
+      ));
+
+  getIt.registerLazySingleton<Connectivity>(() => Connectivity());
+
+  Future<bool> isOnline() async {
+    final results = await getIt<Connectivity>().checkConnectivity();
+    return results.any((r) => r != ConnectivityResult.none);
+  }
 
   getIt.registerLazySingleton<LocalToRemoteSyncService>(() => LocalToRemoteSyncService(
         db: getIt<AppDatabase>(),
@@ -84,10 +101,28 @@ Future<void> setupServiceLocator() async {
   getIt.registerLazySingleton<RemoteToLocalSyncService>(() => RemoteToLocalSyncService(
         networkAPI: getIt<NetworkAPI>(),
         db: getIt<AppDatabase>(),
+        isOnline: isOnline,
       ));
 
-  getIt.registerLazySingleton<Connectivity>(() => Connectivity());
+  getIt.registerLazySingleton<SyncVersionService>(() => SyncVersionService(
+        networkAPI: getIt<NetworkAPI>(),
+      ));
+
+  getIt.registerLazySingleton<RemotePullGate>(() => VersionPullGate(
+        versions: getIt<SyncVersionService>(),
+      ));
+
+  getIt.registerLazySingleton<SyncScheduler>(() => SyncScheduler(
+        remoteToLocal: getIt<RemoteToLocalSyncService>(),
+        localToRemote: getIt<LocalToRemoteSyncService>(),
+        connectivity: getIt<Connectivity>(),
+        isOnline: isOnline,
+        activityLog: getIt<ActivityLogService>(),
+        pullGate: getIt<RemotePullGate>(),
+      ));
 
   getIt.registerLazySingleton<ActivityLogService>(
       () => ActivityLogService(getIt<AppDatabase>()));
+
+  getIt.registerLazySingleton<FileExportService>(() => FileExportService());
 }

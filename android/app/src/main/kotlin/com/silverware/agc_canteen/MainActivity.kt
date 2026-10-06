@@ -12,6 +12,8 @@ import com.silverware.agc_canteen.plugins.FingerprintPlugin
 import com.silverware.agc_canteen.plugins.ScannerPlugin
 import com.silverware.agc_canteen.plugins.CardPlugin
 import com.silverware.agc_canteen.plugins.ExternalPrintPlugin
+import com.silverware.agc_canteen.plugins.NfcPlugin
+import com.silverware.agc_canteen.plugins.FileExportPlugin
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 
@@ -33,6 +35,8 @@ class MainActivity : FlutterActivity() {
         flutterEngine.plugins.add(ScannerPlugin())
         flutterEngine.plugins.add(CardPlugin())
         flutterEngine.plugins.add(ExternalPrintPlugin())
+        flutterEngine.plugins.add(NfcPlugin())
+        flutterEngine.plugins.add(FileExportPlugin())
     }
 
     private fun requestNeededPermissions() {
@@ -54,6 +58,25 @@ class MainActivity : FlutterActivity() {
             != PackageManager.PERMISSION_GRANTED
         ) {
             permissionsToRequest.add(Manifest.permission.READ_EXTERNAL_STORAGE)
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
+                permissionsToRequest.add(Manifest.permission.BLUETOOTH_CONNECT)
+            }
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
+                permissionsToRequest.add(Manifest.permission.BLUETOOTH_SCAN)
+            }
+        } else {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
+                permissionsToRequest.add(Manifest.permission.ACCESS_FINE_LOCATION)
+            }
         }
 
         if (permissionsToRequest.isNotEmpty()) {

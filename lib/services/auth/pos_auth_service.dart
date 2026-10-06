@@ -1,10 +1,13 @@
-import 'dart:developer' as dev;
 import 'package:agc_canteen/core/enums/employee_type.enum.dart';
+import 'package:agc_canteen/core/utils/app_log.dart';
 import 'package:agc_canteen/models/staff.model.dart';
+import '../../core/di/injection_container.dart';
 import '../database/app_database.dart';
+import '../pos/pos_device_service.dart';
 import 'fingerprint_auth_service.dart';
+import 'nfc_auth_service.dart';
 
-enum AuthFailureReason { notEnrolled, notInKitchen }
+enum AuthFailureReason { notEnrolled, entityNotFound }
 
 class AuthResult {
   final int? entityId;
@@ -42,22 +45,33 @@ class AuthResult {
 }
 
 class PosAuthService {
-  final AppDatabase _db;
   final FingerprintAuthService _fingerprintAuth;
+  final NfcAuthService _nfcAuth;
 
   PosAuthService({
-    required AppDatabase db,
     required FingerprintAuthService fingerprintAuth,
-  }) : _db = db,
-       _fingerprintAuth = fingerprintAuth;
+    required NfcAuthService nfcAuth,
+  }) : _fingerprintAuth = fingerprintAuth,
+       _nfcAuth = nfcAuth;
+
+  /// Cancels any in-progress auth (fingerprint capture or NFC read).
+  Future<void> cancelAuth() async {
+    await _fingerprintAuth.cancel();
+    _nfcAuth.cancel();
+  }
 
   Future<bool> init() async {
-    dev.log(
-      '[PosAuthService] Initializing fingerprint auth service...',
+    appLog(
+      '[PosAuthService] Initializing POS device + fingerprint auth...',
+      name: 'POS_AUTH',
+    );
+    final deviceOk = await getIt<PosDeviceService>().init();
+    appLog(
+      '[PosAuthService] POS device init result: $deviceOk',
       name: 'POS_AUTH',
     );
     final ok = await _fingerprintAuth.init();
-    dev.log(
+    appLog(
       '[PosAuthService] Fingerprint auth init result: $ok',
       name: 'POS_AUTH',
     );
@@ -66,13 +80,13 @@ class PosAuthService {
 
   Future<bool> get isFingerprintAvailable => _fingerprintAuth.isAvailable;
 
-  Future<AuthResult> authenticateWithFingerprint() async {
-    dev.log(
-      '[PosAuthService] authenticateWithFingerprint() — calling fingerprintAuth.authenticate()',
+  Future<AuthResult> authenticateWithFingerprint({int? departmentId}) async {
+    appLog(
+      '[PosAuthService] authenticateWithFingerprint(departmentId=$departmentId) — calling fingerprintAuth.authenticate()',
       name: 'POS_AUTH',
     );
-    final match = await _fingerprintAuth.authenticate();
-    dev.log(
+    final match = await _fingerprintAuth.authenticate(departmentId: departmentId);
+    appLog(
       '[PosAuthService] fingerprintAuth.authenticate() returned: match=$match',
       name: 'POS_AUTH',
     );
@@ -82,96 +96,209 @@ class PosAuthService {
       );
     }
 
-    if (match.staffId != null) {
-      final staff = await _db.getStaff(match.staffId!);
-      if (staff != null) {
-        dev.log(
-          '[PosAuthService] Staff found: ${staff.firstName} ${staff.lastName} (id=${staff.id})',
-          name: 'POS_AUTH',
-        );
-        return AuthResult.authenticated(
-          entityId: staff.id,
-          entityType: EmployeeType.permanent,
-          displayName: '${staff.firstName} ${staff.lastName}',
-          staffId: staff.id,
-          firstName: staff.firstName,
-          lastName: staff.lastName,
-        );
-      }
+    return _resolveEntityFromBio(match);
+  }
+
+  Future<AuthResult> authenticateWithNfc({int? departmentId}) async {
+    appLog('[PosAuthService] authenticateWithNfc(departmentId=$departmentId) — reading NFC card', name: 'POS_AUTH');
+    final card = await _nfcAuth.readCard(departmentId: departmentId);
+
+    if (card == null) {
+      return const AuthResult.failed(failureReason: AuthFailureReason.notEnrolled);
     }
 
-    if (match.dependantId != null) {
-      final dep = await _db.getDependant(match.dependantId!);
-      if (dep != null) {
-        dev.log(
-          '[PosAuthService] Dependant found: ${dep.fullname} (id=${dep.id})',
-          name: 'POS_AUTH',
-        );
-        return AuthResult.authenticated(
-          entityId: dep.id,
-          entityType: EmployeeType.dependent,
-          displayName: dep.fullname,
-        );
-      }
+    final assignedToId = card.assignedToId;
+    final assignedToType = card.assignedToType;
+
+    if (assignedToId == null || assignedToType == null) {
+      return const AuthResult.failed(failureReason: AuthFailureReason.notEnrolled);
     }
 
-    if (match.contractorStaffId != null) {
-      final cs = await _db.getContractorStaff(match.contractorStaffId!);
-      if (cs != null) {
-        dev.log(
-          '[PosAuthService] ContractorStaff found: ${cs.name} (id=${cs.id})',
-          name: 'POS_AUTH',
-        );
-        return AuthResult.authenticated(
-          entityId: cs.id,
-          entityType: EmployeeType.contractor,
-          displayName: cs.name,
-        );
-      }
-    }
-
-    if (match.visitorId != null) {
-      final visitor = await _db.getVisitor(match.visitorId!);
-      if (visitor != null) {
-        dev.log(
-          '[PosAuthService] Visitor found: ${visitor.name} (id=${visitor.id})',
-          name: 'POS_AUTH',
-        );
-        return AuthResult.authenticated(
-          entityId: visitor.id,
-          entityType: EmployeeType.visitor,
-          displayName: visitor.name,
-        );
-      }
-    }
-
-    dev.log(
-      '[PosAuthService] Entity NOT found in DB for matched bioData (id=${match.id})',
-      name: 'POS_AUTH',
-    );
-    return const AuthResult.failed(
-      failureReason: AuthFailureReason.notInKitchen,
+    final hintedType = EmployeeType.tryParse(assignedToType);
+    return _resolveEntityByIdAndType(
+      entityId: assignedToId,
+      hintedType: hintedType,
+      fallbackName: card.personnelName,
     );
   }
 
-  /// Authenticate with PIN (fallback when fingerprint isn't available).
-  Future<AuthResult> authenticateWithPin(String staffId, String pin) async {
-    final staff = await _db.getStaff(int.tryParse(staffId) ?? 0);
-    if (staff == null) {
-      return const AuthResult.failed(
-        failureReason: AuthFailureReason.notInKitchen,
+  /// Resolves staff / dependent / contractor / visitor from a bio match FK.
+  Future<AuthResult> _resolveEntityFromBio(BioDataEntry match) async {
+    if (match.staffId != null) {
+      return _resolveStaff(match.staffId!, fallbackName: match.personnelName);
+    }
+    if (match.dependentId != null) {
+      return _resolveDependent(match.dependentId!, fallbackName: match.personnelName);
+    }
+    if (match.contractorStaffId != null) {
+      return _resolveContractorStaff(
+        match.contractorStaffId!,
+        fallbackName: match.personnelName,
       );
     }
+    if (match.visitorId != null) {
+      return _resolveVisitor(match.visitorId!, fallbackName: match.personnelName);
+    }
 
-    // TODO: verify pin
+    appLog(
+      '[PosAuthService] Bio match has no entity FK (id=${match.id})',
+      name: 'POS_AUTH',
+    );
+    return const AuthResult.failed(failureReason: AuthFailureReason.entityNotFound);
+  }
 
+  Future<AuthResult> _resolveEntityByIdAndType({
+    required int entityId,
+    required EmployeeType? hintedType,
+    String? fallbackName,
+  }) async {
+    if (hintedType == null) {
+      // Try staff first, then other entity tables.
+      final staffResult = await _resolveStaff(entityId, fallbackName: fallbackName);
+      if (staffResult.isAuthenticated) return staffResult;
+      final dependentResult =
+          await _resolveDependent(entityId, fallbackName: fallbackName);
+      if (dependentResult.isAuthenticated) return dependentResult;
+      final contractorResult =
+          await _resolveContractorStaff(entityId, fallbackName: fallbackName);
+      if (contractorResult.isAuthenticated) return contractorResult;
+      return _resolveVisitor(entityId, fallbackName: fallbackName);
+    }
+
+    if (hintedType.isStaffType) {
+      return _resolveStaff(entityId, fallbackName: fallbackName);
+    }
+    return switch (hintedType) {
+      EmployeeType.dependent =>
+        _resolveDependent(entityId, fallbackName: fallbackName),
+      EmployeeType.contractor =>
+        _resolveContractorStaff(entityId, fallbackName: fallbackName),
+      EmployeeType.visitor =>
+        _resolveVisitor(entityId, fallbackName: fallbackName),
+      _ => _resolveStaff(entityId, fallbackName: fallbackName),
+    };
+  }
+
+  Future<AuthResult> _resolveStaff(int staffId, {String? fallbackName}) async {
+    final db = getIt<AppDatabase>();
+    final staff = await db.getStaff(staffId);
+    if (staff == null) {
+      appLog(
+        '[PosAuthService] Staff not found for id=$staffId',
+        name: 'POS_AUTH',
+      );
+      return const AuthResult.failed(failureReason: AuthFailureReason.entityNotFound);
+    }
+
+    final entityType =
+        EmployeeType.tryParse(staff.employeeType) ?? EmployeeType.permanent;
+    final displayName = '${staff.firstName} ${staff.lastName}'.trim();
+    final name = displayName.isNotEmpty
+        ? displayName
+        : (fallbackName?.trim().isNotEmpty == true ? fallbackName!.trim() : null);
+
+    if (name == null || name.isEmpty) {
+      return const AuthResult.failed(failureReason: AuthFailureReason.entityNotFound);
+    }
+
+    appLog(
+      '[PosAuthService] Resolved staff id=$staffId type=${entityType.name} name=$name',
+      name: 'POS_AUTH',
+    );
     return AuthResult.authenticated(
-      entityId: staff.id,
-      entityType: EmployeeType.permanent,
-      displayName: '${staff.firstName} ${staff.lastName}',
-      staffId: staff.id,
+      entityId: staffId,
+      entityType: entityType,
+      displayName: name,
+      staffId: staffId,
       firstName: staff.firstName,
       lastName: staff.lastName,
+    );
+  }
+
+  Future<AuthResult> _resolveDependent(
+    int dependentId, {
+    String? fallbackName,
+  }) async {
+    final db = getIt<AppDatabase>();
+    final dependent = await db.getDependent(dependentId);
+    if (dependent == null) {
+      appLog(
+        '[PosAuthService] Dependent not found for id=$dependentId',
+        name: 'POS_AUTH',
+      );
+      return const AuthResult.failed(failureReason: AuthFailureReason.entityNotFound);
+    }
+
+    final name = dependent.fullname.trim().isNotEmpty
+        ? dependent.fullname.trim()
+        : (fallbackName?.trim().isNotEmpty == true ? fallbackName!.trim() : null);
+    if (name == null || name.isEmpty) {
+      return const AuthResult.failed(failureReason: AuthFailureReason.entityNotFound);
+    }
+
+    return AuthResult.authenticated(
+      entityId: dependentId,
+      entityType: EmployeeType.dependent,
+      displayName: name,
+      staffId: dependentId,
+    );
+  }
+
+  Future<AuthResult> _resolveContractorStaff(
+    int contractorStaffId, {
+    String? fallbackName,
+  }) async {
+    final db = getIt<AppDatabase>();
+    final contractor = await db.getContractorStaff(contractorStaffId);
+    if (contractor == null) {
+      appLog(
+        '[PosAuthService] Contractor staff not found for id=$contractorStaffId',
+        name: 'POS_AUTH',
+      );
+      return const AuthResult.failed(failureReason: AuthFailureReason.entityNotFound);
+    }
+
+    final name = contractor.name.trim().isNotEmpty
+        ? contractor.name.trim()
+        : (fallbackName?.trim().isNotEmpty == true ? fallbackName!.trim() : null);
+    if (name == null || name.isEmpty) {
+      return const AuthResult.failed(failureReason: AuthFailureReason.entityNotFound);
+    }
+
+    return AuthResult.authenticated(
+      entityId: contractorStaffId,
+      entityType: EmployeeType.contractor,
+      displayName: name,
+      staffId: contractorStaffId,
+    );
+  }
+
+  Future<AuthResult> _resolveVisitor(
+    int visitorId, {
+    String? fallbackName,
+  }) async {
+    final db = getIt<AppDatabase>();
+    final visitor = await db.getVisitor(visitorId);
+    if (visitor == null) {
+      appLog(
+        '[PosAuthService] Visitor not found for id=$visitorId',
+        name: 'POS_AUTH',
+      );
+      return const AuthResult.failed(failureReason: AuthFailureReason.entityNotFound);
+    }
+
+    final name = visitor.name.trim().isNotEmpty
+        ? visitor.name.trim()
+        : (fallbackName?.trim().isNotEmpty == true ? fallbackName!.trim() : null);
+    if (name == null || name.isEmpty) {
+      return const AuthResult.failed(failureReason: AuthFailureReason.entityNotFound);
+    }
+
+    return AuthResult.authenticated(
+      entityId: visitorId,
+      entityType: EmployeeType.visitor,
+      displayName: name,
+      staffId: visitorId,
     );
   }
 

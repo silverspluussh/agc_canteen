@@ -1,7 +1,7 @@
 {
   "@@locale": "fr",
-  "appTitle": "AGC Cantine",
-  "appDescription": "Système de caisse Android pour la cantine AGC",
+  "appTitle": "AGCL Cantine",
+  "appDescription": "Système de caisse Android pour la cantine AGCL",
 
   "@_AUTH": {},
   "login": "Connexion",
@@ -147,7 +147,7 @@
   "accessGranted": "Accès accordé",
   "adminAccountInfo": "Informations du compte administrateur",
   "pushPullSubtitle": "Synchroniser les enregistrements avec le serveur",
-  "viewReportsSubtitle": "Voir les commandes POS et les surfacturations",
+  "viewReportsSubtitle": "Voir les commandes POS",
   "appearance": "Apparence",
   "appearanceSubtitle": "Thème clair, sombre ou système",
   "appUpdate": "Mettre à jour l'application",

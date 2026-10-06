@@ -1,5 +1,7 @@
+import 'package:agc_canteen/models/nfc_card.model.dart';
+
 import 'company.model.dart';
-import 'dependant.model.dart';
+import 'dependent.model.dart';
 import 'kitchen.model.dart';
 
 class Staff {
@@ -11,18 +13,19 @@ class Staff {
   final String? jobTitle;
   final String? empStatus;
   final String employeeType;
+  
   final DateTime? startDate;
   final DateTime? endDate;
   final bool? allowGroupOrder;
   final int? maxOrderCount;
   final int? shiftId;
   final List<BioData>? bioData;
-  final int? totalDependant;
-  final List<dynamic> card;
-  final int? noOfDependantAssigned;
+  final int? totalDependent;
+  final List<NfcCard>? cards;
+  final int? noOfDependentAssigned;
   final Department? department;
   final List<Kitchen>? kitchens;
-  final List<Dependant>? dependants;
+  final List<Dependent>? dependents;
 
   const Staff({
     required this.id,
@@ -39,12 +42,12 @@ class Staff {
     this.maxOrderCount,
     this.shiftId,
     this.bioData,
-    this.totalDependant,
-    this.card = const [],
-    this.noOfDependantAssigned,
+    this.totalDependent,
+    this.cards,
+    this.noOfDependentAssigned,
     this.department,
     this.kitchens,
-    this.dependants,
+    this.dependents,
   });
 
   factory Staff.fromMap(Map<String, dynamic> map) {
@@ -66,9 +69,13 @@ class Staff {
       allowGroupOrder: map['allow_group_order'] as bool?,
       maxOrderCount: map['max_order_count'] as int?,
       shiftId: map['shift_id'] as int?,
-      totalDependant: map['total_dependant'] as int?,
-      card: (map['card'] as List<dynamic>?) ?? [],
-      noOfDependantAssigned: map['no_of_dependant_assigned'] as int?,
+      totalDependent: map['total_dependent'] as int?,
+      cards: map['cards'] != null
+          ? (map['cards'] as List<dynamic>)
+              .map((item) => NfcCard.fromMap(item as Map<String, dynamic>))
+              .toList()
+          : null,
+      noOfDependentAssigned: map['no_of_dependent_assigned'] as int?,
       bioData: map['bioData'] != null
           ? (map['bioData'] as List<dynamic>)
               .map((item) => BioData.fromMap(item as Map<String, dynamic>))
@@ -82,9 +89,9 @@ class Staff {
               .map((item) => Kitchen.fromMap(item as Map<String, dynamic>))
               .toList()
           : null,
-      dependants: map['dependants'] != null
-          ? (map['dependants'] as List<dynamic>)
-              .map((item) => Dependant.fromMap(item as Map<String, dynamic>))
+      dependents: map['dependents'] != null
+          ? (map['dependents'] as List<dynamic>)
+              .map((item) => Dependent.fromMap(item as Map<String, dynamic>))
               .toList()
           : null,
     );
@@ -106,13 +113,13 @@ class Staff {
       'allow_group_order': allowGroupOrder,
       'max_order_count': maxOrderCount,
       'shift_id': shiftId,
-      'total_dependant': totalDependant,
-      'cardIds': card,
-      'no_of_dependant_assigned': noOfDependantAssigned,
+      'total_dependent': totalDependent,
+      'cardIds': cards?.map((item) => item.id).toList(),
+      'no_of_dependent_assigned': noOfDependentAssigned,
       'departmentId': department?.id,
       'bioDataIds': bioData?.map((item) => item.id).toList(),
       'kitchensIds': kitchens?.map((item) => item.id).toList(),
-      'dependantsIds': dependants?.map((item) => item.id).toList()
+      'dependentsIds': dependents?.map((item) => item.id).toList()
     };
   }
 
@@ -131,13 +138,13 @@ class Staff {
     bool? allowGroupOrder,
     int? maxOrderCount,
     int? shiftId,
-    int? totalDependant,
-    List<dynamic>? card,
-    int? noOfDependantAssigned,
+    int? totalDependent,
+    List<NfcCard>? cards,
+    int? noOfDependentAssigned,
     Department? department,
     List<BioData>? bioData,
     List<Kitchen>? kitchens,
-    List<Dependant>? dependants,
+    List<Dependent>? dependents,
   }) {
     return Staff(
       id: id ?? this.id,
@@ -153,14 +160,14 @@ class Staff {
       allowGroupOrder: allowGroupOrder ?? this.allowGroupOrder,
       maxOrderCount: maxOrderCount ?? this.maxOrderCount,
       shiftId: shiftId ?? this.shiftId,
-      totalDependant: totalDependant ?? this.totalDependant,
-      card: card ?? this.card,
-      noOfDependantAssigned:
-          noOfDependantAssigned ?? this.noOfDependantAssigned,
+      totalDependent: totalDependent ?? this.totalDependent,
+      cards: cards ?? this.cards,
+      noOfDependentAssigned:
+          noOfDependentAssigned ?? this.noOfDependentAssigned,
       department: department ?? this.department,
       bioData: bioData ?? this.bioData,
       kitchens: kitchens ?? this.kitchens,
-      dependants: dependants ?? this.dependants,
+      dependents: dependents ?? this.dependents,
     );
   }
 }
@@ -170,6 +177,9 @@ class BioData {
   Finger finger;
   String data;
   int staffId;
+  int? departmentId;
+  String? departmentName;
+  String? personnelName;
   bool isActive;
   DateTime? createdAt;
   DateTime? updatedAt;
@@ -180,6 +190,9 @@ class BioData {
     required this.data,
     required this.staffId,
     required this.isActive,
+    this.departmentId,
+    this.departmentName,
+    this.personnelName,
      this.createdAt,
      this.updatedAt
   });
@@ -191,6 +204,9 @@ class BioData {
       data: map['data'] as String,
       staffId: map['staffId'] as int,
       isActive: map['isActive'] as bool,
+      departmentId: map['departmentId'] as int?,
+      departmentName: map['departmentName'] as String?,
+      personnelName: map['personnelName'] as String?,
       createdAt: map['createdAt'] != null
           ? DateTime.tryParse(map['createdAt'] as String)
           : null,
@@ -208,6 +224,9 @@ class BioData {
       'data': data,
       'staffId': staffId,
       'isActive': isActive,
+      'departmentId': departmentId,
+      'departmentName': departmentName,
+      'personnelName': personnelName,
     };
   }
 
@@ -218,6 +237,9 @@ class BioData {
       'data': data,
       'staffId': staffId,
       'isActive': isActive,
+      'departmentId': departmentId,
+      'departmentName': departmentName,
+      'personnelName': personnelName,
       'sync_status': 0,
     };
   }

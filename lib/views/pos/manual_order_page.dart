@@ -1,20 +1,22 @@
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:agc_canteen/views/widgets/app_buttons.widget.dart';
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
+import '../../controllers/pos_mode_controller.dart';
 import '../../core/di/injection_container.dart';
 import '../../core/enums/employee_type.enum.dart';
 import '../../l10n/generated/app_localizations.dart';
-import '../../controllers/providers.dart';
 import '../../services/database/activity_log_service.dart';
 import '../../services/database/app_database.dart';
+import '../../services/pos/quota_gate_service.dart';
 import '../../services/print/print_service_manager.dart';
+import '../../services/print/receipt_header.dart';
 import '../../services/sync_services/sync_from_local_to_remote.dart';
-import '../reports/orders_page.dart';
-
+import '../widgets/staff_search_field.widget.dart';
+import '../widgets/quota_indicator.widget.dart';
 Future<void> _printManualReceipt({
   required String orderCode,
   required String mealType,
@@ -37,9 +39,11 @@ Future<void> _printManualReceipt({
     void centerOn() => b.add(const [0x1B, 0x61, 0x01]);
     void centerOff() => b.add(const [0x1B, 0x61, 0x00]);
 
+    final header = await receiptHeaderName(getIt<AppDatabase>());
+
     centerOn();
     ln('====================');
-    ln('    AGC CANTEEN');
+    ln(header);
     if (isGroup) ln('   [Group Order]');
     ln('====================');
     centerOn();
@@ -65,13 +69,56 @@ Future<void> _printManualReceipt({
   } catch (_) {}
 }
 
-class ManualOrderPage extends StatelessWidget {
+class ManualOrderPage extends ConsumerWidget {
   const ManualOrderPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context);
+
+    // Function mode is voucher-only (NFC / fingerprint). Manual entry would
+    // write a general order that bypasses the selected function, so it is
+    // closed off entirely while a function is active.
+    final isFunctionMode = ref.watch(
+      posModeControllerProvider.select((s) => s.isFunctionMode),
+    );
+
+    if (isFunctionMode) {
+      return Scaffold(
+        appBar: AppBar(
+          backgroundColor: cs.primary,
+          foregroundColor: cs.onPrimary,
+          title: Text(l10n.manualPosOrder),
+          leading: const BackButton(color: Colors.white),
+          centerTitle: true,
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.qr_code_scanner, size: 56, color: cs.primary),
+                const SizedBox(height: 16),
+                Text(
+                  'Function mode is active',
+                  style: Theme.of(context).textTheme.titleMedium,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Work function orders are voucher-only.\n\n'
+                  'Scan an NFC card or use a fingerprint to take the order, '
+                  'or switch back to General mode in Settings > Order Mode.',
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     return DefaultTabController(
       length: 2,
@@ -116,14 +163,14 @@ class ManualOrderPage extends StatelessWidget {
   }
 }
 
-class _SingleOrderTab extends ConsumerStatefulWidget {
+class _SingleOrderTab extends StatefulWidget {
   const _SingleOrderTab();
 
   @override
-  ConsumerState<_SingleOrderTab> createState() => _SingleOrderTabState();
+  State<_SingleOrderTab> createState() => _SingleOrderTabState();
 }
 
-class _SingleOrderTabState extends ConsumerState<_SingleOrderTab> {
+class _SingleOrderTabState extends State<_SingleOrderTab> {
   MealType? _selectedMealType;
   StaffData? _selectedStaff;
   List<MealType> _mealTypes = [];
@@ -181,9 +228,38 @@ class _SingleOrderTabState extends ConsumerState<_SingleOrderTab> {
 
     try {
       final db = getIt<AppDatabase>();
+      final staffType = EmployeeType.tryParse(_selectedStaff!.employeeType);
+      if (staffType != null) {
+        final decision = await QuotaGateService(db: db).checkCanOrder(
+          type: staffType,
+          personId: _selectedStaff!.id,
+        );
+        if (!decision.allowed) {
+          if (!mounted) return;
+          ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+            SnackBar(
+              content: Text(decision.reason ?? 'Meal quota exhausted.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+      }
       final now = DateTime.now().toIso8601String();
-      final orderId = DateTime.now().millisecondsSinceEpoch;
+      final orderId = await db.nextLocalId('orders');
       final orderCode = await _generateOrderCode();
+      if (orderCode == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          const SnackBar(
+            content: Text(
+              'POS device is not registered. Please complete device setup in Settings.',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
 
       final order = OrdersCompanion(
         id: Value(orderId),
@@ -204,8 +280,6 @@ class _SingleOrderTabState extends ConsumerState<_SingleOrderTab> {
       );
 
       await db.insertOrder(order);
-
-      ref.invalidate(reportOrdersProvider);
 
       unawaited(getIt<LocalToRemoteSyncService>().syncSingleOrders());
 
@@ -261,7 +335,6 @@ class _SingleOrderTabState extends ConsumerState<_SingleOrderTab> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final staff = ref.watch(staffListProvider);
 
     return Form(
       key: _formKey,
@@ -295,27 +368,18 @@ class _SingleOrderTabState extends ConsumerState<_SingleOrderTab> {
           const SizedBox(height: 20),
           _sectionLabel('Staff'),
           const SizedBox(height: 8),
-          staff.when(
-            data: (list) => DropdownButtonFormField<StaffData>(
-              value: _selectedStaff,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'Select staff',
-              ),
-              items: list
-                  .map(
-                    (s) => DropdownMenuItem(
-                      value: s,
-                      child: Text('${s.firstName} ${s.lastName}'),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (v) => setState(() => _selectedStaff = v),
-              validator: (v) => v == null ? 'Required' : null,
-            ),
-            loading: () => const LinearProgressIndicator(),
-            error: (e, _) => Text('Failed to load staff: $e'),
+          StaffSearchField(
+            value: _selectedStaff,
+            onChanged: (staff) => setState(() => _selectedStaff = staff),
+            validator: (v) => v == null ? 'Required' : null,
           ),
+          if (_selectedStaff != null &&
+              EmployeeType.tryParse(_selectedStaff!.employeeType) != null)
+            QuotaIndicator(
+              db: getIt<AppDatabase>(),
+              type: EmployeeType.tryParse(_selectedStaff!.employeeType)!,
+              personId: _selectedStaff!.id,
+            ),
          
           const SizedBox(height: 30),
 
@@ -342,25 +406,26 @@ class _SingleOrderTabState extends ConsumerState<_SingleOrderTab> {
     return type[0].toUpperCase() + type.substring(1).replaceAll('_', ' ');
   }
 
-  Future<String> _generateOrderCode() async {
+  Future<String?> _generateOrderCode() async {
     final db = getIt<AppDatabase>();
     final devices = await db.getAllPosDevices();
     final pos = devices.firstOrNull;
-    return db.nextOrderCode('', pos!.id, pos.kitchenId!);
+    if (pos == null || pos.kitchenId == null) return null;
+    return db.nextOrderCode('', pos.id, pos.kitchenId!);
   }
 
   String _pad(int n) => n.toString().padLeft(2, '0');
 }
 
 
-class _GroupOrderTab extends ConsumerStatefulWidget {
+class _GroupOrderTab extends StatefulWidget {
   const _GroupOrderTab();
 
   @override
-  ConsumerState<_GroupOrderTab> createState() => _GroupOrderTabState();
+  State<_GroupOrderTab> createState() => _GroupOrderTabState();
 }
 
-class _GroupOrderTabState extends ConsumerState<_GroupOrderTab> {
+class _GroupOrderTabState extends State<_GroupOrderTab> {
   MealType? _selectedMealType;
   StaffData? _selectedStaff;
   List<MealType> _mealTypes = [];
@@ -428,47 +493,79 @@ class _GroupOrderTabState extends ConsumerState<_GroupOrderTab> {
     final now = DateTime.now().toIso8601String();
     final staffName = '${_selectedStaff!.firstName} ${_selectedStaff!.lastName}';
 
-    try {
-      // Pre-generate all order codes in one pass
-      final startCode = await _generateOrderCode();
-      final prefix = startCode.substring(0, startCode.lastIndexOf('-') + 1);
-      final startNum = int.tryParse(startCode.split('-').last) ?? 0;
-      final orders = <OrdersCompanion>[];
-
-      for (int i = 0; i < _totalQty; i++) {
-        final orderCode =
-            '$prefix${(startNum + i).toString().padLeft(4, '0')}';
-
-        orders.add(OrdersCompanion(
-          id: Value(DateTime.now().millisecondsSinceEpoch + i),
-          uuid: Value(const Uuid().v4()),
-          orderCode: Value(orderCode),
-          status: const Value('completed'),
-          orderType: const Value('group'),
-          mealType: Value(mealTypeName),
-          total: Value(price),
-          groupCount: const Value(1),
-          description: Value(
-            desc.isEmpty
-                ? '[Group] $mealTypeName (${i + 1}/$_totalQty)'
-                : '[Group] $desc (${i + 1}/$_totalQty)',
+    final staffType = EmployeeType.tryParse(_selectedStaff!.employeeType);
+    if (staffType != null) {
+      final decision = await QuotaGateService(db: db).checkCanOrder(
+        type: staffType,
+        personId: _selectedStaff!.id,
+        quantity: _totalQty,
+      );
+      if (!decision.allowed) {
+        if (!mounted) return;
+        setState(() => _isSubmitting = false);
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          SnackBar(
+            content: Text(decision.reason ?? 'Meal quota exhausted.'),
+            backgroundColor: Colors.red,
           ),
-          orderedById: Value(_selectedStaff!.id),
-          employeeType: Value(_selectedStaff!.employeeType),
-          createdAt: Value(now),
-          updatedAt: Value(now),
-          syncStatus: const Value(0),
-          syncUpdatedAt: const Value.absent(),
-        ));
+        );
+        return;
+      }
+    }
+
+    try {
+      final posDevices = await db.getAllPosDevices();
+      final pos = posDevices.firstOrNull;
+      if (pos == null || pos.kitchenId == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          const SnackBar(
+            content: Text(
+              'POS device is not registered. Please complete device setup in Settings.',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
       }
 
-      // Single transaction for all inserts
+      final orderCodes = <String>[];
+
+      // One allocation for the whole batch: `millisecondsSinceEpoch + i` could
+      // still repeat whenever the loop ran faster than the millisecond clock.
+      final batchIds = await db.nextLocalIds('orders', _totalQty);
+
       await db.transaction(() async {
-        for (int i = 0; i < orders.length; i++) {
-          await db.insertOrder(orders[i]);
+        for (int i = 0; i < _totalQty; i++) {
+          final orderCode = await db.nextOrderCode('', pos.id, pos.kitchenId!);
+          orderCodes.add(orderCode);
+
+          await db.insertOrder(
+            OrdersCompanion(
+              id: Value(batchIds[i]),
+              uuid: Value(const Uuid().v4()),
+              orderCode: Value(orderCode),
+              status: const Value('completed'),
+              orderType: const Value('group'),
+              mealType: Value(mealTypeName),
+              total: Value(price),
+              groupCount: const Value(1),
+              description: Value(
+                desc.isEmpty
+                    ? '[Group] $mealTypeName (${i + 1}/$_totalQty)'
+                    : '[Group] $desc (${i + 1}/$_totalQty)',
+              ),
+              orderedById: Value(_selectedStaff!.id),
+              employeeType: Value(_selectedStaff!.employeeType),
+              createdAt: Value(now),
+              updatedAt: Value(now),
+              syncStatus: const Value(0),
+              syncUpdatedAt: const Value.absent(),
+            ),
+          );
 
           unawaited(_printManualReceipt(
-            orderCode: orders[i].orderCode.value,
+            orderCode: orderCode,
             mealType: mealTypeName,
             staffName: staffName,
             description: desc.isEmpty ? mealTypeName : desc,
@@ -477,7 +574,6 @@ class _GroupOrderTabState extends ConsumerState<_GroupOrderTab> {
         }
       });
 
-      ref.invalidate(reportOrdersProvider);
       unawaited(getIt<LocalToRemoteSyncService>().syncSingleOrders());
 
       getIt<ActivityLogService>().log(
@@ -488,7 +584,7 @@ class _GroupOrderTabState extends ConsumerState<_GroupOrderTab> {
         actorName: staffName,
         sourceTable: 'orders',
         metadata: {
-          'order_codes': orders.map((o) => o.orderCode.value).toList(),
+          'order_codes': orderCodes,
           'meal_type': mealTypeName,
           'group_count': _totalQty,
           'order_type': 'manual_group_pos',
@@ -526,13 +622,6 @@ class _GroupOrderTabState extends ConsumerState<_GroupOrderTab> {
     });
   }
 
-  Future<String> _generateOrderCode() async {
-    final db = getIt<AppDatabase>();
-    final devices = await db.getAllPosDevices();
-    final pos = devices.firstOrNull;
-    return db.nextOrderCode('', pos!.id, pos.kitchenId!);
-  }
-
   String _formatMealType(String type) {
     return type[0].toUpperCase() + type.substring(1).replaceAll('_', ' ');
   }
@@ -540,7 +629,6 @@ class _GroupOrderTabState extends ConsumerState<_GroupOrderTab> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final staff = ref.watch(staffListProvider);
 
     return Form(
       key: _formKey,
@@ -572,27 +660,18 @@ class _GroupOrderTabState extends ConsumerState<_GroupOrderTab> {
           const SizedBox(height: 20),
           _sectionLabel('Staff'),
           const SizedBox(height: 8),
-          staff.when(
-            data: (list) => DropdownButtonFormField<StaffData>(
-              value: _selectedStaff,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'Select staff',
-              ),
-              items: list
-                  .map(
-                    (s) => DropdownMenuItem(
-                      value: s,
-                      child: Text('${s.firstName} ${s.lastName}'),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (v) => setState(() => _selectedStaff = v),
-              validator: (v) => v == null ? 'Required' : null,
-            ),
-            loading: () => const LinearProgressIndicator(),
-            error: (e, _) => Text('Failed to load staff: $e'),
+          StaffSearchField(
+            value: _selectedStaff,
+            onChanged: (staff) => setState(() => _selectedStaff = staff),
+            validator: (v) => v == null ? 'Required' : null,
           ),
+          if (_selectedStaff != null &&
+              EmployeeType.tryParse(_selectedStaff!.employeeType) != null)
+            QuotaIndicator(
+              db: getIt<AppDatabase>(),
+              type: EmployeeType.tryParse(_selectedStaff!.employeeType)!,
+              personId: _selectedStaff!.id,
+            ),
           const SizedBox(height: 20),
           _sectionLabel('Number of Vouchers'),
           const SizedBox(height: 8),

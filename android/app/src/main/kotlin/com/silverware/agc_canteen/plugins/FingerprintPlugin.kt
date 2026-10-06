@@ -2,6 +2,9 @@ package com.silverware.agc_canteen.plugins
 
 import android.app.Activity
 import android.graphics.Bitmap
+import android.os.ParcelFileDescriptor
+import android.system.ErrnoException
+import android.system.OsConstants
 import android.util.Base64
 import android.util.Log
 import androidx.annotation.NonNull
@@ -15,6 +18,7 @@ import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import java.io.ByteArrayOutputStream
+import java.io.File
 
 class FingerprintPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, EventChannel.StreamHandler, ActivityAware {
     private lateinit var methodChannel: MethodChannel
@@ -24,7 +28,8 @@ class FingerprintPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, EventC
     private var currentTemplate: ByteArray? = null
     private var isSdkReady = false
     private var activity: Activity? = null
-    private var pendingInitResult: MethodChannel.Result? = null
+    private var pendingInitResults = mutableListOf<MethodChannel.Result>()
+    private var pendingCaptureResult: MethodChannel.Result? = null
 
     override fun onAttachedToEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
         methodChannel = MethodChannel(binding.binaryMessenger, "com.silverware.agc_canteen/fingerprint")
@@ -106,6 +111,7 @@ class FingerprintPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, EventC
     }
 
     private fun cancelFingerprint() {
+        pendingCaptureResult = null
         val sdk = fingerSDK ?: return
         try {
             val method = FingerSDK::class.java.getDeclaredMethod("cancel").apply {
@@ -128,8 +134,63 @@ class FingerprintPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, EventC
         return if (index in list.indices) list[index] else list[0]
     }
 
+    private fun ensureOfflineLicenseFile(): File? {
+        val ctx = activity ?: return null
+        val appCtx = ctx.applicationContext ?: ctx
+        val dir = appCtx.getExternalFilesDir(null) ?: ctx.getExternalFilesDir(null) ?: return null
+        val dst = File(dir, "license.txt")
+        if (dst.exists() && dst.length() > 0) {
+            Log.d("FingerprintPlugin", "Offline license already at ${dst.absolutePath} (${dst.length()} bytes)")
+            return dst
+        }
+        return try {
+            appCtx.assets.open("flutter_assets/assets/license.txt").use { input ->
+                dst.outputStream().use { output -> input.copyTo(output) }
+            }
+            Log.d("FingerprintPlugin", "Copied offline license to ${dst.absolutePath} (${dst.length()} bytes)")
+            dst
+        } catch (e: Exception) {
+            Log.w("FingerprintPlugin", "No bundled offline license found or copy failed: ${e.message}")
+            null
+        }
+    }
+
+    /**
+     * Diagnostic probe: attempt the same open() the vendor SDK performs, from
+     * this exact process (UID + SELinux domain), and report the errno.
+     * EACCES = permission/SELinux denial, ENOENT = node missing for us,
+     * EBUSY = held exclusively elsewhere. Read-write open is immediately
+     * closed; spidev allows concurrent opens so this cannot disturb the SDK.
+     */
+    private fun probeSpiDevice(): String {
+        return try {
+            ParcelFileDescriptor.open(
+                File("/dev/spidev2.0"),
+                ParcelFileDescriptor.MODE_READ_WRITE
+            ).close()
+            "OK"
+        } catch (e: ErrnoException) {
+            val name = when (e.errno) {
+                OsConstants.EACCES -> "EACCES"
+                OsConstants.ENOENT -> "ENOENT"
+                OsConstants.EBUSY -> "EBUSY"
+                OsConstants.EPERM -> "EPERM"
+                else -> "errno=${e.errno}"
+            }
+            "$name (${e.message})"
+        } catch (e: Exception) {
+            "${e.javaClass.simpleName} (${e.message})"
+        }
+    }
+
     private fun initSdkAndLaunch() {
         val ctx = activity ?: return
+        // Log.i, not Log.d: this device's global log level is INFO ([log.tag]=I),
+        // so DEBUG lines never reach logcat here.
+        Log.i("FingerprintPlugin", "SPI probe /dev/spidev2.0 from app process: ${probeSpiDevice()}")
+        ensureOfflineLicenseFile()?.let { file ->
+            Log.d("FingerprintPlugin", "Offline license ready at ${file.absolutePath}, SDK will use it (fallback online if invalid)")
+        }
         val oldSdk = fingerSDK
         if (oldSdk != null) {
             try { oldSdk.release() } catch (_: Exception) {}
@@ -144,13 +205,15 @@ class FingerprintPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, EventC
                     Log.d("FingerprintPlugin", "SDK init result: code=$code msg=$msg")
                     if (code == FingerSDK.RESULT_OK) {
                         isSdkReady = true
-                        pendingInitResult?.success(true)
-                        pendingInitResult = null
+                        val results = pendingInitResults.toList()
+                        pendingInitResults.clear()
+                        results.forEach { it.success(true) }
                     } else {
                         isSdkReady = false
                         Log.e("FingerprintPlugin", "SDK init FAILED: $msg")
-                        pendingInitResult?.error("FINGER_INIT_ERROR", "SDK init failed: $msg", null)
-                        pendingInitResult = null
+                        val results = pendingInitResults.toList()
+                        pendingInitResults.clear()
+                        results.forEach { it.error("FINGER_INIT_ERROR", "SDK init failed: $msg", null) }
                     }
                 }
             })
@@ -159,8 +222,9 @@ class FingerprintPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, EventC
         } catch (e: Exception) {
             Log.e("FingerprintPlugin", "Init exception: ${e.message}", e)
             isSdkReady = false
-            pendingInitResult?.error("FINGER_INIT_ERROR", e.message, null)
-            pendingInitResult = null
+            val results = pendingInitResults.toList()
+            pendingInitResults.clear()
+            results.forEach { it.error("FINGER_INIT_ERROR", e.message, null) }
         }
     }
 
@@ -173,12 +237,13 @@ class FingerprintPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, EventC
             result.error("FINGER_INIT_ERROR", "Activity context not available", null)
             return
         }
-        if (pendingInitResult != null) {
-            result.error("FINGER_INIT_ERROR", "SDK initialization already in progress", null)
+        val wasEmpty = pendingInitResults.isEmpty()
+        pendingInitResults.add(result)
+        if (!wasEmpty) {
+            Log.d("FingerprintPlugin", "SDK init already in progress — queued caller (${pendingInitResults.size})")
             return
         }
         Log.d("FingerprintPlugin", "init called — (re)starting SDK init")
-        pendingInitResult = result
         initSdkAndLaunch()
     }
 
@@ -187,6 +252,11 @@ class FingerprintPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, EventC
             result.error("FINGER_NOT_INIT", "Fingerprint SDK not initialized", null)
             return
         }
+
+        if (pendingCaptureResult != null) {
+            cancelFingerprint()
+        }
+        pendingCaptureResult = result
 
         try {
             val templateType = getTemplateAtIndex(templateIndex)
@@ -197,6 +267,10 @@ class FingerprintPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, EventC
                     bitmap: Bitmap?,
                     template: ByteArray?
                 ) {
+                    val pending = pendingCaptureResult
+                    pendingCaptureResult = null
+                    if (pending == null) return
+
                     if (code == FingerSDK.RESULT_OK && data != null && template != null) {
                         currentTemplate = template
 
@@ -216,15 +290,16 @@ class FingerprintPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, EventC
                         }
 
                         eventSink?.success(captureResult)
-                        result.success(captureResult)
+                        pending.success(captureResult)
                     } else {
                         val errorResult = mapOf("success" to false, "code" to code)
                         eventSink?.success(errorResult)
-                        result.success(errorResult)
+                        pending.success(errorResult)
                     }
                 }
             })
         } catch (e: Exception) {
+            pendingCaptureResult = null
             result.error("FINGER_CAPTURE_ERROR", e.message, null)
         }
     }

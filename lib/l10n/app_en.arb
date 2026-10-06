@@ -1,7 +1,7 @@
 {
   "@@locale": "en",
-  "appTitle": "AGC Canteen",
-  "appDescription": "Android POS canteen system for AGC",
+  "appTitle": "AGCL Canteen",
+  "appDescription": "Android POS canteen system for AGCL",
 
   "@_AUTH": {},
   "login": "Login",
@@ -147,7 +147,7 @@
   "accessGranted": "Access granted",
   "adminAccountInfo": "Admin account information",
   "pushPullSubtitle": "Push & pull records with the server",
-  "viewReportsSubtitle": "View POS orders and overcharges",
+  "viewReportsSubtitle": "View POS orders",
   "appearance": "Appearance",
   "appearanceSubtitle": "Light, dark, or system theme",
   "appUpdate": "Update App",

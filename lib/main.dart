@@ -1,21 +1,26 @@
 import 'dart:async';
 import 'package:adaptive_theme/adaptive_theme.dart';
+import 'package:agc_canteen/views/reports/orders_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/di/injection_container.dart';
+import 'core/network/connectivity_banner.dart';
+import 'core/network/dio_client.dart';
+import 'services/print/print_service_manager.dart';
 import 'core/theme/app_theme.dart';
 import 'l10n/generated/app_localizations.dart';
 import 'views/splash/auth_gate.dart';
-import 'views/reports/reports_page.dart';
 import 'views/settings/settings_page.dart';
+import 'views/settings/order_mode_settings_page.dart';
 import 'views/staff/staff_management_page.dart';
 import 'views/settings/sync_page.dart';
 import 'views/pos/pos_settings_page.dart';
 import 'views/pos/manual_order_page.dart';
 import 'views/auth/group_order_auth_pos.dart';
+import 'views/settings/printer_settings_page.dart';
 
 
 final localeProvider = StateProvider<Locale>((ref) {
@@ -35,7 +40,10 @@ void main() async => runZoneGuarded(() async {
   final savedLang = prefs.getString('app_language') ?? 'en';
   final savedLocale = Locale(savedLang);
 
+  await DioClient.configureTrust();
   await setupServiceLocator();
+
+  unawaited(getIt<PrintServiceManager>().ensureLoaded());
   runApp(
     ProviderScope(
       overrides: [localeProvider.overrideWith((ref) => savedLocale)],
@@ -46,7 +54,7 @@ void main() async => runZoneGuarded(() async {
 
 void runZoneGuarded(void Function() body) {
   runZonedGuarded(body, (error, stack) {
-    runApp(
+    return runApp(
       ProviderScope(
         child: MaterialApp(
           home: Scaffold(
@@ -100,7 +108,7 @@ class MyApp extends ConsumerWidget {
       dark: AppTheme.dark,
       initial: savedThemeMode ?? AppTheme.initialMode,
       builder: (theme, darkTheme) => MaterialApp(
-        title: 'ASG Canteen',
+        title: 'AGCL Canteen',
         debugShowCheckedModeBanner: false,
         theme: theme,
         darkTheme: darkTheme,
@@ -117,6 +125,8 @@ class MyApp extends ConsumerWidget {
         },
         home: const AuthGate(),
         onGenerateRoute: _onGenerateRoute,
+        builder: (context, child) =>
+            ConnectivityBanner(child: child ?? const SizedBox.shrink()),
       ),
     );
   }
@@ -129,10 +139,13 @@ Route<dynamic>? _onGenerateRoute(RouteSettings settings) {
       page = const AuthGate();
       break;
     case '/reports':
-      page = const ReportsDashboardPage();
+      page = const ReportsPage();
       break;
     case '/settings':
       page = const SettingsPage();
+      break;
+    case '/order-mode':
+      page = const OrderModeSettingsPage();
       break;
     case '/staff':
       page = const StaffManagementPage();
@@ -143,13 +156,15 @@ Route<dynamic>? _onGenerateRoute(RouteSettings settings) {
     case '/pos':
       page = const PosSettingsPage();
       break;
+    case '/printer-settings':
+      page = const PrinterSettingsPage();
+      break;
     case '/create-manual-order':
       page = const ManualOrderPage();
       break;
     case '/group-order':
       page = const GroupOrderAuthPos();
       break;
-
     default:
       return null;
   }

@@ -1,17 +1,19 @@
-import 'dart:developer' as dev;
+import 'package:agc_canteen/core/utils/app_log.dart';
 import 'package:agc_canteen/core/theme/app_colors.dart';
 import 'package:agc_canteen/views/auth/group_order_auth_pos.dart';
 import 'package:agc_canteen/views/widgets/app_buttons.widget.dart';
 import 'package:agc_canteen/views/widgets/avatarglow.widget.dart';
+import 'package:agc_canteen/views/widgets/department_search_field.widget.dart';
 import 'package:agc_canteen/views/widgets/voucher_card.widget.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:agc_canteen/views/widgets/pos_mode_indicator.widget.dart';
+import 'package:agc_canteen/views/widgets/fingerprint_init_recovery.widget.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../controllers/auth_controller.dart';
+import '../../controllers/auth_settings_controller.dart';
 import '../../controllers/providers.dart';
-import '../../core/di/injection_container.dart';
 import '../../l10n/generated/app_localizations.dart';
-import '../../services/database/activity_log_service.dart';
+import '../../views/widgets/pos_meal_time_refresh.widget.dart';
 
 class SingleAuthPosPage extends ConsumerStatefulWidget {
   const SingleAuthPosPage({super.key});
@@ -23,6 +25,9 @@ class SingleAuthPosPage extends ConsumerStatefulWidget {
 class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
   bool _fingerprintReady = false;
   bool _fingerprintInitFailed = false;
+  /// Guards against stacking init attempts; a retry takes ~20s.
+  bool _fingerprintInitInProgress = false;
+  int? _selectedDepartmentId;
 
   @override
   void initState() {
@@ -34,12 +39,19 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
   }
 
   Future<void> _initFingerprint() async {
-    dev.log(
-      '[StaffAuthPage] Initializing fingerprint SDK...',
-      name: 'POS_AUTH',
-    );
+    // Give the kernel SPI driver time to probe before first launch() — the
+    // sensor needs ~9s from cold boot (see logs: 5752→5826) while the old
+    // 1s/2s/3s retry only covered ~6s.
+    await Future.delayed(const Duration(seconds: 2));
+    // Skip init if another page already brought the SDK up.
     try {
       final posAuth = ref.read(posAuthProvider);
+      if (await posAuth.isFingerprintAvailable) {
+        appLog('[StaffAuthPage] Fingerprint already available — skipping init',
+            name: 'POS_AUTH');
+        if (mounted) setState(() => _fingerprintReady = true);
+        return;
+      }
       final ok = await posAuth.init();
       if (mounted) {
         setState(() {
@@ -48,13 +60,13 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
         });
       }
       if (ok) {
-        dev.log(
+        appLog(
           '[StaffAuthPage] Fingerprint SDK initialized successfully',
           name: 'POS_AUTH',
         );
       }
     } catch (e, st) {
-      dev.log(
+      appLog(
         '[StaffAuthPage] Fingerprint SDK init FAILED: $e',
         name: 'POS_AUTH',
         error: e,
@@ -64,313 +76,316 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
     }
   }
 
-  Future<void> _startAuth() async {
-    dev.log(
-      '[StaffAuthPage] Scan button tapped — starting fingerprint auth',
+  /// Re-runs fingerprint initialisation after a failed first attempt.
+  ///
+  /// Safe to call repeatedly: the auth service short-circuits once the SDK is up
+  /// and clears its own initialised flag when an attempt throws, so a retry
+  /// genuinely re-probes rather than replaying a cached failure. Any auth session
+  /// already in flight is dropped first so the page returns to a clean start.
+  Future<void> _retryFingerprint() async {
+    if (_fingerprintInitInProgress) return;
+
+    setState(() {
+      _fingerprintInitInProgress = true;
+      // Back to the pre-init state so the spinner gives feedback during the retry.
+      _fingerprintReady = false;
+      _fingerprintInitFailed = false;
+    });
+
+    ref.read(authProvider.notifier).reset();
+
+    try {
+      await _initFingerprint();
+    } finally {
+      if (mounted) setState(() => _fingerprintInitInProgress = false);
+    }
+
+    if (!mounted) return;
+
+    final ready = _fingerprintReady;
+    appLog(
+      ready
+          ? '[StaffAuthPage] Fingerprint reload succeeded'
+          : '[StaffAuthPage] Fingerprint reload failed again',
       name: 'POS_AUTH',
     );
-    await ref.read(authProvider.notifier).authenticate();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        content: Text(
+          ready
+              ? 'Fingerprint reader ready.'
+              : 'Fingerprint reader still unavailable. Check the connection '
+                    'and try again.',
+        ),
+      ),
+    );
   }
 
-  Future<void> _showAdminCodeDialog() async {
-    final codeController = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-    bool isWrong = false;
+  Future<int?> _effectiveDepartmentId() async {
+    if (_selectedDepartmentId != null) return _selectedDepartmentId;
+    final departments = ref.read(departmentsProvider).value ?? [];
+    if (departments.length == 1) return departments.first.id;
+    return null;
+  }
 
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: true,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (ctx, setDialogState) {
-            return AlertDialog(
-              constraints: const BoxConstraints(minWidth: 400),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              title: Row(
-                children: [
-                  Icon(
-                    Icons.admin_panel_settings,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    AppLocalizations.of(context).adminAccess,
-                    style: Theme.of(context).textTheme.titleLarge!.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              content: Form(
-                key: formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      AppLocalizations.of(context).enterAdminPin,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 20),
-                    TextFormField(
-                      controller: codeController,
-                      keyboardType: TextInputType.number,
-                      maxLength: 6,
-                      obscureText: true,
-                      autofocus: true,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 8,
-                      ),
-                      decoration: InputDecoration(
-                        counterText: '',
-                        hintText: '● ● ● ● ● ●',
-                        hintStyle: TextStyle(
-                          fontSize: 18,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withOpacity(0.3),
-                          letterSpacing: 6,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        errorText: isWrong
-                            ? AppLocalizations.of(context).incorrectCode
-                            : null,
-                      ),
-                      onChanged: (_) {
-                        if (isWrong) {
-                          setDialogState(() => isWrong = false);
-                        }
-                      },
-                      validator: (v) {
-                        if (v == null || v.trim().length != 6) {
-                          return AppLocalizations.of(context).enter6Digits;
-                        }
-                        return null;
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              actionsAlignment: MainAxisAlignment.spaceBetween,
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  child: Text(
-                    AppLocalizations.of(context).cancel,
-                    style: const TextStyle(color: Colors.red, fontSize: 18),
-                  ),
-                ),
-
-                PrimaryButton(
-                  width: 120,
-                  height: 48,
-                  onPressed: () {
-                    final accescode =
-                        dotenv.env['ADMIN_ACCESS_CODE'] ?? '123456';
-                    if (!formKey.currentState!.validate()) return;
-                    if (codeController.text.trim() == accescode) {
-                      Navigator.of(context).pop();
-                      getIt<ActivityLogService>().log(
-                        type: 'admin_code_access',
-                        message:
-                            'Admin accessed settings via PIN from staff auth screen',
-                        actorType: 'admin',
-                      );
-                      Navigator.pushNamed(context, '/settings');
-                    } else {
-                      setDialogState(() => isWrong = true);
-                      codeController.clear();
-                    }
-                  },
-                  label: Text(
-                    AppLocalizations.of(context).confirm,
-                    style: const TextStyle(color: Colors.white, fontSize: 18),
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
+  Future<void> _startAuth() async {
+    final departmentId = await _effectiveDepartmentId();
+    appLog(
+      '[StaffAuthPage] Scan button tapped — starting fingerprint auth (departmentId=$departmentId)',
+      name: 'POS_AUTH',
     );
+    await ref
+        .read(authProvider.notifier)
+        .authenticate(departmentId: departmentId);
+  }
+
+  List<Widget> _authButtons() {
+    final settings = ref.watch(authSettingsProvider);
+    final l10n = AppLocalizations.of(context);
+    final buttons = <Widget>[];
+
+    if (settings.enableFinger) {
+      buttons.add(
+        Expanded(
+          child: PosButton(
+            onPressed: _startAuth,
+            prefixChild: const Icon(
+              Icons.fingerprint,
+              color: Colors.white,
+              size: 35,
+            ),
+            label: Text(
+              l10n.biometricLogin,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (settings.enableNfc) {
+      if (buttons.isNotEmpty) {
+        buttons.add(const SizedBox(width: 12));
+      }
+      buttons.add(
+        Expanded(
+          child: PosButton(
+            color: AppColors.success,
+            onPressed: () async {
+              final departmentId = await _effectiveDepartmentId();
+              await ref
+                  .read(authProvider.notifier)
+                  .authenticateWithNfc(departmentId: departmentId);
+            },
+            prefixChild: const Icon(Icons.nfc, color: Colors.white, size: 35),
+            label: const Text(
+              'Tap Card',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (buttons.isEmpty) return [];
+
+    return [const SizedBox(height: 20), Row(children: buttons)];
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(authProvider);
-    Size size = MediaQuery.sizeOf(context);
-    return PopScope(
-      canPop: false,
-      child: Scaffold(
-        appBar: AppBar(
-          backgroundColor: AppColors.gold600,
-          automaticallyImplyLeading: false,
-          centerTitle: false,
-          toolbarHeight: 70,
-          title: PrimaryButton(
-            noShadow: true,
-            width: 150,
-            height: 50,
-            color: Colors.white,
-            onPressed: () {
-              Navigator.pushNamed(context, GroupOrderAuthPos.routeID)
-                  .then((_) => ref.read(authProvider.notifier).reset());
-            },
-            prefixChild: Icon(Icons.group, color: Colors.white),
-            label: Text(
-              "Group Order",
-              style: TextStyle(fontWeight: FontWeight.bold,color: Colors.white),
-            ),
-          ),
-
-          actions: [
-            IconButton(
-              onPressed: _showAdminCodeDialog,
-              icon: Icon(Icons.settings, size: 30, color: Colors.white),
-            ),
-            SizedBox(width: 20),
-          ],
-        ),
-
-        body: SafeArea(
-          child: Stack(
-            children: [
-              SizedBox(
-                width: size.width,
-                height: size.height,
-                child: Padding(
-                  padding: const EdgeInsets.all(15),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-
-                      Text("Generate Meal Voucher", style: Theme.of(context).textTheme.titleLarge!.copyWith(fontWeight: FontWeight.bold),),
-                                            const Spacer(),
-
-                   
-                      BiometricGlow(),
-                      const Spacer(),
-                      if (!_fingerprintReady && !_fingerprintInitFailed) ...[
-                        const SizedBox(height: 10),
-                        const LinearProgressIndicator(),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Initializing biometrics...',
-                          style: TextStyle(fontSize: 16),
-                        ),
-                      ],
-                      if (state.isUnauthenticated &&
-                          !state.isAuthenticating &&
-                          !state.hasError &&
-                          _fingerprintReady) ...[
-                        const SizedBox(height: 20),
-                        PrimaryButton(
-                          width: 280,
-                          height: 60,
-                          onPressed: _startAuth,
-                          prefixChild: const Icon(
-                            Icons.fingerprint,
-                            color: Colors.white,
-                            size: 35,
-                          ),
-                          label: Text(
-                            AppLocalizations.of(context).biometricLogin,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                      if (state.isAuthenticating) ...[
-                        const LinearProgressIndicator(),
-                        const SizedBox(height: 16),
-                        Text(
-                          AppLocalizations.of(context).scanning,
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                      ],
-                      if (state.isPlacingOrder) ...[
-                        const LinearProgressIndicator(),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Printing voucher...',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                      ],
-                      if (state.isCompleted && state.orderCode != null) ...[
-                        const Icon(
-                          Icons.check_circle,
-                          color: Colors.green,
-                          size: 48,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Voucher Printed',
-                          style: Theme.of(context).textTheme.headlineSmall
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green,
-                              ),
-                        ),
-                        const SizedBox(height: 16),
-                        VoucherCard(
-                          orderCode: state.orderCode!,
-                          staffName:
-                              '${state.staff?.displayName ?? ""}',
-                          mealType: state.mealType ?? '',
-                          orderTime: state.orderTime ?? '',
-                        ),
-                      ],
-                      if (state.hasError) ...[
-                        Icon(
-                          Icons.error_outline,
-                          size: 48,
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          state.error ??
-                              AppLocalizations.of(context).somethingWentWrong,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Theme.of(context).colorScheme.error,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        PrimaryButton(
-                          width: 280,
-                          height: 60,
-                           prefixChild: const Icon(
-                            Icons.fingerprint,
-                            color: Colors.white,
-                            size: 35,
-                          ),
-                          onPressed: 
-                            _startAuth,
-                          label:  Text(
-                            "Scan Finger",
-                            style: const TextStyle(fontWeight: FontWeight.bold,color: Colors.white),
-                          ),
-                        ),
-                        
-                        const SizedBox(height: 10),
-                      ],
-                    ],
-                  ),
+    return PosMealTimeRefresh(
+      child: PopScope(
+        canPop: false,
+        child: Scaffold(
+          appBar: AppBar(
+            backgroundColor: AppColors.gold600,
+            automaticallyImplyLeading: false,
+            centerTitle: false,
+            toolbarHeight: 70,
+            title: PrimaryButton(
+              noShadow: true,
+              width: 150,
+              height: 50,
+              color: Colors.white,
+              onPressed: () {
+                Navigator.pushNamed(
+                  context,
+                  GroupOrderAuthPos.routeID,
+                ).then((_) => ref.read(authProvider.notifier).reset());
+              },
+              prefixChild: Icon(Icons.group, color: Colors.white),
+              label: Text(
+                "Group Order",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
               ),
+            ),
+
+            actions: [
+              FingerprintReloadAction(
+                busy: _fingerprintInitInProgress,
+                onPressed: _retryFingerprint,
+              ),
+              IconButton(
+                onPressed: () => Navigator.pushNamed(context, '/settings'),
+                icon: Icon(Icons.settings, size: 30, color: Colors.white),
+              ),
+              const SizedBox(width: 20),
             ],
+          ),
+
+          body: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 15),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 5),
+
+                  Text(
+                    "Generate Meal Voucher",
+                    style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    "Select Department",
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 10),
+                  const PosModeIndicator(),
+                  const SizedBox(height: 12),
+                  DepartmentSearchField(
+                    value: _selectedDepartmentId,
+                    onChanged: (id) =>
+                        setState(() => _selectedDepartmentId = id),
+                  ),
+                  Expanded(child: Center(child: BiometricGlow())),
+                  Flexible(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          if (!_fingerprintReady &&
+                              !_fingerprintInitFailed) ...[
+                            const SizedBox(height: 15),
+                            const LinearProgressIndicator(),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'Initializing biometrics...',
+                              style: TextStyle(fontSize: 16),
+                            ),
+                          ],
+                          // The auth buttons below are gated on _fingerprintReady,
+                          // so without this the page renders blank after a failed
+                          // init: no buttons, no spinner, no explanation.
+                          if (_fingerprintInitFailed)
+                            FingerprintInitFailureCard(
+                              busy: _fingerprintInitInProgress,
+                              onRetry: _retryFingerprint,
+                            ),
+                          if (state.isUnauthenticated &&
+                              !state.isAuthenticating &&
+                              !state.hasError &&
+                              _fingerprintReady) ...[
+                            const SizedBox(height: 15),
+                            ..._authButtons(),
+                          ],
+                          if (state.isAuthenticating) ...[
+                            const LinearProgressIndicator(),
+                            const SizedBox(height: 10),
+                            Text(
+                              AppLocalizations.of(context).scanning,
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            const SizedBox(height: 10),
+                            OutlinedButton.icon(
+                              onPressed: () =>
+                                  ref.read(authProvider.notifier).cancel(),
+                              icon: const Icon(Icons.close, size: 18),
+                              label: const Text('Cancel'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.red,
+                                side: const BorderSide(color: Colors.red),
+                              ),
+                            ),
+                          ],
+                          if (state.isPlacingOrder) ...[
+                            const LinearProgressIndicator(),
+                            const SizedBox(height: 10),
+                            Text(
+                              'Printing voucher',
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                          ],
+                          if (state.isCompleted && state.orderCode != null) ...[
+                            const Icon(
+                              Icons.check_circle,
+                              color: Colors.green,
+                              size: 48,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Voucher Printed',
+                              style: Theme.of(context).textTheme.headlineSmall
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.green,
+                                  ),
+                            ),
+                            const SizedBox(height: 10),
+                            VoucherCard(
+                              orderCode: state.orderCode!,
+                              staffName: state.staff?.displayName ?? "",
+                              mealType: state.mealType ?? '',
+                              orderTime: state.orderTime ?? '',
+                            ),
+                          ],
+                          if (state.hasError) ...[
+                            Icon(
+                              Icons.error_outline,
+                              size: 48,
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              state.error ??
+                                  AppLocalizations.of(
+                                    context,
+                                  ).somethingWentWrong,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Theme.of(context).colorScheme.error,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            ..._authButtons(),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                ],
+              ),
+            ),
           ),
         ),
       ),

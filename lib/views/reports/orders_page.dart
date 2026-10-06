@@ -1,15 +1,31 @@
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:agc_canteen/views/widgets/app_buttons.widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
+import '../../core/utils/search_debouncer.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../../models/unified_report_order_row.dart';
 import '../../services/database/app_database.dart';
+import '../../services/export/file_export_service.dart';
 import '../../services/print/print_service_manager.dart';
+import '../../services/print/receipt_header.dart';
 
 final _currency = NumberFormat('#,##0.00', 'en_US');
 String _cap(String s) => s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
+
+String _csvField(Object? value) {
+  final s = (value ?? '').toString();
+  if (s.contains(',') ||
+      s.contains('"') ||
+      s.contains('\n') ||
+      s.contains('\r')) {
+    return '"${s.replaceAll('"', '""')}"';
+  }
+  return s;
+}
 
 Future<void> _printReportReceipt(_ReportOrder order) async {
   try {
@@ -34,9 +50,11 @@ Future<void> _printReportReceipt(_ReportOrder order) async {
     void doubleOn() => b.add(const [0x1D, 0x21, 0x11]);
     void doubleOff() => b.add(const [0x1D, 0x21, 0x00]);
 
+    final header = await receiptHeaderName(GetIt.instance<AppDatabase>());
+
     centerOn();
     ln('====================');
-    ln('    AGC CANTEEN');
+    ln(header);
     if (isGroup) {
       ln('  [Group Order]');
     }
@@ -50,7 +68,6 @@ Future<void> _printReportReceipt(_ReportOrder order) async {
     ln('Time:  $date');
     ln('Staff: $staffLabel');
     ln('Meal:  $mealTypeLabel');
-    ln('Type:  $orderTypeLabel');
     ln('--------------------');
     if (isGroup) {
       ln('People: ${order.groupCount}');
@@ -92,70 +109,76 @@ class _ReportOrder {
   bool get isSynced => syncStatus == 2;
 }
 
-final reportOrdersProvider = FutureProvider<List<_ReportOrder>>((ref) async {
-  final db = GetIt.instance<AppDatabase>();
+const _ordersPageSize = 50;
 
-  final orders = await db.getAllOrders();
-  final groupOrders = await db.getAllGroupOrders();
+Future<({
+  Map<int, String> staffNames,
+  Map<int, String> visitorNames,
+  Map<int, String> dependentNames,
+  Map<int, String> contractorNames,
+})> _buildEntityNameMaps(AppDatabase db) async {
   final staffList = await db.getAllStaff();
   final visitorList = await db.getAllVisitors();
-  final dependantList = await db.getAllDependants();
+  final dependentList = await db.getAllDependents();
   final contractorList = await db.getAllContractorStaff();
 
-  String resolveName(int id, String employeeType) {
-    switch (employeeType) {
-      case 'visitor':
-        final v = visitorList.where((e) => e.id == id).firstOrNull;
-        return v?.name ?? id.toString();
-      case 'dependent':
-        final d = dependantList.where((e) => e.id == id).firstOrNull;
-        return d?.fullname ?? id.toString();
-      case 'contractor':
-        final c = contractorList.where((e) => e.id == id).firstOrNull;
-        return c?.name ?? id.toString();
-      default:
-        final s = staffList.where((e) => e.id == id).firstOrNull;
-        return s != null ? '${s.firstName} ${s.lastName}' : id.toString();
-    }
+  return (
+    staffNames: {
+      for (final s in staffList) s.id: '${s.firstName} ${s.lastName}',
+    },
+    visitorNames: {for (final v in visitorList) v.id: v.name},
+    dependentNames: {for (final d in dependentList) d.id: d.fullname},
+    contractorNames: {for (final c in contractorList) c.id: c.name},
+  );
+}
+
+String _resolveStaffName(
+  UnifiedReportOrderRow row,
+  ({
+    Map<int, String> staffNames,
+    Map<int, String> visitorNames,
+    Map<int, String> dependentNames,
+    Map<int, String> contractorNames,
+  }) names,
+) {
+  final id = row.orderedById!;
+  switch (row.employeeType) {
+    case 'visitor':
+      return names.visitorNames[id] ?? id.toString();
+    case 'dependent':
+      return names.dependentNames[id] ?? id.toString();
+    case 'contractor':
+      return names.contractorNames[id] ?? id.toString();
+    default:
+      return names.staffNames[id] ?? id.toString();
   }
+}
 
-  final results = <_ReportOrder>[];
-
-  for (final o in orders) {
-    results.add(_ReportOrder(
-      id: o.id,
-      orderCode: o.orderCode,
-      status: o.status,
-      orderType: o.orderType,
-      mealType: o.mealType,
-      total: o.total,
-      groupCount: o.groupCount,
-      syncStatus: o.syncStatus,
-      description: o.description,
-      staffName: resolveName(o.orderedById, o.employeeType),
-      createdAt: DateTime.tryParse(o.createdAt) ?? DateTime.now(),
-    ));
-  }
-
-  for (final o in groupOrders) {
-    results.add(_ReportOrder(
-      id: o.id,
-      orderCode: o.orderCode,
-      status: o.status,
-      orderType: o.orderType,
-      mealType: o.mealType,
-      total: o.total,
-      groupCount: o.groupCount,
-      syncStatus: o.syncStatus,
-      description: o.description,
-      staffName: null,
-      createdAt: DateTime.tryParse(o.createdAt) ?? DateTime.now(),
-    ));
-  }
-
-  results.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-  return results;
-});
+_ReportOrder _mapRow(
+  UnifiedReportOrderRow row,
+  ({
+    Map<int, String> staffNames,
+    Map<int, String> visitorNames,
+    Map<int, String> dependentNames,
+    Map<int, String> contractorNames,
+  }) names,
+) {
+  return _ReportOrder(
+    id: row.id,
+    orderCode: row.orderCode,
+    status: row.status,
+    orderType: row.orderType,
+    mealType: row.mealType,
+    total: row.total,
+    groupCount: row.groupCount,
+    syncStatus: row.syncStatus,
+    description: row.description,
+    staffName: row.isGroup
+        ? null
+        : _resolveStaffName(row, names),
+    createdAt: DateTime.tryParse(row.createdAt) ?? DateTime.now(),
+  );
+}
 
 class ReportsPage extends StatelessWidget {
   const ReportsPage({super.key});
@@ -167,7 +190,7 @@ class ReportsPage extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: cs.primary,
         foregroundColor: cs.onPrimary,
-        title: Text(AppLocalizations.of(context).orders),
+        title: Text("Vouchers"),
         leading: const BackButton(color: Colors.white),
         centerTitle: true,
       ),
@@ -189,45 +212,255 @@ class _OrdersTabState extends ConsumerState<_OrdersTab>
   bool get wantKeepAlive => true;
 
   final _searchCtrl = TextEditingController();
+  final _searchDebouncer = SearchDebouncer();
   String _query = '';
   String? _statusFilter;
   String? _mealTypeFilter;
   String? _syncFilter;
   DateTimeRange? _dateRangeFilter;
 
+  bool _loading = true;
+  bool _loadingMore = false;
+  bool _exporting = false;
+  bool _hasMore = true;
+  int _offset = 0;
+  List<_ReportOrder> _loadedOrders = [];
+  int _totalCount = 0;
+  String? _loadError;
+
+  ({
+    Map<int, String> staffNames,
+    Map<int, String> visitorNames,
+    Map<int, String> dependentNames,
+    Map<int, String> contractorNames,
+  })? _nameMaps;
+
   @override
   void initState() {
     super.initState();
-    _searchCtrl.addListener(
-      () => setState(() => _query = _searchCtrl.text.trim().toLowerCase()),
-    );
+    _searchCtrl.addListener(() {
+      _searchDebouncer(() {
+        if (mounted) {
+          setState(
+            () => _query = _searchCtrl.text.trim().toLowerCase(),
+          );
+        }
+      });
+    });
+    _loadOrders(reset: true);
   }
 
   @override
   void dispose() {
+    _searchDebouncer.dispose();
     _searchCtrl.dispose();
     super.dispose();
   }
 
+  String? _dateFromIso() =>
+      _dateRangeFilter?.start.toIso8601String();
+
+  String? _dateToInclusiveIso() {
+    if (_dateRangeFilter == null) return null;
+    final end = _dateRangeFilter!.end;
+    return DateTime(end.year, end.month, end.day, 23, 59, 59)
+        .toIso8601String();
+  }
+
+  bool? _syncedDbFilter() {
+    if (_syncFilter == 'synced') return true;
+    if (_syncFilter == 'unsynced') return false;
+    return null;
+  }
+
+  Future<void> _loadOrders({bool reset = false}) async {
+    if (reset) {
+      _offset = 0;
+      _hasMore = true;
+      _loadedOrders = [];
+      _nameMaps = null;
+    } else if (!_hasMore) {
+      return;
+    }
+
+    setState(() {
+      _loadError = null;
+      if (reset) {
+        _loading = true;
+      } else {
+        _loadingMore = true;
+      }
+    });
+
+    try {
+      final db = GetIt.instance<AppDatabase>();
+      _nameMaps ??= await _buildEntityNameMaps(db);
+      final names = _nameMaps!;
+
+      final rows = await db.queryUnifiedOrdersPage(
+        createdAtFrom: _dateFromIso(),
+        createdAtToInclusive: _dateToInclusiveIso(),
+        status: _statusFilter,
+        synced: _syncedDbFilter(),
+        mealType: _mealTypeFilter,
+        search: _query,
+        limit: _ordersPageSize,
+        offset: _offset,
+      );
+
+      if (reset) {
+        _totalCount = await db.countUnifiedOrders(
+          createdAtFrom: _dateFromIso(),
+          createdAtToInclusive: _dateToInclusiveIso(),
+          status: _statusFilter,
+          synced: _syncedDbFilter(),
+          mealType: _mealTypeFilter,
+        );
+        
+      }
+
+      final mapped = rows.map((r) => _mapRow(r, names)).toList();
+      _offset += rows.length;
+      _hasMore = _offset < _totalCount;
+
+      setState(() {
+        if (reset) {
+          _loadedOrders = mapped;
+        } else {
+          _loadedOrders = [..._loadedOrders, ...mapped];
+        }
+        _loading = false;
+        _loadingMore = false;
+      });
+    } catch (e) {
+      setState(() {
+        _loadError = e.toString();
+        _loading = false;
+        _loadingMore = false;
+      });
+    }
+  }
+
+  /// Order code, meal type and status are filtered in SQL by [queryUnifiedOrdersPage]
+  /// so paging is not limited to the rows already loaded. Only the staff name is
+  /// matched here, because it lives in the name maps rather than the projection.
   List<_ReportOrder> _filter(List<_ReportOrder> orders) {
     return orders.where((o) {
-      final q = _query;
-      final matchQ = q.isEmpty ||
-          o.orderCode.toLowerCase().contains(q) ||
-          o.mealType.toLowerCase().contains(q) ||
-          (o.staffName?.toLowerCase().contains(q) ?? false) ||
-          o.status.toLowerCase().contains(q);
+      final q = _query.trim().toLowerCase();
+      final matchQ = q.isEmpty || (o.staffName?.toLowerCase().contains(q) ?? false);
       final matchS = _statusFilter == null || o.status == _statusFilter;
       final matchM = _mealTypeFilter == null || o.mealType == _mealTypeFilter;
-      final matchDate = _dateRangeFilter == null ||
-          ((o.createdAt.isAtSameMomentAs(_dateRangeFilter!.start) ||
-                  o.createdAt.isAfter(_dateRangeFilter!.start)) &&
-              o.createdAt
-                  .isBefore(_dateRangeFilter!.end.add(const Duration(days: 1))));
       final matchSync = _syncFilter == null ||
           (_syncFilter == 'synced' ? o.isSynced : !o.isSynced);
-      return matchQ && matchS && matchM && matchSync && matchDate;
+      return matchQ && matchS && matchM && matchSync;
     }).toList();
+  }
+
+  Future<void> _exportVouchers() async {
+    if (_exporting) return;
+    setState(() => _exporting = true);
+    try {
+      final db = GetIt.instance<AppDatabase>();
+      _nameMaps ??= await _buildEntityNameMaps(db);
+      final names = _nameMaps!;
+
+      final rows = await db.queryUnifiedOrdersPage(
+        createdAtFrom: _dateFromIso(),
+        createdAtToInclusive: _dateToInclusiveIso(),
+        status: _statusFilter,
+        synced: _syncedDbFilter(),
+        mealType: _mealTypeFilter,
+        search: _query,
+        limit: null,
+      );
+
+      final orders = _filter(rows.map((r) => _mapRow(r, names)).toList());
+      if (!mounted) return;
+
+      if (orders.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No vouchers to export')),
+        );
+        return;
+      }
+
+      final buffer = StringBuffer();
+      void row(List<Object?> cells) =>
+          buffer.write('${cells.map(_csvField).join(',')}\r\n');
+
+      row([
+        'Order Code',
+        'Date/Time',
+        'Staff/Group',
+        'Meal Type',
+        'Order Type',
+        'Status',
+        'Sync Status',
+        'Group Count',
+        'Total',
+        'Description',
+      ]);
+
+      final dateFmt = DateFormat('yyyy-MM-dd HH:mm');
+      var revenue = 0.0;
+      for (final o in orders) {
+        revenue += o.total;
+        row([
+          o.orderCode,
+          dateFmt.format(o.createdAt),
+          o.staffName ?? 'Group order',
+          _cap(o.mealType),
+          o.orderType == 'takeout' ? 'Takeout' : 'Dine-in',
+          _cap(o.status),
+          o.isSynced ? 'Synced' : 'Unsynced',
+          o.groupCount,
+          o.total.toStringAsFixed(2),
+          o.description ?? '',
+        ]);
+      }
+
+      row([
+        'TOTAL',
+        '${orders.length} vouchers',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        revenue.toStringAsFixed(2),
+        '',
+      ]);
+
+      final now = DateTime.now();
+      String pad(int n) => n.toString().padLeft(2, '0');
+      final stamp = '${now.year}${pad(now.month)}${pad(now.day)}_'
+          '${pad(now.hour)}${pad(now.minute)}${pad(now.second)}';
+      final fileName = 'vouchers_$stamp.csv';
+
+      final bytes = <int>[
+        0xEF,
+        0xBB,
+        0xBF,
+        ...utf8.encode(buffer.toString()),
+      ];
+
+      final savedPath = await GetIt.instance<FileExportService>()
+          .saveToDownloads(fileName: fileName, bytes: bytes);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Saved to $savedPath')),
+      );
+    } catch (e) {
+      print('Export failed: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Export failed: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
   }
 
   Future<void> _showFilterModal() async {
@@ -283,7 +516,6 @@ class _OrdersTabState extends ConsumerState<_OrdersTab>
                     children: [
                       null,
                       'completed',
-                      'pending',
                       'cancelled'
                     ].map((status) {
                       final isSelected = tempStatus == status;
@@ -418,6 +650,7 @@ class _OrdersTabState extends ConsumerState<_OrdersTab>
                           _dateRangeFilter = tempDateRange;
                         });
                         Navigator.pop(context);
+                        _loadOrders(reset: true);
                     },
                     label: Text(
                       "Apply Filters",
@@ -437,73 +670,109 @@ class _OrdersTabState extends ConsumerState<_OrdersTab>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final ordersAsync = ref.watch(reportOrdersProvider);
 
-    return ordersAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Failed to load orders: $e')),
-      data: (allOrders) {
-        final items = _filter(allOrders);
-        final total = items.fold<double>(0, (s, o) => s + o.total);
-        return Column(
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_loadError != null) {
+      return Center(child: Text('Failed to load orders: $_loadError'));
+    }
+
+    final items = _filter(_loadedOrders);
+
+    return Column(
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: _SearchBar(
-                    controller: _searchCtrl,
-                    hint: AppLocalizations.of(context).searchOrderHint,
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(right: 12.0, top: 12.0),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: IconButton(
-                      icon: Icon(
-                        Icons.tune,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                      onPressed: _showFilterModal,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            if (items.isNotEmpty)
-              _SummaryStrip(
-                '${items.length} ${AppLocalizations.of(context).orders}',
-                '${AppLocalizations.of(context).total}: GH₵ ${_currency.format(total)}',
-              ),
             Expanded(
-              child: items.isEmpty
-                  ? _EmptyView(
-                      Icons.receipt_long_outlined,
-                      AppLocalizations.of(context).noOrders,
-                      onRefresh: () => ref.invalidate(reportOrdersProvider),
-                    )
-                  : RefreshIndicator(
-                    onRefresh: () async {
-                      ref.invalidate(reportOrdersProvider);
-                      
-                    },
-                    child: ListView.separated(
-                        padding: const EdgeInsets.only(bottom: 24),
-                        itemCount: items.length,
-                        separatorBuilder: (_, __) =>
-                            const Divider(height: 1, indent: 16, endIndent: 16),
-                        itemBuilder: (_, i) => _OrderTile(order: items[i]),
-                      ),
+              child: _SearchBar(
+                controller: _searchCtrl,
+                hint: AppLocalizations.of(context).searchOrderHint,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(right: 8.0, top: 12.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: IconButton(
+                  tooltip: 'Export vouchers',
+                  onPressed: _exporting ? null : _exportVouchers,
+                  icon: _exporting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Icon(
+                          Icons.download,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(right: 12.0, top: 12.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: IconButton(
+                  icon: Icon(
+                    Icons.tune,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
+                  onPressed: _showFilterModal,
+                ),
+              ),
             ),
           ],
-        );
-      },
+        ),
+        const SizedBox(height: 10),
+        
+        Expanded(
+          child: items.isEmpty
+              ? _EmptyView(
+                  Icons.receipt_long_outlined,
+                  AppLocalizations.of(context).noOrders,
+                  onRefresh: () => _loadOrders(reset: true),
+                )
+              : RefreshIndicator(
+                  onRefresh: () => _loadOrders(reset: true),
+                  child: ListView.separated(
+                    padding: const EdgeInsets.only(bottom: 24),
+                    itemCount: items.length + (_hasMore ? 1 : 0),
+                    separatorBuilder: (_, index) {
+                      if (index >= items.length - 1) {
+                        return const SizedBox.shrink();
+                      }
+                      return const Divider(height: 1, indent: 16, endIndent: 16);
+                    },
+                    itemBuilder: (_, i) {
+                      if (i >= items.length) {
+                        return Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Center(
+                            child: _loadingMore
+                                ? const CircularProgressIndicator()
+                                : OutlinedButton(
+                                    onPressed: () => _loadOrders(),
+                                    child: const Text('Load more'),
+                                  ),
+                          ),
+                        );
+                      }
+                      return _OrderTile(order: items[i]);
+                    },
+                  ),
+                ),
+        ),
+      ],
     );
   }
 }

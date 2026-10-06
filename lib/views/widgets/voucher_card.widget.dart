@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../controllers/providers.dart';
 
-class VoucherCard extends StatelessWidget {
+class VoucherCard extends ConsumerWidget {
   final String orderCode;
   final String staffName;
   final String mealType;
   final String orderTime;
 
-  const VoucherCard({super.key, 
+  const VoucherCard({
+    super.key,
     required this.orderCode,
     required this.staffName,
     required this.mealType,
@@ -14,21 +17,24 @@ class VoucherCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
     final mealLabel =
         mealType[0].toUpperCase() + mealType.substring(1).replaceAll('_', ' ');
     return Card(
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        side: BorderSide(width: 1),
+        borderRadius: BorderRadius.circular(10),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(15),
+        padding: const EdgeInsets.all(10),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'ASG CANTEEN',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            Text(
+              ref.watch(receiptHeaderProvider).asData?.value ?? 'AGCL CANTEEN',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
             ),
             const SizedBox(height: 4),
             Text(

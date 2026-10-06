@@ -35,6 +35,7 @@ PdaX1-1/
 /build/
 /coverage/
 .env
+.fvm/versions
 commit.sh
 
 # Symbolication related
@@ -51,3 +52,7 @@ color-themes.md
 opencode.json
 
 PdaX/
+
+PRODUCTION_TEST_CHECKLIST.md
+
+pos_manual.md

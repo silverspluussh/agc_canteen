@@ -13,6 +13,7 @@ class PosDeviceService {
   bool get isInitialized => _isInitialized;
 
   Future<bool> init() async {
+    if (_isInitialized) return true;
     try {
       final result = await _channel.invokeMethod<bool>('init');
       _isInitialized = result ?? false;

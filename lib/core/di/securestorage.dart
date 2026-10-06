@@ -1,9 +1,9 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-AndroidOptions _getAndroidOptions() => AndroidOptions();
+AndroidOptions _getAndroidOptions() =>
+    AndroidOptions(encryptedSharedPreferences: true, resetOnError: true);
 
 const String _expirationKey = 'token_expiration';
-const String _kEncryptionKeyStorageKey = 'encryption_key';
 
 IOSOptions _getIosOptions() => const IOSOptions();
 
@@ -17,12 +17,8 @@ class SecureStorage {
     await storage.write(key: key, value: value);
   }
 
-  Future writeBioSecret(String secret) async {
-    await storage.write(key: _kEncryptionKeyStorageKey, value: secret);
-  }
-
   Future writeSecureToken(String value) async {
-    final expirationTime = DateTime.now().add(const Duration(hours: 12));
+    final expirationTime = DateTime.now().add(const Duration(hours: 168));
 
     await storage.write(key: 'access_token', value: value);
     await storage.write(
@@ -36,7 +32,7 @@ class SecureStorage {
     if (expirationTime == null) return null;
     final expirationDateTime = DateTime.parse(expirationTime);
     if (expirationDateTime.isBefore(DateTime.now())) return null;
-    return await storage.read(key: key) ?? 'No data found!';
+    return await storage.read(key: key);
   }
 
   Future<void> deleteSecureData(String key) async =>
@@ -46,7 +42,7 @@ class SecureStorage {
 
   //save email and add expiry of 12 hours
   Future<void> writeSecureEmail(String email) async {
-    final expirationTime = DateTime.now().add(const Duration(hours: 12));
+    final expirationTime = DateTime.now().add(const Duration(hours: 168));
     await storage.write(key: 'email', value: email);
     await storage.write(
       key: 'email_expiration',
@@ -67,7 +63,7 @@ class SecureStorage {
   Future<void> clearSecureEmail() async => await storage.deleteAll();
 
   Future<void> writeSecurePhone(String phone) async {
-    final expirationTime = DateTime.now().add(const Duration(hours: 12));
+    final expirationTime = DateTime.now().add(const Duration(hours: 168));
     await storage.write(key: 'phone', value: phone);
     await storage.write(
       key: 'phone_expiration',

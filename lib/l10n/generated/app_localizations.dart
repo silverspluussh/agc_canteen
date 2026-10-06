@@ -103,13 +103,13 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In en, this message translates to:
-  /// **'AGC Canteen'**
+  /// **'AGCL Canteen'**
   String get appTitle;
 
   /// No description provided for @appDescription.
   ///
   /// In en, this message translates to:
-  /// **'Android POS canteen system for AGC'**
+  /// **'Android POS canteen system for AGCL'**
   String get appDescription;
 
   /// No description provided for @login.
@@ -835,7 +835,7 @@ abstract class AppLocalizations {
   /// No description provided for @viewReportsSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'View POS orders and overcharges'**
+  /// **'View POS orders'**
   String get viewReportsSubtitle;
 
   /// No description provided for @appearance.

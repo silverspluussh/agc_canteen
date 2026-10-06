@@ -1,10 +1,11 @@
 import 'dart:async';
-import 'dart:developer' as dev;
 import 'package:flutter/services.dart';
 import 'package:agc_canteen/core/enums/employee_type.enum.dart';
+import 'package:agc_canteen/core/utils/app_log.dart';
 import 'package:agc_canteen/models/staff.model.dart';
 import 'package:drift/drift.dart';
 import 'package:logger/logger.dart';
+import 'package:uuid/uuid.dart';
 import '../database/app_database.dart';
 import '../pos/pos_fingerprint_service.dart';
 import '../database/activity_log_service.dart';
@@ -18,45 +19,63 @@ class FingerprintAuthService {
 
   static const int matchThreshold = 80;
 
+  bool _initialized = false;
+
   FingerprintAuthService({
     required AppDatabase db,
     required PosFingerprintService fingerprint,
     Logger? logger,
   })  : _db = db,
         _fingerprint = fingerprint,
-        _logger = logger ?? Logger();
+        _logger = logger ?? createAppLogger();
 
   Future<bool> init() async {
-    dev.log('[FingerprintAuth] Initializing fingerprint device...',
+    if (_initialized) return true;
+    // Extra grace for kernel SPI probe before the first launch() — see
+    // SingleAuthPosPage 2s delay + 9s observed spidev ready window.
+    await Future.delayed(const Duration(seconds: 2));
+    // Fast-path if another page already initialized.
+    try {
+      if (await _fingerprint.isAvailable()) {
+        _initialized = true;
+        return true;
+      }
+    } catch (_) {}
+    appLog('[FingerprintAuth] Initializing fingerprint device...',
         name: 'POS_AUTH');
     const maxRetries = 4;
     for (var attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         final ok = await _fingerprint.init();
         if (ok) {
-          dev.log('[FingerprintAuth] Fingerprint device initialized successfully (attempt $attempt)',
+          appLog('[FingerprintAuth] Fingerprint device initialized successfully (attempt $attempt)',
               name: 'POS_AUTH');
+          _initialized = true;
           return true;
         }
-        dev.log('[FingerprintAuth] Fingerprint device init returned false (attempt $attempt/$maxRetries)',
+        appLog('[FingerprintAuth] Fingerprint device init returned false (attempt $attempt/$maxRetries)',
             name: 'POS_AUTH');
       } on PlatformException catch (e) {
-        dev.log('[FingerprintAuth] Fingerprint device init error (attempt $attempt/$maxRetries): ${e.code} — ${e.message}',
+        appLog('[FingerprintAuth] Fingerprint device init error (attempt $attempt/$maxRetries): ${e.code} — ${e.message}',
             name: 'POS_AUTH');
         if (e.code == 'FINGER_INIT_ERROR' || (e.message?.contains('already in progress') ?? false)) {
-          dev.log('[FingerprintAuth] SDK init in progress, waiting...', name: 'POS_AUTH');
+          appLog('[FingerprintAuth] SDK init in progress, waiting...', name: 'POS_AUTH');
           await Future.delayed(const Duration(seconds: 5));
           continue;
         }
       }
       if (attempt < maxRetries) {
-        await Future.delayed(Duration(seconds: attempt));
+        // Exponential backoff: 2s, 4s, 8s — covers the ~9s spidev probe + jitter.
+        await Future.delayed(Duration(seconds: 1 << attempt));
       }
     }
     throw Exception('Fingerprint device initialization failed after $maxRetries attempts');
   }
 
   Future<bool> get isAvailable => _fingerprint.isAvailable();
+
+  /// Cancels an in-progress fingerprint capture.
+  Future<void> cancel() => _fingerprint.cancel();
 
   
   Future<bool> hasFingerType(int entityId, Finger finger, {EmployeeType entityType = EmployeeType.permanent}) async {
@@ -65,19 +84,18 @@ class FingerprintAuthService {
   }
 
   Future<List<BioDataEntry>> _getActiveBioData(int entityId, {required EmployeeType entityType}) async {
-    final all = await _db.getActiveBioData();
+    if (entityType.isStaffType) {
+      return _db.getActiveBioDataByStaff(entityId);
+    }
     switch (entityType) {
-      case EmployeeType.permanent:
-      case EmployeeType.graduateTrainee:
-      case EmployeeType.nationalService:
-      case EmployeeType.intern:
-        return all.where((e) => e.staffId == entityId).toList();
       case EmployeeType.dependent:
-        return all.where((e) => e.dependantId == entityId).toList();
+        return _db.getActiveBioDataByDependent(entityId);
       case EmployeeType.contractor:
-        return all.where((e) => e.contractorStaffId == entityId).toList();
+        return _db.getActiveBioDataByContractorStaff(entityId);
       case EmployeeType.visitor:
-        return all.where((e) => e.visitorId == entityId).toList();
+        return _db.getActiveBioDataByVisitor(entityId);
+      default:
+        return [];
     }
   }
 
@@ -88,18 +106,37 @@ class FingerprintAuthService {
       return null;
     }
 
-    final fingerprintId = DateTime.now().millisecondsSinceEpoch;
+    final fingerprintId = await _db.nextLocalId('bio_data_entries');
     final now = DateTime.now().toIso8601String();
     final base64data = result.templateBase64??"";
-    // final encryptedData = await _encryptionService.encrypt(result.templateBase64!);
+
+    // Look up department info for staff-type entities
+    int? departmentId;
+    String? departmentName;
+    String? personnelName;
+    if (entityType.isStaffType) {
+      final staff = await _db.getStaff(entityId);
+      if (staff != null) {
+        departmentId = staff.departmentId;
+        final dep = departmentId != null ? await _db.getDepartment(departmentId) : null;
+        departmentName = dep?.name;
+        personnelName = '${staff.firstName} ${staff.lastName}';
+      }
+    }
 
     final companion = BioDataEntriesCompanion(
       id: Value(fingerprintId),
       finger: Value(finger.name),
       dataBase64: Value(base64data),
       isActive: const Value(true),
+      departmentId: Value.absentIfNull(departmentId),
+      departmentName: Value.absentIfNull(departmentName),
+      personnelName: Value.absentIfNull(personnelName),
       createdAt: Value(now),
       updatedAt: Value(now),
+      // Stable idempotency key: this exact capture must map to exactly one
+      // server row no matter how many times the push is retried.
+      uuid: Value(const Uuid().v4()),
       syncStatus: const Value(0),
       syncUpdatedAt: const Value.absent(),
     );
@@ -109,9 +146,10 @@ class FingerprintAuthService {
       case EmployeeType.graduateTrainee:
       case EmployeeType.nationalService:
       case EmployeeType.intern:
+      case EmployeeType.shortTermContractor:
         await _db.insertBioData(companion.copyWith(staffId: Value(entityId)));
       case EmployeeType.dependent:
-        await _db.insertBioData(companion.copyWith(dependantId: Value(entityId)));
+        await _db.insertBioData(companion.copyWith(dependentId: Value(entityId)));
       case EmployeeType.contractor:
         await _db.insertBioData(companion.copyWith(contractorStaffId: Value(entityId)));
       case EmployeeType.visitor:
@@ -132,65 +170,78 @@ class FingerprintAuthService {
     return fingerprintId;
   }
 
-  Future<BioDataEntry?> authenticate() async {
-    dev.log('[FingerprintAuth] Starting fingerprint capture via hardware...',
+  Future<BioDataEntry?> authenticate({int? departmentId}) async {
+    await _fingerprint.cancel();
+    appLog('[FingerprintAuth] Starting fingerprint capture via hardware...',
         name: 'POS_AUTH');
     final result = await _fingerprint.capture();
     if (result == null || !result.success || result.templateBase64 == null) {
-      dev.log('[FingerprintAuth] Capture FAILED: '
+      appLog('[FingerprintAuth] Capture FAILED: '
           'result=${result != null ? "success=${result.success}, template=${result.templateBase64 != null}" : "null"}',
           name: 'POS_AUTH');
       _logger.w('Fingerprint authentication capture failed');
       return null;
     }
 
-    dev.log('[FingerprintAuth] Capture SUCCESS — templateBase64 length=${result.templateBase64!.length}',
+    appLog('[FingerprintAuth] Capture SUCCESS — templateBase64 length=${result.templateBase64!.length}',
         name: 'POS_AUTH');
 
-    final fingerprints = await _db.getActiveBioData();
+    final query = _db.selectOnly(_db.bioDataEntries)
+      ..addColumns([
+        _db.bioDataEntries.id,
+        _db.bioDataEntries.dataBase64,
+        _db.bioDataEntries.staffId,
+        _db.bioDataEntries.dependentId,
+        _db.bioDataEntries.contractorStaffId,
+        _db.bioDataEntries.visitorId,
+      ])
+      ..where(_db.bioDataEntries.isActive.equals(true));
+    if (departmentId != null) {
+      query.where(_db.bioDataEntries.departmentId.equals(departmentId));
+    }
+    final rows = await query.get();
 
-    dev.log('[FingerprintAuth] Got ${fingerprints.length} active fingerprint(s) from DB',
+    appLog('[FingerprintAuth] Got ${rows.length} active fingerprint(s) from DB',
         name: 'POS_AUTH');
 
-    if (fingerprints.isEmpty) {
-        dev.log('[FingerprintAuth] No fingerprints stored in local DB — no match possible',
-            name: 'POS_AUTH');
+    if (rows.isEmpty) {
+      appLog('[FingerprintAuth] No fingerprints stored in local DB — no match possible',
+          name: 'POS_AUTH');
       _logger.w('No fingerprints stored locally');
       return null;
     }
 
-    BioDataEntry? bestMatch;
+    int? bestId;
     int bestScore = -1;
 
-    for (final tpl in fingerprints) {
-      dev.log('[FingerprintAuth] Verifying against templateId=${tpl.id}, staffId=${tpl.staffId}',
+    for (final row in rows) {
+      final id = row.read(_db.bioDataEntries.id)!;
+      final dataBase64 = row.read(_db.bioDataEntries.dataBase64)!;
+      final staffId = row.read(_db.bioDataEntries.staffId);
+      appLog('[FingerprintAuth] Verifying against templateId=$id, staffId=$staffId',
           name: 'POS_AUTH');
-      String templateData;
-      try {
-        // templateData = await _encryptionService.decrypt(tpl.dataBase64);
-              templateData = tpl.dataBase64;
-
-      } catch (_) {
-        templateData = tpl.dataBase64;
-      }
-      final score = await _fingerprint.verify(templateData);
-      dev.log('[FingerprintAuth] Verify result: score=$score for staffId=${tpl.staffId}',
+      final score = await _fingerprint.verify(dataBase64);
+      appLog('[FingerprintAuth] Verify result: score=$score for staffId=$staffId',
           name: 'POS_AUTH');
       if (score != null && score > bestScore) {
         bestScore = score;
-        bestMatch = tpl;
+        bestId = id;
+        if (bestScore >= 95) break;
       }
     }
 
-    if (bestMatch != null && bestScore >= matchThreshold) {
-      dev.log('[FingerprintAuth] MATCH FOUND: staffId=${bestMatch.staffId}, score=$bestScore (threshold=$matchThreshold)',
-          name: 'POS_AUTH');
-      _logger.i(
-          'Fingerprint matched: staffId=${bestMatch.staffId} score=$bestScore');
-      return bestMatch;
+    if (bestId != null && bestScore >= matchThreshold) {
+      final bestMatch = await _db.getBioData(bestId);
+      if (bestMatch != null) {
+        appLog('[FingerprintAuth] MATCH FOUND: staffId=${bestMatch.staffId}, score=$bestScore (threshold=$matchThreshold)',
+            name: 'POS_AUTH');
+        _logger.i(
+            'Fingerprint matched: staffId=${bestMatch.staffId} score=$bestScore');
+        return bestMatch;
+      }
     }
 
-    dev.log('[FingerprintAuth] NO MATCH: bestScore=$bestScore (threshold=$matchThreshold)',
+    appLog('[FingerprintAuth] NO MATCH: bestScore=$bestScore (threshold=$matchThreshold)',
         name: 'POS_AUTH');
     _logger.w('No fingerprint match. Best score: $bestScore');
     return null;
@@ -233,14 +284,8 @@ class FingerprintAuthService {
   }
 
   /// Count unsynced fingerprints.
-  Future<int> getUnsyncedCount() async {
-    final unsynced = await _db.getUnsyncedBioData();
-    return unsynced.length;
-  }
+  Future<int> getUnsyncedCount() => _db.countUnsyncedBioData();
 
   /// Count total active fingerprints stored locally.
-  Future<int> getStoredFingerprintCount() async {
-    final fingerprints = await _db.getActiveBioData();
-    return fingerprints.length;
-  }
+  Future<int> getStoredFingerprintCount() => _db.countActiveBioData();
 }

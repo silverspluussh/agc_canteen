@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:developer' as dev;
+import 'package:agc_canteen/core/utils/app_log.dart';
 import 'package:flutter/services.dart';
 
 class FingerprintResult {
@@ -42,15 +42,27 @@ class PosFingerprintService {
     });
   }
 
+  bool _initialized = false;
+
+  static const _captureTimeout = Duration(seconds: 30);
+  static const _verifyTimeout = Duration(seconds: 10);
+
   Future<bool> init() async {
+    if (_initialized) {
+      final available = await isAvailable();
+      if (available) return true;
+      _initialized = false;
+    }
     try {
-      dev.log('[PosFingerprint] Calling native method channel: init()',
+      appLog('[PosFingerprint] Calling native method channel: init()',
           name: 'POS_AUTH');
       final result = await _methodChannel.invokeMethod<bool>('init') ?? false;
-      dev.log('[PosFingerprint] init() returned: $result', name: 'POS_AUTH');
+      _initialized = result;
+      appLog('[PosFingerprint] init() returned: $result', name: 'POS_AUTH');
       return result;
     } on PlatformException catch (e) {
-      dev.log('[PosFingerprint] init() PlatformException: ${e.code} — ${e.message}',
+      _initialized = false;
+      appLog('[PosFingerprint] init() PlatformException: ${e.code} — ${e.message}',
           name: 'POS_AUTH');
       rethrow;
     }
@@ -58,18 +70,31 @@ class PosFingerprintService {
 
   Future<FingerprintResult?> capture({int templateIndex = 0}) async {
     try {
-      dev.log('[PosFingerprint] Calling native method channel: capture(templateIndex=$templateIndex) — waiting for finger...',
+      if (!await isAvailable()) {
+        _initialized = false;
+        final ok = await init();
+        if (!ok) return null;
+      }
+      appLog('[PosFingerprint] Calling native method channel: capture(templateIndex=$templateIndex) — waiting for finger...',
           name: 'POS_AUTH');
       final result = await _methodChannel.invokeMethod<Map<dynamic, dynamic>>(
           'capture', {
         'templateIndex': templateIndex,
-      });
-      dev.log('[PosFingerprint] capture() returned: ${result != null ? "success=${result['success']}, template=${result['templateBase64'] != null}" : "null"}',
+      }).timeout(
+        _captureTimeout,
+        onTimeout: () {
+          appLog('[PosFingerprint] capture() timed out after ${_captureTimeout.inSeconds}s',
+              name: 'POS_AUTH');
+          unawaited(cancel());
+          return null;
+        },
+      );
+      appLog('[PosFingerprint] capture() returned: ${result != null ? "success=${result['success']}, template=${result['templateBase64'] != null}" : "null"}',
           name: 'POS_AUTH');
       if (result == null) return null;
       return FingerprintResult.fromMap(Map<String, dynamic>.from(result));
     } on PlatformException catch (e) {
-      dev.log('[PosFingerprint] capture() PlatformException: $e',
+      appLog('[PosFingerprint] capture() PlatformException: $e',
           name: 'POS_AUTH');
       return null;
     }
@@ -80,16 +105,23 @@ class PosFingerprintService {
     int templateIndex = 0,
   }) async {
     try {
-      dev.log('[PosFingerprint] Calling native method channel: verify(templateLength=${templateBase64.length}, templateIndex=$templateIndex)',
+      appLog('[PosFingerprint] Calling native method channel: verify(templateLength=${templateBase64.length}, templateIndex=$templateIndex)',
           name: 'POS_AUTH');
       final result = await _methodChannel.invokeMethod<int>('verify', {
         'template': templateBase64,
         'templateIndex': templateIndex,
-      });
-      dev.log('[PosFingerprint] verify() returned: score=$result', name: 'POS_AUTH');
+      }).timeout(
+        _verifyTimeout,
+        onTimeout: () {
+          appLog('[PosFingerprint] verify() timed out after ${_verifyTimeout.inSeconds}s',
+              name: 'POS_AUTH');
+          return null;
+        },
+      );
+      appLog('[PosFingerprint] verify() returned: score=$result', name: 'POS_AUTH');
       return result;
     } on PlatformException catch (e) {
-      dev.log('[PosFingerprint] verify() PlatformException: $e',
+      appLog('[PosFingerprint] verify() PlatformException: $e',
           name: 'POS_AUTH');
       return null;
     }

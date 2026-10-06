@@ -8,6 +8,7 @@ import '../../core/di/injection_container.dart';
 import '../../services/database/app_database.dart';
 import '../../services/sync_services/sync_from_local_to_remote.dart';
 import '../../services/sync_services/sync_from_remote_to_local.dart';
+import '../../services/sync_services/sync_scheduler.dart';
 
 class SyncPage extends ConsumerStatefulWidget {
   const SyncPage({super.key});
@@ -20,14 +21,17 @@ class _SyncPageState extends ConsumerState<SyncPage>
     with SingleTickerProviderStateMixin {
   late final LocalToRemoteSyncService _uploadService;
   late final RemoteToLocalSyncService _downloadService;
+  late final SyncScheduler _scheduler;
   late final AppDatabase _db;
   late final TabController _tabController;
 
   // ── Upload state ──
   int _unsyncedOrders = 0;
+  int _unsyncedFunctionOrders = 0;
   int _unsyncedBioData = 0;
   DateTime? _uploadLastSync;
   bool _syncingOrders = false;
+  bool _syncingFunctionOrders = false;
   bool _syncingBioData = false;
   bool _syncingAllUpload = false;
 
@@ -37,19 +41,33 @@ class _SyncPageState extends ConsumerState<SyncPage>
   int _bioDataCount = 0;
   int _visitorCount = 0;
   int _contractorStaffCount = 0;
-  int _dependantCount = 0;
+  int _dependentCount = 0;
   int _shiftCount = 0;
-  bool _syncingDownload = false;
+  int _cardCount = 0;
+  int _departmentCount = 0;
+  bool _syncingStaff = false;
+  bool _syncingMealTypes = false;
+  bool _syncingDownloadBioData = false;
+  bool _syncingVisitors = false;
+  bool _syncingContractorStaff = false;
+  bool _syncingDependents = false;
+  bool _syncingShifts = false;
+  bool _syncingDepartments = false;
+  bool _syncingCards = false;
+  bool _syncingAllDownload = false;
 
-  int get _totalUploadPending => _unsyncedOrders + _unsyncedBioData;
+  int get _totalUploadPending =>
+      _unsyncedOrders + _unsyncedFunctionOrders + _unsyncedBioData;
   int get _totalLocalRecords =>
       _staffCount +
       _mealTypeCount +
       _bioDataCount +
       _visitorCount +
       _contractorStaffCount +
-      _dependantCount +
-      _shiftCount;
+      _dependentCount +
+      _shiftCount +
+      _cardCount +
+      _departmentCount;
 
   @override
   void initState() {
@@ -57,6 +75,7 @@ class _SyncPageState extends ConsumerState<SyncPage>
     _tabController = TabController(length: 2, vsync: this);
     _uploadService = getIt<LocalToRemoteSyncService>();
     _downloadService = getIt<RemoteToLocalSyncService>();
+    _scheduler = getIt<SyncScheduler>();
     _db = getIt<AppDatabase>();
     _loadCounts();
     _loadUploadLastSync();
@@ -72,12 +91,14 @@ class _SyncPageState extends ConsumerState<SyncPage>
   // ── Upload counts ──────────────────────────────────────────
 
   Future<void> _loadCounts() async {
-    final orders = await _db.getUnsyncedOrders();
-    final bioData = await _db.getUnsyncedBioData();
+    final unsyncedOrders = await _db.countUnsyncedOrders();
+    final unsyncedFunctionOrders = await _db.countUnsyncedFunctionOrders();
+    final unsyncedBioData = await _db.countUnsyncedBioData();
     if (mounted) {
       setState(() {
-        _unsyncedOrders = orders.length;
-        _unsyncedBioData = bioData.length;
+        _unsyncedOrders = unsyncedOrders;
+        _unsyncedFunctionOrders = unsyncedFunctionOrders;
+        _unsyncedBioData = unsyncedBioData;
       });
     }
   }
@@ -90,22 +111,26 @@ class _SyncPageState extends ConsumerState<SyncPage>
   // ── Download counts ────────────────────────────────────────
 
   Future<void> _loadDownloadCounts() async {
-    final staff = await _db.getAllStaff();
-    final mealTypes = await _db.getAllMealTypes();
-    final bioData = await _db.getAllBioData();
-    final visitors = await _db.getAllVisitors();
-    final cStaff = await _db.getAllContractorStaff();
-    final dependants = await _db.getAllDependants();
-    final shifts = await _db.getAllShifts();
+    final staffCount = await _db.countStaff();
+    final mealTypeCount = await _db.countMealTypes();
+    final bioDataCount = await _db.countBioData();
+    final visitorCount = await _db.countVisitors();
+    final contractorStaffCount = await _db.countContractorStaff();
+    final dependentCount = await _db.countDependents();
+    final shiftCount = await _db.countShifts();
+    final cardCount = await _db.countCards();
+    final departmentCount = await _db.countDepartments();
     if (mounted) {
       setState(() {
-        _staffCount = staff.length;
-        _mealTypeCount = mealTypes.length;
-        _bioDataCount = bioData.length;
-        _visitorCount = visitors.length;
-        _contractorStaffCount = cStaff.length;
-        _dependantCount = dependants.length;
-        _shiftCount = shifts.length;
+        _staffCount = staffCount;
+        _mealTypeCount = mealTypeCount;
+        _bioDataCount = bioDataCount;
+        _visitorCount = visitorCount;
+        _contractorStaffCount = contractorStaffCount;
+        _dependentCount = dependentCount;
+        _shiftCount = shiftCount;
+        _cardCount = cardCount;
+        _departmentCount = departmentCount;
       });
     }
   }
@@ -120,6 +145,20 @@ class _SyncPageState extends ConsumerState<SyncPage>
     } finally {
       if (mounted) {
         setState(() => _syncingOrders = false);
+        await _loadCounts();
+        await _loadUploadLastSync();
+      }
+    }
+  }
+
+  Future<void> _syncFunctionOrders() async {
+    setState(() => _syncingFunctionOrders = true);
+    try {
+      final result = await _uploadService.syncFunctionOrders();
+      if (mounted) _showResultSnackBar(result, 'Function Vouchers');
+    } finally {
+      if (mounted) {
+        setState(() => _syncingFunctionOrders = false);
         await _loadCounts();
         await _loadUploadLastSync();
       }
@@ -156,8 +195,12 @@ class _SyncPageState extends ConsumerState<SyncPage>
 
   // ── Download actions ───────────────────────────────────────
 
-  Future<void> _syncDownload(String label, Future<void> Function() fn) async {
-    setState(() => _syncingDownload = true);
+  Future<void> _syncDownload(
+    String label,
+    Future<void> Function() fn,
+    void Function(bool) setBusy,
+  ) async {
+    setState(() => setBusy(true));
     try {
       await fn();
       if (mounted) _showDownloadSnackBar('$label synced');
@@ -165,22 +208,48 @@ class _SyncPageState extends ConsumerState<SyncPage>
       if (mounted) _showDownloadSnackBar('$label failed: $e', ok: false);
     } finally {
       if (mounted) {
-        setState(() => _syncingDownload = false);
+        setState(() => setBusy(false));
         await _loadDownloadCounts();
       }
     }
   }
 
   Future<void> _syncAllDownload() async {
-    setState(() => _syncingDownload = true);
+    setState(() {
+      _syncingStaff = true;
+      _syncingMealTypes = true;
+      _syncingDownloadBioData = true;
+      _syncingVisitors = true;
+      _syncingContractorStaff = true;
+      _syncingDependents = true;
+      _syncingShifts = true;
+      _syncingDepartments = true;
+      _syncingCards = true;
+      _syncingAllDownload = true;
+    });
     try {
+      if (!await _downloadService.isOnline) {
+        if (mounted) _showDownloadSnackBar('No internet connection', ok: false);
+        return;
+      }
       await _downloadService.syncAll(background: false);
       if (mounted) _showDownloadSnackBar('All data synced');
     } catch (e) {
       if (mounted) _showDownloadSnackBar('Sync failed: $e', ok: false);
     } finally {
       if (mounted) {
-        setState(() => _syncingDownload = false);
+        setState(() {
+          _syncingStaff = false;
+          _syncingMealTypes = false;
+          _syncingDownloadBioData = false;
+          _syncingVisitors = false;
+          _syncingContractorStaff = false;
+          _syncingDependents = false;
+          _syncingShifts = false;
+          _syncingDepartments = false;
+          _syncingCards = false;
+          _syncingAllDownload = false;
+        });
         await _loadDownloadCounts();
       }
     }
@@ -215,7 +284,7 @@ class _SyncPageState extends ConsumerState<SyncPage>
   Future<void> _viewUnsyncedOrders() async {
     final staff = await _db.getAllStaff();
     final visitors = await _db.getAllVisitors();
-    final dependants = await _db.getAllDependants();
+    final dependents = await _db.getAllDependents();
     final contractors = await _db.getAllContractorStaff();
     String entityName(int id, String employeeType) {
       switch (employeeType) {
@@ -223,7 +292,7 @@ class _SyncPageState extends ConsumerState<SyncPage>
           final v = visitors.where((e) => e.id == id).firstOrNull;
           return v?.name ?? id.toString();
         case 'dependent':
-          final d = dependants.where((e) => e.id == id).firstOrNull;
+          final d = dependents.where((e) => e.id == id).firstOrNull;
           return d?.fullname ?? id.toString();
         case 'contractor':
           final c = contractors.where((e) => e.id == id).firstOrNull;
@@ -233,9 +302,11 @@ class _SyncPageState extends ConsumerState<SyncPage>
           return s != null ? '${s.firstName} ${s.lastName}' : id.toString();
       }
     }
+
     if (!mounted) return;
 
     final orders = await _db.getUnsyncedOrders();
+    if (!mounted) return;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -258,11 +329,15 @@ class _SyncPageState extends ConsumerState<SyncPage>
               ),
             ),
             const SizedBox(height: 12),
-            const Text('Unsynced Orders',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+            const Text(
+              'Unsynced Orders',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 4),
-            Text('${orders.length} orders',
-                style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+            Text(
+              '${orders.length} orders',
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+            ),
             const SizedBox(height: 8),
             Expanded(
               child: orders.isEmpty
@@ -277,16 +352,22 @@ class _SyncPageState extends ConsumerState<SyncPage>
                         return ListTile(
                           dense: true,
                           contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 4, vertical: 4),
+                            horizontal: 4,
+                            vertical: 4,
+                          ),
                           leading: CircleAvatar(
                             radius: 18,
                             backgroundColor: Colors.orange.withOpacity(0.1),
-                            child: const Icon(Icons.receipt_long,
-                                size: 18, color: Colors.orange),
+                            child: const Icon(
+                              Icons.receipt_long,
+                              size: 18,
+                              color: Colors.orange,
+                            ),
                           ),
-                          title: Text(o.orderCode,
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w600)),
+                          title: Text(
+                            o.orderCode,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
                           subtitle: Text(
                             '${o.mealType} · ${o.groupCount} item${o.groupCount != 1 ? 's' : ''} · ${entityName(o.orderedById, o.employeeType)}',
                             style: const TextStyle(fontSize: 12),
@@ -312,26 +393,102 @@ class _SyncPageState extends ConsumerState<SyncPage>
         backgroundColor: cs.primary,
         foregroundColor: cs.onPrimary,
         title: const Text('Data Sync'),
+        leading: BackButton(color: Colors.white),
         centerTitle: true,
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: Colors.white,
           labelColor: Colors.white,
           unselectedLabelColor: cs.onPrimary.withOpacity(0.6),
-          labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          labelStyle: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
           tabs: const [
             Tab(icon: Icon(Icons.upload_rounded), text: 'Upload to Server'),
-            Tab(icon: Icon(Icons.download_rounded), text: 'Download from Server'),
+            Tab(
+              icon: Icon(Icons.download_rounded),
+              text: 'Download from Server',
+            ),
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
+      body: Column(
         children: [
-          _buildUploadTab(cs),
-          _buildDownloadTab(cs),
+          _buildSchedulerStatus(context, cs),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [_buildUploadTab(cs), _buildDownloadTab(cs)],
+            ),
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSchedulerStatus(BuildContext context, ColorScheme cs) {
+    return ValueListenableBuilder<SyncSnapshot>(
+      valueListenable: _scheduler.snapshot,
+      builder: (context, snap, _) {
+        final (icon, color, label) = switch (snap) {
+          SyncSnapshot(isSyncing: true) => (
+              Icons.sync,
+              cs.primary,
+              'Syncing…',
+            ),
+          SyncSnapshot(lastError: final e?) => (
+              Icons.error_outline,
+              const Color(0xFFB45309),
+              'Background sync issue: $e',
+            ),
+          SyncSnapshot(pullSkipped: true, lastSyncedAt: final t?) => (
+              Icons.cloud_done_outlined,
+              const Color(0xFF2E7D32),
+              'Up to date (checked ${DateFormat('hh:mm a').format(t)})',
+            ),
+          SyncSnapshot(lastSyncedAt: final t?) => (
+              Icons.cloud_done_outlined,
+              const Color(0xFF2E7D32),
+              'Last background sync: '
+                  '${DateFormat('dd MMM, hh:mm a').format(t)}',
+            ),
+          _ => (
+              Icons.cloud_queue,
+              cs.onSurfaceVariant,
+              'Background sync has not run yet',
+            ),
+        };
+
+        return Material(
+          color: color.withOpacity(0.08),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                Icon(icon, size: 18, color: color),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: TextStyle(fontSize: 13, color: color),
+                  ),
+                ),
+                TextButton(
+                  onPressed: snap.isSyncing
+                      ? null
+                      : () async {
+                          await _scheduler.syncNow();
+                          await _loadCounts();
+                          await _loadDownloadCounts();
+                        },
+                  child: const Text('Sync Now'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -352,9 +509,13 @@ class _SyncPageState extends ConsumerState<SyncPage>
         padding: const EdgeInsets.all(16),
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
-          _buildSummaryHeader(cs, _totalUploadPending > 0
-              ? '$_totalUploadPending pending item${_totalUploadPending != 1 ? 's' : ''}'
-              : 'Everything is up to date', accent: accent),
+          _buildSummaryHeader(
+            cs,
+            _totalUploadPending > 0
+                ? '$_totalUploadPending pending item${_totalUploadPending != 1 ? 's' : ''}'
+                : 'Everything is up to date',
+            accent: accent,
+          ),
           const SizedBox(height: 20),
 
           _sectionHeader('Pending Upload'),
@@ -366,6 +527,15 @@ class _SyncPageState extends ConsumerState<SyncPage>
             syncing: _syncingOrders,
             onSync: _unsyncedOrders > 0 ? _syncOrders : null,
             onView: _unsyncedOrders > 0 ? _viewUnsyncedOrders : null,
+          ),
+          const SizedBox(height: 12),
+          _SyncStatCard(
+            icon: Icons.event_available_outlined,
+            label: 'Function Vouchers',
+            count: _unsyncedFunctionOrders,
+            syncing: _syncingFunctionOrders,
+            onSync: _unsyncedFunctionOrders > 0 ? _syncFunctionOrders : null,
+            onView: null,
           ),
           const SizedBox(height: 12),
           _SyncStatCard(
@@ -387,7 +557,7 @@ class _SyncPageState extends ConsumerState<SyncPage>
             onPressed: _syncingAllUpload ? null : _syncAllUpload,
             loading: _syncingAllUpload,
             label: 'Upload All',
-            accent: AppColors.gold600,
+            accent: AppColors.gold900,
           ),
           const SizedBox(height: 32),
         ],
@@ -406,8 +576,11 @@ class _SyncPageState extends ConsumerState<SyncPage>
         padding: const EdgeInsets.all(16),
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
-          _buildSummaryHeader(cs, '$_totalLocalRecords local records',
-              accent: accent),
+          _buildSummaryHeader(
+            cs,
+            '$_totalLocalRecords local records',
+            accent: accent,
+          ),
           const SizedBox(height: 20),
 
           _sectionHeader('Fetch from Remote'),
@@ -416,8 +589,12 @@ class _SyncPageState extends ConsumerState<SyncPage>
             icon: Icons.people_outline,
             label: 'Staff',
             count: _staffCount,
-            syncing: _syncingDownload,
-            onSync: () => _syncDownload('Staff', _downloadService.syncStaffOnly),
+            syncing: _syncingStaff,
+            onSync: () => _syncDownload(
+              'Staff',
+              _downloadService.syncStaffOnly,
+              (v) => _syncingStaff = v,
+            ),
             onView: null,
           ),
           const SizedBox(height: 10),
@@ -425,9 +602,12 @@ class _SyncPageState extends ConsumerState<SyncPage>
             icon: Icons.restaurant_menu,
             label: 'MealTypes',
             count: _mealTypeCount,
-            syncing: _syncingDownload,
+            syncing: _syncingMealTypes,
             onSync: () => _syncDownload(
-                'Meal types', _downloadService.syncMealTypesOnly),
+              'Meal types',
+              _downloadService.syncMealTypesOnly,
+              (v) => _syncingMealTypes = v,
+            ),
             onView: null,
           ),
           const SizedBox(height: 10),
@@ -435,9 +615,12 @@ class _SyncPageState extends ConsumerState<SyncPage>
             icon: Icons.fingerprint,
             label: 'BioData',
             count: _bioDataCount,
-            syncing: _syncingDownload,
+            syncing: _syncingDownloadBioData,
             onSync: () => _syncDownload(
-                'BioData', _downloadService.syncBioDataOnly),
+              'BioData',
+              _downloadService.syncBioDataOnly,
+              (v) => _syncingDownloadBioData = v,
+            ),
             onView: null,
           ),
           const SizedBox(height: 10),
@@ -445,9 +628,12 @@ class _SyncPageState extends ConsumerState<SyncPage>
             icon: Icons.person_add_outlined,
             label: 'Visitors',
             count: _visitorCount,
-            syncing: _syncingDownload,
+            syncing: _syncingVisitors,
             onSync: () => _syncDownload(
-                'Visitors', _downloadService.syncVisitorsOnly),
+              'Visitors',
+              _downloadService.syncVisitorsOnly,
+              (v) => _syncingVisitors = v,
+            ),
             onView: null,
           ),
           const SizedBox(height: 10),
@@ -455,19 +641,25 @@ class _SyncPageState extends ConsumerState<SyncPage>
             icon: Icons.engineering_outlined,
             label: 'Contractor Staff',
             count: _contractorStaffCount,
-            syncing: _syncingDownload,
+            syncing: _syncingContractorStaff,
             onSync: () => _syncDownload(
-                'Contractor staff', _downloadService.syncContractorStaffOnly),
+              'Contractor staff',
+              _downloadService.syncContractorStaffOnly,
+              (v) => _syncingContractorStaff = v,
+            ),
             onView: null,
           ),
           const SizedBox(height: 10),
           _SyncStatCard(
             icon: Icons.family_restroom,
-            label: 'Dependants',
-            count: _dependantCount,
-            syncing: _syncingDownload,
+            label: 'Dependents',
+            count: _dependentCount,
+            syncing: _syncingDependents,
             onSync: () => _syncDownload(
-                'Dependants', _downloadService.syncDependantsOnly),
+              'Dependents',
+              _downloadService.syncDependentsOnly,
+              (v) => _syncingDependents = v,
+            ),
             onView: null,
           ),
           const SizedBox(height: 10),
@@ -475,18 +667,60 @@ class _SyncPageState extends ConsumerState<SyncPage>
             icon: Icons.schedule,
             label: 'Shifts',
             count: _shiftCount,
-            syncing: _syncingDownload,
+            syncing: _syncingShifts,
             onSync: () => _syncDownload(
-                'Shifts', _downloadService.syncShiftsOnly),
+              'Shifts',
+              _downloadService.syncShiftsOnly,
+              (v) => _syncingShifts = v,
+            ),
+            onView: null,
+          ),
+          const SizedBox(height: 10),
+          _SyncStatCard(
+            icon: Icons.business_outlined,
+            label: 'Departments',
+            count: _departmentCount,
+            syncing: _syncingDepartments,
+            onSync: () => _syncDownload(
+              'Departments',
+              _downloadService.syncDepartmentsOnly,
+              (v) => _syncingDepartments = v,
+            ),
+            onView: null,
+          ),
+          const SizedBox(height: 10),
+          _SyncStatCard(
+            icon: Icons.nfc,
+            label: 'NFC Cards',
+            count: _cardCount,
+            syncing: _syncingCards,
+            onSync: () => _syncDownload(
+              'NFC Cards',
+              _downloadService.syncCardsOnly,
+              (v) => _syncingCards = v,
+            ),
             onView: null,
           ),
 
           const SizedBox(height: 28),
           _primaryButton(
-            onPressed: _syncingDownload ? null : _syncAllDownload,
-            loading: _syncingDownload,
+            onPressed:
+                _syncingStaff ||
+                    _syncingMealTypes ||
+                    _syncingDownloadBioData ||
+                    _syncingVisitors ||
+                    _syncingContractorStaff ||
+                    _syncingDependents ||
+                    _syncingShifts ||
+                    _syncingDepartments ||
+                    _syncingCards ||
+                    _syncingAllDownload
+                ? null
+                : _syncAllDownload,
+            loading: _syncingAllDownload,
             label: 'Download All',
-            accent: AppColors.gold500,
+
+            accent: AppColors.gold900,
           ),
           const SizedBox(height: 32),
         ],
@@ -496,8 +730,7 @@ class _SyncPageState extends ConsumerState<SyncPage>
 
   // ── Shared widgets ─────────────────────────────────────────
 
-  Widget _buildSummaryHeader(ColorScheme cs, String subtitle,
-      {Color? accent}) {
+  Widget _buildSummaryHeader(ColorScheme cs, String subtitle, {Color? accent}) {
     final color = accent ?? cs.primary;
     return Container(
       padding: const EdgeInsets.all(20),
@@ -522,15 +755,19 @@ class _SyncPageState extends ConsumerState<SyncPage>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Data Synchronization',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500)),
+                Text(
+                  'Data Synchronization',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
                 const SizedBox(height: 8),
-                Text(subtitle,
-                    style: TextStyle(
-                        color: Colors.white, fontSize: 13)),
+                Text(
+                  subtitle,
+                  style: TextStyle(color: Colors.white, fontSize: 13),
+                ),
               ],
             ),
           ),
@@ -541,8 +778,11 @@ class _SyncPageState extends ConsumerState<SyncPage>
               color: cs.onPrimary.withOpacity(0.2),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(Icons.sync_rounded,
-                color: Colors.white, size: 28),
+            child: const Icon(
+              Icons.sync_rounded,
+              color: Colors.white,
+              size: 28,
+            ),
           ),
         ],
       ),
@@ -552,15 +792,15 @@ class _SyncPageState extends ConsumerState<SyncPage>
   Widget _sectionHeader(String text) {
     return Padding(
       padding: const EdgeInsets.only(left: 4),
-      child: Text(text,
-          style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Theme.of(context)
-                  .colorScheme
-                  .onSurface
-                  .withOpacity(0.5),
-              letterSpacing: 0.5)),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+          letterSpacing: 0.5,
+        ),
+      ),
     );
   }
 
@@ -589,14 +829,21 @@ class _SyncPageState extends ConsumerState<SyncPage>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Last Upload',
-                    style: TextStyle(
-                        fontSize: 13,
-                        color: cs.onSurface.withOpacity(0.6))),
+                Text(
+                  'Last Upload',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: cs.onSurface.withOpacity(0.6),
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(lastSyncStr,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 15)),
+                Text(
+                  lastSyncStr,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                  ),
+                ),
               ],
             ),
           ),
@@ -616,10 +863,10 @@ class _SyncPageState extends ConsumerState<SyncPage>
     required String label,
     Color? accent,
   }) {
-    final color = accent ?? const Color(0xFF1565C0);
+    final color = accent ?? const Color.fromARGB(255, 251, 160, 2);
     return SizedBox(
       width: double.infinity,
-      height: 52,
+      height: 60,
       child: PrimaryButton(
         onPressed: onPressed,
         color: color,
@@ -631,27 +878,34 @@ class _SyncPageState extends ConsumerState<SyncPage>
                     width: 20,
                     height: 20,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2.5, color: Colors.white),
+                      strokeWidth: 2.5,
+                      color: Colors.white,
+                    ),
                   ),
                   const SizedBox(width: 12),
-                  Text('Syncing...',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16)),
+                  Text(
+                    'Syncing...',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                    ),
+                  ),
                 ],
               )
             : Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.sync_rounded,
-                      color: Colors.white, size: 22),
+                  const Icon(Icons.sync_rounded, color: Colors.white, size: 22),
                   const SizedBox(width: 10),
-                  Text(label,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16)),
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                    ),
+                  ),
                 ],
               ),
       ),
@@ -689,12 +943,15 @@ class _SyncStatCard extends StatelessWidget {
         color: cs.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-            color: accentColor.withOpacity(hasData ? 0.4 : 0.3), width: 1.5),
+          color: accentColor.withOpacity(hasData ? 0.4 : 0.3),
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
-              color: accentColor.withOpacity(0.06),
-              blurRadius: 8,
-              offset: const Offset(0, 2)),
+            color: accentColor.withOpacity(0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
       padding: const EdgeInsets.all(16),
@@ -707,8 +964,9 @@ class _SyncStatCard extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                    color: accentColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10)),
+                  color: accentColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
                 child: Icon(icon, color: accentColor, size: 22),
               ),
               const SizedBox(width: 12),
@@ -716,31 +974,43 @@ class _SyncStatCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(label,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w600, fontSize: 15)),
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                      ),
+                    ),
                     const SizedBox(height: 2),
-                    Text(hasData ? '$count records' : 'Up to date',
-                        style: TextStyle(
-                            fontSize: 13,
-                            color: accentColor,
-                            fontWeight: FontWeight.w500)),
+                    Text(
+                      hasData ? '$count records' : 'Up to date',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: accentColor,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ],
                 ),
               ),
               if (hasData)
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: accentColor.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Text('$count',
-                      style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: accentColor)),
+                  child: Text(
+                    '$count',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: accentColor,
+                    ),
+                  ),
                 ),
               if (!hasData)
                 Icon(Icons.check_circle, size: 22, color: accentColor),
@@ -757,14 +1027,16 @@ class _SyncStatCard extends StatelessWidget {
                       child: OutlinedButton.icon(
                         onPressed: onView,
                         icon: const Icon(Icons.visibility_outlined, size: 16),
-                        label:
-                            const Text('View', style: TextStyle(fontSize: 13)),
+                        label: const Text(
+                          'View',
+                          style: TextStyle(fontSize: 13),
+                        ),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: accentColor,
-                          side:
-                              BorderSide(color: accentColor.withOpacity(0.5)),
+                          side: BorderSide(color: accentColor.withOpacity(0.5)),
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8)),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                         ),
                       ),
                     ),
@@ -782,21 +1054,31 @@ class _SyncStatCard extends StatelessWidget {
                                 width: 14,
                                 height: 14,
                                 child: CircularProgressIndicator(
-                                    strokeWidth: 2, color: Colors.white),
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
                               )
-                            : const Icon(Icons.sync_rounded,
-                                size: 16, color: Colors.white),
+                            : const Icon(
+                                Icons.sync_rounded,
+                                size: 16,
+                                color: Colors.white,
+                              ),
                         label: syncing
                             ? const SizedBox.shrink()
-                            : const Text('Sync',
+                            : const Text(
+                                'Sync',
                                 style: TextStyle(
-                                    fontSize: 13, color: Colors.white)),
+                                  fontSize: 13,
+                                  color: Colors.white,
+                                ),
+                              ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: accentColor,
                           foregroundColor: Colors.white,
                           elevation: 0,
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8)),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                         ),
                       ),
                     ),

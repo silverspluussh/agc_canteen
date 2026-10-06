@@ -18,7 +18,6 @@ class Sites extends Table {
 class Departments extends Table {
   IntColumn get id => integer()();
   TextColumn get name => text()();
-  IntColumn get companyId => integer().references(Sites, #id)();
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();
   TextColumn get syncUpdatedAt => text().nullable()();
 
@@ -31,6 +30,8 @@ class Shifts extends Table {
   TextColumn get name => text()();
   IntColumn get hours => integer()();
   IntColumn get companyId => integer().nullable()();
+  IntColumn get dailyMealQuota => integer().withDefault(const Constant(0))();
+  IntColumn get workingDaysPerMonth => integer().withDefault(const Constant(0))();
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();
   TextColumn get syncUpdatedAt => text().nullable()();
 
@@ -90,6 +91,7 @@ class MealTypes extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+@TableIndex(name: 'idx_staff_department_id', columns: {#departmentId})
 class Staff extends Table {
   IntColumn get id => integer()();
   TextColumn get empId => text()();
@@ -104,9 +106,16 @@ class Staff extends Table {
   BoolColumn get allowGroupOrder => boolean().nullable()();
   IntColumn get maxOrderCount => integer().nullable()();
   IntColumn get shiftId => integer().nullable()();
-  IntColumn get totalDependant => integer().nullable()();
-  IntColumn get noOfDependantAssigned => integer().nullable()();
+  IntColumn get totalDependent => integer().nullable()();
+  IntColumn get noOfDependentAssigned => integer().nullable()();
   IntColumn get departmentId => integer().nullable()();
+
+  // Quota set directly on the person for staff with no shift. Shift-derived
+  // staff read their allowance from the Shifts row instead.
+  IntColumn get manualDailyQuota => integer().withDefault(const Constant(0))();
+  IntColumn get manualMonthlyQuota => integer().withDefault(const Constant(0))();
+  TextColumn get quotaPeriodStart => text().nullable()();
+  TextColumn get quotaPeriodEnd => text().nullable()();
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();
   TextColumn get syncUpdatedAt => text().nullable()();
 
@@ -122,12 +131,14 @@ class StaffKitchens extends Table {
   Set<Column> get primaryKey => {staffId, kitchenId};
 }
 
-class Dependants extends Table {
+class Dependents extends Table {
   IntColumn get id => integer()();
   TextColumn get fullname => text()();
   TextColumn get status => text()();
   TextColumn get gender => text().nullable()();
   IntColumn get staffId => integer().nullable().references(Staff, #id)();
+  IntColumn get contractorStaffId => integer().nullable()();
+  TextColumn get parentStatus => text().nullable()();
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();
   TextColumn get syncUpdatedAt => text().nullable()();
 
@@ -135,18 +146,35 @@ class Dependants extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+@TableIndex(name: 'idx_dependent_visits_dependent_id', columns: {#dependentId})
+class DependentVisits extends Table {
+  IntColumn get id => integer()();
+  IntColumn get dependentId => integer().references(Dependents, #id)();
+  TextColumn get startDate => text()();
+  TextColumn get endDate => text()();
+  TextColumn get status => text().withDefault(const Constant('scheduled'))();
+  IntColumn get syncStatus => integer().withDefault(const Constant(0))();
+  TextColumn get syncUpdatedAt => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@TableIndex(name: 'idx_cards_tag_id', columns: {#tagId})
 class Cards extends Table {
   IntColumn get id => integer()();
-  TextColumn get serialNumber => text()();
+  TextColumn get tagId => text().nullable()();
+  RealColumn get code => real()();
+  RealColumn get reversedCode => real().nullable()();
   TextColumn get status => text()();
-  BoolColumn get isEncoded => boolean().withDefault(const Constant(false))();
-  BoolColumn get isAssigned => boolean().withDefault(const Constant(false))();
-  IntColumn get totalScanCount => integer().withDefault(const Constant(0))();
+  BoolColumn get isAssigned => boolean().nullable()();
+  IntColumn get assignedToId => integer().nullable()();
+  TextColumn get assignedToType => text().nullable()();
+  IntColumn get departmentId => integer().nullable()();
+  TextColumn get departmentName => text().nullable()();
+  TextColumn get personnelName => text().nullable()();
   TextColumn get issuedDate => text().nullable()();
-  TextColumn get expiryDate => text().nullable()();
-  TextColumn get lastUsedAt => text().nullable()();
-  TextColumn get uploadedAt => text()();
-  IntColumn get staffId => integer().nullable().references(Staff, #id)();
+  TextColumn get createdAt => text().nullable()();
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();
   TextColumn get syncUpdatedAt => text().nullable()();
 
@@ -182,6 +210,9 @@ class UserKitchens extends Table {
   Set<Column> get primaryKey => {userId, kitchenId};
 }
 
+@TableIndex(name: 'idx_orders_sync_status', columns: {#syncStatus})
+@TableIndex(name: 'idx_orders_created_at', columns: {#createdAt})
+@TableIndex(name: 'idx_orders_order_code', columns: {#orderCode})
 class Orders extends Table {
   IntColumn get id => integer()();
   TextColumn get uuid => text()();
@@ -198,6 +229,57 @@ class Orders extends Table {
   TextColumn get updatedAt => text()();
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();
   TextColumn get syncUpdatedAt => text().nullable()();
+  IntColumn get syncAttempts => integer().withDefault(const Constant(0))();
+  TextColumn get lastSyncError => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Local cache of work functions the POS may offer, pulled from
+/// GET /hr/work-functions/active. Holds just enough scheduling data to decide
+/// locally whether a function is still orderable.
+class WorkFunctions extends Table {
+  IntColumn get id => integer()();
+  TextColumn get functionName => text()();
+  TextColumn get functionLocation => text().nullable()();
+  IntColumn get catererId => integer().nullable()();
+  RealColumn get ratePerVoucher => real().withDefault(const Constant(0))();
+  IntColumn get totalQuantity => integer().withDefault(const Constant(0))();
+  TextColumn get functionDate => text()();
+  TextColumn get functionStartTime => text()();
+  TextColumn get functionEndTime => text()();
+  TextColumn get status => text()();
+  IntColumn get syncStatus => integer().withDefault(const Constant(0))();
+  TextColumn get syncUpdatedAt => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Orders taken while the POS was in function mode. Deliberately separate from
+/// [Orders] so general quota/overcharge/reporting logic never sees them.
+class FunctionOrders extends Table {
+  IntColumn get id => integer()();
+  TextColumn get uuid => text()();
+  TextColumn get orderCode => text()();
+  IntColumn get functionId => integer()();
+  TextColumn get functionName => text()();
+  TextColumn get status => text()();
+  TextColumn get mealType => text()();
+  IntColumn get quantity => integer().withDefault(const Constant(1))();
+  /// Snapshotted from the function's rate per voucher at order time.
+  RealColumn get rate => real().withDefault(const Constant(0))();
+  RealColumn get total => real().withDefault(const Constant(0))();
+  TextColumn get description => text().nullable()();
+  IntColumn get orderedById => integer()();
+  TextColumn get employeeType => text()();
+  TextColumn get createdAt => text()();
+  TextColumn get updatedAt => text()();
+  IntColumn get syncStatus => integer().withDefault(const Constant(0))();
+  TextColumn get syncUpdatedAt => text().nullable()();
+  IntColumn get syncAttempts => integer().withDefault(const Constant(0))();
+  TextColumn get lastSyncError => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -237,6 +319,18 @@ class ActivityLogs extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// Retired: group vouchers are written as individual rows in [Orders].
+///
+/// Nothing reads or writes this table any more — the unified report queries, the
+/// sync stats and the order-code sequence no longer reference it.
+///
+/// It is deliberately still declared rather than dropped, because terminals
+/// upgraded from older builds may hold rows here and dropping the table would
+/// destroy that history silently. Once `SELECT COUNT(*) FROM group_orders` has
+/// been confirmed as zero on every device, this class, its two indexes and the
+/// quarantine step in the v8 migration can all be removed together.
+@TableIndex(name: 'idx_group_orders_sync_status', columns: {#syncStatus})
+@TableIndex(name: 'idx_group_orders_order_code', columns: {#orderCode})
 class GroupOrders extends Table {
   IntColumn get id => integer()();
   TextColumn get uuid => text()();
@@ -285,6 +379,9 @@ class ContractorStaffTable extends Table {
   TextColumn get startDate => text()();
   TextColumn get endDate => text()();
   BoolColumn get isCharged => boolean().withDefault(const Constant(false))();
+  IntColumn get dailyQuota => integer().nullable()();
+  BoolColumn get allowGroupOrder => boolean().nullable()();
+  IntColumn get maxOrderCount => integer().nullable()();
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();
   TextColumn get syncUpdatedAt => text().nullable()();
 
@@ -298,6 +395,7 @@ class Visitors extends Table {
   TextColumn get gender => text().nullable()();
   TextColumn get startDate => text().nullable()();
   TextColumn get endTime => text().nullable()();
+  IntColumn get dailyQuota => integer().nullable()();
   IntColumn get companyId => integer().nullable()();
   TextColumn get company => text().nullable()();
   IntColumn get departmentId => integer().nullable()();
@@ -309,19 +407,32 @@ class Visitors extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+@TableIndex(name: 'idx_bio_data_staff_id', columns: {#staffId})
+@TableIndex(name: 'idx_bio_data_department_id', columns: {#departmentId})
+@TableIndex(name: 'idx_bio_data_sync_status', columns: {#syncStatus})
 class BioDataEntries extends Table {
   IntColumn get id => integer()();
-  IntColumn get staffId => integer().nullable().references(Staff, #id)();
-  IntColumn get dependantId => integer().nullable().references(Dependants, #id)();
-  IntColumn get contractorStaffId => integer().nullable().references(ContractorStaffTable, #id)();
-  IntColumn get visitorId => integer().nullable().references(Visitors, #id)();
+  IntColumn get staffId => integer().nullable()();
+  IntColumn get dependentId => integer().nullable()();
+  IntColumn get contractorStaffId => integer().nullable()();
+  IntColumn get visitorId => integer().nullable()();
   TextColumn get finger => text()();
   TextColumn get dataBase64 => text()();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+  IntColumn get departmentId => integer().nullable()();
+  TextColumn get departmentName => text().nullable()();
+  TextColumn get personnelName => text().nullable()();
   TextColumn get createdAt => text()();
   TextColumn get updatedAt => text()();
+
+  /// Stable identity for this capture, sent to the server as the idempotency key.
+  /// It must survive retries: regenerating it per attempt made the server insert
+  /// a duplicate row every time a push was retried.
+  TextColumn get uuid => text().nullable()();
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();
   TextColumn get syncUpdatedAt => text().nullable()();
+  IntColumn get syncAttempts => integer().withDefault(const Constant(0))();
+  TextColumn get lastSyncError => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -335,12 +446,12 @@ class ContractorStaffKitchens extends Table {
   Set<Column> get primaryKey => {contractorStaffId, kitchenId};
 }
 
-class DependantKitchens extends Table {
-  IntColumn get dependantId => integer()();
+class DependentKitchens extends Table {
+  IntColumn get dependentId => integer()();
   IntColumn get kitchenId => integer()();
 
   @override
-  Set<Column> get primaryKey => {dependantId, kitchenId};
+  Set<Column> get primaryKey => {dependentId, kitchenId};
 }
 
 class VisitorKitchens extends Table {
