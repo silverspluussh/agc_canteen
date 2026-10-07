@@ -6,7 +6,7 @@ class AuthSettings {
   final bool enableFinger;
 
   const AuthSettings({
-    this.enableNfc = true,
+    this.enableNfc = false,
     this.enableFinger = true,
   });
 }
@@ -18,7 +18,7 @@ class AuthSettingsController extends Notifier<AuthSettings> {
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
     state = AuthSettings(
-      enableNfc: prefs.getBool('enable_nfc') ?? true,
+      enableNfc: prefs.getBool('enable_nfc') ?? false,
       enableFinger: prefs.getBool('enable_finger') ?? true,
     );
   }

@@ -25,7 +25,7 @@
         android:maxSdkVersion="30" />
 
     <application
-        android:label="AGCL Canteen"
+        android:label="Swipe"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

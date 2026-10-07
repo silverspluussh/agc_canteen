@@ -50,7 +50,8 @@ void main() async => runZoneGuarded(() async {
       child: MyApp(savedThemeMode: savedThemeMode),
     ),
   );
-});
+}); 
+
 
 void runZoneGuarded(void Function() body) {
   runZonedGuarded(body, (error, stack) {

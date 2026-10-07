@@ -1,7 +1,6 @@
 import 'package:adaptive_theme/adaptive_theme.dart';
 import 'package:agc_canteen/views/widgets/app_buttons.widget.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -160,9 +159,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   width: 120,
                   height: 48,
                   onPressed: () {
-                    final accessCode = dotenv.env['ADMIN_ACCESS_CODE'];
+                    // Injected at build time: --dart-define=ADMIN_ACCESS_CODE=...
+                    // (not shipped in the bundled .env asset). Empty when the
+                    // build forgot the define, which locks the gated tiles.
+                    const accessCode = String.fromEnvironment(
+                      'ADMIN_ACCESS_CODE',
+                    );
                     if (!formKey.currentState!.validate()) return;
-                    if (accessCode == null || accessCode.isEmpty) {
+                    if (accessCode.isEmpty) {
                       setDialogState(() => isWrong = true);
                       codeController.clear();
                       return;

@@ -9,9 +9,20 @@ Copy `.env.example` to `.env` and set the required values:
 | Variable | Description |
 |---|---|
 | `BASE_URL` | REST API base URL (e.g. `https://api.example.com/`) |
-| `ADMIN_ACCESS_CODE` | Code to access admin settings from the staff auth screen |
 
-**Security note:** `.env` is listed as a Flutter asset and is included in release APKs. Treat values as extractable. For production CI builds, prefer `--dart-define=BASE_URL=...` and `--dart-define=ADMIN_ACCESS_CODE=...` instead of shipping secrets in assets.
+**Security note:** `.env` is listed as a Flutter asset and is included in release APKs. Treat its values as extractable.
+
+### Admin access code
+
+The admin access code for the staff auth screen is **not** stored in `.env`; inject it at build time via `--dart-define`:
+
+```bash
+fvm flutter build apk --release --dart-define=ADMIN_ACCESS_CODE=<code>
+# local run:
+fvm flutter run --dart-define=ADMIN_ACCESS_CODE=<code>
+```
+
+A build without the define leaves the admin-gated settings tiles locked.
 
 ## Development (FVM)
 

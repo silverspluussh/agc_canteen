@@ -18,7 +18,8 @@ This Standard Operating Procedure defines the step-by-step process for provision
 * Target Android POS Terminal (with built-in or external thermal printer and biometric optical module).
 * Stable Wi-Fi network or active 4G/LTE SIM card with cellular data.
 * Authorized Admin credentials (Email/Phone and Password).
-* Verified `ADMIN_ACCESS_CODE` configuration in environment (`.env`).
+* Release build produced with the admin access code injected at build time
+  (`--dart-define=ADMIN_ACCESS_CODE=…`). The code is no longer stored in `.env`.
 
 ---
 

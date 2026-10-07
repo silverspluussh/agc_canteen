@@ -291,7 +291,7 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage>
     final registeredCount = currentAll.where((e) => e.hasFingerprint).length;
 
     final tabLabels = [
-      "Staff",
+      "AGCL Staff",
       'Dependent',
       'Visitor',
       'Contractor',
