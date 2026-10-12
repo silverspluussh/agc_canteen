@@ -1,4 +1,5 @@
 import 'package:agc_canteen/controllers/pos_mode_controller.dart';
+import 'package:agc_canteen/models/work_function.model.dart';
 import 'package:agc_canteen/services/pos/pos_mode_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -257,7 +258,7 @@ class _FunctionPickerSheet extends ConsumerWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'Only functions running at this moment can be selected.',
+              "Today's functions. Only a function that is open right now can be ordered.",
               style: theme.textTheme.bodySmall,
             ),
             const SizedBox(height: 12),
@@ -269,7 +270,7 @@ class _FunctionPickerSheet extends ConsumerWidget {
                     const Icon(Icons.event_busy, size: 40),
                     const SizedBox(height: 8),
                     Text(
-                      'No work functions are running right now.',
+                      'No work functions are scheduled for today.',
                       style: theme.textTheme.bodyMedium,
                       textAlign: TextAlign.center,
                     ),
@@ -284,20 +285,24 @@ class _FunctionPickerSheet extends ConsumerWidget {
                   separatorBuilder: (_, _) => const Divider(height: 1),
                   itemBuilder: (_, index) {
                     final fn = state.available[index];
+                    final isOpen = fn.state == 'open';
                     return ListTile(
                       contentPadding: EdgeInsets.zero,
+                      enabled: isOpen,
                       title: Text(fn.functionName),
                       subtitle: Text(
-                        '${fn.windowLabel} • '
+                        '${_stateLabel(fn)} • ${fn.windowLabel} • '
                         '${fn.ratePerVoucher.toStringAsFixed(2)} per voucher',
                       ),
                       trailing: state.selectedFunction?.id == fn.id
                           ? const Icon(Icons.check_circle, color: Colors.green)
-                          : const Icon(Icons.chevron_right),
-                      onTap: () async {
-                        await controller.selectFunction(fn);
-                        if (context.mounted) Navigator.pop(context);
-                      },
+                          : Icon(isOpen ? Icons.chevron_right : Icons.lock_clock),
+                      onTap: isOpen
+                          ? () async {
+                              await controller.selectFunction(fn);
+                              if (context.mounted) Navigator.pop(context);
+                            }
+                          : null,
                     );
                   },
                 ),
@@ -308,3 +313,17 @@ class _FunctionPickerSheet extends ConsumerWidget {
     );
   }
 }
+
+String _stateLabel(WorkFunctionModel fn) {
+  switch (fn.state) {
+    case 'open':
+      return 'Open now';
+    case 'upcoming':
+      return 'Opens ${_hhmm(fn.functionStartTime)}';
+    default:
+      return 'Closed';
+  }
+}
+
+String _hhmm(String value) =>
+    value.length >= 5 ? value.substring(0, 5) : value;

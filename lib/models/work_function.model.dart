@@ -21,6 +21,17 @@ class WorkFunctionModel {
 
   final String status;
 
+  /// Unregistered-attendee voucher budget (soft cap, POS-enforced).
+  final int guestAllowance;
+
+  /// Guest vouchers already issued per the last server sync.
+  final int guestIssued;
+
+  /// Derived orderable state from the server: open | upcoming | closed.
+  final String state;
+
+  final String? preparedAt;
+
   WorkFunctionModel({
     required this.id,
     required this.functionName,
@@ -32,6 +43,10 @@ class WorkFunctionModel {
     this.catererId,
     this.ratePerVoucher = 0,
     this.totalQuantity = 0,
+    this.guestAllowance = 0,
+    this.guestIssued = 0,
+    this.state = 'closed',
+    this.preparedAt,
   }) : functionDate = normalizeDate(functionDate),
        functionStartTime = normalizeTime(functionStartTime),
        functionEndTime = normalizeTime(functionEndTime);
@@ -44,6 +59,10 @@ class WorkFunctionModel {
       catererId: (map['catererId'] as num?)?.toInt(),
       ratePerVoucher: (map['ratePerVoucher'] as num?)?.toDouble() ?? 0,
       totalQuantity: (map['totalQuantity'] as num?)?.toInt() ?? 0,
+      guestAllowance: (map['guestAllowance'] as num?)?.toInt() ?? 0,
+      guestIssued: (map['guestIssued'] as num?)?.toInt() ?? 0,
+      state: (map['state'] ?? 'closed') as String,
+      preparedAt: map['preparedAt'] as String?,
       functionDate: map['functionDate']?.toString() ?? '',
       functionStartTime: map['functionStartTime']?.toString() ?? '',
       functionEndTime: map['functionEndTime']?.toString() ?? '',
@@ -57,39 +76,6 @@ class WorkFunctionModel {
   /// gets single-digit hours wrong ('9:00:00' > '12:00:00') and cannot handle
   /// differing precision. Seconds are kept so the POS matches the server's
   /// second-accurate boundary exactly.
-  int get startSeconds => secondsOfDay(functionStartTime);
-
-  int get endSeconds => secondsOfDay(functionEndTime);
-
-  bool get hasWindow =>
-      functionDate.isNotEmpty &&
-      functionStartTime.isNotEmpty &&
-      functionEndTime.isNotEmpty;
-
-  /// True when [now] falls on the function's date and inside its window.
-  /// Inclusive at both ends, matching the server rule exactly.
-  bool isOrderableAt(DateTime now) =>
-      isWindowOpenAt(functionDate, functionStartTime, functionEndTime, now);
-
-  /// Shared window rule, so the picker, the order guard and the cache filter
-  /// cannot disagree about when a function is orderable.
-  static bool isWindowOpenAt(
-    String functionDate,
-    String startTime,
-    String endTime,
-    DateTime now,
-  ) {
-    if (functionDate.isEmpty || startTime.isEmpty || endTime.isEmpty) {
-      return false;
-    }
-
-    if (normalizeDate(functionDate) != isoDate(now)) return false;
-
-    final clock =
-        now.hour * 3600 + now.minute * 60 + now.second;
-    return clock >= secondsOfDay(startTime) && clock <= secondsOfDay(endTime);
-  }
-
   String get windowLabel =>
       '$functionDate ${_hhmm(functionStartTime)}-${_hhmm(functionEndTime)}';
 

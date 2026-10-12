@@ -2,6 +2,17 @@ import 'dart:async';
 import 'package:agc_canteen/core/utils/app_log.dart';
 import 'package:flutter/services.dart';
 
+/// Best match from [PosFingerprintService.verifyBatch].
+class FingerprintMatch {
+  /// Index into the template list passed to `verifyBatch`, or -1 when none.
+  final int index;
+
+  /// Native comparison score (0–100).
+  final int score;
+
+  const FingerprintMatch({required this.index, required this.score});
+}
+
 class FingerprintResult {
   final bool success;
   final Uint8List? data;
@@ -46,6 +57,10 @@ class PosFingerprintService {
 
   static const _captureTimeout = Duration(seconds: 30);
   static const _verifyTimeout = Duration(seconds: 10);
+
+  /// A batch compares a whole department's templates in one call; give it more
+  /// headroom than a single verify but still fail rather than hang.
+  static const _verifyBatchTimeout = Duration(seconds: 20);
 
   Future<bool> init() async {
     if (_initialized) {
@@ -122,6 +137,55 @@ class PosFingerprintService {
       return result;
     } on PlatformException catch (e) {
       appLog('[PosFingerprint] verify() PlatformException: $e',
+          name: 'POS_AUTH');
+      return null;
+    }
+  }
+
+  /// Compares the captured template against every template in [templates] in a
+  /// single native call and returns the best match.
+  ///
+  /// This replaces N round-trips to the native side with one: the loop runs in
+  /// native code and only the winning index and score cross the channel. The
+  /// captured template must have been set by a successful [capture] first.
+  /// Returns null on empty input, no capture, or a native error.
+  Future<FingerprintMatch?> verifyBatch(
+    List<String> templates, {
+    int templateIndex = 0,
+  }) async {
+    if (templates.isEmpty) return null;
+    try {
+      appLog(
+        '[PosFingerprint] Calling native method channel: '
+        'verifyBatch(count=${templates.length}, templateIndex=$templateIndex)',
+        name: 'POS_AUTH',
+      );
+      final result = await _methodChannel
+          .invokeMethod<Map<dynamic, dynamic>>('verifyBatch', {
+        'templates': templates,
+        'templateIndex': templateIndex,
+      }).timeout(
+        _verifyBatchTimeout,
+        onTimeout: () {
+          appLog(
+            '[PosFingerprint] verifyBatch() timed out after '
+            '${_verifyBatchTimeout.inSeconds}s',
+            name: 'POS_AUTH',
+          );
+          return null;
+        },
+      );
+      if (result == null) return null;
+      final index = (result['index'] as num?)?.toInt() ?? -1;
+      final score = (result['score'] as num?)?.toInt() ?? -1;
+      appLog(
+        '[PosFingerprint] verifyBatch() returned: index=$index score=$score',
+        name: 'POS_AUTH',
+      );
+      if (index < 0) return null;
+      return FingerprintMatch(index: index, score: score);
+    } on PlatformException catch (e) {
+      appLog('[PosFingerprint] verifyBatch() PlatformException: $e',
           name: 'POS_AUTH');
       return null;
     }

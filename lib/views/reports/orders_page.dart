@@ -193,6 +193,14 @@ class ReportsPage extends StatelessWidget {
         title: Text("Vouchers"),
         leading: const BackButton(color: Colors.white),
         centerTitle: true,
+        actions: [
+          IconButton(
+            tooltip: 'Vouchers summary',
+            icon: const Icon(Icons.insights, color: Colors.white),
+            onPressed: () =>
+                Navigator.of(context).pushNamed('/reports-summary'),
+          ),
+        ],
       ),
       body: const _OrdersTab(),
     );

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:adaptive_theme/adaptive_theme.dart';
 import 'package:agc_canteen/views/reports/orders_page.dart';
+import 'package:agc_canteen/views/reports/reports_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
@@ -141,6 +142,9 @@ Route<dynamic>? _onGenerateRoute(RouteSettings settings) {
       break;
     case '/reports':
       page = const ReportsPage();
+      break;
+    case '/reports-summary':
+      page = const ReportsDashboardPage();
       break;
     case '/settings':
       page = const SettingsPage();

@@ -5,29 +5,51 @@ import 'package:agc_canteen/core/utils/app_log.dart';
 import 'package:agc_canteen/models/staff.model.dart';
 import 'package:drift/drift.dart';
 import 'package:logger/logger.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import '../database/app_database.dart';
 import '../pos/pos_fingerprint_service.dart';
 import '../database/activity_log_service.dart';
 import '../sync_services/sync_from_local_to_remote.dart';
+import 'fingerprint_template_cache.dart';
 import '../../core/di/injection_container.dart';
 
 class FingerprintAuthService {
   final AppDatabase _db;
   final PosFingerprintService _fingerprint;
   final Logger _logger;
+  final FingerprintTemplateCache _templateCache;
 
-  static const int matchThreshold = 80;
+  /// Default minimum native comparison score (0–100) for a match.
+  static const int defaultMatchThreshold = 80;
+
+  /// SharedPreferences key for the operator-tunable threshold.
+  static const String matchThresholdPrefsKey = 'finger_match_threshold';
 
   bool _initialized = false;
 
   FingerprintAuthService({
     required AppDatabase db,
     required PosFingerprintService fingerprint,
+    FingerprintTemplateCache? templateCache,
     Logger? logger,
   })  : _db = db,
         _fingerprint = fingerprint,
+        _templateCache = templateCache ?? FingerprintTemplateCache(db: db),
         _logger = logger ?? createAppLogger();
+
+  /// The configured match threshold, falling back to the default when unset or
+  /// out of range.
+  Future<int> _resolveMatchThreshold() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final value = prefs.getInt(matchThresholdPrefsKey);
+      if (value != null && value >= 0 && value <= 100) return value;
+    } catch (e) {
+      _logger.w('FingerprintAuth: could not read match threshold ($e)');
+    }
+    return defaultMatchThreshold;
+  }
 
   Future<bool> init() async {
     if (_initialized) return true;
@@ -156,6 +178,9 @@ class FingerprintAuthService {
         await _db.insertBioData(companion.copyWith(visitorId: Value(entityId)));
     }
 
+    // The new template must be visible to the next scan.
+    _templateCache.invalidate();
+
     unawaited(getIt<LocalToRemoteSyncService>().syncBioData());
 
     _logger.i('Fingerprint enrolled: id=$fingerprintId entityId=$entityId type=${entityType.name}');
@@ -186,20 +211,14 @@ class FingerprintAuthService {
     appLog('[FingerprintAuth] Capture SUCCESS — templateBase64 length=${result.templateBase64!.length}',
         name: 'POS_AUTH');
 
-    final query = _db.selectOnly(_db.bioDataEntries)
-      ..addColumns([
-        _db.bioDataEntries.id,
-        _db.bioDataEntries.dataBase64,
-        _db.bioDataEntries.staffId,
-        _db.bioDataEntries.dependentId,
-        _db.bioDataEntries.contractorStaffId,
-        _db.bioDataEntries.visitorId,
-      ])
-      ..where(_db.bioDataEntries.isActive.equals(true));
-    if (departmentId != null) {
-      query.where(_db.bioDataEntries.departmentId.equals(departmentId));
-    }
-    final rows = await query.get();
+    // Scope is resolved through the owner's parent record (staff/contractor/
+    // visitor/dependent), not the stored bio-data department — the latter is
+    // only populated for staff-type enrolments, so contractor/visitor/dependent
+    // templates would be invisible to a department-scoped scan otherwise. The
+    // snapshot is cached in memory so a tap never re-reads the table.
+    final rows = departmentId == null
+        ? await _templateCache.all()
+        : await _templateCache.forDepartment(departmentId);
 
     appLog('[FingerprintAuth] Got ${rows.length} active fingerprint(s) from DB',
         name: 'POS_AUTH');
@@ -211,29 +230,29 @@ class FingerprintAuthService {
       return null;
     }
 
-    int? bestId;
-    int bestScore = -1;
+    // One native call compares the captured template against the whole scoped
+    // set; only the best index + score cross the channel.
+    final threshold = await _resolveMatchThreshold();
+    final stopwatch = Stopwatch()..start();
+    final match = await _fingerprint.verifyBatch(
+      [for (final entry in rows) entry.dataBase64],
+    );
+    stopwatch.stop();
+    appLog(
+      '[FingerprintAuth] Batch verified ${rows.length} template(s) in '
+      '${stopwatch.elapsedMilliseconds}ms',
+      name: 'POS_AUTH',
+    );
+    final bestScore = match?.score ?? -1;
 
-    for (final row in rows) {
-      final id = row.read(_db.bioDataEntries.id)!;
-      final dataBase64 = row.read(_db.bioDataEntries.dataBase64)!;
-      final staffId = row.read(_db.bioDataEntries.staffId);
-      appLog('[FingerprintAuth] Verifying against templateId=$id, staffId=$staffId',
-          name: 'POS_AUTH');
-      final score = await _fingerprint.verify(dataBase64);
-      appLog('[FingerprintAuth] Verify result: score=$score for staffId=$staffId',
-          name: 'POS_AUTH');
-      if (score != null && score > bestScore) {
-        bestScore = score;
-        bestId = id;
-        if (bestScore >= 95) break;
-      }
-    }
-
-    if (bestId != null && bestScore >= matchThreshold) {
+    if (match != null &&
+        match.index >= 0 &&
+        match.index < rows.length &&
+        bestScore >= threshold) {
+      final bestId = rows[match.index].id;
       final bestMatch = await _db.getBioData(bestId);
       if (bestMatch != null) {
-        appLog('[FingerprintAuth] MATCH FOUND: staffId=${bestMatch.staffId}, score=$bestScore (threshold=$matchThreshold)',
+        appLog('[FingerprintAuth] MATCH FOUND: staffId=${bestMatch.staffId}, score=$bestScore (threshold=$threshold)',
             name: 'POS_AUTH');
         _logger.i(
             'Fingerprint matched: staffId=${bestMatch.staffId} score=$bestScore');
@@ -241,7 +260,7 @@ class FingerprintAuthService {
       }
     }
 
-    appLog('[FingerprintAuth] NO MATCH: bestScore=$bestScore (threshold=$matchThreshold)',
+    appLog('[FingerprintAuth] NO MATCH: bestScore=$bestScore (threshold=$threshold)',
         name: 'POS_AUTH');
     _logger.w('No fingerprint match. Best score: $bestScore');
     return null;

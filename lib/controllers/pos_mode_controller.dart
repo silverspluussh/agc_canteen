@@ -74,7 +74,7 @@ class PosModeController extends Notifier<PosModeState> {
   Future<void> restore() async {
     final mode = await _store.readMode();
     final functionId = await _store.readFunctionId();
-    final available = await _repo?.orderableFunctions() ?? const [];
+    final available = await _repo?.todaysFunctions() ?? const [];
 
     // The provider may have been disposed while the loads were in flight.
     if (!ref.mounted) return;
@@ -102,7 +102,7 @@ class PosModeController extends Notifier<PosModeState> {
       // Offline: keep whatever is cached and let the local window check stand.
       log('PosModeController: function refresh failed ($e)');
     }
-    final available = await _repo?.orderableFunctions() ?? const [];
+    final available = await _repo?.todaysFunctions() ?? const [];
     if (!ref.mounted) return;
     state = state.copyWith(available: available, loading: false);
     revalidate();

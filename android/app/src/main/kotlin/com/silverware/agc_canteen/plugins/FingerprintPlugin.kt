@@ -93,6 +93,15 @@ class FingerprintPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, EventC
                 if (template != null) verifyFingerprint(templateIndex, template, result)
                 else result.error("INVALID_ARG", "Template is required", null)
             }
+            "verifyBatch" -> {
+                val raw = call.argument<List<*>>("templates")
+                val templateIndex = call.argument<Int>("templateIndex") ?: 0
+                if (raw != null) {
+                    verifyBatchFingerprint(templateIndex, raw.map { it as String }, result)
+                } else {
+                    result.error("INVALID_ARG", "Templates are required", null)
+                }
+            }
             "enroll" -> {
                 val templateIndex = call.argument<Int>("templateIndex") ?: 0
                 enroll(templateIndex, result)
@@ -328,6 +337,60 @@ class FingerprintPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, EventC
                 storedTemplate
             )
             result.success(score)
+        } catch (e: Exception) {
+            result.error("FINGER_VERIFY_ERROR", e.message, null)
+        }
+    }
+
+    /**
+     * Compares the captured template against a whole list of stored templates in
+     * one call, returning the best match. This keeps the per-template round-trips
+     * off the method channel: a department's worth of templates is compared in
+     * native code and only the winning index + score cross back to Flutter.
+     *
+     * Matches the Dart loop's behaviour, including the early accept at 95.
+     */
+    private fun verifyBatchFingerprint(
+        templateIndex: Int,
+        templates: List<String>,
+        @NonNull result: MethodChannel.Result
+    ) {
+        if (fingerSDK == null || !isSdkReady) {
+            result.error("FINGER_NOT_INIT", "Fingerprint SDK not initialized", null)
+            return
+        }
+
+        if (currentTemplate == null) {
+            result.error("NO_TEMPLATE", "No template captured yet", null)
+            return
+        }
+
+        try {
+            val templateType = getTemplateAtIndex(templateIndex)
+            val captured = currentTemplate!!
+            var bestIndex = -1
+            var bestScore = -1
+
+            for ((index, templateBase64) in templates.withIndex()) {
+                val storedTemplate = Base64.decode(templateBase64, Base64.NO_WRAP)
+                val score = fingerSDK!!.compareTemplateBytes(
+                    templateType,
+                    captured,
+                    storedTemplate
+                )
+                if (score > bestScore) {
+                    bestScore = score
+                    bestIndex = index
+                    if (bestScore >= 95) break
+                }
+            }
+
+            result.success(
+                mapOf(
+                    "index" to bestIndex,
+                    "score" to bestScore
+                )
+            )
         } catch (e: Exception) {
             result.error("FINGER_VERIFY_ERROR", e.message, null)
         }

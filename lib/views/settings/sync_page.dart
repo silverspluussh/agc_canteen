@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../core/di/injection_container.dart';
 import '../../services/database/app_database.dart';
+import '../../services/sync_services/push_scheduler.dart';
 import '../../services/sync_services/sync_from_local_to_remote.dart';
 import '../../services/sync_services/sync_from_remote_to_local.dart';
 import '../../services/sync_services/sync_scheduler.dart';
@@ -22,6 +23,7 @@ class _SyncPageState extends ConsumerState<SyncPage>
   late final LocalToRemoteSyncService _uploadService;
   late final RemoteToLocalSyncService _downloadService;
   late final SyncScheduler _scheduler;
+  late final PushScheduler _pushScheduler;
   late final AppDatabase _db;
   late final TabController _tabController;
 
@@ -76,6 +78,7 @@ class _SyncPageState extends ConsumerState<SyncPage>
     _uploadService = getIt<LocalToRemoteSyncService>();
     _downloadService = getIt<RemoteToLocalSyncService>();
     _scheduler = getIt<SyncScheduler>();
+    _pushScheduler = getIt<PushScheduler>();
     _db = getIt<AppDatabase>();
     _loadCounts();
     _loadUploadLastSync();
@@ -197,13 +200,24 @@ class _SyncPageState extends ConsumerState<SyncPage>
 
   Future<void> _syncDownload(
     String label,
-    Future<void> Function() fn,
+    Future<bool> Function() fn,
     void Function(bool) setBusy,
   ) async {
     setState(() => setBusy(true));
     try {
-      await fn();
-      if (mounted) _showDownloadSnackBar('$label synced');
+      if (!await _downloadService.isOnline) {
+        if (mounted) {
+          _showDownloadSnackBar('No internet connection', ok: false);
+        }
+        return;
+      }
+      final ok = await fn();
+      if (mounted) {
+        _showDownloadSnackBar(
+          ok ? '$label synced' : '$label failed — check connection or logs',
+          ok: ok,
+        );
+      }
     } catch (e) {
       if (mounted) _showDownloadSnackBar('$label failed: $e', ok: false);
     } finally {
@@ -428,37 +442,56 @@ class _SyncPageState extends ConsumerState<SyncPage>
   }
 
   Widget _buildSchedulerStatus(BuildContext context, ColorScheme cs) {
-    return ValueListenableBuilder<SyncSnapshot>(
-      valueListenable: _scheduler.snapshot,
-      builder: (context, snap, _) {
-        final (icon, color, label) = switch (snap) {
-          SyncSnapshot(isSyncing: true) => (
-              Icons.sync,
-              cs.primary,
-              'Syncing…',
-            ),
-          SyncSnapshot(lastError: final e?) => (
-              Icons.error_outline,
-              const Color(0xFFB45309),
-              'Background sync issue: $e',
-            ),
-          SyncSnapshot(pullSkipped: true, lastSyncedAt: final t?) => (
-              Icons.cloud_done_outlined,
-              const Color(0xFF2E7D32),
-              'Up to date (checked ${DateFormat('hh:mm a').format(t)})',
-            ),
-          SyncSnapshot(lastSyncedAt: final t?) => (
-              Icons.cloud_done_outlined,
-              const Color(0xFF2E7D32),
-              'Last background sync: '
-                  '${DateFormat('dd MMM, hh:mm a').format(t)}',
-            ),
-          _ => (
-              Icons.cloud_queue,
-              cs.onSurfaceVariant,
-              'Background sync has not run yet',
-            ),
-        };
+    return ListenableBuilder(
+      listenable: Listenable.merge([
+        _pushScheduler.snapshot,
+        _scheduler.snapshot,
+      ]),
+      builder: (context, _) {
+        final push = _pushScheduler.snapshot.value;
+        final pull = _scheduler.snapshot.value;
+        final busy = push.isSyncing || pull.isSyncing;
+        final error = pull.lastError ?? push.lastError;
+
+        late final IconData icon;
+        late final Color color;
+        late final String label;
+
+        if (busy) {
+          icon = Icons.sync;
+          color = cs.primary;
+          label = push.isSyncing && pull.isSyncing
+              ? 'Uploading and downloading…'
+              : push.isSyncing
+                  ? 'Uploading pending work…'
+                  : 'Downloading updates…';
+        } else if (error != null) {
+          icon = Icons.error_outline;
+          color = const Color(0xFFB45309);
+          label = 'Background sync issue: $error';
+        } else if (pull.pullSkipped && pull.lastSyncedAt != null) {
+          icon = Icons.cloud_done_outlined;
+          color = const Color(0xFF2E7D32);
+          label =
+              'Up to date (checked ${DateFormat('hh:mm a').format(pull.lastSyncedAt!)})';
+        } else if (pull.lastSyncedAt != null || push.lastSyncedAt != null) {
+          icon = Icons.cloud_done_outlined;
+          color = const Color(0xFF2E7D32);
+          final parts = <String>[];
+          if (push.lastSyncedAt != null) {
+            parts.add('upload ${DateFormat('hh:mm a').format(push.lastSyncedAt!)}');
+          }
+          if (pull.lastSyncedAt != null) {
+            parts.add(
+              'download ${DateFormat('hh:mm a').format(pull.lastSyncedAt!)}',
+            );
+          }
+          label = 'Last sync: ${parts.join(' · ')}';
+        } else {
+          icon = Icons.cloud_queue;
+          color = cs.onSurfaceVariant;
+          label = 'Background sync has not run yet';
+        }
 
         return Material(
           color: color.withOpacity(0.08),
@@ -475,10 +508,11 @@ class _SyncPageState extends ConsumerState<SyncPage>
                   ),
                 ),
                 TextButton(
-                  onPressed: snap.isSyncing
+                  onPressed: busy
                       ? null
                       : () async {
-                          await _scheduler.syncNow();
+                          await _pushScheduler.runNow();
+                          await _scheduler.runNow();
                           await _loadCounts();
                           await _loadDownloadCounts();
                         },
@@ -525,7 +559,8 @@ class _SyncPageState extends ConsumerState<SyncPage>
             label: 'Vouchers',
             count: _unsyncedOrders,
             syncing: _syncingOrders,
-            onSync: _unsyncedOrders > 0 ? _syncOrders : null,
+            onSync:
+                _unsyncedOrders > 0 && !_syncingAllUpload ? _syncOrders : null,
             onView: _unsyncedOrders > 0 ? _viewUnsyncedOrders : null,
           ),
           const SizedBox(height: 12),
@@ -534,7 +569,9 @@ class _SyncPageState extends ConsumerState<SyncPage>
             label: 'Function Vouchers',
             count: _unsyncedFunctionOrders,
             syncing: _syncingFunctionOrders,
-            onSync: _unsyncedFunctionOrders > 0 ? _syncFunctionOrders : null,
+            onSync: _unsyncedFunctionOrders > 0 && !_syncingAllUpload
+                ? _syncFunctionOrders
+                : null,
             onView: null,
           ),
           const SizedBox(height: 12),
@@ -543,7 +580,8 @@ class _SyncPageState extends ConsumerState<SyncPage>
             label: 'BioData',
             count: _unsyncedBioData,
             syncing: _syncingBioData,
-            onSync: _unsyncedBioData > 0 ? _syncBioDataUpload : null,
+            onSync:
+                _unsyncedBioData > 0 && !_syncingAllUpload ? _syncBioDataUpload : null,
             onView: null,
           ),
 
@@ -554,7 +592,13 @@ class _SyncPageState extends ConsumerState<SyncPage>
 
           const SizedBox(height: 28),
           _primaryButton(
-            onPressed: _syncingAllUpload ? null : _syncAllUpload,
+            onPressed:
+                _syncingAllUpload ||
+                    _syncingOrders ||
+                    _syncingFunctionOrders ||
+                    _syncingBioData
+                ? null
+                : _syncAllUpload,
             loading: _syncingAllUpload,
             label: 'Upload All',
             accent: AppColors.gold900,

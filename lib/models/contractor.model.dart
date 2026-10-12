@@ -57,6 +57,8 @@ class ContractorStaff {
   final DateTime endDate;
   final bool isCharged;
   final int? dailyQuota;
+  final int? manualMonthlyQuota;
+  final int? shiftId;
   final List<BioData>? bioData;
   final List<Kitchen>? kitchens;
 
@@ -74,6 +76,8 @@ class ContractorStaff {
     required this.endDate,
     required this.isCharged,
     this.dailyQuota,
+    this.manualMonthlyQuota,
+    this.shiftId,
     this.kitchens,
     this.bioData,
   });
@@ -94,6 +98,10 @@ class ContractorStaff {
       isCharged: map['is_charged'] as bool,
       dailyQuota: (map['dailyQuota'] as num?)?.toInt() ??
           (map['daily_quota'] as num?)?.toInt(),
+      manualMonthlyQuota: (map['manualMonthlyQuota'] as num?)?.toInt() ??
+          (map['manual_monthly_quota'] as num?)?.toInt(),
+      shiftId: (map['shiftId'] as num?)?.toInt() ??
+          (map['shift_id'] as num?)?.toInt(),
       bioData: map['bioData'] != null
           ? (map['bioData'] as List<dynamic>)
                 .map((item) => BioData.fromMap(item as Map<String, dynamic>))
@@ -121,6 +129,8 @@ class ContractorStaff {
     DateTime? endDate,
     bool? isCharged,
     int? dailyQuota,
+    int? manualMonthlyQuota,
+    int? shiftId,
     List<BioData>? bioData,
     List<Kitchen>? kitchens,
   }) {
@@ -138,6 +148,8 @@ class ContractorStaff {
       endDate: endDate ?? this.endDate,
       isCharged: isCharged ?? this.isCharged,
       dailyQuota: dailyQuota ?? this.dailyQuota,
+      manualMonthlyQuota: manualMonthlyQuota ?? this.manualMonthlyQuota,
+      shiftId: shiftId ?? this.shiftId,
       bioData: bioData ?? this.bioData,
       kitchens: kitchens ?? this.kitchens,
     );

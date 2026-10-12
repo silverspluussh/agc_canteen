@@ -1,5 +1,4 @@
 import 'package:agc_canteen/services/database/app_database.dart';
-import 'package:agc_canteen/services/database/tables.dart';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 
@@ -47,6 +46,7 @@ Future<int> seedDependent(
   int id = 1,
   String fullname = 'Baby Doe',
   int? staffId,
+  int? contractorStaffId,
 }) async {
   await db.insertDependent(
     DependentsCompanion.insert(
@@ -54,6 +54,7 @@ Future<int> seedDependent(
       fullname: fullname,
       status: 'active',
       staffId: Value.absentIfNull(staffId),
+      contractorStaffId: Value.absentIfNull(contractorStaffId),
     ),
   );
   return id;
@@ -63,6 +64,7 @@ Future<int> seedContractorStaff(
   AppDatabase db, {
   int id = 1,
   String name = 'Contract Worker',
+  int? departmentId,
 }) async {
   await db.insertContractorStaff(
     ContractorStaffTableCompanion.insert(
@@ -70,6 +72,7 @@ Future<int> seedContractorStaff(
       name: name,
       startDate: '2024-01-01',
       endDate: '2024-12-31',
+      departmentId: Value.absentIfNull(departmentId),
     ),
   );
   return id;
@@ -79,8 +82,15 @@ Future<int> seedVisitor(
   AppDatabase db, {
   int id = 1,
   String name = 'Visitor Person',
+  int? departmentId,
 }) async {
-  await db.insertVisitor(VisitorsCompanion.insert(id: Value(id), name: name));
+  await db.insertVisitor(
+    VisitorsCompanion.insert(
+      id: Value(id),
+      name: name,
+      departmentId: Value.absentIfNull(departmentId),
+    ),
+  );
   return id;
 }
 
@@ -167,6 +177,35 @@ Future<int> seedShift(
   await db.insertShift(
     ShiftsCompanion.insert(id: Value(id), name: name, hours: hours),
     mealTypeIds: mealTypeIds,
+  );
+  return id;
+}
+
+/// Seeds an active fingerprint template owned by the given person.
+Future<int> seedBioData(
+  AppDatabase db, {
+  required int id,
+  int? staffId,
+  int? contractorStaffId,
+  int? visitorId,
+  int? dependentId,
+  bool active = true,
+  int? departmentId,
+}) async {
+  await db.insertBioData(
+    BioDataEntriesCompanion.insert(
+      id: Value(id),
+      finger: 'rightThumb',
+      dataBase64: 'AAAA',
+      createdAt: '2024-01-01T00:00:00.000',
+      updatedAt: '2024-01-01T00:00:00.000',
+      staffId: Value.absentIfNull(staffId),
+      contractorStaffId: Value.absentIfNull(contractorStaffId),
+      visitorId: Value.absentIfNull(visitorId),
+      dependentId: Value.absentIfNull(dependentId),
+      isActive: Value(active),
+      departmentId: Value.absentIfNull(departmentId),
+    ),
   );
   return id;
 }

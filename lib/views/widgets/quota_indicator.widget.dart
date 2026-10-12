@@ -85,3 +85,48 @@ class QuotaIndicator extends StatelessWidget {
     );
   }
 }
+
+/// Like [QuotaIndicator], but also appends the person's assigned shift name to
+/// the quota line. Staff and contractor staff carry a `shiftId` from sync;
+/// visitors and dependents have none, so nothing is appended for them.
+class ShiftAwareQuotaIndicator extends StatelessWidget {
+  final AppDatabase db;
+  final EmployeeType type;
+  final int personId;
+
+  const ShiftAwareQuotaIndicator({
+    super.key,
+    required this.db,
+    required this.type,
+    required this.personId,
+  });
+
+  Future<String?> _resolveShiftName() async {
+    int? shiftId;
+    if (type == EmployeeType.contractor) {
+      final row = await db.getContractorStaff(personId);
+      shiftId = row?.shiftId;
+    } else if (type.isStaffType) {
+      final row = await db.getStaff(personId);
+      shiftId = row?.shiftId;
+    }
+    if (shiftId == null) return null;
+    final shift = await db.getShift(shiftId);
+    return shift?.name;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<String?>(
+      future: _resolveShiftName(),
+      builder: (context, snapshot) {
+        return QuotaIndicator(
+          db: db,
+          type: type,
+          personId: personId,
+          label: snapshot.data,
+        );
+      },
+    );
+  }
+}

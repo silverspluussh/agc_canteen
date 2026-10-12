@@ -250,6 +250,11 @@ class WorkFunctions extends Table {
   TextColumn get functionStartTime => text()();
   TextColumn get functionEndTime => text()();
   TextColumn get status => text()();
+  IntColumn get guestAllowance => integer().withDefault(const Constant(0))();
+  IntColumn get guestIssued => integer().withDefault(const Constant(0))();
+  /// Derived orderable state from the server: open | upcoming | closed.
+  TextColumn get state => text().withDefault(const Constant('closed'))();
+  TextColumn get preparedAt => text().nullable()();
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();
   TextColumn get syncUpdatedAt => text().nullable()();
 
@@ -274,6 +279,11 @@ class FunctionOrders extends Table {
   TextColumn get description => text().nullable()();
   IntColumn get orderedById => integer()();
   TextColumn get employeeType => text()();
+  BoolColumn get isGuest => boolean().withDefault(const Constant(false))();
+  TextColumn get guestName => text().nullable()();
+  /// Echoed from the server: duplicate_person | guest_over_allowance when the
+  /// voucher was stored but breached a business rule. Never blocks a write.
+  TextColumn get flaggedReason => text().nullable()();
   TextColumn get createdAt => text()();
   TextColumn get updatedAt => text()();
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();
@@ -283,6 +293,17 @@ class FunctionOrders extends Table {
 
   @override
   Set<Column> get primaryKey => {id};
+}
+
+/// Person ids already issued a registered voucher for a function, synced from
+/// the server so an offline POS can enforce one-per-person locally.
+class FunctionIssuedPersons extends Table {
+  IntColumn get functionId => integer()();
+  TextColumn get employeeType => text()();
+  IntColumn get personId => integer()();
+
+  @override
+  Set<Column> get primaryKey => {functionId, employeeType, personId};
 }
 
 class PosDevices extends Table {
@@ -380,6 +401,8 @@ class ContractorStaffTable extends Table {
   TextColumn get endDate => text()();
   BoolColumn get isCharged => boolean().withDefault(const Constant(false))();
   IntColumn get dailyQuota => integer().nullable()();
+  IntColumn get manualMonthlyQuota => integer().nullable()();
+  IntColumn get shiftId => integer().nullable()();
   BoolColumn get allowGroupOrder => boolean().nullable()();
   IntColumn get maxOrderCount => integer().nullable()();
   IntColumn get syncStatus => integer().withDefault(const Constant(0))();

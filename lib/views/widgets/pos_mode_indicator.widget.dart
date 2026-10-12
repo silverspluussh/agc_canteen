@@ -1,4 +1,5 @@
 import 'package:agc_canteen/controllers/pos_mode_controller.dart';
+import 'package:agc_canteen/models/work_function.model.dart';
 import 'package:agc_canteen/services/pos/pos_mode_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -69,8 +70,8 @@ class PosModeIndicator extends ConsumerWidget {
                 const SizedBox(height: 2),
                 Text(
                   state.message ??
-                      '${selected?.windowLabel ?? ''} • '
-                          '${selected?.ratePerVoucher.toStringAsFixed(2) ?? '0.00'} per voucher',
+                      '${_stateWord(selected)} • ${selected?.windowLabel ?? ''}'
+                          '${(selected?.guestAllowance ?? 0) > 0 ? ' • Guests ${selected!.guestIssued}/${selected.guestAllowance}' : ''}',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: foreground.withValues(alpha: 0.85),
                   ),
@@ -96,4 +97,15 @@ class PosModeIndicator extends ConsumerWidget {
 /// Convenience helper for widgets that need to react to function mode.
 extension PosModeStateX on PosModeState {
   bool get canOrder => !isFunctionMode || selectedFunction != null;
+}
+
+String _stateWord(WorkFunctionModel? fn) {
+  switch (fn?.state) {
+    case 'open':
+      return 'Open';
+    case 'upcoming':
+      return 'Upcoming';
+    default:
+      return 'Closed';
+  }
 }

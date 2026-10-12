@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:agc_canteen/models/sync.model.dart';
+import 'package:agc_canteen/services/sync_services/push_scheduler.dart';
+import 'package:agc_canteen/services/sync_services/sync_loop.dart';
 import 'package:agc_canteen/services/sync_services/sync_pull_gate.dart';
 import 'package:agc_canteen/services/sync_services/sync_scheduler.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -11,8 +13,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../helpers/mocks.dart';
 
-/// Phase 1/2/5: the scheduler decides *when* a sync runs. These tests pin the
-/// trigger/coalescing/backoff behaviour without touching a real network or DB.
+/// The scheduler is now two independent loops. These tests pin the shared
+/// trigger/coalescing/backoff behaviour on the push loop, and the light/full
+/// split plus version gating on the pull loop.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -22,7 +25,7 @@ void main() {
   late StreamController<List<ConnectivityResult>> connectivityCtrl;
   late bool online;
   late DateTime now;
-  late List<SyncScheduler> schedulers;
+  late List<SyncLoop> loops;
 
   const emptyResult = SyncResult(pushed: {}, pulled: {}, errors: []);
 
@@ -34,28 +37,46 @@ void main() {
     connectivityCtrl = StreamController<List<ConnectivityResult>>.broadcast();
     online = true;
     now = DateTime(2026, 1, 1, 12);
-    schedulers = [];
+    loops = [];
 
     when(() => connectivity.onConnectivityChanged)
         .thenAnswer((_) => connectivityCtrl.stream);
-    when(() => remote.syncAll(background: false)).thenAnswer((_) async {});
+    when(() => remote.syncAll(background: any(named: 'background')))
+        .thenAnswer((_) async => true);
+    when(() => remote.syncLight(background: any(named: 'background')))
+        .thenAnswer((_) async => true);
+    when(() => remote.syncHeavy(background: any(named: 'background')))
+        .thenAnswer((_) async => true);
     when(() => local.syncAll()).thenAnswer((_) async => emptyResult);
   });
 
   tearDown(() async {
-    for (final s in schedulers) {
-      await s.dispose();
+    for (final l in loops) {
+      await l.dispose();
     }
     await connectivityCtrl.close();
   });
 
-  SyncScheduler build({
+  PushScheduler buildPush({Duration interval = const Duration(minutes: 4)}) {
+    final loop = PushScheduler(
+      localToRemote: local,
+      connectivity: connectivity,
+      isOnline: () async => online,
+      now: () => now,
+      interval: interval,
+      observeLifecycle: false,
+      logger: Logger(level: Level.off),
+    );
+    loops.add(loop);
+    return loop;
+  }
+
+  SyncScheduler buildPull({
     Duration interval = const Duration(minutes: 3),
     RemotePullGate? pullGate,
   }) {
-    final scheduler = SyncScheduler(
+    final loop = SyncScheduler(
       remoteToLocal: remote,
-      localToRemote: local,
       connectivity: connectivity,
       isOnline: () async => online,
       now: () => now,
@@ -64,197 +85,312 @@ void main() {
       pullGate: pullGate,
       logger: Logger(level: Level.off),
     );
-    schedulers.add(scheduler);
-    return scheduler;
+    loops.add(loop);
+    return loop;
   }
 
-  /// Starts the scheduler and lets its immediate cycle settle.
-  Future<SyncScheduler> started({
-    Duration? interval,
-    RemotePullGate? pullGate,
-  }) async {
-    final scheduler = build(
-      interval: interval ?? const Duration(minutes: 3),
-      pullGate: pullGate,
-    );
-    await scheduler.start();
-    await pumpEventQueue();
-    clearInteractions(remote);
-    clearInteractions(local);
-    return scheduler;
-  }
+  group('push loop', () {
+    test('start runs an immediate upload cycle', () async {
+      final push = buildPush();
+      await push.start();
+      await pumpEventQueue();
 
-  test('start runs an immediate cycle in both directions', () async {
-    final scheduler = build();
-    await scheduler.start();
-    await pumpEventQueue();
-
-    expect(scheduler.isRunning, isTrue);
-    verify(() => remote.syncAll(background: false)).called(1);
-    verify(() => local.syncAll()).called(1);
-    expect(scheduler.snapshot.value.lastSyncedAt, now);
-    expect(scheduler.snapshot.value.lastError, isNull);
-  });
-
-  test('offline cycles call neither direction', () async {
-    final scheduler = await started();
-    online = false;
-
-    await scheduler.runCycle();
-
-    verifyNever(() => remote.syncAll(background: false));
-    verifyNever(() => local.syncAll());
-  });
-
-  test('overlapping triggers do not run a second cycle concurrently', () async {
-    final scheduler = await started();
-    final gate = Completer<void>();
-    var remoteCalls = 0;
-    var concurrent = 0;
-    var maxConcurrent = 0;
-
-    when(() => remote.syncAll(background: false)).thenAnswer((_) async {
-      remoteCalls++;
-      concurrent++;
-      if (concurrent > maxConcurrent) maxConcurrent = concurrent;
-      await gate.future;
-      concurrent--;
+      expect(push.isRunning, isTrue);
+      verify(() => local.syncAll()).called(1);
+      expect(push.snapshot.value.lastSyncedAt, now);
+      expect(push.snapshot.value.lastError, isNull);
     });
 
-    final first = scheduler.runCycle();
-    final second = scheduler.runCycle();
-    await pumpEventQueue();
+    test('offline cycles do not upload', () async {
+      final push = buildPush();
+      await push.start();
+      await pumpEventQueue();
+      clearInteractions(local);
+      online = false;
 
-    // While the first is still gated, no second cycle may have started.
-    expect(maxConcurrent, 1);
-    expect(remoteCalls, 1);
+      await push.runNow();
 
-    gate.complete();
-    await Future.wait([first, second]);
-    // The coalesced follow-up is fire-and-forget; let it drain before asserting.
-    await pumpEventQueue();
-
-    expect(maxConcurrent, 1, reason: 'cycles must never overlap');
-    expect(remoteCalls, 2, reason: 'the second trigger runs once after the first');
-  });
-
-  test('a failure backs off non-forced ticks until the window passes', () async {
-    when(() => remote.syncAll(background: false))
-        .thenThrow(StateError('boom'));
-
-    final scheduler = await started();
-    expect(scheduler.snapshot.value.lastError, isNotNull);
-    expect(scheduler.snapshot.value.consecutiveFailures, 1);
-
-    // Same instant: inside the backoff window, a plain tick is suppressed.
-    await scheduler.tick();
-    verifyNever(() => remote.syncAll(background: false));
-
-    // Past the window (interval is 3m): the tick is allowed again.
-    now = now.add(const Duration(minutes: 4));
-    await scheduler.tick();
-    verify(() => remote.syncAll(background: false)).called(1);
-  });
-
-  test('reconnecting forces a catch-up even while backing off', () async {
-    when(() => remote.syncAll(background: false))
-        .thenThrow(StateError('boom'));
-
-    await started();
-    clearInteractions(remote);
-
-    connectivityCtrl.add([ConnectivityResult.wifi]);
-    await pumpEventQueue();
-
-    verify(() => remote.syncAll(background: false)).called(1);
-  });
-
-  test('a successful cycle resets the failure count', () async {
-    var shouldFail = true;
-    when(() => remote.syncAll(background: false)).thenAnswer((_) async {
-      if (shouldFail) throw StateError('boom');
+      verifyNever(() => local.syncAll());
     });
 
-    final scheduler = await started();
-    expect(scheduler.snapshot.value.consecutiveFailures, 1);
+    test('overlapping triggers do not run concurrently', () async {
+      final push = buildPush();
+      await push.start();
+      await pumpEventQueue();
+      clearInteractions(local);
 
-    shouldFail = false;
-    now = now.add(const Duration(minutes: 5));
-    await scheduler.tick();
+      final gate = Completer<void>();
+      var calls = 0;
+      var concurrent = 0;
+      var maxConcurrent = 0;
+      when(() => local.syncAll()).thenAnswer((_) async {
+        calls++;
+        concurrent++;
+        if (concurrent > maxConcurrent) maxConcurrent = concurrent;
+        await gate.future;
+        concurrent--;
+        return emptyResult;
+      });
 
-    expect(scheduler.snapshot.value.consecutiveFailures, 0);
-    expect(scheduler.snapshot.value.lastError, isNull);
+      final first = push.runNow();
+      final second = push.runNow();
+      await pumpEventQueue();
+
+      expect(maxConcurrent, 1);
+      expect(calls, 1);
+
+      gate.complete();
+      await Future.wait([first, second]);
+      await pumpEventQueue();
+
+      expect(maxConcurrent, 1, reason: 'cycles must never overlap');
+      expect(calls, 2, reason: 'the second trigger runs once after the first');
+    });
+
+    test('a failure backs off non-forced ticks until the window passes',
+        () async {
+      when(() => local.syncAll()).thenThrow(StateError('boom'));
+
+      final push = buildPush();
+      await push.start();
+      await pumpEventQueue();
+      expect(push.snapshot.value.lastError, isNotNull);
+      expect(push.snapshot.value.consecutiveFailures, 1);
+      clearInteractions(local);
+
+      await push.tick();
+      verifyNever(() => local.syncAll());
+
+      now = now.add(const Duration(minutes: 5));
+      await push.tick();
+      verify(() => local.syncAll()).called(1);
+    });
+
+    test('reconnecting forces a catch-up even while backing off', () async {
+      when(() => local.syncAll()).thenThrow(StateError('boom'));
+
+      final push = buildPush();
+      await push.start();
+      await pumpEventQueue();
+      clearInteractions(local);
+
+      connectivityCtrl.add([ConnectivityResult.wifi]);
+      await pumpEventQueue();
+
+      verify(() => local.syncAll()).called(1);
+    });
+
+    test('a successful cycle resets the failure count', () async {
+      var shouldFail = true;
+      when(() => local.syncAll()).thenAnswer((_) async {
+        if (shouldFail) throw StateError('boom');
+        return emptyResult;
+      });
+
+      final push = buildPush();
+      await push.start();
+      await pumpEventQueue();
+      expect(push.snapshot.value.consecutiveFailures, 1);
+
+      shouldFail = false;
+      now = now.add(const Duration(minutes: 5));
+      await push.tick();
+
+      expect(push.snapshot.value.consecutiveFailures, 0);
+      expect(push.snapshot.value.lastError, isNull);
+    });
+
+    test('stop cancels triggers and further runs are ignored', () async {
+      final push = buildPush();
+      await push.start();
+      await pumpEventQueue();
+      await push.stop();
+
+      expect(push.isRunning, isFalse);
+      clearInteractions(local);
+      await push.runNow();
+      verifyNever(() => local.syncAll());
+    });
+
+    test('default push interval is four minutes', () {
+      expect(kDefaultPushInterval, const Duration(minutes: 4));
+    });
   });
 
-  test('stop cancels triggers and further runs are ignored', () async {
-    final scheduler = await started();
-    await scheduler.stop();
+  group('pull loop', () {
+    test('start performs a full reconcile on the first cycle of the day',
+        () async {
+      final pull = buildPull();
+      await pull.start();
+      await pumpEventQueue();
 
-    expect(scheduler.isRunning, isFalse);
-    await scheduler.runCycle();
-    verifyNever(() => remote.syncAll(background: false));
-  });
+      verify(() => remote.syncAll(background: false)).called(1);
+      verifyNever(() => remote.syncLight(background: any(named: 'background')));
+      expect(pull.snapshot.value.lastSyncedAt, now);
+    });
 
-  test('a stop and start issued together settle deterministically', () async {
-    final scheduler = await started();
+    test('a later timer tick pulls only the light set', () async {
+      final pull = buildPull();
+      await pull.start();
+      await pumpEventQueue();
+      clearInteractions(remote);
 
-    // Fire both without awaiting: _serialize runs them in order, so the stop
-    // cannot clobber the subscription/timer the start just created.
-    final stopFuture = scheduler.stop();
-    final startFuture = scheduler.start();
-    await Future.wait([stopFuture, startFuture]);
+      now = now.add(const Duration(minutes: 61));
+      await pull.tick();
 
-    expect(scheduler.isRunning, isTrue);
+      verify(() => remote.syncLight(background: false)).called(1);
+      verifyNever(() => remote.syncAll(background: any(named: 'background')));
+    });
 
-    // The scheduler is healthy: a cycle still runs after the churn.
-    clearInteractions(remote);
-    await scheduler.runCycle();
-    verify(() => remote.syncAll(background: false)).called(1);
-  });
+    test('the full reconcile repeats on the next day', () async {
+      final pull = buildPull();
+      await pull.start();
+      await pumpEventQueue();
+      clearInteractions(remote);
 
-  test('an unchanged gate skips the remote pull but still pushes local work',
-      () async {
-    final gate = _FakeGate(false);
-    final scheduler = await started(pullGate: gate);
-    final baseGateCalls = gate.shouldPullCalls;
+      now = now.add(const Duration(days: 1));
+      await pull.tick();
 
-    // Non-forced tick must get past the post-success backoff window.
-    now = now.add(const Duration(minutes: 4));
-    await scheduler.tick();
+      verify(() => remote.syncAll(background: false)).called(1);
+    });
 
-    verifyNever(() => remote.syncAll(background: false));
-    verify(() => local.syncAll()).called(1);
-    expect(gate.shouldPullCalls, baseGateCalls + 1);
-    expect(gate.succeededCalls, 0);
-    expect(scheduler.snapshot.value.pullSkipped, isTrue);
-  });
+    test('coalesced triggers never run concurrently', () async {
+      final pull = buildPull();
+      await pull.start();
+      await pumpEventQueue();
+      clearInteractions(remote);
 
-  test('a changed gate pulls and records success', () async {
-    final gate = _FakeGate(true);
-    final scheduler = await started(pullGate: gate);
+      final gate = Completer<void>();
+      var calls = 0;
+      var concurrent = 0;
+      var maxConcurrent = 0;
+      when(() => remote.syncAll(background: false)).thenAnswer((_) async {
+        calls++;
+        concurrent++;
+        if (concurrent > maxConcurrent) maxConcurrent = concurrent;
+        await gate.future;
+        concurrent--;
+        return true;
+      });
 
-    now = now.add(const Duration(minutes: 4));
-    await scheduler.tick();
+      final first = pull.runCycle();
+      final second = pull.runCycle();
+      await pumpEventQueue();
 
-    verify(() => remote.syncAll(background: false)).called(1);
-    verify(() => local.syncAll()).called(1);
-    expect(gate.succeededCalls, greaterThanOrEqualTo(1));
-    expect(scheduler.snapshot.value.pullSkipped, isFalse);
-  });
+      expect(maxConcurrent, 1);
+      expect(calls, 1);
 
-  test('manual syncNow bypasses the gate and always pulls', () async {
-    final gate = _FakeGate(false);
-    final scheduler = await started(pullGate: gate);
-    final baseGateCalls = gate.shouldPullCalls;
+      gate.complete();
+      await Future.wait([first, second]);
+      await pumpEventQueue();
 
-    await scheduler.syncNow();
+      expect(maxConcurrent, 1);
+      expect(calls, 2);
+    });
 
-    verify(() => remote.syncAll(background: false)).called(1);
-    expect(
-      gate.shouldPullCalls,
-      baseGateCalls,
-      reason: 'a forced pull must not even consult the gate',
-    );
+    test('an unchanged gate skips the pull', () async {
+      final gate = _FakeGate(false);
+      final pull = buildPull(pullGate: gate);
+      await pull.start();
+      await pumpEventQueue();
+      clearInteractions(remote);
+
+      now = now.add(const Duration(minutes: 61));
+      await pull.tick();
+
+      verifyNever(() => remote.syncLight(background: any(named: 'background')));
+      expect(gate.shouldPullCalls, greaterThan(0));
+      expect(gate.succeededCalls, 0);
+      expect(pull.snapshot.value.pullSkipped, isTrue);
+    });
+
+    test('a changed gate pulls the light set and records success', () async {
+      final gate = _FakeGate(true);
+      final pull = buildPull(pullGate: gate);
+      await pull.start();
+      await pumpEventQueue();
+      clearInteractions(remote);
+
+      now = now.add(const Duration(minutes: 61));
+      await pull.tick();
+
+      verify(() => remote.syncLight(background: false)).called(1);
+      expect(gate.succeededCalls, greaterThanOrEqualTo(1));
+      expect(pull.snapshot.value.pullSkipped, isFalse);
+    });
+
+    test('manual runNow bypasses the gate and always pulls', () async {
+      final gate = _FakeGate(false);
+      final pull = buildPull(pullGate: gate);
+      await pull.start();
+      await pumpEventQueue();
+      clearInteractions(remote);
+      final baseGateCalls = gate.shouldPullCalls;
+
+      await pull.runNow();
+
+      verify(() => remote.syncLight(background: false)).called(1);
+      expect(gate.shouldPullCalls, baseGateCalls,
+          reason: 'a manual pull must not consult the gate');
+    });
+
+    test('runNow(full: true) pulls everything', () async {
+      final pull = buildPull();
+      await pull.start();
+      await pumpEventQueue();
+      clearInteractions(remote);
+
+      await pull.runNow(full: true);
+
+      verify(() => remote.syncAll(background: false)).called(1);
+    });
+
+    test('a dropped connection during a full pull is not marked done',
+        () async {
+      var onlineRuns = 0;
+      when(() => remote.syncAll(background: false)).thenAnswer((_) async {
+        onlineRuns++;
+        return onlineRuns > 1; // first attempt reports the link dropped
+      });
+
+      final pull = buildPull();
+      await pull.start();
+      await pumpEventQueue();
+
+      // The failed full pull must not have been recorded as today's reconcile.
+      expect(pull.snapshot.value.lastError, isNotNull);
+
+      // Next online cycle must retry the full pull (day still not marked).
+      now = now.add(const Duration(minutes: 4));
+      await pull.tick();
+
+      verify(() => remote.syncAll(background: false)).called(2);
+    });
+
+    test('a dropped connection during a light pull skips gate success',
+        () async {
+      final gate = _FakeGate(true);
+      final pull = buildPull(pullGate: gate);
+      await pull.start();
+      await pumpEventQueue();
+      clearInteractions(remote);
+      final baseGateCalls = gate.shouldPullCalls;
+
+      when(() => remote.syncLight(background: false)).thenAnswer((_) async => false);
+
+      now = now.add(const Duration(minutes: 61));
+      await pull.tick();
+
+      verify(() => remote.syncLight(background: false)).called(1);
+      expect(gate.shouldPullCalls, baseGateCalls + 1);
+      expect(gate.succeededCalls, 0,
+          reason: 'the version must not advance when nothing was pulled');
+      expect(pull.snapshot.value.lastError, isNotNull);
+    });
+
+    test('default pull interval is sixty minutes', () {
+      expect(kDefaultPullInterval, const Duration(minutes: 60));
+    });
   });
 }
 

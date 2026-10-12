@@ -8,9 +8,12 @@ import 'package:uuid/uuid.dart';
 import '../../controllers/pos_mode_controller.dart';
 import '../../core/di/injection_container.dart';
 import '../../core/enums/employee_type.enum.dart';
+import '../../core/network/network_api_dio.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../../repositories/function_order.repo.dart';
 import '../../services/database/activity_log_service.dart';
 import '../../services/database/app_database.dart';
+import '../../services/pos/pos_mode_store.dart';
 import '../../services/pos/quota_gate_service.dart';
 import '../../services/print/print_service_manager.dart';
 import '../../services/print/receipt_header.dart';
@@ -85,39 +88,7 @@ class ManualOrderPage extends ConsumerWidget {
     );
 
     if (isFunctionMode) {
-      return Scaffold(
-        appBar: AppBar(
-          backgroundColor: cs.primary,
-          foregroundColor: cs.onPrimary,
-          title: Text(l10n.manualPosOrder),
-          leading: const BackButton(color: Colors.white),
-          centerTitle: true,
-        ),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.qr_code_scanner, size: 56, color: cs.primary),
-                const SizedBox(height: 16),
-                Text(
-                  'Function mode is active',
-                  style: Theme.of(context).textTheme.titleMedium,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Work function orders are voucher-only.\n\n'
-                  'Scan an NFC card or use a fingerprint to take the order, '
-                  'or switch back to General mode in Settings > Order Mode.',
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
+      return const _FunctionModeScreen();
     }
 
     return DefaultTabController(
@@ -375,7 +346,7 @@ class _SingleOrderTabState extends State<_SingleOrderTab> {
           ),
           if (_selectedStaff != null &&
               EmployeeType.tryParse(_selectedStaff!.employeeType) != null)
-            QuotaIndicator(
+            ShiftAwareQuotaIndicator(
               db: getIt<AppDatabase>(),
               type: EmployeeType.tryParse(_selectedStaff!.employeeType)!,
               personId: _selectedStaff!.id,
@@ -667,7 +638,7 @@ class _GroupOrderTabState extends State<_GroupOrderTab> {
           ),
           if (_selectedStaff != null &&
               EmployeeType.tryParse(_selectedStaff!.employeeType) != null)
-            QuotaIndicator(
+            ShiftAwareQuotaIndicator(
               db: getIt<AppDatabase>(),
               type: EmployeeType.tryParse(_selectedStaff!.employeeType)!,
               personId: _selectedStaff!.id,
@@ -722,4 +693,236 @@ class _GroupOrderTabState extends State<_GroupOrderTab> {
       ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
     );
   }
+}
+
+/// Shown while the till is in function mode. Registered staff take a voucher via
+/// NFC/fingerprint; this screen also issues an anonymous guest voucher for an
+/// unregistered attendee (soft cap: the function's guest allowance).
+class _FunctionModeScreen extends ConsumerStatefulWidget {
+  const _FunctionModeScreen();
+
+  @override
+  ConsumerState<_FunctionModeScreen> createState() => _FunctionModeScreenState();
+}
+
+class _FunctionModeScreenState extends ConsumerState<_FunctionModeScreen> {
+  bool _issuing = false;
+
+  void _snack(String msg, {bool ok = true}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: ok ? Colors.green : Colors.red,
+      ),
+    );
+  }
+
+  Future<String?> _askGuestName() async {
+    final controller = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Guest voucher'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: 'Guest name (optional)'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, controller.text),
+            child: const Text('Issue'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _issueGuest() async {
+    // Mirror the registered flow: the window is re-checked against the clock
+    // before a voucher can be issued, so a selection that has gone stale (the
+    // function closed, or is not scheduled for today) is rejected.
+    ref.read(posModeControllerProvider.notifier).revalidate();
+    final state = ref.read(posModeControllerProvider);
+    final function = state.selectedFunction;
+    if (function == null) {
+      _snack('Select a work function first.', ok: false);
+      return;
+    }
+    if (state.problem != FunctionSelectionProblem.none) {
+      _snack(
+        state.message ?? 'The selected work function is not open.',
+        ok: false,
+      );
+      return;
+    }
+
+    final name = await _askGuestName();
+    if (name == null) return; // cancelled
+
+    setState(() => _issuing = true);
+    try {
+      final db = getIt<AppDatabase>();
+
+      final repo = FunctionOrderRepository(
+        db: db,
+        networkAPI: getIt<NetworkAPI>(),
+      );
+      final remaining = await repo.guestRemaining(function);
+
+      final orderId = await repo.createFunctionOrder(
+        function: function,
+        orderedById: 0,
+        employeeType: 'guest',
+        mealType: 'function',
+        isGuest: true,
+        guestName: name.trim().isEmpty ? null : name.trim(),
+      );
+
+      final code = (await db.getFunctionOrder(orderId))?.orderCode ?? '';
+      unawaited(getIt<LocalToRemoteSyncService>().syncFunctionOrders());
+
+      await _printFunctionVoucher(
+        orderCode: code,
+        holderName: name.trim().isEmpty ? 'Guest' : name.trim(),
+        orderTime: DateTime.now(),
+      );
+
+      _snack(
+        remaining <= 1
+            ? 'Guest voucher $code issued (allowance reached).'
+            : 'Guest voucher $code issued.',
+      );
+    } catch (e) {
+      _snack('Guest voucher failed: $e', ok: false);
+    } finally {
+      if (mounted) setState(() => _issuing = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
+    final state = ref.watch(posModeControllerProvider);
+    final fn = state.selectedFunction;
+
+    // Pure window check so the button reflects whether a guest voucher can be
+    // taken right now (same rule the registered flow enforces on each order).
+    final check = FunctionSelectionValidator.validate(
+      mode: state.mode,
+      selectedFunctionId: fn?.id,
+      functionDate: fn?.functionDate,
+      startTime: fn?.functionStartTime,
+      endTime: fn?.functionEndTime,
+      now: DateTime.now(),
+    );
+    final canIssue = fn != null && check.isUsable;
+
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: cs.primary,
+        foregroundColor: cs.onPrimary,
+        title: Text(l10n.manualPosOrder),
+        leading: const BackButton(color: Colors.white),
+        centerTitle: true,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.qr_code_scanner, size: 56, color: cs.primary),
+            const SizedBox(height: 16),
+            Text(
+              'Function mode is active',
+              style: Theme.of(context).textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              fn == null
+                  ? 'Select a work function in Settings > Order Mode.'
+                  : '${fn.functionName} • ${fn.state.toUpperCase()}',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            if (fn != null && !check.isUsable) ...[
+              const SizedBox(height: 4),
+              Text(
+                check.message ?? 'The selected work function is not open.',
+                textAlign: TextAlign.center,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: cs.error),
+              ),
+            ],
+            const SizedBox(height: 4),
+            const Text(
+              'Registered staff take a voucher by scanning an NFC card or '
+              'using a fingerprint.',
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              onPressed: _issuing || !canIssue ? null : _issueGuest,
+              icon: _issuing
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.confirmation_number_outlined),
+              label: const Text('Issue guest voucher'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+Future<void> _printFunctionVoucher({
+  required String orderCode,
+  required String holderName,
+  required DateTime orderTime,
+}) async {
+  try {
+    final printer = getIt<PrintServiceManager>();
+    String pad(int n) => n.toString().padLeft(2, '0');
+    final date =
+        '${orderTime.year}-${pad(orderTime.month)}-${pad(orderTime.day)} '
+        '${pad(orderTime.hour)}:${pad(orderTime.minute)}';
+
+    final b = BytesBuilder();
+    void ln(String s) => b.add('$s\n'.codeUnits);
+    void boldOn() => b.add(const [0x1B, 0x45, 0x01]);
+    void boldOff() => b.add(const [0x1B, 0x45, 0x00]);
+    void centerOn() => b.add(const [0x1B, 0x61, 0x01]);
+
+    final header = await receiptHeaderName(getIt<AppDatabase>());
+    centerOn();
+    ln('====================');
+    ln(header);
+    ln('====================');
+    boldOn();
+    ln(orderCode);
+    boldOff();
+    ln('Guest: $holderName');
+    ln('Time:  $date');
+
+    final bytes = Uint8List.fromList(b.toBytes());
+    final printed = await printer.printRawBytes(bytes);
+    if (printed) {
+      await printer.cutPaper();
+    }
+  } catch (_) {}
 }

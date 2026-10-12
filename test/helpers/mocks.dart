@@ -7,6 +7,7 @@ import 'package:agc_canteen/services/auth/nfc_auth_service.dart';
 import 'package:agc_canteen/services/auth/pos_auth_service.dart';
 import 'package:agc_canteen/services/nfc/nfc_service.dart';
 import 'package:agc_canteen/services/pos/pos_print_service.dart';
+import 'package:agc_canteen/services/pos/pos_fingerprint_service.dart';
 import 'package:agc_canteen/services/print/external_thermal_print_service.dart';
 import 'package:agc_canteen/services/print/print_service_manager.dart';
 import 'package:agc_canteen/services/sync_services/sync_from_local_to_remote.dart';
@@ -36,6 +37,9 @@ class MockExternalThermalPrintService extends Mock
 class MockPrintServiceManager extends Mock implements PrintServiceManager {}
 
 class MockPosAuthService extends Mock implements PosAuthService {}
+
+class MockPosFingerprintService extends Mock
+    implements PosFingerprintService {}
 
 class MockLocalToRemoteSyncService extends Mock
     implements LocalToRemoteSyncService {}

@@ -2,7 +2,6 @@ import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 import 'tables.dart';
 import '../../models/biodata_fingerprint_summary.dart';
-import '../../models/work_function.model.dart';
 import '../../models/unified_report_order_row.dart';
 
 part 'app_database.g.dart';
@@ -27,6 +26,7 @@ part 'app_database.g.dart';
     Orders,
     WorkFunctions,
     FunctionOrders,
+    FunctionIssuedPersons,
     PosDevices,
     ActivityLogs,
     GroupOrders,
@@ -49,7 +49,7 @@ class AppDatabase extends _$AppDatabase {
   static const int _maxBioDataSyncAttempts = 5;
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -113,6 +113,30 @@ class AppDatabase extends _$AppDatabase {
         // server would mint a fresh one per attempt.
         await _backfillBioDataUuids();
         await _quarantineLegacyGroupOrders();
+      }
+      if (from < 9 && !contractorStaffTableCreated) {
+        // Contractor staff quota is now shift-derived like staff: keep the
+        // assigned shift id plus the manual monthly pool used as the no-shift
+        // fallback. Skipped when the table was just created above (it already
+        // has the current schema).
+        await m.addColumn(contractorStaffTable, contractorStaffTable.shiftId);
+        await m.addColumn(
+          contractorStaffTable,
+          contractorStaffTable.manualMonthlyQuota,
+        );
+      }
+      if (from < 10) {
+        // Work-function revamp: guest vouchers, the function's orderable state
+        // and guest allowance, plus the synced issued-person set used for the
+        // offline one-per-person check.
+        await m.addColumn(functionOrders, functionOrders.isGuest);
+        await m.addColumn(functionOrders, functionOrders.guestName);
+        await m.addColumn(functionOrders, functionOrders.flaggedReason);
+        await m.addColumn(workFunctions, workFunctions.guestAllowance);
+        await m.addColumn(workFunctions, workFunctions.guestIssued);
+        await m.addColumn(workFunctions, workFunctions.state);
+        await m.addColumn(workFunctions, workFunctions.preparedAt);
+        await m.createTable(functionIssuedPersons);
       }
     },
     beforeOpen: (details) async {
@@ -191,6 +215,9 @@ class AppDatabase extends _$AppDatabase {
     );
     await customStatement(
       'CREATE INDEX IF NOT EXISTS idx_bio_data_department_id ON bio_data_entries (department_id)',
+    );
+    await customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_bio_data_department_active ON bio_data_entries (department_id, is_active)',
     );
     await customStatement(
       'CREATE INDEX IF NOT EXISTS idx_bio_data_sync_status ON bio_data_entries (sync_status)',
@@ -1484,46 +1511,61 @@ class AppDatabase extends _$AppDatabase {
             t.syncAttempts.isSmallerThanValue(_maxOrderSyncAttempts),
       )).get();
 
-  Future<({int count, double revenue})> aggregateOrders({
+  /// Distinct people (ordered_by_id) who received a voucher in the range.
+  Future<int> countDistinctPersons({
     String? createdAtFrom,
     String? createdAtToInclusive,
-    String? createdAtToExclusive,
   }) async {
-    final query = selectOnly(orders)
-      ..addColumns([orders.id.count(), orders.total.sum()]);
-    if (createdAtFrom != null) {
-      query.where(orders.createdAt.isBiggerOrEqualValue(createdAtFrom));
-    }
-    if (createdAtToInclusive != null) {
-      query.where(orders.createdAt.isSmallerOrEqualValue(createdAtToInclusive));
-    }
-    if (createdAtToExclusive != null) {
-      query.where(orders.createdAt.isSmallerThanValue(createdAtToExclusive));
-    }
-    final row = await query.getSingle();
-    return (
-      count: row.read(orders.id.count()) ?? 0,
-      revenue: row.read(orders.total.sum()) ?? 0.0,
+    final orderVars = <Variable>[];
+    final clauses = _reportOrderFilterClauses(
+      createdAtFrom: createdAtFrom,
+      createdAtToInclusive: createdAtToInclusive,
+      variables: orderVars,
     );
+    clauses.add('ordered_by_id IS NOT NULL');
+
+    final sql = 'SELECT COUNT(DISTINCT ordered_by_id) AS c FROM orders ${_whereSql(clauses)}';
+    final row = await customSelect(
+      sql,
+      variables: orderVars,
+      readsFrom: {orders},
+    ).getSingle();
+    return row.read<int>('c');
   }
 
-  Future<int> countMealTypesInRange({
+  /// Counts vouchers grouped by a whitelisted column, for quantity-only reports.
+  Future<Map<String, int>> countOrdersGrouped({
     String? createdAtFrom,
     String? createdAtToInclusive,
-    String? createdAtToExclusive,
+    required String column,
   }) async {
-    final query = selectOnly(mealTypes)..addColumns([mealTypes.id.count()]);
-    if (createdAtFrom != null) {
-      query.where(mealTypes.createdAt.isBiggerOrEqualValue(createdAtFrom));
+    // The column name is interpolated into SQL, so it must only ever be one of
+    // these known-safe values — never user input.
+    if (column != 'employee_type' && column != 'meal_type') {
+      throw ArgumentError('Unsupported group column: $column');
     }
-    if (createdAtToInclusive != null) {
-      query.where(mealTypes.createdAt.isSmallerOrEqualValue(createdAtToInclusive));
-    }
-    if (createdAtToExclusive != null) {
-      query.where(mealTypes.createdAt.isSmallerThanValue(createdAtToExclusive));
-    }
-    final row = await query.getSingle();
-    return row.read(mealTypes.id.count()) ?? 0;
+
+    final orderVars = <Variable>[];
+    final clauses = _reportOrderFilterClauses(
+      createdAtFrom: createdAtFrom,
+      createdAtToInclusive: createdAtToInclusive,
+      variables: orderVars,
+    );
+
+    final sql = '''
+SELECT $column AS k, COUNT(*) AS c FROM orders ${_whereSql(clauses)}
+GROUP BY $column
+''';
+    final rows = await customSelect(
+      sql,
+      variables: orderVars,
+      readsFrom: {orders},
+    ).get();
+
+    return {
+      for (final row in rows)
+        (row.read<String?>('k') ?? 'unknown'): row.read<int>('c'),
+    };
   }
 
   List<String> _reportOrderFilterClauses({
@@ -1657,46 +1699,6 @@ SELECT COUNT(*) AS c FROM (
     return row.read<int>('c');
   }
 
-  Future<double> sumUnifiedOrdersRevenue({
-    String? createdAtFrom,
-    String? createdAtToInclusive,
-    String? status,
-    bool? synced,
-    String? mealType,
-  }) async {
-    final orderAgg = await aggregateOrders(
-      createdAtFrom: createdAtFrom,
-      createdAtToInclusive: createdAtToInclusive,
-    );
-    if (status == null && synced == null && mealType == null) {
-      return orderAgg.revenue;
-    }
-
-    final orderVars = <Variable>[];
-    final orderClauses = _reportOrderFilterClauses(
-      createdAtFrom: createdAtFrom,
-      createdAtToInclusive: createdAtToInclusive,
-      status: status,
-      synced: synced,
-      mealType: mealType,
-      variables: orderVars,
-    );
-
-    final sql =
-        '''
-SELECT COALESCE(SUM(total), 0) AS revenue FROM (
-  SELECT total FROM orders ${_whereSql(orderClauses)}
-)
-''';
-
-    final row = await customSelect(
-      sql,
-      variables: [...orderVars],
-      readsFrom: {orders},
-    ).getSingle();
-    return row.read<double>('revenue');
-  }
-
   Future<void> markOrderSynced(int id) =>
       (update(orders)..where((t) => t.id.equals(id))).write(
         OrdersCompanion(
@@ -1736,39 +1738,20 @@ SELECT COALESCE(SUM(total), 0) AS revenue FROM (
     });
   }
 
-  Future<List<WorkFunction>> getAllWorkFunctions() =>
-      (select(workFunctions)..orderBy([
-          (t) => OrderingTerm(expression: t.functionStartTime),
-        ]))
-          .get();
-
-  Future<WorkFunction?> getWorkFunction(int id) =>
-      (select(workFunctions)..where((t) => t.id.equals(id)))
-          .getSingleOrNull();
-
-  /// Orderable right now: dated today and inside the start/end window.
-  ///
-  /// The server already filters, but the POS re-checks locally so an offline or
-  /// stale cache can never authorise an order outside the window.
-  Future<List<WorkFunction>> getOrderableWorkFunctions([DateTime? now]) async {
+  /// Today's cached functions regardless of window, so the picker can show their
+  /// state (open / upcoming / closed) and only allow ordering when open.
+  Future<List<WorkFunction>> getTodaysWorkFunctions([DateTime? now]) async {
     final at = now ?? DateTime.now();
-    final all = await getAllWorkFunctions();
+    final todayIso =
+        '${at.year.toString().padLeft(4, '0')}-'
+        '${at.month.toString().padLeft(2, '0')}-'
+        '${at.day.toString().padLeft(2, '0')}';
 
-    // Delegates to the model so the cache filter, the picker and the order
-    // guard all apply exactly the same window rule.
-    return all
-        .where(
-          (fn) => WorkFunctionModel.isWindowOpenAt(
-            fn.functionDate,
-            fn.functionStartTime,
-            fn.functionEndTime,
-            at,
-          ),
-        )
-        .toList();
+    return (select(workFunctions)
+          ..where((t) => t.functionDate.equals(todayIso))
+          ..orderBy([(t) => OrderingTerm(expression: t.functionStartTime)]))
+        .get();
   }
-
-  // ─── Function Orders ──────────────────────────────────────
 
   Future<void> insertFunctionOrder(
     FunctionOrdersCompanion order, {
@@ -1777,15 +1760,15 @@ SELECT COALESCE(SUM(total), 0) AS revenue FROM (
     await into(functionOrders).insert(order, mode: mode);
   }
 
+  Future<FunctionOrder?> getFunctionOrder(int id) =>
+      (select(functionOrders)..where((t) => t.id.equals(id)))
+          .getSingleOrNull();
+
   Future<List<FunctionOrder>> getAllFunctionOrders() =>
       (select(functionOrders)..orderBy([
           (t) => OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc),
         ]))
           .get();
-
-  Future<FunctionOrder?> getFunctionOrder(int id) =>
-      (select(functionOrders)..where((t) => t.id.equals(id)))
-          .getSingleOrNull();
 
   Future<List<FunctionOrder>> getUnsyncedFunctionOrders() =>
       (select(functionOrders)
@@ -1823,20 +1806,54 @@ SELECT COALESCE(SUM(total), 0) AS revenue FROM (
     );
   }
 
-  /// Function orders taken by a person today. Used for reporting only — these
-  /// deliberately do NOT feed the general meal quota pool.
-  Future<int> countFunctionOrdersByPerson({
-    required int personId,
-    required String employeeType,
-    required String dayPrefix,
-  }) async {
+  // ─── Function issued persons (offline one-per-person) ─────
+
+  /// Replaces the issued-person set for a function with the server's list.
+  Future<void> replaceIssuedPersonsForFunction(
+    int functionId,
+    List<FunctionIssuedPersonsCompanion> rows,
+  ) async {
+    await transaction(() async {
+      await (delete(functionIssuedPersons)
+            ..where((t) => t.functionId.equals(functionId)))
+          .go();
+      if (rows.isNotEmpty) {
+        await batch((b) => b.insertAll(functionIssuedPersons, rows));
+      }
+    });
+  }
+
+  /// Optimistically records that a person got their voucher on this device.
+  Future<void> insertIssuedPerson(FunctionIssuedPersonsCompanion row) =>
+      into(functionIssuedPersons).insert(row, mode: InsertMode.insertOrIgnore);
+
+  Future<bool> hasIssuedPerson(
+    int functionId,
+    String employeeType,
+    int personId,
+  ) async {
+    final row = await (select(functionIssuedPersons)
+          ..where(
+            (t) =>
+                t.functionId.equals(functionId) &
+                t.employeeType.equals(employeeType) &
+                t.personId.equals(personId),
+          ))
+        .getSingleOrNull();
+    return row != null;
+  }
+
+  /// Guest vouchers taken on this device that are not yet reflected in the
+  /// synced [guestIssued] count, so the local cap cannot be overshot before a
+  /// push + pull cycle.
+  Future<int> countLocalPendingGuestOrders(int functionId) async {
     final count = functionOrders.id.count();
     final query = selectOnly(functionOrders)
       ..addColumns([count])
       ..where(
-        functionOrders.orderedById.equals(personId) &
-            functionOrders.employeeType.equals(employeeType) &
-            functionOrders.createdAt.like('$dayPrefix%'),
+        functionOrders.functionId.equals(functionId) &
+            functionOrders.isGuest.equals(true) &
+            functionOrders.syncStatus.isNotValue(2),
       );
     return (await query.getSingle()).read(count) ?? 0;
   }
@@ -1959,6 +1976,118 @@ SELECT COALESCE(SUM(total), 0) AS revenue FROM (
       (select(bioDataEntries)
             ..where((t) => t.visitorId.equals(visitorId) & t.isActive.equals(true)))
           .get();
+
+  /// Resolves the owning department for every active fingerprint template.
+  ///
+  /// The department is read from the person's parent record
+  /// (staff / contractor staff / visitor / dependent), **not** from
+  /// `bio_data_entries.department_id`. That column is only populated for
+  /// staff-type enrolments, so contractor/visitor/dependent templates would
+  /// otherwise be invisible to a department-scoped scan.
+  ///
+  /// Rows whose owner has no department map to `null`.
+  Future<Map<int, int?>> activeBioDataDepartments() async =>
+      _resolveBioDataDepartments(await getActiveBioData());
+
+  /// Active templates whose owner belongs to [departmentId], resolved via the
+  /// parent entity. Use this instead of filtering on the stored column.
+  Future<List<BioDataEntry>> getActiveBioDataForDepartment(
+    int departmentId,
+  ) async {
+    final entries = await getActiveBioData();
+    if (entries.isEmpty) return const [];
+    final departments = await _resolveBioDataDepartments(entries);
+    return [
+      for (final entry in entries)
+        if (departments[entry.id] == departmentId) entry,
+    ];
+  }
+
+  Future<Map<int, int?>> _resolveBioDataDepartments(
+    List<BioDataEntry> entries,
+  ) async {
+    if (entries.isEmpty) return const {};
+    final staffDept = await _departmentIdByStaff();
+    final contractorDept = await _departmentIdByContractorStaff();
+    final visitorDept = await _departmentIdByVisitor();
+    final dependentDept = await _departmentIdByDependent(
+      staffDept,
+      contractorDept,
+    );
+
+    int? resolve(BioDataEntry entry) {
+      final staffId = entry.staffId;
+      if (staffId != null) return staffDept[staffId];
+      final contractorId = entry.contractorStaffId;
+      if (contractorId != null) return contractorDept[contractorId];
+      final visitorId = entry.visitorId;
+      if (visitorId != null) return visitorDept[visitorId];
+      final dependentId = entry.dependentId;
+      if (dependentId != null) return dependentDept[dependentId];
+      return null;
+    }
+
+    return {for (final entry in entries) entry.id: resolve(entry)};
+  }
+
+  Future<Map<int, int>> _departmentIdByStaff() async {
+    final query = selectOnly(staff)
+      ..addColumns([staff.id, staff.departmentId])
+      ..where(staff.departmentId.isNotNull());
+    final rows = await query.get();
+    return {
+      for (final row in rows) row.read(staff.id)!: row.read(staff.departmentId)!,
+    };
+  }
+
+  Future<Map<int, int>> _departmentIdByContractorStaff() async {
+    final query = selectOnly(contractorStaffTable)
+      ..addColumns([contractorStaffTable.id, contractorStaffTable.departmentId])
+      ..where(contractorStaffTable.departmentId.isNotNull());
+    final rows = await query.get();
+    return {
+      for (final row in rows)
+        row.read(contractorStaffTable.id)!:
+            row.read(contractorStaffTable.departmentId)!,
+    };
+  }
+
+  Future<Map<int, int>> _departmentIdByVisitor() async {
+    final query = selectOnly(visitors)
+      ..addColumns([visitors.id, visitors.departmentId])
+      ..where(visitors.departmentId.isNotNull());
+    final rows = await query.get();
+    return {
+      for (final row in rows)
+        row.read(visitors.id)!: row.read(visitors.departmentId)!,
+    };
+  }
+
+  /// Dependents inherit their department from their parent (staff or
+  /// contractor). A dependent with no resolvable parent department is omitted.
+  Future<Map<int, int>> _departmentIdByDependent(
+    Map<int, int> staffDept,
+    Map<int, int> contractorDept,
+  ) async {
+    final query = selectOnly(dependents)
+      ..addColumns([
+        dependents.id,
+        dependents.staffId,
+        dependents.contractorStaffId,
+      ]);
+    final rows = await query.get();
+    final result = <int, int>{};
+    for (final row in rows) {
+      final id = row.read(dependents.id)!;
+      final staffId = row.read(dependents.staffId);
+      final contractorId = row.read(dependents.contractorStaffId);
+      final departmentId = staffId != null
+          ? staffDept[staffId]
+          : (contractorId != null ? contractorDept[contractorId] : null);
+      if (departmentId != null) result[id] = departmentId;
+    }
+    return result;
+  }
 
   /// Rows still owed to the server: pending (0) or retryable (3), excluding
   /// anything that has exhausted [_maxBioDataSyncAttempts] (parked at 4).
@@ -2093,32 +2222,4 @@ SELECT COALESCE(SUM(total), 0) AS revenue FROM (
     });
   }
 
-  /// Sequence for function order codes.
-  ///
-  /// Numbered per function so the printed voucher shows which event it belongs
-  /// to, and counted independently of [nextOrderCode] so the two streams can
-  /// never collide.
-  Future<String> nextFunctionOrderCode({
-    required int functionId,
-    required int posId,
-  }) async {
-    return transaction(() async {
-      final prefix = 'FNF$functionId-$posId-';
-      final rows = await customSelect(
-        'SELECT MAX(CAST(SUBSTR(order_code, ?) AS INTEGER)) FROM function_orders WHERE order_code LIKE ?',
-        variables: [
-          Variable<int>(prefix.length + 1),
-          Variable<String>('$prefix%'),
-        ],
-        readsFrom: {functionOrders},
-      ).get();
-
-      final value = rows.isEmpty ? null : rows.first.data.values.firstOrNull;
-      final maxCode = value is int
-          ? value
-          : (value is num ? value.toInt() : 0);
-
-      return '$prefix${(maxCode + 1).toString().padLeft(4, '0')}';
-    });
-  }
 }

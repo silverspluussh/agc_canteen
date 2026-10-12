@@ -13,7 +13,9 @@ import '../../controllers/auth_controller.dart';
 import '../../controllers/auth_settings_controller.dart';
 import '../../controllers/providers.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../../services/database/app_database.dart';
 import '../../views/widgets/pos_meal_time_refresh.widget.dart';
+import 'scan_department.dart';
 
 class SingleAuthPosPage extends ConsumerStatefulWidget {
   const SingleAuthPosPage({super.key});
@@ -123,15 +125,20 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
     );
   }
 
-  Future<int?> _effectiveDepartmentId() async {
-    if (_selectedDepartmentId != null) return _selectedDepartmentId;
-    final departments = ref.read(departmentsProvider).value ?? [];
-    if (departments.length == 1) return departments.first.id;
-    return null;
-  }
+  /// The department a scan will run against, or null when the operator still
+  /// has to choose one.
+  ///
+  /// A terminal that serves a single department auto-resolves it, so the
+  /// operator never has to pick; every other terminal must select one before a
+  /// scan can start. A scan without a department would search every enrolled
+  /// fingerprint, which is both slow and ambiguous.
+  int? _resolveDepartmentId(List<Department> departments) =>
+      resolveScanDepartmentId(
+        selectedDepartmentId: _selectedDepartmentId,
+        departmentIds: [for (final d in departments) d.id],
+      );
 
-  Future<void> _startAuth() async {
-    final departmentId = await _effectiveDepartmentId();
+  Future<void> _startAuth(int departmentId) async {
     appLog(
       '[StaffAuthPage] Scan button tapped — starting fingerprint auth (departmentId=$departmentId)',
       name: 'POS_AUTH',
@@ -141,7 +148,17 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
         .authenticate(departmentId: departmentId);
   }
 
-  List<Widget> _authButtons() {
+  Future<void> _startNfc(int departmentId) async {
+    appLog(
+      '[StaffAuthPage] Card button tapped — starting NFC auth (departmentId=$departmentId)',
+      name: 'POS_AUTH',
+    );
+    await ref
+        .read(authProvider.notifier)
+        .authenticateWithNfc(departmentId: departmentId);
+  }
+
+  List<Widget> _authButtons(int? departmentId) {
     final settings = ref.watch(authSettingsProvider);
     final l10n = AppLocalizations.of(context);
     final buttons = <Widget>[];
@@ -150,7 +167,7 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
       buttons.add(
         Expanded(
           child: PosButton(
-            onPressed: _startAuth,
+            onPressed: departmentId == null ? null : () => _startAuth(departmentId),
             prefixChild: const Icon(
               Icons.fingerprint,
               color: Colors.white,
@@ -177,12 +194,7 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
         Expanded(
           child: PosButton(
             color: AppColors.success,
-            onPressed: () async {
-              final departmentId = await _effectiveDepartmentId();
-              await ref
-                  .read(authProvider.notifier)
-                  .authenticateWithNfc(departmentId: departmentId);
-            },
+            onPressed: departmentId == null ? null : () => _startNfc(departmentId),
             prefixChild: const Icon(Icons.nfc, color: Colors.white, size: 35),
             label: const Text(
               'Tap Card',
@@ -199,12 +211,43 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
 
     if (buttons.isEmpty) return [];
 
-    return [const SizedBox(height: 20), Row(children: buttons)];
+    return [
+      const SizedBox(height: 20),
+      if (departmentId == null) ...[
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.info_outline, size: 18, color: AppColors.gold700),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                'Select a department to start scanning.',
+                style: TextStyle(fontSize: 15, color: AppColors.gold700),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+      ],
+      Row(children: buttons),
+    ];
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(authProvider);
+    final departments = ref.watch(departmentsProvider).value ?? const [];
+
+    // A single-department terminal auto-selects it so the field reflects what a
+    // scan will use, without asking the operator to pick.
+    ref.listen(departmentsProvider, (previous, next) {
+      final list = next.value ?? const [];
+      if (_selectedDepartmentId == null && list.length == 1 && mounted) {
+        setState(() => _selectedDepartmentId = list.first.id);
+      }
+    });
+
+    final resolvedDepartmentId = _resolveDepartmentId(departments);
     return PosMealTimeRefresh(
       child: PopScope(
         canPop: false,
@@ -305,7 +348,7 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
                               !state.hasError &&
                               _fingerprintReady) ...[
                             const SizedBox(height: 15),
-                            ..._authButtons(),
+                            ..._authButtons(resolvedDepartmentId),
                           ],
                           if (state.isAuthenticating) ...[
                             const LinearProgressIndicator(),
@@ -376,7 +419,7 @@ class _SinglePosAuthPageState extends ConsumerState<SingleAuthPosPage> {
                               ),
                             ),
                             const SizedBox(height: 10),
-                            ..._authButtons(),
+                            ..._authButtons(resolvedDepartmentId),
                           ],
                         ],
                       ),

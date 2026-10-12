@@ -9,12 +9,17 @@ import '../database/app_database.dart';
 import '../auth/admin_auth_service.dart';
 import '../../core/di/injection_container.dart';
 import '../../core/network/network_api_dio.dart';
+import 'sync_mutex.dart';
 
 class LocalToRemoteSyncService {
   final AppDatabase _db;
   final NetworkAPI _networkAPI;
   final Connectivity _connectivity;
   final Logger _logger;
+
+  /// Serialises bio-data writes against the download service, which upserts and
+  /// deletes the same rows. Injected as a shared instance in production.
+  final SyncMutex _bioDataLock;
 
   static const _lastSyncKey = 'last_sync_timestamp';
   static const _orderUploadBatchSize = 50;
@@ -28,10 +33,12 @@ class LocalToRemoteSyncService {
     required NetworkAPI networkAPI,
     Connectivity? connectivity,
     Logger? logger,
+    SyncMutex? bioDataLock,
   }) : _db = db,
        _networkAPI = networkAPI,
        _connectivity = connectivity ?? Connectivity(),
-       _logger = logger ?? createAppLogger();
+       _logger = logger ?? createAppLogger(),
+       _bioDataLock = bioDataLock ?? SyncMutex();
 
   Future<DateTime?> get lastSync async {
     final prefs = await SharedPreferences.getInstance();
@@ -144,8 +151,13 @@ class LocalToRemoteSyncService {
       final rows = <FunctionOrder>[];
 
       for (final order in orders) {
+        final isGuest = order.isGuest;
         final mealTypeId = mealTypeByName[order.mealType.toLowerCase()];
-        if (mealTypeId == null || posId == null || kitchenId == null) {
+
+        // Registered vouchers need a resolvable meal type + POS/kitchen; guest
+        // vouchers are anonymous and carry no person or meal reference.
+        if (!isGuest &&
+            (mealTypeId == null || posId == null || kitchenId == null)) {
           _logger.w(
             'Skipping function order ${order.orderCode}: incomplete data',
           );
@@ -159,21 +171,28 @@ class LocalToRemoteSyncService {
           continue;
         }
 
-        payloads.add({
+        final payload = <String, dynamic>{
           'functionId': order.functionId,
           'uuid': order.uuid,
-          'employeeType': order.employeeType,
-          'orderedBy': order.orderedById,
-          'mealTypeId': mealTypeId,
-          'kitchenId': kitchenId,
-          'posProfileId': posId,
+          'voucherCode': order.orderCode,
           'quantity': order.quantity,
           'description': order.description ?? '',
           'status': order.status,
-          // rate/total are intentionally omitted: the server snapshots them
-          // from the work function so they can never be forged.
           'createdAt': order.createdAt,
-        });
+        };
+
+        if (isGuest) {
+          payload['isGuest'] = true;
+          if (order.guestName != null) payload['guestName'] = order.guestName;
+        } else {
+          payload['employeeType'] = order.employeeType;
+          payload['orderedBy'] = order.orderedById;
+          payload['mealTypeId'] = mealTypeId;
+          payload['kitchenId'] = kitchenId;
+          payload['posProfileId'] = posId;
+        }
+
+        payloads.add(payload);
         rows.add(order);
       }
 
@@ -368,7 +387,8 @@ class LocalToRemoteSyncService {
   // ─── BioData Sync ──────────────────────────────────────────
 
   Future<SyncResult> syncBioData() {
-    return _syncBioInFlight ??= _syncBioDataImpl().whenComplete(() {
+    return _syncBioInFlight ??=
+        _bioDataLock.synchronized(_syncBioDataImpl).whenComplete(() {
       _syncBioInFlight = null;
     });
   }

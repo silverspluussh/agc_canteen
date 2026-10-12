@@ -4,6 +4,8 @@ import 'package:drift/drift.dart';
 import 'package:logger/logger.dart';
 import '../../core/network/network_api_dio.dart';
 import '../database/app_database.dart';
+import '../auth/fingerprint_template_cache.dart';
+import 'sync_mutex.dart';
 
 class RemoteToLocalSyncService {
   final NetworkAPI _networkAPI;
@@ -12,30 +14,45 @@ class RemoteToLocalSyncService {
   final Future<bool> Function()? _isOnline;
   final List<SyncJob> _jobs = [];
 
+  /// Serialises bio-data writes against the upload service, which marks the same
+  /// rows as synced. Injected as a shared instance in production.
+  final SyncMutex _bioDataLock;
+
+  /// Invalidated after every pull: synced bio-data, and the entities its
+  /// department scoping resolves through, may have changed.
+  final FingerprintTemplateCache? _templateCache;
+
   RemoteToLocalSyncService({
     required NetworkAPI networkAPI,
     required AppDatabase db,
     Logger? logger,
     Future<bool> Function()? isOnline,
+    SyncMutex? bioDataLock,
+    FingerprintTemplateCache? templateCache,
   }) : _networkAPI = networkAPI,
        _db = db,
        _logger = logger ?? Logger(),
-       _isOnline = isOnline {
-    _jobs.add(SyncJob(name: 'posDevice', execute: _syncPosDevice));
-    _jobs.add(SyncJob(name: 'departments', execute: _syncDepartments));
-    _jobs.add(SyncJob(name: 'staff', execute: _syncStaff));
-    _jobs.add(SyncJob(name: 'mealTypes', execute: _syncMealTypes));
-    _jobs.add(SyncJob(name: 'bioData', execute: _syncBioData));
-    _jobs.add(SyncJob(name: 'cards', execute: _syncCards));
-    _jobs.add(SyncJob(name: 'visitors', execute: _syncVisitors));
-    _jobs.add(SyncJob(name: 'contractorStaff', execute: _syncContractorStaff));
-    _jobs.add(SyncJob(name: 'dependents', execute: _syncDependents));
-    _jobs.add(SyncJob(name: 'shifts', execute: _syncShifts));
-    _jobs.add(SyncJob(name: 'workFunctions', execute: _syncWorkFunctions));
+       _isOnline = isOnline,
+       _bioDataLock = bioDataLock ?? SyncMutex(),
+       _templateCache = templateCache {
+    // Light: everything the POS needs to order and authenticate.
+    _jobs.add(SyncJob(name: 'posDevice', group: SyncGroup.light, execute: _syncPosDevice));
+    _jobs.add(SyncJob(name: 'staff', group: SyncGroup.light, execute: _syncStaff));
+    _jobs.add(SyncJob(name: 'mealTypes', group: SyncGroup.light, execute: _syncMealTypes));
+    _jobs.add(SyncJob(name: 'bioData', group: SyncGroup.light, execute: _syncBioData));
+    _jobs.add(SyncJob(name: 'workFunctions', group: SyncGroup.light, execute: _syncWorkFunctions));
+    // Heavy: changes rarely; pulled manually or on the daily reconcile.
+    _jobs.add(SyncJob(name: 'departments', group: SyncGroup.heavy, execute: _syncDepartments));
+    _jobs.add(SyncJob(name: 'cards', group: SyncGroup.heavy, execute: _syncCards));
+    _jobs.add(SyncJob(name: 'visitors', group: SyncGroup.heavy, execute: _syncVisitors));
+    _jobs.add(SyncJob(name: 'contractorStaff', group: SyncGroup.heavy, execute: _syncContractorStaff));
+    _jobs.add(SyncJob(name: 'dependents', group: SyncGroup.heavy, execute: _syncDependents));
+    _jobs.add(SyncJob(name: 'shifts', group: SyncGroup.heavy, execute: _syncShifts));
   }
 
-  void registerSyncJob(String name, SyncTask execute) {
-    _jobs.add(SyncJob(name: name, execute: execute));
+  void registerSyncJob(String name, SyncTask execute,
+      {SyncGroup group = SyncGroup.light}) {
+    _jobs.add(SyncJob(name: name, group: group, execute: execute));
   }
 
   /// The in-flight whole-sync run, if any.
@@ -63,53 +80,91 @@ class RemoteToLocalSyncService {
     }
   }
 
-  Future<void> syncAll({bool background = true}) async {
+  /// Pulls every dataset. Used by the manual "Download All" button and the
+  /// daily reconcile.
+  ///
+  /// Returns `true` only when the pull actually ran to completion with a
+  /// connection. `false` means it was skipped (offline, or the link dropped
+  /// mid-run), so callers never record a success that did not happen.
+  Future<bool> syncAll({bool background = true}) =>
+      _runGroup((_) => true, background: background);
+
+  /// Pulls only the light datasets the POS needs to keep trading: staff, meal
+  /// types, work functions and bio-data. This is what the periodic pull loop
+  /// refreshes. Returns `false` when skipped offline (see [syncAll]).
+  Future<bool> syncLight({bool background = true}) =>
+      _runGroup((job) => job.group == SyncGroup.light, background: background);
+
+  /// Pulls only the heavy datasets (departments, shifts, visitors, contractor
+  /// staff, dependents, NFC cards). Returns `false` when skipped offline.
+  Future<bool> syncHeavy({bool background = true}) =>
+      _runGroup((job) => job.group == SyncGroup.heavy, background: background);
+
+  Future<bool> _runGroup(
+    bool Function(SyncJob job) test, {
+    required bool background,
+  }) async {
     // Skip the whole run while offline: every job would fail at the socket and
     // the scheduler would log a wall of errors on each tick. Reconnect triggers
     // a catch-up run.
     if (!await isOnline) {
       _logger.i('RemoteToLocalSyncService: offline, skipping sync');
-      return;
+      return false;
     }
 
     if (background) {
-      unawaited(_guardedRun());
-    } else {
-      await _guardedRun();
+      unawaited(_guardedRun(test));
+      return true;
     }
+    return _guardedRun(test);
   }
 
-  Future<void> _guardedRun() async {
+  Future<bool> _guardedRun(bool Function(SyncJob job) test) async {
     // Check-and-set with no await in between, so two callers cannot both pass.
     while (_currentRun != null) {
       await _currentRun;
     }
 
-    final run = _runAll();
+    final run = _runAll(test);
     _currentRun = run;
 
     try {
-      await run;
+      return await run;
     } finally {
       _currentRun = null;
+      _templateCache?.invalidate();
     }
   }
 
   /// Runs [action] once any in-flight whole-sync run has finished.
   ///
   /// A single-entity refresh triggered while the full sync is mid-flight used to
-  /// race it over the same tables.
-  Future<void> _afterCurrentRun(Future<void> Function() action) async {
+  /// race it over the same tables. The result of [action] is returned so callers
+  /// (and the manual sync screen) can tell success from failure.
+  Future<T> _afterCurrentRun<T>(Future<T> Function() action) async {
     while (_currentRun != null) {
       await _currentRun;
     }
 
-    await action();
+    return action();
   }
 
-  Future<void> _runAll() async {
+  /// Runs the selected jobs. Returns `false` if the connection dropped before
+  /// every job could run, so a partial pull is never mistaken for a full one.
+  Future<bool> _runAll(bool Function(SyncJob job) test) async {
     _logger.i('RemoteToLocalSyncService: starting sync');
-    for (final job in _jobs) {
+    var ranToCompletion = true;
+    for (final job in _jobs.where(test)) {
+      // Re-check before each job: a link that drops mid-run must stop the
+      // remaining network work rather than firing it into a dead socket.
+      if (!await isOnline) {
+        _logger.w(
+          'RemoteToLocalSyncService: connection lost before ${job.name}, '
+          'stopping sync',
+        );
+        ranToCompletion = false;
+        break;
+      }
       try {
         final updated = await job.execute();
         _logger.i(
@@ -120,6 +175,7 @@ class RemoteToLocalSyncService {
       }
     }
     _logger.i('RemoteToLocalSyncService: sync completed');
+    return ranToCompletion;
   }
 
   /// Removes local rows the server no longer has — but only when this pull is
@@ -156,47 +212,40 @@ class RemoteToLocalSyncService {
     }
   }
 
-  Future<void> syncStaffOnly() async {
-    await _afterCurrentRun(() => _syncStaff());
+  /// Runs a single-category pull only when the terminal has a connection.
+  ///
+  /// Every pull entry point funnels through here (or [_runGroup]) so no network
+  /// work can start offline — whether the trigger is the scheduler, the Sync
+  /// screen, or a startup call.
+  Future<bool> _pullOne(Future<bool> Function() job) async {
+    if (!await isOnline) {
+      _logger.i('RemoteToLocalSyncService: offline, skipping pull');
+      return false;
+    }
+    return _afterCurrentRun(job);
   }
 
-  Future<void> syncMealTypesOnly() async {
-    await _afterCurrentRun(() => _syncMealTypes());
-  }
+  Future<bool> syncStaffOnly() => _pullOne(_syncStaff);
 
-  Future<void> syncBioDataOnly() async {
-    await _afterCurrentRun(() => _syncBioData());
-  }
+  Future<bool> syncMealTypesOnly() => _pullOne(_syncMealTypes);
+
+  Future<bool> syncBioDataOnly() => _pullOne(_syncBioData);
 
   /// Refreshes the cached list of orderable work functions. Safe to call often;
   /// the server returns only functions that can be ordered right now.
-  Future<void> syncWorkFunctionsOnly() async {
-    await _afterCurrentRun(_syncWorkFunctions);
-  }
+  Future<bool> syncWorkFunctionsOnly() => _pullOne(_syncWorkFunctions);
 
-  Future<void> syncCardsOnly() async {
-    await _afterCurrentRun(() => _syncCards());
-  }
+  Future<bool> syncCardsOnly() => _pullOne(_syncCards);
 
-  Future<void> syncVisitorsOnly() async {
-    await _syncVisitors();
-  }
+  Future<bool> syncVisitorsOnly() => _pullOne(_syncVisitors);
 
-  Future<void> syncContractorStaffOnly() async {
-    await _afterCurrentRun(_syncContractorStaff);
-  }
+  Future<bool> syncContractorStaffOnly() => _pullOne(_syncContractorStaff);
 
-  Future<void> syncDependentsOnly() async {
-    await _syncDependents();
-  }
+  Future<bool> syncDependentsOnly() => _pullOne(_syncDependents);
 
-  Future<void> syncShiftsOnly() async {
-    await _syncShifts();
-  }
+  Future<bool> syncShiftsOnly() => _pullOne(_syncShifts);
 
-  Future<void> syncDepartmentsOnly() async {
-    await _afterCurrentRun(_syncDepartments);
-  }
+  Future<bool> syncDepartmentsOnly() => _pullOne(_syncDepartments);
 
   // ─── Departments Sync ──────────────────────────────────────
 
@@ -518,7 +567,10 @@ class RemoteToLocalSyncService {
 
   // ─── Bio-Data Sync ────────────────────────────────────────────
 
-  Future<bool> _syncBioData() async {
+  Future<bool> _syncBioData() =>
+      _bioDataLock.synchronized(_syncBioDataInner);
+
+  Future<bool> _syncBioDataInner() async {
     try {
       _logger.i('RemoteToLocalSyncService: fetching remote bio-data...');
 
@@ -734,6 +786,13 @@ class RemoteToLocalSyncService {
   }
 
   Future<List<Map<String, dynamic>>> fetchAllPosProfiles() async {
+    if (!await isOnline) {
+      _logger.i(
+        'RemoteToLocalSyncService: offline, cannot fetch POS profiles',
+      );
+      throw Exception('No internet connection');
+    }
+
     _logger.i('RemoteToLocalSyncService: fetching all POS device profiles...');
     final data = await _networkAPI.getData<dynamic>(
       '/pos/profiles',
@@ -832,7 +891,10 @@ class RemoteToLocalSyncService {
 
   // ─── Visitors Sync ─────────────────────────────────────────
 
-  Future<bool> _syncVisitors() async {
+  Future<bool> _syncVisitors() =>
+      _bioDataLock.synchronized(_syncVisitorsInner);
+
+  Future<bool> _syncVisitorsInner() async {
     try {
       _logger.i('RemoteToLocalSyncService: fetching remote visitors...');
       final posDevices = await _db.getAllPosDevices();
@@ -972,7 +1034,10 @@ class RemoteToLocalSyncService {
   /// we loop until a short (or non-advancing) page proves we saw everything.
   static const int _contractorStaffPageSize = 200;
 
-  Future<bool> _syncContractorStaff() async {
+  Future<bool> _syncContractorStaff() =>
+      _bioDataLock.synchronized(_syncContractorStaffInner);
+
+  Future<bool> _syncContractorStaffInner() async {
     try {
       _logger.i(
         'RemoteToLocalSyncService: fetching remote contractor staff...',
@@ -1109,6 +1174,13 @@ class RemoteToLocalSyncService {
         dailyQuota: Value.absentIfNull(
           _safeParseInt(map['dailyQuota']) ?? _safeParseInt(map['daily_quota']),
         ),
+        manualMonthlyQuota: Value.absentIfNull(
+          _safeParseInt(map['manualMonthlyQuota']) ??
+              _safeParseInt(map['manual_monthly_quota']),
+        ),
+        shiftId: Value.absentIfNull(
+          _safeParseInt(map['shiftId']) ?? _safeParseInt(map['shift_id']),
+        ),
         allowGroupOrder: Value.absentIfNull(
           map['allowGroupOrder'] as bool? ?? map['allow_group_order'] as bool?,
         ),
@@ -1183,7 +1255,10 @@ class RemoteToLocalSyncService {
 
   // ─── Dependents Sync ───────────────────────────────────────
 
-  Future<bool> _syncDependents() async {
+  Future<bool> _syncDependents() =>
+      _bioDataLock.synchronized(_syncDependentsInner);
+
+  Future<bool> _syncDependentsInner() async {
     try {
       _logger.i('RemoteToLocalSyncService: fetching remote dependents...');
       final posDevices = await _db.getAllPosDevices();
@@ -1342,17 +1417,15 @@ class RemoteToLocalSyncService {
 
   // ─── Shifts Sync ───────────────────────────────────────────
 
-  /// Caches the functions that can be ordered at this moment.
-  ///
-  /// Runs on every sync so the POS picker never offers a function whose window
-  /// has closed. On failure the existing cache is left intact: the POS still
-  /// re-validates the window locally, so a stale cache cannot authorise an order.
+  /// Caches today's scheduled functions (date/state/guest allowance + issued
+  /// counts) plus each function's issued-person set, so the POS can trade
+  /// offline. The local window check still governs orderability.
   Future<bool> _syncWorkFunctions() async {
     try {
-      _logger.i('RemoteToLocalSyncService: fetching active work functions...');
+      _logger.i('RemoteToLocalSyncService: fetching work function schedule...');
 
       final responseData = await _networkAPI.getData(
-        '/hr/work-functions/active',
+        '/hr/work-functions/schedule',
         builder: (data) => data,
       );
 
@@ -1368,13 +1441,14 @@ class RemoteToLocalSyncService {
 
       if (functionList == null) {
         _logger.w(
-          'RemoteToLocalSyncService: unexpected active work function payload',
+          'RemoteToLocalSyncService: unexpected work function payload',
         );
         return false;
       }
 
       final now = DateTime.now().toIso8601String();
       final rows = <WorkFunctionsCompanion>[];
+      final functionIds = <int>[];
 
       for (final item in functionList) {
         if (item is! Map) continue;
@@ -1396,25 +1470,79 @@ class RemoteToLocalSyncService {
             functionStartTime: _timeOnly(map['functionStartTime']),
             functionEndTime: _timeOnly(map['functionEndTime']),
             status: (map['status'] as String?) ?? 'scheduled',
+            guestAllowance: Value(_safeParseInt(map['guestAllowance']) ?? 0),
+            guestIssued: Value(_safeParseInt(map['guestIssued']) ?? 0),
+            state: Value((map['state'] as String?) ?? 'closed'),
+            preparedAt: Value(map['preparedAt'] as String?),
             syncStatus: const Value(2),
             syncUpdatedAt: Value(now),
           ),
         );
+        functionIds.add(id);
       }
 
       await _db.replaceWorkFunctions(rows);
+
+      // Offline one-per-person: cache the issued-person set per function.
+      for (final id in functionIds) {
+        try {
+          await _syncFunctionIssuedPersons(id);
+        } catch (e) {
+          _logger.w(
+            'RemoteToLocalSyncService: issued-person pull failed for function $id ($e)',
+          );
+        }
+      }
+
       _logger.i(
-        'RemoteToLocalSyncService: cached ${rows.length} orderable work function(s)',
+        'RemoteToLocalSyncService: cached ${rows.length} work function(s)',
       );
 
       return true;
     } catch (e, stack) {
       _logger.e(
-        'RemoteToLocalSyncService: failed to sync active work functions: $e',
+        'RemoteToLocalSyncService: failed to sync work functions: $e',
         stackTrace: stack,
       );
       return false;
     }
+  }
+
+  /// Pulls who already got a registered voucher for a function.
+  Future<void> _syncFunctionIssuedPersons(int functionId) async {
+    final responseData = await _networkAPI.getData(
+      '/hr/function-orders/issued',
+      queryParameters: {'functionId': functionId, 'limit': 2000, 'offset': 0},
+      builder: (data) => data,
+    );
+
+    List<dynamic>? persons;
+    if (responseData is Map && responseData['data'] is Map) {
+      final inner = responseData['data'];
+      if (inner['persons'] is List) {
+        persons = inner['persons'] as List<dynamic>;
+      }
+    }
+
+    if (persons == null) return;
+
+    final rows = <FunctionIssuedPersonsCompanion>[];
+    for (final item in persons) {
+      if (item is! Map) continue;
+      final employeeType = item['employeeType'] as String?;
+      final personId = _safeParseInt(item['personId']);
+      if (employeeType == null || personId == null) continue;
+
+      rows.add(
+        FunctionIssuedPersonsCompanion.insert(
+          functionId: functionId,
+          employeeType: employeeType,
+          personId: personId,
+        ),
+      );
+    }
+
+    await _db.replaceIssuedPersonsForFunction(functionId, rows);
   }
 
   /// Normalises H:i, H:i:s or a full ISO timestamp to H:i:ss for local

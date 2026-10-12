@@ -8915,6 +8915,51 @@ class $WorkFunctionsTable extends WorkFunctions
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _guestAllowanceMeta = const VerificationMeta(
+    'guestAllowance',
+  );
+  @override
+  late final GeneratedColumn<int> guestAllowance = GeneratedColumn<int>(
+    'guest_allowance',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _guestIssuedMeta = const VerificationMeta(
+    'guestIssued',
+  );
+  @override
+  late final GeneratedColumn<int> guestIssued = GeneratedColumn<int>(
+    'guest_issued',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _stateMeta = const VerificationMeta('state');
+  @override
+  late final GeneratedColumn<String> state = GeneratedColumn<String>(
+    'state',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('closed'),
+  );
+  static const VerificationMeta _preparedAtMeta = const VerificationMeta(
+    'preparedAt',
+  );
+  @override
+  late final GeneratedColumn<String> preparedAt = GeneratedColumn<String>(
+    'prepared_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _syncStatusMeta = const VerificationMeta(
     'syncStatus',
   );
@@ -8950,6 +8995,10 @@ class $WorkFunctionsTable extends WorkFunctions
     functionStartTime,
     functionEndTime,
     status,
+    guestAllowance,
+    guestIssued,
+    state,
+    preparedAt,
     syncStatus,
     syncUpdatedAt,
   ];
@@ -9053,6 +9102,36 @@ class $WorkFunctionsTable extends WorkFunctions
     } else if (isInserting) {
       context.missing(_statusMeta);
     }
+    if (data.containsKey('guest_allowance')) {
+      context.handle(
+        _guestAllowanceMeta,
+        guestAllowance.isAcceptableOrUnknown(
+          data['guest_allowance']!,
+          _guestAllowanceMeta,
+        ),
+      );
+    }
+    if (data.containsKey('guest_issued')) {
+      context.handle(
+        _guestIssuedMeta,
+        guestIssued.isAcceptableOrUnknown(
+          data['guest_issued']!,
+          _guestIssuedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('state')) {
+      context.handle(
+        _stateMeta,
+        state.isAcceptableOrUnknown(data['state']!, _stateMeta),
+      );
+    }
+    if (data.containsKey('prepared_at')) {
+      context.handle(
+        _preparedAtMeta,
+        preparedAt.isAcceptableOrUnknown(data['prepared_at']!, _preparedAtMeta),
+      );
+    }
     if (data.containsKey('sync_status')) {
       context.handle(
         _syncStatusMeta,
@@ -9117,6 +9196,22 @@ class $WorkFunctionsTable extends WorkFunctions
         DriftSqlType.string,
         data['${effectivePrefix}status'],
       )!,
+      guestAllowance: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}guest_allowance'],
+      )!,
+      guestIssued: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}guest_issued'],
+      )!,
+      state: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}state'],
+      )!,
+      preparedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}prepared_at'],
+      ),
       syncStatus: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}sync_status'],
@@ -9145,6 +9240,12 @@ class WorkFunction extends DataClass implements Insertable<WorkFunction> {
   final String functionStartTime;
   final String functionEndTime;
   final String status;
+  final int guestAllowance;
+  final int guestIssued;
+
+  /// Derived orderable state from the server: open | upcoming | closed.
+  final String state;
+  final String? preparedAt;
   final int syncStatus;
   final String? syncUpdatedAt;
   const WorkFunction({
@@ -9158,6 +9259,10 @@ class WorkFunction extends DataClass implements Insertable<WorkFunction> {
     required this.functionStartTime,
     required this.functionEndTime,
     required this.status,
+    required this.guestAllowance,
+    required this.guestIssued,
+    required this.state,
+    this.preparedAt,
     required this.syncStatus,
     this.syncUpdatedAt,
   });
@@ -9178,6 +9283,12 @@ class WorkFunction extends DataClass implements Insertable<WorkFunction> {
     map['function_start_time'] = Variable<String>(functionStartTime);
     map['function_end_time'] = Variable<String>(functionEndTime);
     map['status'] = Variable<String>(status);
+    map['guest_allowance'] = Variable<int>(guestAllowance);
+    map['guest_issued'] = Variable<int>(guestIssued);
+    map['state'] = Variable<String>(state);
+    if (!nullToAbsent || preparedAt != null) {
+      map['prepared_at'] = Variable<String>(preparedAt);
+    }
     map['sync_status'] = Variable<int>(syncStatus);
     if (!nullToAbsent || syncUpdatedAt != null) {
       map['sync_updated_at'] = Variable<String>(syncUpdatedAt);
@@ -9201,6 +9312,12 @@ class WorkFunction extends DataClass implements Insertable<WorkFunction> {
       functionStartTime: Value(functionStartTime),
       functionEndTime: Value(functionEndTime),
       status: Value(status),
+      guestAllowance: Value(guestAllowance),
+      guestIssued: Value(guestIssued),
+      state: Value(state),
+      preparedAt: preparedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(preparedAt),
       syncStatus: Value(syncStatus),
       syncUpdatedAt: syncUpdatedAt == null && nullToAbsent
           ? const Value.absent()
@@ -9224,6 +9341,10 @@ class WorkFunction extends DataClass implements Insertable<WorkFunction> {
       functionStartTime: serializer.fromJson<String>(json['functionStartTime']),
       functionEndTime: serializer.fromJson<String>(json['functionEndTime']),
       status: serializer.fromJson<String>(json['status']),
+      guestAllowance: serializer.fromJson<int>(json['guestAllowance']),
+      guestIssued: serializer.fromJson<int>(json['guestIssued']),
+      state: serializer.fromJson<String>(json['state']),
+      preparedAt: serializer.fromJson<String?>(json['preparedAt']),
       syncStatus: serializer.fromJson<int>(json['syncStatus']),
       syncUpdatedAt: serializer.fromJson<String?>(json['syncUpdatedAt']),
     );
@@ -9242,6 +9363,10 @@ class WorkFunction extends DataClass implements Insertable<WorkFunction> {
       'functionStartTime': serializer.toJson<String>(functionStartTime),
       'functionEndTime': serializer.toJson<String>(functionEndTime),
       'status': serializer.toJson<String>(status),
+      'guestAllowance': serializer.toJson<int>(guestAllowance),
+      'guestIssued': serializer.toJson<int>(guestIssued),
+      'state': serializer.toJson<String>(state),
+      'preparedAt': serializer.toJson<String?>(preparedAt),
       'syncStatus': serializer.toJson<int>(syncStatus),
       'syncUpdatedAt': serializer.toJson<String?>(syncUpdatedAt),
     };
@@ -9258,6 +9383,10 @@ class WorkFunction extends DataClass implements Insertable<WorkFunction> {
     String? functionStartTime,
     String? functionEndTime,
     String? status,
+    int? guestAllowance,
+    int? guestIssued,
+    String? state,
+    Value<String?> preparedAt = const Value.absent(),
     int? syncStatus,
     Value<String?> syncUpdatedAt = const Value.absent(),
   }) => WorkFunction(
@@ -9273,6 +9402,10 @@ class WorkFunction extends DataClass implements Insertable<WorkFunction> {
     functionStartTime: functionStartTime ?? this.functionStartTime,
     functionEndTime: functionEndTime ?? this.functionEndTime,
     status: status ?? this.status,
+    guestAllowance: guestAllowance ?? this.guestAllowance,
+    guestIssued: guestIssued ?? this.guestIssued,
+    state: state ?? this.state,
+    preparedAt: preparedAt.present ? preparedAt.value : this.preparedAt,
     syncStatus: syncStatus ?? this.syncStatus,
     syncUpdatedAt: syncUpdatedAt.present
         ? syncUpdatedAt.value
@@ -9304,6 +9437,16 @@ class WorkFunction extends DataClass implements Insertable<WorkFunction> {
           ? data.functionEndTime.value
           : this.functionEndTime,
       status: data.status.present ? data.status.value : this.status,
+      guestAllowance: data.guestAllowance.present
+          ? data.guestAllowance.value
+          : this.guestAllowance,
+      guestIssued: data.guestIssued.present
+          ? data.guestIssued.value
+          : this.guestIssued,
+      state: data.state.present ? data.state.value : this.state,
+      preparedAt: data.preparedAt.present
+          ? data.preparedAt.value
+          : this.preparedAt,
       syncStatus: data.syncStatus.present
           ? data.syncStatus.value
           : this.syncStatus,
@@ -9326,6 +9469,10 @@ class WorkFunction extends DataClass implements Insertable<WorkFunction> {
           ..write('functionStartTime: $functionStartTime, ')
           ..write('functionEndTime: $functionEndTime, ')
           ..write('status: $status, ')
+          ..write('guestAllowance: $guestAllowance, ')
+          ..write('guestIssued: $guestIssued, ')
+          ..write('state: $state, ')
+          ..write('preparedAt: $preparedAt, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('syncUpdatedAt: $syncUpdatedAt')
           ..write(')'))
@@ -9344,6 +9491,10 @@ class WorkFunction extends DataClass implements Insertable<WorkFunction> {
     functionStartTime,
     functionEndTime,
     status,
+    guestAllowance,
+    guestIssued,
+    state,
+    preparedAt,
     syncStatus,
     syncUpdatedAt,
   );
@@ -9361,6 +9512,10 @@ class WorkFunction extends DataClass implements Insertable<WorkFunction> {
           other.functionStartTime == this.functionStartTime &&
           other.functionEndTime == this.functionEndTime &&
           other.status == this.status &&
+          other.guestAllowance == this.guestAllowance &&
+          other.guestIssued == this.guestIssued &&
+          other.state == this.state &&
+          other.preparedAt == this.preparedAt &&
           other.syncStatus == this.syncStatus &&
           other.syncUpdatedAt == this.syncUpdatedAt);
 }
@@ -9376,6 +9531,10 @@ class WorkFunctionsCompanion extends UpdateCompanion<WorkFunction> {
   final Value<String> functionStartTime;
   final Value<String> functionEndTime;
   final Value<String> status;
+  final Value<int> guestAllowance;
+  final Value<int> guestIssued;
+  final Value<String> state;
+  final Value<String?> preparedAt;
   final Value<int> syncStatus;
   final Value<String?> syncUpdatedAt;
   const WorkFunctionsCompanion({
@@ -9389,6 +9548,10 @@ class WorkFunctionsCompanion extends UpdateCompanion<WorkFunction> {
     this.functionStartTime = const Value.absent(),
     this.functionEndTime = const Value.absent(),
     this.status = const Value.absent(),
+    this.guestAllowance = const Value.absent(),
+    this.guestIssued = const Value.absent(),
+    this.state = const Value.absent(),
+    this.preparedAt = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.syncUpdatedAt = const Value.absent(),
   });
@@ -9403,6 +9566,10 @@ class WorkFunctionsCompanion extends UpdateCompanion<WorkFunction> {
     required String functionStartTime,
     required String functionEndTime,
     required String status,
+    this.guestAllowance = const Value.absent(),
+    this.guestIssued = const Value.absent(),
+    this.state = const Value.absent(),
+    this.preparedAt = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.syncUpdatedAt = const Value.absent(),
   }) : functionName = Value(functionName),
@@ -9421,6 +9588,10 @@ class WorkFunctionsCompanion extends UpdateCompanion<WorkFunction> {
     Expression<String>? functionStartTime,
     Expression<String>? functionEndTime,
     Expression<String>? status,
+    Expression<int>? guestAllowance,
+    Expression<int>? guestIssued,
+    Expression<String>? state,
+    Expression<String>? preparedAt,
     Expression<int>? syncStatus,
     Expression<String>? syncUpdatedAt,
   }) {
@@ -9435,6 +9606,10 @@ class WorkFunctionsCompanion extends UpdateCompanion<WorkFunction> {
       if (functionStartTime != null) 'function_start_time': functionStartTime,
       if (functionEndTime != null) 'function_end_time': functionEndTime,
       if (status != null) 'status': status,
+      if (guestAllowance != null) 'guest_allowance': guestAllowance,
+      if (guestIssued != null) 'guest_issued': guestIssued,
+      if (state != null) 'state': state,
+      if (preparedAt != null) 'prepared_at': preparedAt,
       if (syncStatus != null) 'sync_status': syncStatus,
       if (syncUpdatedAt != null) 'sync_updated_at': syncUpdatedAt,
     });
@@ -9451,6 +9626,10 @@ class WorkFunctionsCompanion extends UpdateCompanion<WorkFunction> {
     Value<String>? functionStartTime,
     Value<String>? functionEndTime,
     Value<String>? status,
+    Value<int>? guestAllowance,
+    Value<int>? guestIssued,
+    Value<String>? state,
+    Value<String?>? preparedAt,
     Value<int>? syncStatus,
     Value<String?>? syncUpdatedAt,
   }) {
@@ -9465,6 +9644,10 @@ class WorkFunctionsCompanion extends UpdateCompanion<WorkFunction> {
       functionStartTime: functionStartTime ?? this.functionStartTime,
       functionEndTime: functionEndTime ?? this.functionEndTime,
       status: status ?? this.status,
+      guestAllowance: guestAllowance ?? this.guestAllowance,
+      guestIssued: guestIssued ?? this.guestIssued,
+      state: state ?? this.state,
+      preparedAt: preparedAt ?? this.preparedAt,
       syncStatus: syncStatus ?? this.syncStatus,
       syncUpdatedAt: syncUpdatedAt ?? this.syncUpdatedAt,
     );
@@ -9503,6 +9686,18 @@ class WorkFunctionsCompanion extends UpdateCompanion<WorkFunction> {
     if (status.present) {
       map['status'] = Variable<String>(status.value);
     }
+    if (guestAllowance.present) {
+      map['guest_allowance'] = Variable<int>(guestAllowance.value);
+    }
+    if (guestIssued.present) {
+      map['guest_issued'] = Variable<int>(guestIssued.value);
+    }
+    if (state.present) {
+      map['state'] = Variable<String>(state.value);
+    }
+    if (preparedAt.present) {
+      map['prepared_at'] = Variable<String>(preparedAt.value);
+    }
     if (syncStatus.present) {
       map['sync_status'] = Variable<int>(syncStatus.value);
     }
@@ -9525,6 +9720,10 @@ class WorkFunctionsCompanion extends UpdateCompanion<WorkFunction> {
           ..write('functionStartTime: $functionStartTime, ')
           ..write('functionEndTime: $functionEndTime, ')
           ..write('status: $status, ')
+          ..write('guestAllowance: $guestAllowance, ')
+          ..write('guestIssued: $guestIssued, ')
+          ..write('state: $state, ')
+          ..write('preparedAt: $preparedAt, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('syncUpdatedAt: $syncUpdatedAt')
           ..write(')'))
@@ -9674,6 +9873,43 @@ class $FunctionOrdersTable extends FunctionOrders
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _isGuestMeta = const VerificationMeta(
+    'isGuest',
+  );
+  @override
+  late final GeneratedColumn<bool> isGuest = GeneratedColumn<bool>(
+    'is_guest',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_guest" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _guestNameMeta = const VerificationMeta(
+    'guestName',
+  );
+  @override
+  late final GeneratedColumn<String> guestName = GeneratedColumn<String>(
+    'guest_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _flaggedReasonMeta = const VerificationMeta(
+    'flaggedReason',
+  );
+  @override
+  late final GeneratedColumn<String> flaggedReason = GeneratedColumn<String>(
+    'flagged_reason',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -9757,6 +9993,9 @@ class $FunctionOrdersTable extends FunctionOrders
     description,
     orderedById,
     employeeType,
+    isGuest,
+    guestName,
+    flaggedReason,
     createdAt,
     updatedAt,
     syncStatus,
@@ -9879,6 +10118,27 @@ class $FunctionOrdersTable extends FunctionOrders
     } else if (isInserting) {
       context.missing(_employeeTypeMeta);
     }
+    if (data.containsKey('is_guest')) {
+      context.handle(
+        _isGuestMeta,
+        isGuest.isAcceptableOrUnknown(data['is_guest']!, _isGuestMeta),
+      );
+    }
+    if (data.containsKey('guest_name')) {
+      context.handle(
+        _guestNameMeta,
+        guestName.isAcceptableOrUnknown(data['guest_name']!, _guestNameMeta),
+      );
+    }
+    if (data.containsKey('flagged_reason')) {
+      context.handle(
+        _flaggedReasonMeta,
+        flaggedReason.isAcceptableOrUnknown(
+          data['flagged_reason']!,
+          _flaggedReasonMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -9989,6 +10249,18 @@ class $FunctionOrdersTable extends FunctionOrders
         DriftSqlType.string,
         data['${effectivePrefix}employee_type'],
       )!,
+      isGuest: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_guest'],
+      )!,
+      guestName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}guest_name'],
+      ),
+      flaggedReason: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}flagged_reason'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}created_at'],
@@ -10038,6 +10310,12 @@ class FunctionOrder extends DataClass implements Insertable<FunctionOrder> {
   final String? description;
   final int orderedById;
   final String employeeType;
+  final bool isGuest;
+  final String? guestName;
+
+  /// Echoed from the server: duplicate_person | guest_over_allowance when the
+  /// voucher was stored but breached a business rule. Never blocks a write.
+  final String? flaggedReason;
   final String createdAt;
   final String updatedAt;
   final int syncStatus;
@@ -10058,6 +10336,9 @@ class FunctionOrder extends DataClass implements Insertable<FunctionOrder> {
     this.description,
     required this.orderedById,
     required this.employeeType,
+    required this.isGuest,
+    this.guestName,
+    this.flaggedReason,
     required this.createdAt,
     required this.updatedAt,
     required this.syncStatus,
@@ -10083,6 +10364,13 @@ class FunctionOrder extends DataClass implements Insertable<FunctionOrder> {
     }
     map['ordered_by_id'] = Variable<int>(orderedById);
     map['employee_type'] = Variable<String>(employeeType);
+    map['is_guest'] = Variable<bool>(isGuest);
+    if (!nullToAbsent || guestName != null) {
+      map['guest_name'] = Variable<String>(guestName);
+    }
+    if (!nullToAbsent || flaggedReason != null) {
+      map['flagged_reason'] = Variable<String>(flaggedReason);
+    }
     map['created_at'] = Variable<String>(createdAt);
     map['updated_at'] = Variable<String>(updatedAt);
     map['sync_status'] = Variable<int>(syncStatus);
@@ -10113,6 +10401,13 @@ class FunctionOrder extends DataClass implements Insertable<FunctionOrder> {
           : Value(description),
       orderedById: Value(orderedById),
       employeeType: Value(employeeType),
+      isGuest: Value(isGuest),
+      guestName: guestName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(guestName),
+      flaggedReason: flaggedReason == null && nullToAbsent
+          ? const Value.absent()
+          : Value(flaggedReason),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       syncStatus: Value(syncStatus),
@@ -10145,6 +10440,9 @@ class FunctionOrder extends DataClass implements Insertable<FunctionOrder> {
       description: serializer.fromJson<String?>(json['description']),
       orderedById: serializer.fromJson<int>(json['orderedById']),
       employeeType: serializer.fromJson<String>(json['employeeType']),
+      isGuest: serializer.fromJson<bool>(json['isGuest']),
+      guestName: serializer.fromJson<String?>(json['guestName']),
+      flaggedReason: serializer.fromJson<String?>(json['flaggedReason']),
       createdAt: serializer.fromJson<String>(json['createdAt']),
       updatedAt: serializer.fromJson<String>(json['updatedAt']),
       syncStatus: serializer.fromJson<int>(json['syncStatus']),
@@ -10170,6 +10468,9 @@ class FunctionOrder extends DataClass implements Insertable<FunctionOrder> {
       'description': serializer.toJson<String?>(description),
       'orderedById': serializer.toJson<int>(orderedById),
       'employeeType': serializer.toJson<String>(employeeType),
+      'isGuest': serializer.toJson<bool>(isGuest),
+      'guestName': serializer.toJson<String?>(guestName),
+      'flaggedReason': serializer.toJson<String?>(flaggedReason),
       'createdAt': serializer.toJson<String>(createdAt),
       'updatedAt': serializer.toJson<String>(updatedAt),
       'syncStatus': serializer.toJson<int>(syncStatus),
@@ -10193,6 +10494,9 @@ class FunctionOrder extends DataClass implements Insertable<FunctionOrder> {
     Value<String?> description = const Value.absent(),
     int? orderedById,
     String? employeeType,
+    bool? isGuest,
+    Value<String?> guestName = const Value.absent(),
+    Value<String?> flaggedReason = const Value.absent(),
     String? createdAt,
     String? updatedAt,
     int? syncStatus,
@@ -10213,6 +10517,11 @@ class FunctionOrder extends DataClass implements Insertable<FunctionOrder> {
     description: description.present ? description.value : this.description,
     orderedById: orderedById ?? this.orderedById,
     employeeType: employeeType ?? this.employeeType,
+    isGuest: isGuest ?? this.isGuest,
+    guestName: guestName.present ? guestName.value : this.guestName,
+    flaggedReason: flaggedReason.present
+        ? flaggedReason.value
+        : this.flaggedReason,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     syncStatus: syncStatus ?? this.syncStatus,
@@ -10249,6 +10558,11 @@ class FunctionOrder extends DataClass implements Insertable<FunctionOrder> {
       employeeType: data.employeeType.present
           ? data.employeeType.value
           : this.employeeType,
+      isGuest: data.isGuest.present ? data.isGuest.value : this.isGuest,
+      guestName: data.guestName.present ? data.guestName.value : this.guestName,
+      flaggedReason: data.flaggedReason.present
+          ? data.flaggedReason.value
+          : this.flaggedReason,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       syncStatus: data.syncStatus.present
@@ -10282,6 +10596,9 @@ class FunctionOrder extends DataClass implements Insertable<FunctionOrder> {
           ..write('description: $description, ')
           ..write('orderedById: $orderedById, ')
           ..write('employeeType: $employeeType, ')
+          ..write('isGuest: $isGuest, ')
+          ..write('guestName: $guestName, ')
+          ..write('flaggedReason: $flaggedReason, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('syncStatus: $syncStatus, ')
@@ -10293,7 +10610,7 @@ class FunctionOrder extends DataClass implements Insertable<FunctionOrder> {
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     uuid,
     orderCode,
@@ -10307,13 +10624,16 @@ class FunctionOrder extends DataClass implements Insertable<FunctionOrder> {
     description,
     orderedById,
     employeeType,
+    isGuest,
+    guestName,
+    flaggedReason,
     createdAt,
     updatedAt,
     syncStatus,
     syncUpdatedAt,
     syncAttempts,
     lastSyncError,
-  );
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -10331,6 +10651,9 @@ class FunctionOrder extends DataClass implements Insertable<FunctionOrder> {
           other.description == this.description &&
           other.orderedById == this.orderedById &&
           other.employeeType == this.employeeType &&
+          other.isGuest == this.isGuest &&
+          other.guestName == this.guestName &&
+          other.flaggedReason == this.flaggedReason &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.syncStatus == this.syncStatus &&
@@ -10353,6 +10676,9 @@ class FunctionOrdersCompanion extends UpdateCompanion<FunctionOrder> {
   final Value<String?> description;
   final Value<int> orderedById;
   final Value<String> employeeType;
+  final Value<bool> isGuest;
+  final Value<String?> guestName;
+  final Value<String?> flaggedReason;
   final Value<String> createdAt;
   final Value<String> updatedAt;
   final Value<int> syncStatus;
@@ -10373,6 +10699,9 @@ class FunctionOrdersCompanion extends UpdateCompanion<FunctionOrder> {
     this.description = const Value.absent(),
     this.orderedById = const Value.absent(),
     this.employeeType = const Value.absent(),
+    this.isGuest = const Value.absent(),
+    this.guestName = const Value.absent(),
+    this.flaggedReason = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.syncStatus = const Value.absent(),
@@ -10394,6 +10723,9 @@ class FunctionOrdersCompanion extends UpdateCompanion<FunctionOrder> {
     this.description = const Value.absent(),
     required int orderedById,
     required String employeeType,
+    this.isGuest = const Value.absent(),
+    this.guestName = const Value.absent(),
+    this.flaggedReason = const Value.absent(),
     required String createdAt,
     required String updatedAt,
     this.syncStatus = const Value.absent(),
@@ -10424,6 +10756,9 @@ class FunctionOrdersCompanion extends UpdateCompanion<FunctionOrder> {
     Expression<String>? description,
     Expression<int>? orderedById,
     Expression<String>? employeeType,
+    Expression<bool>? isGuest,
+    Expression<String>? guestName,
+    Expression<String>? flaggedReason,
     Expression<String>? createdAt,
     Expression<String>? updatedAt,
     Expression<int>? syncStatus,
@@ -10445,6 +10780,9 @@ class FunctionOrdersCompanion extends UpdateCompanion<FunctionOrder> {
       if (description != null) 'description': description,
       if (orderedById != null) 'ordered_by_id': orderedById,
       if (employeeType != null) 'employee_type': employeeType,
+      if (isGuest != null) 'is_guest': isGuest,
+      if (guestName != null) 'guest_name': guestName,
+      if (flaggedReason != null) 'flagged_reason': flaggedReason,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (syncStatus != null) 'sync_status': syncStatus,
@@ -10468,6 +10806,9 @@ class FunctionOrdersCompanion extends UpdateCompanion<FunctionOrder> {
     Value<String?>? description,
     Value<int>? orderedById,
     Value<String>? employeeType,
+    Value<bool>? isGuest,
+    Value<String?>? guestName,
+    Value<String?>? flaggedReason,
     Value<String>? createdAt,
     Value<String>? updatedAt,
     Value<int>? syncStatus,
@@ -10489,6 +10830,9 @@ class FunctionOrdersCompanion extends UpdateCompanion<FunctionOrder> {
       description: description ?? this.description,
       orderedById: orderedById ?? this.orderedById,
       employeeType: employeeType ?? this.employeeType,
+      isGuest: isGuest ?? this.isGuest,
+      guestName: guestName ?? this.guestName,
+      flaggedReason: flaggedReason ?? this.flaggedReason,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       syncStatus: syncStatus ?? this.syncStatus,
@@ -10540,6 +10884,15 @@ class FunctionOrdersCompanion extends UpdateCompanion<FunctionOrder> {
     if (employeeType.present) {
       map['employee_type'] = Variable<String>(employeeType.value);
     }
+    if (isGuest.present) {
+      map['is_guest'] = Variable<bool>(isGuest.value);
+    }
+    if (guestName.present) {
+      map['guest_name'] = Variable<String>(guestName.value);
+    }
+    if (flaggedReason.present) {
+      map['flagged_reason'] = Variable<String>(flaggedReason.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<String>(createdAt.value);
     }
@@ -10577,12 +10930,293 @@ class FunctionOrdersCompanion extends UpdateCompanion<FunctionOrder> {
           ..write('description: $description, ')
           ..write('orderedById: $orderedById, ')
           ..write('employeeType: $employeeType, ')
+          ..write('isGuest: $isGuest, ')
+          ..write('guestName: $guestName, ')
+          ..write('flaggedReason: $flaggedReason, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('syncUpdatedAt: $syncUpdatedAt, ')
           ..write('syncAttempts: $syncAttempts, ')
           ..write('lastSyncError: $lastSyncError')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $FunctionIssuedPersonsTable extends FunctionIssuedPersons
+    with TableInfo<$FunctionIssuedPersonsTable, FunctionIssuedPerson> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $FunctionIssuedPersonsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _functionIdMeta = const VerificationMeta(
+    'functionId',
+  );
+  @override
+  late final GeneratedColumn<int> functionId = GeneratedColumn<int>(
+    'function_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _employeeTypeMeta = const VerificationMeta(
+    'employeeType',
+  );
+  @override
+  late final GeneratedColumn<String> employeeType = GeneratedColumn<String>(
+    'employee_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _personIdMeta = const VerificationMeta(
+    'personId',
+  );
+  @override
+  late final GeneratedColumn<int> personId = GeneratedColumn<int>(
+    'person_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [functionId, employeeType, personId];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'function_issued_persons';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<FunctionIssuedPerson> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('function_id')) {
+      context.handle(
+        _functionIdMeta,
+        functionId.isAcceptableOrUnknown(data['function_id']!, _functionIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_functionIdMeta);
+    }
+    if (data.containsKey('employee_type')) {
+      context.handle(
+        _employeeTypeMeta,
+        employeeType.isAcceptableOrUnknown(
+          data['employee_type']!,
+          _employeeTypeMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_employeeTypeMeta);
+    }
+    if (data.containsKey('person_id')) {
+      context.handle(
+        _personIdMeta,
+        personId.isAcceptableOrUnknown(data['person_id']!, _personIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_personIdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {functionId, employeeType, personId};
+  @override
+  FunctionIssuedPerson map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return FunctionIssuedPerson(
+      functionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}function_id'],
+      )!,
+      employeeType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}employee_type'],
+      )!,
+      personId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}person_id'],
+      )!,
+    );
+  }
+
+  @override
+  $FunctionIssuedPersonsTable createAlias(String alias) {
+    return $FunctionIssuedPersonsTable(attachedDatabase, alias);
+  }
+}
+
+class FunctionIssuedPerson extends DataClass
+    implements Insertable<FunctionIssuedPerson> {
+  final int functionId;
+  final String employeeType;
+  final int personId;
+  const FunctionIssuedPerson({
+    required this.functionId,
+    required this.employeeType,
+    required this.personId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['function_id'] = Variable<int>(functionId);
+    map['employee_type'] = Variable<String>(employeeType);
+    map['person_id'] = Variable<int>(personId);
+    return map;
+  }
+
+  FunctionIssuedPersonsCompanion toCompanion(bool nullToAbsent) {
+    return FunctionIssuedPersonsCompanion(
+      functionId: Value(functionId),
+      employeeType: Value(employeeType),
+      personId: Value(personId),
+    );
+  }
+
+  factory FunctionIssuedPerson.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return FunctionIssuedPerson(
+      functionId: serializer.fromJson<int>(json['functionId']),
+      employeeType: serializer.fromJson<String>(json['employeeType']),
+      personId: serializer.fromJson<int>(json['personId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'functionId': serializer.toJson<int>(functionId),
+      'employeeType': serializer.toJson<String>(employeeType),
+      'personId': serializer.toJson<int>(personId),
+    };
+  }
+
+  FunctionIssuedPerson copyWith({
+    int? functionId,
+    String? employeeType,
+    int? personId,
+  }) => FunctionIssuedPerson(
+    functionId: functionId ?? this.functionId,
+    employeeType: employeeType ?? this.employeeType,
+    personId: personId ?? this.personId,
+  );
+  FunctionIssuedPerson copyWithCompanion(FunctionIssuedPersonsCompanion data) {
+    return FunctionIssuedPerson(
+      functionId: data.functionId.present
+          ? data.functionId.value
+          : this.functionId,
+      employeeType: data.employeeType.present
+          ? data.employeeType.value
+          : this.employeeType,
+      personId: data.personId.present ? data.personId.value : this.personId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FunctionIssuedPerson(')
+          ..write('functionId: $functionId, ')
+          ..write('employeeType: $employeeType, ')
+          ..write('personId: $personId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(functionId, employeeType, personId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is FunctionIssuedPerson &&
+          other.functionId == this.functionId &&
+          other.employeeType == this.employeeType &&
+          other.personId == this.personId);
+}
+
+class FunctionIssuedPersonsCompanion
+    extends UpdateCompanion<FunctionIssuedPerson> {
+  final Value<int> functionId;
+  final Value<String> employeeType;
+  final Value<int> personId;
+  final Value<int> rowid;
+  const FunctionIssuedPersonsCompanion({
+    this.functionId = const Value.absent(),
+    this.employeeType = const Value.absent(),
+    this.personId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  FunctionIssuedPersonsCompanion.insert({
+    required int functionId,
+    required String employeeType,
+    required int personId,
+    this.rowid = const Value.absent(),
+  }) : functionId = Value(functionId),
+       employeeType = Value(employeeType),
+       personId = Value(personId);
+  static Insertable<FunctionIssuedPerson> custom({
+    Expression<int>? functionId,
+    Expression<String>? employeeType,
+    Expression<int>? personId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (functionId != null) 'function_id': functionId,
+      if (employeeType != null) 'employee_type': employeeType,
+      if (personId != null) 'person_id': personId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  FunctionIssuedPersonsCompanion copyWith({
+    Value<int>? functionId,
+    Value<String>? employeeType,
+    Value<int>? personId,
+    Value<int>? rowid,
+  }) {
+    return FunctionIssuedPersonsCompanion(
+      functionId: functionId ?? this.functionId,
+      employeeType: employeeType ?? this.employeeType,
+      personId: personId ?? this.personId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (functionId.present) {
+      map['function_id'] = Variable<int>(functionId.value);
+    }
+    if (employeeType.present) {
+      map['employee_type'] = Variable<String>(employeeType.value);
+    }
+    if (personId.present) {
+      map['person_id'] = Variable<int>(personId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FunctionIssuedPersonsCompanion(')
+          ..write('functionId: $functionId, ')
+          ..write('employeeType: $employeeType, ')
+          ..write('personId: $personId, ')
+          ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
@@ -13406,6 +14040,27 @@ class $ContractorStaffTableTable extends ContractorStaffTable
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _manualMonthlyQuotaMeta =
+      const VerificationMeta('manualMonthlyQuota');
+  @override
+  late final GeneratedColumn<int> manualMonthlyQuota = GeneratedColumn<int>(
+    'manual_monthly_quota',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _shiftIdMeta = const VerificationMeta(
+    'shiftId',
+  );
+  @override
+  late final GeneratedColumn<int> shiftId = GeneratedColumn<int>(
+    'shift_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _allowGroupOrderMeta = const VerificationMeta(
     'allowGroupOrder',
   );
@@ -13469,6 +14124,8 @@ class $ContractorStaffTableTable extends ContractorStaffTable
     endDate,
     isCharged,
     dailyQuota,
+    manualMonthlyQuota,
+    shiftId,
     allowGroupOrder,
     maxOrderCount,
     syncStatus,
@@ -13576,6 +14233,21 @@ class $ContractorStaffTableTable extends ContractorStaffTable
         dailyQuota.isAcceptableOrUnknown(data['daily_quota']!, _dailyQuotaMeta),
       );
     }
+    if (data.containsKey('manual_monthly_quota')) {
+      context.handle(
+        _manualMonthlyQuotaMeta,
+        manualMonthlyQuota.isAcceptableOrUnknown(
+          data['manual_monthly_quota']!,
+          _manualMonthlyQuotaMeta,
+        ),
+      );
+    }
+    if (data.containsKey('shift_id')) {
+      context.handle(
+        _shiftIdMeta,
+        shiftId.isAcceptableOrUnknown(data['shift_id']!, _shiftIdMeta),
+      );
+    }
     if (data.containsKey('allow_group_order')) {
       context.handle(
         _allowGroupOrderMeta,
@@ -13673,6 +14345,14 @@ class $ContractorStaffTableTable extends ContractorStaffTable
         DriftSqlType.int,
         data['${effectivePrefix}daily_quota'],
       ),
+      manualMonthlyQuota: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}manual_monthly_quota'],
+      ),
+      shiftId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}shift_id'],
+      ),
       allowGroupOrder: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}allow_group_order'],
@@ -13713,6 +14393,8 @@ class ContractorStaffTableData extends DataClass
   final String endDate;
   final bool isCharged;
   final int? dailyQuota;
+  final int? manualMonthlyQuota;
+  final int? shiftId;
   final bool? allowGroupOrder;
   final int? maxOrderCount;
   final int syncStatus;
@@ -13731,6 +14413,8 @@ class ContractorStaffTableData extends DataClass
     required this.endDate,
     required this.isCharged,
     this.dailyQuota,
+    this.manualMonthlyQuota,
+    this.shiftId,
     this.allowGroupOrder,
     this.maxOrderCount,
     required this.syncStatus,
@@ -13767,6 +14451,12 @@ class ContractorStaffTableData extends DataClass
     map['is_charged'] = Variable<bool>(isCharged);
     if (!nullToAbsent || dailyQuota != null) {
       map['daily_quota'] = Variable<int>(dailyQuota);
+    }
+    if (!nullToAbsent || manualMonthlyQuota != null) {
+      map['manual_monthly_quota'] = Variable<int>(manualMonthlyQuota);
+    }
+    if (!nullToAbsent || shiftId != null) {
+      map['shift_id'] = Variable<int>(shiftId);
     }
     if (!nullToAbsent || allowGroupOrder != null) {
       map['allow_group_order'] = Variable<bool>(allowGroupOrder);
@@ -13812,6 +14502,12 @@ class ContractorStaffTableData extends DataClass
       dailyQuota: dailyQuota == null && nullToAbsent
           ? const Value.absent()
           : Value(dailyQuota),
+      manualMonthlyQuota: manualMonthlyQuota == null && nullToAbsent
+          ? const Value.absent()
+          : Value(manualMonthlyQuota),
+      shiftId: shiftId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(shiftId),
       allowGroupOrder: allowGroupOrder == null && nullToAbsent
           ? const Value.absent()
           : Value(allowGroupOrder),
@@ -13844,6 +14540,8 @@ class ContractorStaffTableData extends DataClass
       endDate: serializer.fromJson<String>(json['endDate']),
       isCharged: serializer.fromJson<bool>(json['isCharged']),
       dailyQuota: serializer.fromJson<int?>(json['dailyQuota']),
+      manualMonthlyQuota: serializer.fromJson<int?>(json['manualMonthlyQuota']),
+      shiftId: serializer.fromJson<int?>(json['shiftId']),
       allowGroupOrder: serializer.fromJson<bool?>(json['allowGroupOrder']),
       maxOrderCount: serializer.fromJson<int?>(json['maxOrderCount']),
       syncStatus: serializer.fromJson<int>(json['syncStatus']),
@@ -13867,6 +14565,8 @@ class ContractorStaffTableData extends DataClass
       'endDate': serializer.toJson<String>(endDate),
       'isCharged': serializer.toJson<bool>(isCharged),
       'dailyQuota': serializer.toJson<int?>(dailyQuota),
+      'manualMonthlyQuota': serializer.toJson<int?>(manualMonthlyQuota),
+      'shiftId': serializer.toJson<int?>(shiftId),
       'allowGroupOrder': serializer.toJson<bool?>(allowGroupOrder),
       'maxOrderCount': serializer.toJson<int?>(maxOrderCount),
       'syncStatus': serializer.toJson<int>(syncStatus),
@@ -13888,6 +14588,8 @@ class ContractorStaffTableData extends DataClass
     String? endDate,
     bool? isCharged,
     Value<int?> dailyQuota = const Value.absent(),
+    Value<int?> manualMonthlyQuota = const Value.absent(),
+    Value<int?> shiftId = const Value.absent(),
     Value<bool?> allowGroupOrder = const Value.absent(),
     Value<int?> maxOrderCount = const Value.absent(),
     int? syncStatus,
@@ -13908,6 +14610,10 @@ class ContractorStaffTableData extends DataClass
     endDate: endDate ?? this.endDate,
     isCharged: isCharged ?? this.isCharged,
     dailyQuota: dailyQuota.present ? dailyQuota.value : this.dailyQuota,
+    manualMonthlyQuota: manualMonthlyQuota.present
+        ? manualMonthlyQuota.value
+        : this.manualMonthlyQuota,
+    shiftId: shiftId.present ? shiftId.value : this.shiftId,
     allowGroupOrder: allowGroupOrder.present
         ? allowGroupOrder.value
         : this.allowGroupOrder,
@@ -13946,6 +14652,10 @@ class ContractorStaffTableData extends DataClass
       dailyQuota: data.dailyQuota.present
           ? data.dailyQuota.value
           : this.dailyQuota,
+      manualMonthlyQuota: data.manualMonthlyQuota.present
+          ? data.manualMonthlyQuota.value
+          : this.manualMonthlyQuota,
+      shiftId: data.shiftId.present ? data.shiftId.value : this.shiftId,
       allowGroupOrder: data.allowGroupOrder.present
           ? data.allowGroupOrder.value
           : this.allowGroupOrder,
@@ -13977,6 +14687,8 @@ class ContractorStaffTableData extends DataClass
           ..write('endDate: $endDate, ')
           ..write('isCharged: $isCharged, ')
           ..write('dailyQuota: $dailyQuota, ')
+          ..write('manualMonthlyQuota: $manualMonthlyQuota, ')
+          ..write('shiftId: $shiftId, ')
           ..write('allowGroupOrder: $allowGroupOrder, ')
           ..write('maxOrderCount: $maxOrderCount, ')
           ..write('syncStatus: $syncStatus, ')
@@ -14000,6 +14712,8 @@ class ContractorStaffTableData extends DataClass
     endDate,
     isCharged,
     dailyQuota,
+    manualMonthlyQuota,
+    shiftId,
     allowGroupOrder,
     maxOrderCount,
     syncStatus,
@@ -14022,6 +14736,8 @@ class ContractorStaffTableData extends DataClass
           other.endDate == this.endDate &&
           other.isCharged == this.isCharged &&
           other.dailyQuota == this.dailyQuota &&
+          other.manualMonthlyQuota == this.manualMonthlyQuota &&
+          other.shiftId == this.shiftId &&
           other.allowGroupOrder == this.allowGroupOrder &&
           other.maxOrderCount == this.maxOrderCount &&
           other.syncStatus == this.syncStatus &&
@@ -14043,6 +14759,8 @@ class ContractorStaffTableCompanion
   final Value<String> endDate;
   final Value<bool> isCharged;
   final Value<int?> dailyQuota;
+  final Value<int?> manualMonthlyQuota;
+  final Value<int?> shiftId;
   final Value<bool?> allowGroupOrder;
   final Value<int?> maxOrderCount;
   final Value<int> syncStatus;
@@ -14061,6 +14779,8 @@ class ContractorStaffTableCompanion
     this.endDate = const Value.absent(),
     this.isCharged = const Value.absent(),
     this.dailyQuota = const Value.absent(),
+    this.manualMonthlyQuota = const Value.absent(),
+    this.shiftId = const Value.absent(),
     this.allowGroupOrder = const Value.absent(),
     this.maxOrderCount = const Value.absent(),
     this.syncStatus = const Value.absent(),
@@ -14080,6 +14800,8 @@ class ContractorStaffTableCompanion
     required String endDate,
     this.isCharged = const Value.absent(),
     this.dailyQuota = const Value.absent(),
+    this.manualMonthlyQuota = const Value.absent(),
+    this.shiftId = const Value.absent(),
     this.allowGroupOrder = const Value.absent(),
     this.maxOrderCount = const Value.absent(),
     this.syncStatus = const Value.absent(),
@@ -14101,6 +14823,8 @@ class ContractorStaffTableCompanion
     Expression<String>? endDate,
     Expression<bool>? isCharged,
     Expression<int>? dailyQuota,
+    Expression<int>? manualMonthlyQuota,
+    Expression<int>? shiftId,
     Expression<bool>? allowGroupOrder,
     Expression<int>? maxOrderCount,
     Expression<int>? syncStatus,
@@ -14120,6 +14844,9 @@ class ContractorStaffTableCompanion
       if (endDate != null) 'end_date': endDate,
       if (isCharged != null) 'is_charged': isCharged,
       if (dailyQuota != null) 'daily_quota': dailyQuota,
+      if (manualMonthlyQuota != null)
+        'manual_monthly_quota': manualMonthlyQuota,
+      if (shiftId != null) 'shift_id': shiftId,
       if (allowGroupOrder != null) 'allow_group_order': allowGroupOrder,
       if (maxOrderCount != null) 'max_order_count': maxOrderCount,
       if (syncStatus != null) 'sync_status': syncStatus,
@@ -14141,6 +14868,8 @@ class ContractorStaffTableCompanion
     Value<String>? endDate,
     Value<bool>? isCharged,
     Value<int?>? dailyQuota,
+    Value<int?>? manualMonthlyQuota,
+    Value<int?>? shiftId,
     Value<bool?>? allowGroupOrder,
     Value<int?>? maxOrderCount,
     Value<int>? syncStatus,
@@ -14160,6 +14889,8 @@ class ContractorStaffTableCompanion
       endDate: endDate ?? this.endDate,
       isCharged: isCharged ?? this.isCharged,
       dailyQuota: dailyQuota ?? this.dailyQuota,
+      manualMonthlyQuota: manualMonthlyQuota ?? this.manualMonthlyQuota,
+      shiftId: shiftId ?? this.shiftId,
       allowGroupOrder: allowGroupOrder ?? this.allowGroupOrder,
       maxOrderCount: maxOrderCount ?? this.maxOrderCount,
       syncStatus: syncStatus ?? this.syncStatus,
@@ -14209,6 +14940,12 @@ class ContractorStaffTableCompanion
     if (dailyQuota.present) {
       map['daily_quota'] = Variable<int>(dailyQuota.value);
     }
+    if (manualMonthlyQuota.present) {
+      map['manual_monthly_quota'] = Variable<int>(manualMonthlyQuota.value);
+    }
+    if (shiftId.present) {
+      map['shift_id'] = Variable<int>(shiftId.value);
+    }
     if (allowGroupOrder.present) {
       map['allow_group_order'] = Variable<bool>(allowGroupOrder.value);
     }
@@ -14240,6 +14977,8 @@ class ContractorStaffTableCompanion
           ..write('endDate: $endDate, ')
           ..write('isCharged: $isCharged, ')
           ..write('dailyQuota: $dailyQuota, ')
+          ..write('manualMonthlyQuota: $manualMonthlyQuota, ')
+          ..write('shiftId: $shiftId, ')
           ..write('allowGroupOrder: $allowGroupOrder, ')
           ..write('maxOrderCount: $maxOrderCount, ')
           ..write('syncStatus: $syncStatus, ')
@@ -16467,6 +17206,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $OrdersTable orders = $OrdersTable(this);
   late final $WorkFunctionsTable workFunctions = $WorkFunctionsTable(this);
   late final $FunctionOrdersTable functionOrders = $FunctionOrdersTable(this);
+  late final $FunctionIssuedPersonsTable functionIssuedPersons =
+      $FunctionIssuedPersonsTable(this);
   late final $PosDevicesTable posDevices = $PosDevicesTable(this);
   late final $ActivityLogsTable activityLogs = $ActivityLogsTable(this);
   late final $GroupOrdersTable groupOrders = $GroupOrdersTable(this);
@@ -16547,6 +17288,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     orders,
     workFunctions,
     functionOrders,
+    functionIssuedPersons,
     posDevices,
     activityLogs,
     groupOrders,
@@ -21574,6 +22316,10 @@ typedef $$WorkFunctionsTableCreateCompanionBuilder =
       required String functionStartTime,
       required String functionEndTime,
       required String status,
+      Value<int> guestAllowance,
+      Value<int> guestIssued,
+      Value<String> state,
+      Value<String?> preparedAt,
       Value<int> syncStatus,
       Value<String?> syncUpdatedAt,
     });
@@ -21589,6 +22335,10 @@ typedef $$WorkFunctionsTableUpdateCompanionBuilder =
       Value<String> functionStartTime,
       Value<String> functionEndTime,
       Value<String> status,
+      Value<int> guestAllowance,
+      Value<int> guestIssued,
+      Value<String> state,
+      Value<String?> preparedAt,
       Value<int> syncStatus,
       Value<String?> syncUpdatedAt,
     });
@@ -21649,6 +22399,26 @@ class $$WorkFunctionsTableFilterComposer
 
   ColumnFilters<String> get status => $composableBuilder(
     column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get guestAllowance => $composableBuilder(
+    column: $table.guestAllowance,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get guestIssued => $composableBuilder(
+    column: $table.guestIssued,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get state => $composableBuilder(
+    column: $table.state,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get preparedAt => $composableBuilder(
+    column: $table.preparedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -21722,6 +22492,26 @@ class $$WorkFunctionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get guestAllowance => $composableBuilder(
+    column: $table.guestAllowance,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get guestIssued => $composableBuilder(
+    column: $table.guestIssued,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get state => $composableBuilder(
+    column: $table.state,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get preparedAt => $composableBuilder(
+    column: $table.preparedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get syncStatus => $composableBuilder(
     column: $table.syncStatus,
     builder: (column) => ColumnOrderings(column),
@@ -21786,6 +22576,24 @@ class $$WorkFunctionsTableAnnotationComposer
   GeneratedColumn<String> get status =>
       $composableBuilder(column: $table.status, builder: (column) => column);
 
+  GeneratedColumn<int> get guestAllowance => $composableBuilder(
+    column: $table.guestAllowance,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get guestIssued => $composableBuilder(
+    column: $table.guestIssued,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get state =>
+      $composableBuilder(column: $table.state, builder: (column) => column);
+
+  GeneratedColumn<String> get preparedAt => $composableBuilder(
+    column: $table.preparedAt,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get syncStatus => $composableBuilder(
     column: $table.syncStatus,
     builder: (column) => column,
@@ -21838,6 +22646,10 @@ class $$WorkFunctionsTableTableManager
                 Value<String> functionStartTime = const Value.absent(),
                 Value<String> functionEndTime = const Value.absent(),
                 Value<String> status = const Value.absent(),
+                Value<int> guestAllowance = const Value.absent(),
+                Value<int> guestIssued = const Value.absent(),
+                Value<String> state = const Value.absent(),
+                Value<String?> preparedAt = const Value.absent(),
                 Value<int> syncStatus = const Value.absent(),
                 Value<String?> syncUpdatedAt = const Value.absent(),
               }) => WorkFunctionsCompanion(
@@ -21851,6 +22663,10 @@ class $$WorkFunctionsTableTableManager
                 functionStartTime: functionStartTime,
                 functionEndTime: functionEndTime,
                 status: status,
+                guestAllowance: guestAllowance,
+                guestIssued: guestIssued,
+                state: state,
+                preparedAt: preparedAt,
                 syncStatus: syncStatus,
                 syncUpdatedAt: syncUpdatedAt,
               ),
@@ -21866,6 +22682,10 @@ class $$WorkFunctionsTableTableManager
                 required String functionStartTime,
                 required String functionEndTime,
                 required String status,
+                Value<int> guestAllowance = const Value.absent(),
+                Value<int> guestIssued = const Value.absent(),
+                Value<String> state = const Value.absent(),
+                Value<String?> preparedAt = const Value.absent(),
                 Value<int> syncStatus = const Value.absent(),
                 Value<String?> syncUpdatedAt = const Value.absent(),
               }) => WorkFunctionsCompanion.insert(
@@ -21879,6 +22699,10 @@ class $$WorkFunctionsTableTableManager
                 functionStartTime: functionStartTime,
                 functionEndTime: functionEndTime,
                 status: status,
+                guestAllowance: guestAllowance,
+                guestIssued: guestIssued,
+                state: state,
+                preparedAt: preparedAt,
                 syncStatus: syncStatus,
                 syncUpdatedAt: syncUpdatedAt,
               ),
@@ -21922,6 +22746,9 @@ typedef $$FunctionOrdersTableCreateCompanionBuilder =
       Value<String?> description,
       required int orderedById,
       required String employeeType,
+      Value<bool> isGuest,
+      Value<String?> guestName,
+      Value<String?> flaggedReason,
       required String createdAt,
       required String updatedAt,
       Value<int> syncStatus,
@@ -21944,6 +22771,9 @@ typedef $$FunctionOrdersTableUpdateCompanionBuilder =
       Value<String?> description,
       Value<int> orderedById,
       Value<String> employeeType,
+      Value<bool> isGuest,
+      Value<String?> guestName,
+      Value<String?> flaggedReason,
       Value<String> createdAt,
       Value<String> updatedAt,
       Value<int> syncStatus,
@@ -22023,6 +22853,21 @@ class $$FunctionOrdersTableFilterComposer
 
   ColumnFilters<String> get employeeType => $composableBuilder(
     column: $table.employeeType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isGuest => $composableBuilder(
+    column: $table.isGuest,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get guestName => $composableBuilder(
+    column: $table.guestName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get flaggedReason => $composableBuilder(
+    column: $table.flaggedReason,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -22131,6 +22976,21 @@ class $$FunctionOrdersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get isGuest => $composableBuilder(
+    column: $table.isGuest,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get guestName => $composableBuilder(
+    column: $table.guestName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get flaggedReason => $composableBuilder(
+    column: $table.flaggedReason,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -22220,6 +23080,17 @@ class $$FunctionOrdersTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<bool> get isGuest =>
+      $composableBuilder(column: $table.isGuest, builder: (column) => column);
+
+  GeneratedColumn<String> get guestName =>
+      $composableBuilder(column: $table.guestName, builder: (column) => column);
+
+  GeneratedColumn<String> get flaggedReason => $composableBuilder(
+    column: $table.flaggedReason,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
@@ -22293,6 +23164,9 @@ class $$FunctionOrdersTableTableManager
                 Value<String?> description = const Value.absent(),
                 Value<int> orderedById = const Value.absent(),
                 Value<String> employeeType = const Value.absent(),
+                Value<bool> isGuest = const Value.absent(),
+                Value<String?> guestName = const Value.absent(),
+                Value<String?> flaggedReason = const Value.absent(),
                 Value<String> createdAt = const Value.absent(),
                 Value<String> updatedAt = const Value.absent(),
                 Value<int> syncStatus = const Value.absent(),
@@ -22313,6 +23187,9 @@ class $$FunctionOrdersTableTableManager
                 description: description,
                 orderedById: orderedById,
                 employeeType: employeeType,
+                isGuest: isGuest,
+                guestName: guestName,
+                flaggedReason: flaggedReason,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 syncStatus: syncStatus,
@@ -22335,6 +23212,9 @@ class $$FunctionOrdersTableTableManager
                 Value<String?> description = const Value.absent(),
                 required int orderedById,
                 required String employeeType,
+                Value<bool> isGuest = const Value.absent(),
+                Value<String?> guestName = const Value.absent(),
+                Value<String?> flaggedReason = const Value.absent(),
                 required String createdAt,
                 required String updatedAt,
                 Value<int> syncStatus = const Value.absent(),
@@ -22355,6 +23235,9 @@ class $$FunctionOrdersTableTableManager
                 description: description,
                 orderedById: orderedById,
                 employeeType: employeeType,
+                isGuest: isGuest,
+                guestName: guestName,
+                flaggedReason: flaggedReason,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 syncStatus: syncStatus,
@@ -22385,6 +23268,191 @@ typedef $$FunctionOrdersTableProcessedTableManager =
         BaseReferences<_$AppDatabase, $FunctionOrdersTable, FunctionOrder>,
       ),
       FunctionOrder,
+      PrefetchHooks Function()
+    >;
+typedef $$FunctionIssuedPersonsTableCreateCompanionBuilder =
+    FunctionIssuedPersonsCompanion Function({
+      required int functionId,
+      required String employeeType,
+      required int personId,
+      Value<int> rowid,
+    });
+typedef $$FunctionIssuedPersonsTableUpdateCompanionBuilder =
+    FunctionIssuedPersonsCompanion Function({
+      Value<int> functionId,
+      Value<String> employeeType,
+      Value<int> personId,
+      Value<int> rowid,
+    });
+
+class $$FunctionIssuedPersonsTableFilterComposer
+    extends Composer<_$AppDatabase, $FunctionIssuedPersonsTable> {
+  $$FunctionIssuedPersonsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get functionId => $composableBuilder(
+    column: $table.functionId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get employeeType => $composableBuilder(
+    column: $table.employeeType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get personId => $composableBuilder(
+    column: $table.personId,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$FunctionIssuedPersonsTableOrderingComposer
+    extends Composer<_$AppDatabase, $FunctionIssuedPersonsTable> {
+  $$FunctionIssuedPersonsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get functionId => $composableBuilder(
+    column: $table.functionId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get employeeType => $composableBuilder(
+    column: $table.employeeType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get personId => $composableBuilder(
+    column: $table.personId,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$FunctionIssuedPersonsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $FunctionIssuedPersonsTable> {
+  $$FunctionIssuedPersonsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get functionId => $composableBuilder(
+    column: $table.functionId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get employeeType => $composableBuilder(
+    column: $table.employeeType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get personId =>
+      $composableBuilder(column: $table.personId, builder: (column) => column);
+}
+
+class $$FunctionIssuedPersonsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $FunctionIssuedPersonsTable,
+          FunctionIssuedPerson,
+          $$FunctionIssuedPersonsTableFilterComposer,
+          $$FunctionIssuedPersonsTableOrderingComposer,
+          $$FunctionIssuedPersonsTableAnnotationComposer,
+          $$FunctionIssuedPersonsTableCreateCompanionBuilder,
+          $$FunctionIssuedPersonsTableUpdateCompanionBuilder,
+          (
+            FunctionIssuedPerson,
+            BaseReferences<
+              _$AppDatabase,
+              $FunctionIssuedPersonsTable,
+              FunctionIssuedPerson
+            >,
+          ),
+          FunctionIssuedPerson,
+          PrefetchHooks Function()
+        > {
+  $$FunctionIssuedPersonsTableTableManager(
+    _$AppDatabase db,
+    $FunctionIssuedPersonsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$FunctionIssuedPersonsTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$FunctionIssuedPersonsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$FunctionIssuedPersonsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> functionId = const Value.absent(),
+                Value<String> employeeType = const Value.absent(),
+                Value<int> personId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => FunctionIssuedPersonsCompanion(
+                functionId: functionId,
+                employeeType: employeeType,
+                personId: personId,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required int functionId,
+                required String employeeType,
+                required int personId,
+                Value<int> rowid = const Value.absent(),
+              }) => FunctionIssuedPersonsCompanion.insert(
+                functionId: functionId,
+                employeeType: employeeType,
+                personId: personId,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$FunctionIssuedPersonsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $FunctionIssuedPersonsTable,
+      FunctionIssuedPerson,
+      $$FunctionIssuedPersonsTableFilterComposer,
+      $$FunctionIssuedPersonsTableOrderingComposer,
+      $$FunctionIssuedPersonsTableAnnotationComposer,
+      $$FunctionIssuedPersonsTableCreateCompanionBuilder,
+      $$FunctionIssuedPersonsTableUpdateCompanionBuilder,
+      (
+        FunctionIssuedPerson,
+        BaseReferences<
+          _$AppDatabase,
+          $FunctionIssuedPersonsTable,
+          FunctionIssuedPerson
+        >,
+      ),
+      FunctionIssuedPerson,
       PrefetchHooks Function()
     >;
 typedef $$PosDevicesTableCreateCompanionBuilder =
@@ -23680,6 +24748,8 @@ typedef $$ContractorStaffTableTableCreateCompanionBuilder =
       required String endDate,
       Value<bool> isCharged,
       Value<int?> dailyQuota,
+      Value<int?> manualMonthlyQuota,
+      Value<int?> shiftId,
       Value<bool?> allowGroupOrder,
       Value<int?> maxOrderCount,
       Value<int> syncStatus,
@@ -23700,6 +24770,8 @@ typedef $$ContractorStaffTableTableUpdateCompanionBuilder =
       Value<String> endDate,
       Value<bool> isCharged,
       Value<int?> dailyQuota,
+      Value<int?> manualMonthlyQuota,
+      Value<int?> shiftId,
       Value<bool?> allowGroupOrder,
       Value<int?> maxOrderCount,
       Value<int> syncStatus,
@@ -23777,6 +24849,16 @@ class $$ContractorStaffTableTableFilterComposer
 
   ColumnFilters<int> get dailyQuota => $composableBuilder(
     column: $table.dailyQuota,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get manualMonthlyQuota => $composableBuilder(
+    column: $table.manualMonthlyQuota,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get shiftId => $composableBuilder(
+    column: $table.shiftId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -23875,6 +24957,16 @@ class $$ContractorStaffTableTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get manualMonthlyQuota => $composableBuilder(
+    column: $table.manualMonthlyQuota,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get shiftId => $composableBuilder(
+    column: $table.shiftId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get allowGroupOrder => $composableBuilder(
     column: $table.allowGroupOrder,
     builder: (column) => ColumnOrderings(column),
@@ -23954,6 +25046,14 @@ class $$ContractorStaffTableTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<int> get manualMonthlyQuota => $composableBuilder(
+    column: $table.manualMonthlyQuota,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get shiftId =>
+      $composableBuilder(column: $table.shiftId, builder: (column) => column);
+
   GeneratedColumn<bool> get allowGroupOrder => $composableBuilder(
     column: $table.allowGroupOrder,
     builder: (column) => column,
@@ -24031,6 +25131,8 @@ class $$ContractorStaffTableTableTableManager
                 Value<String> endDate = const Value.absent(),
                 Value<bool> isCharged = const Value.absent(),
                 Value<int?> dailyQuota = const Value.absent(),
+                Value<int?> manualMonthlyQuota = const Value.absent(),
+                Value<int?> shiftId = const Value.absent(),
                 Value<bool?> allowGroupOrder = const Value.absent(),
                 Value<int?> maxOrderCount = const Value.absent(),
                 Value<int> syncStatus = const Value.absent(),
@@ -24049,6 +25151,8 @@ class $$ContractorStaffTableTableTableManager
                 endDate: endDate,
                 isCharged: isCharged,
                 dailyQuota: dailyQuota,
+                manualMonthlyQuota: manualMonthlyQuota,
+                shiftId: shiftId,
                 allowGroupOrder: allowGroupOrder,
                 maxOrderCount: maxOrderCount,
                 syncStatus: syncStatus,
@@ -24069,6 +25173,8 @@ class $$ContractorStaffTableTableTableManager
                 required String endDate,
                 Value<bool> isCharged = const Value.absent(),
                 Value<int?> dailyQuota = const Value.absent(),
+                Value<int?> manualMonthlyQuota = const Value.absent(),
+                Value<int?> shiftId = const Value.absent(),
                 Value<bool?> allowGroupOrder = const Value.absent(),
                 Value<int?> maxOrderCount = const Value.absent(),
                 Value<int> syncStatus = const Value.absent(),
@@ -24087,6 +25193,8 @@ class $$ContractorStaffTableTableTableManager
                 endDate: endDate,
                 isCharged: isCharged,
                 dailyQuota: dailyQuota,
+                manualMonthlyQuota: manualMonthlyQuota,
+                shiftId: shiftId,
                 allowGroupOrder: allowGroupOrder,
                 maxOrderCount: maxOrderCount,
                 syncStatus: syncStatus,
@@ -25268,6 +26376,8 @@ class $AppDatabaseManager {
       $$WorkFunctionsTableTableManager(_db, _db.workFunctions);
   $$FunctionOrdersTableTableManager get functionOrders =>
       $$FunctionOrdersTableTableManager(_db, _db.functionOrders);
+  $$FunctionIssuedPersonsTableTableManager get functionIssuedPersons =>
+      $$FunctionIssuedPersonsTableTableManager(_db, _db.functionIssuedPersons);
   $$PosDevicesTableTableManager get posDevices =>
       $$PosDevicesTableTableManager(_db, _db.posDevices);
   $$ActivityLogsTableTableManager get activityLogs =>

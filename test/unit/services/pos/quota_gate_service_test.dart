@@ -343,10 +343,42 @@ void main() {
   });
 
   group('contractor', () {
-    test('blocks after daily quota exhausted within stay', () async {
+    test('with a shift uses the shift daily/monthly pool like staff', () async {
+      await _seedShift(db, id: 5, dailyMealQuota: 2, workingDaysPerMonth: 21);
       await db.insertContractorStaff(
         ContractorStaffTableCompanion.insert(
           id: const Value(10),
+          name: 'Worker',
+          startDate: '2000-01-01',
+          endDate: '2100-01-01',
+          shiftId: const Value(5),
+          syncStatus: const Value(2),
+          syncUpdatedAt: Value(_nowIso()),
+        ),
+      );
+
+      var decision = await gate.checkCanOrder(
+        type: EmployeeType.contractor,
+        personId: 10,
+      );
+      expect(decision.allowed, isTrue);
+      expect(decision.dailyQuota, 2);
+      expect(decision.periodTotal, 42);
+
+      await _seedOrder(db, id: 21, personId: 10, employeeType: 'contractor');
+      await _seedOrder(db, id: 22, personId: 10, employeeType: 'contractor');
+      decision = await gate.checkCanOrder(
+        type: EmployeeType.contractor,
+        personId: 10,
+      );
+      expect(decision.allowed, isFalse);
+      expect(decision.reason, contains('Daily'));
+    });
+
+    test('without a shift falls back to the manual daily quota', () async {
+      await db.insertContractorStaff(
+        ContractorStaffTableCompanion.insert(
+          id: const Value(11),
           name: 'Worker',
           startDate: '2000-01-01',
           endDate: '2100-01-01',
@@ -358,22 +390,44 @@ void main() {
 
       var decision = await gate.checkCanOrder(
         type: EmployeeType.contractor,
-        personId: 10,
+        personId: 11,
       );
       expect(decision.allowed, isTrue);
+      expect(decision.dailyQuota, 1);
 
-      await _seedOrder(db, id: 21, personId: 10, employeeType: 'contractor');
+      await _seedOrder(db, id: 23, personId: 11, employeeType: 'contractor');
       decision = await gate.checkCanOrder(
         type: EmployeeType.contractor,
-        personId: 10,
+        personId: 11,
       );
       expect(decision.allowed, isFalse);
+      expect(decision.reason, contains('Daily'));
     });
 
-    test('blocks outside the stay window', () async {
+    test('without a shift and without quota is allowed (legacy)', () async {
       await db.insertContractorStaff(
         ContractorStaffTableCompanion.insert(
-          id: const Value(11),
+          id: const Value(12),
+          name: 'Worker',
+          startDate: '2000-01-01',
+          endDate: '2100-01-01',
+          syncStatus: const Value(2),
+          syncUpdatedAt: Value(_nowIso()),
+        ),
+      );
+
+      final decision = await gate.checkCanOrder(
+        type: EmployeeType.contractor,
+        personId: 12,
+      );
+      expect(decision.allowed, isTrue);
+      expect(decision.stale, isTrue);
+    });
+
+    test('does not gate on the stay window (calendar-month parity)', () async {
+      await db.insertContractorStaff(
+        ContractorStaffTableCompanion.insert(
+          id: const Value(13),
           name: 'Past Worker',
           startDate: '2000-01-01',
           endDate: '2000-02-01',
@@ -383,12 +437,14 @@ void main() {
         ),
       );
 
+      // Quota is pooled per calendar month now, so an elapsed stay no longer
+      // blocks an order by itself.
       final decision = await gate.checkCanOrder(
         type: EmployeeType.contractor,
-        personId: 11,
+        personId: 13,
       );
-      expect(decision.allowed, isFalse);
-      expect(decision.reason, contains('ended'));
+      expect(decision.allowed, isTrue);
+      expect(decision.dailyQuota, 3);
     });
   });
 
@@ -488,6 +544,93 @@ void main() {
         personId: 34,
       );
       expect(decision.allowed, isFalse);
+    });
+
+    test('contractor parent with a shift passes the shift daily to the dependent', () async {
+      await _seedShift(db, id: 8, dailyMealQuota: 4, workingDaysPerMonth: 21);
+      await db.insertContractorStaff(
+        ContractorStaffTableCompanion.insert(
+          id: const Value(40),
+          name: 'Worker',
+          startDate: '2000-01-01',
+          endDate: '2100-01-01',
+          shiftId: const Value(8),
+          syncStatus: const Value(2),
+          syncUpdatedAt: Value(_nowIso()),
+        ),
+      );
+      await db.insertDependent(
+        DependentsCompanion.insert(
+          id: const Value(41),
+          fullname: 'Kid',
+          status: 'active',
+          contractorStaffId: const Value(40),
+        ),
+      );
+      await _refreshSync(db, 'dependent', 41);
+      final today = _today();
+      await db.insertDependentVisit(
+        DependentVisitsCompanion.insert(
+          id: const Value(102),
+          dependentId: 41,
+          startDate: today,
+          endDate: today,
+          status: const Value('active'),
+          syncStatus: const Value(2),
+          syncUpdatedAt: Value(_nowIso()),
+        ),
+      );
+
+      final decision = await gate.checkCanOrder(
+        type: EmployeeType.dependent,
+        personId: 41,
+      );
+      expect(decision.allowed, isTrue);
+      expect(decision.dailyQuota, 4);
+      expect(decision.periodTotal, 4);
+    });
+
+    test('contractor parent without a shift passes the manual daily quota', () async {
+      await db.insertContractorStaff(
+        ContractorStaffTableCompanion.insert(
+          id: const Value(42),
+          name: 'Worker',
+          startDate: '2000-01-01',
+          endDate: '2100-01-01',
+          dailyQuota: const Value(2),
+          syncStatus: const Value(2),
+          syncUpdatedAt: Value(_nowIso()),
+        ),
+      );
+      await db.insertDependent(
+        DependentsCompanion.insert(
+          id: const Value(43),
+          fullname: 'Kid',
+          status: 'active',
+          contractorStaffId: const Value(42),
+        ),
+      );
+      await _refreshSync(db, 'dependent', 43);
+      final today = _today();
+      await db.insertDependentVisit(
+        DependentVisitsCompanion.insert(
+          id: const Value(103),
+          dependentId: 43,
+          startDate: today,
+          endDate: today,
+          status: const Value('active'),
+          syncStatus: const Value(2),
+          syncUpdatedAt: Value(_nowIso()),
+        ),
+      );
+
+      final decision = await gate.checkCanOrder(
+        type: EmployeeType.dependent,
+        personId: 43,
+      );
+      expect(decision.allowed, isTrue);
+      expect(decision.dailyQuota, 2);
+      expect(decision.periodTotal, 2);
     });
   });
 }

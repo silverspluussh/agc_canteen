@@ -4,6 +4,7 @@ import 'package:get_it/get_it.dart';
 
 import '../../services/auth/admin_auth_service.dart';
 import '../../services/auth/fingerprint_auth_service.dart';
+import '../../services/auth/fingerprint_template_cache.dart';
 import '../../services/auth/nfc_auth_service.dart';
 import '../../services/auth/pos_auth_service.dart';
 import '../../services/nfc/nfc_service.dart';
@@ -11,10 +12,13 @@ import '../../services/database/activity_log_service.dart';
 import '../../services/database/app_database.dart';
 import '../../services/database/database_service.dart';
 import '../../services/export/file_export_service.dart';
+import '../../services/export/vouchers_backup_service.dart';
 import '../../repositories/biodata.repo.dart';
 import '../../repositories/orders.repo.dart';
 import '../../services/sync_services/sync_from_remote_to_local.dart';
+import '../../services/sync_services/sync_mutex.dart';
 import '../../services/sync_services/sync_pull_gate.dart';
+import '../../services/sync_services/push_scheduler.dart';
 import '../../services/sync_services/sync_scheduler.dart';
 import '../../services/sync_services/sync_version_service.dart';
 import '../../services/pos/pos_card_service.dart';
@@ -40,6 +44,10 @@ Future<void> setupServiceLocator() async {
 
   getIt.registerLazySingleton<AppDatabase>(() => DatabaseService.instance.db);
 
+  // Shared so a sync pull can invalidate what auth reads.
+  getIt.registerLazySingleton<FingerprintTemplateCache>(
+      () => FingerprintTemplateCache(db: getIt<AppDatabase>()));
+
   getIt.registerLazySingleton<Dio>(() => DioClient.dio);
 
   getIt.registerLazySingleton<PosFingerprintService>(
@@ -57,6 +65,7 @@ Future<void> setupServiceLocator() async {
   getIt.registerLazySingleton<FingerprintAuthService>(() => FingerprintAuthService(
         db: getIt<AppDatabase>(),
         fingerprint: getIt<PosFingerprintService>(),
+        templateCache: getIt<FingerprintTemplateCache>(),
       ));
 
   getIt.registerLazySingleton<NfcService>(() => NfcService());
@@ -82,6 +91,7 @@ Future<void> setupServiceLocator() async {
         db: getIt<AppDatabase>(),
         networkAPI: getIt<NetworkAPI>(),
         connectivity: getIt<Connectivity>(),
+        bioDataLock: getIt<SyncMutex>(),
       ));
 
   getIt.registerLazySingleton<AdminAuthService>(() => AdminAuthService(
@@ -98,10 +108,15 @@ Future<void> setupServiceLocator() async {
         db: getIt<AppDatabase>(),
       ));
 
+  // Shared between push and pull so bio-data writes never interleave.
+  getIt.registerLazySingleton<SyncMutex>(() => SyncMutex());
+
   getIt.registerLazySingleton<RemoteToLocalSyncService>(() => RemoteToLocalSyncService(
         networkAPI: getIt<NetworkAPI>(),
         db: getIt<AppDatabase>(),
         isOnline: isOnline,
+        bioDataLock: getIt<SyncMutex>(),
+        templateCache: getIt<FingerprintTemplateCache>(),
       ));
 
   getIt.registerLazySingleton<SyncVersionService>(() => SyncVersionService(
@@ -112,17 +127,31 @@ Future<void> setupServiceLocator() async {
         versions: getIt<SyncVersionService>(),
       ));
 
+  // Pull loop: light download on a slow timer, full reconcile once a day.
   getIt.registerLazySingleton<SyncScheduler>(() => SyncScheduler(
         remoteToLocal: getIt<RemoteToLocalSyncService>(),
-        localToRemote: getIt<LocalToRemoteSyncService>(),
         connectivity: getIt<Connectivity>(),
         isOnline: isOnline,
         activityLog: getIt<ActivityLogService>(),
         pullGate: getIt<RemotePullGate>(),
       ));
 
+  // Push loop: uploads pending work quickly, never blocked by a download.
+  getIt.registerLazySingleton<PushScheduler>(() => PushScheduler(
+        localToRemote: getIt<LocalToRemoteSyncService>(),
+        connectivity: getIt<Connectivity>(),
+        isOnline: isOnline,
+        activityLog: getIt<ActivityLogService>(),
+      ));
+
   getIt.registerLazySingleton<ActivityLogService>(
       () => ActivityLogService(getIt<AppDatabase>()));
 
   getIt.registerLazySingleton<FileExportService>(() => FileExportService());
+
+  getIt.registerLazySingleton<VouchersBackupService>(
+      () => VouchersBackupService(
+            db: getIt<AppDatabase>(),
+            fileExport: getIt<FileExportService>(),
+          ));
 }

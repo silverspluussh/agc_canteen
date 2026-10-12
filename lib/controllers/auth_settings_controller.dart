@@ -1,13 +1,19 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../services/auth/fingerprint_auth_service.dart';
+
 class AuthSettings {
   final bool enableNfc;
   final bool enableFinger;
 
+  /// Minimum native comparison score (0–100) for a fingerprint to match.
+  final int fingerMatchThreshold;
+
   const AuthSettings({
     this.enableNfc = false,
     this.enableFinger = true,
+    this.fingerMatchThreshold = FingerprintAuthService.defaultMatchThreshold,
   });
 }
 
@@ -20,6 +26,9 @@ class AuthSettingsController extends Notifier<AuthSettings> {
     state = AuthSettings(
       enableNfc: prefs.getBool('enable_nfc') ?? false,
       enableFinger: prefs.getBool('enable_finger') ?? true,
+      fingerMatchThreshold:
+          prefs.getInt(FingerprintAuthService.matchThresholdPrefsKey) ??
+              FingerprintAuthService.defaultMatchThreshold,
     );
   }
 
@@ -29,6 +38,7 @@ class AuthSettingsController extends Notifier<AuthSettings> {
     state = AuthSettings(
       enableNfc: value,
       enableFinger: state.enableFinger,
+      fingerMatchThreshold: state.fingerMatchThreshold,
     );
   }
 
@@ -38,6 +48,17 @@ class AuthSettingsController extends Notifier<AuthSettings> {
     state = AuthSettings(
       enableNfc: state.enableNfc,
       enableFinger: value,
+      fingerMatchThreshold: state.fingerMatchThreshold,
+    );
+  }
+
+  Future<void> setFingerMatchThreshold(int value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(FingerprintAuthService.matchThresholdPrefsKey, value);
+    state = AuthSettings(
+      enableNfc: state.enableNfc,
+      enableFinger: state.enableFinger,
+      fingerMatchThreshold: value,
     );
   }
 }

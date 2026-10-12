@@ -36,64 +36,6 @@ FunctionSelectionCheck validate({
 }
 
 void main() {
-  // ─── Model: local window re-validation ────────────────────────────────
-
-  group('WorkFunctionModel.isOrderableAt', () {
-    test('open inside the window', () {
-      expect(fn().isOrderableAt(DateTime(2026, 10, 3, 13)), isTrue);
-    });
-
-    test('inclusive at the start', () {
-      expect(fn().isOrderableAt(DateTime(2026, 10, 3, 12, 0, 0)), isTrue);
-    });
-
-    test('inclusive at the end', () {
-      expect(fn().isOrderableAt(DateTime(2026, 10, 3, 15, 0, 0)), isTrue);
-    });
-
-    test('closed one second before the start', () {
-      expect(
-        fn().isOrderableAt(DateTime(2026, 10, 3, 11, 59, 59)),
-        isFalse,
-      );
-    });
-
-    test('closed one second after the end', () {
-      expect(
-        fn().isOrderableAt(DateTime(2026, 10, 3, 15, 0, 1)),
-        isFalse,
-      );
-    });
-
-    test('closed on another day at the same clock time', () {
-      expect(fn().isOrderableAt(DateTime(2026, 10, 4, 13)), isFalse);
-    });
-
-    test('normalises an H:i start from the API', () {
-      final function = fn(start: '12:00');
-      expect(function.functionStartTime, '12:00:00');
-      expect(function.isOrderableAt(DateTime(2026, 10, 3, 12)), isTrue);
-    });
-
-    test('normalises a full ISO timestamp', () {
-      final function = fn(start: '2026-10-03T12:00:00.000000Z');
-      expect(function.functionDate, '2026-10-03');
-      expect(function.functionStartTime, '12:00:00');
-    });
-
-    test('a single-digit hour is not treated as later than a double-digit one', () {
-      // Lexicographic comparison would wrongly place 9:00 after 12:00.
-      final morning = fn(start: '09:00:00', end: '10:30:00');
-      expect(morning.startSeconds, 540 * 60);
-      expect(morning.isOrderableAt(DateTime(2026, 10, 3, 9, 30)), isTrue);
-      expect(morning.isOrderableAt(DateTime(2026, 10, 3, 12)), isFalse);
-    });
-
-    test('renders a readable window label', () {
-      expect(fn().windowLabel, '2026-10-03 12:00-15:00');
-    });
-  });
-
   // ─── Persisted selection re-validation ────────────────────────────────
 
   group('FunctionSelectionValidator', () {

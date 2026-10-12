@@ -348,34 +348,53 @@ class AuthController extends Notifier<AuthState> {
       return true;
     }
 
-    if (staff.entityType != null && staff.entityId != null) {
-      final decision = await QuotaGateService(db: db).checkCanOrder(
-        type: staff.entityType!,
-        personId: staff.entityId!,
-        inFunctionMode: true,
+    if (staff.entityType == null || staff.entityId == null) {
+      state = state.copyWith(
+        step: AuthStep.error,
+        error: 'This identity is not linked to a person and cannot take a function voucher.',
       );
-      if (!decision.allowed) {
-        state = state.copyWith(step: AuthStep.error, error: decision.reason);
-        return true;
-      }
+      return true;
     }
 
     final function = checked.selectedFunction!;
     final now = DateTime.now();
 
-    final orderId = await FunctionOrderRepository(
+    final functionRepo = FunctionOrderRepository(
       db: db,
       networkAPI: getIt<NetworkAPI>(),
-    ).createFunctionOrder(
+    );
+
+    // One voucher per registered person per function. Enforced locally against
+    // the synced issued-person set; the server only flags duplicates.
+    final alreadyIssued = await functionRepo.hasIssuedVoucher(
+      functionId: function.id,
+      employeeType: staff.entityType!.name,
+      personId: staff.entityId!,
+    );
+    if (alreadyIssued) {
+      state = state.copyWith(
+        step: AuthStep.error,
+        error:
+            '${staff.displayName ?? 'This person'} already received a voucher '
+            'for ${function.functionName}.',
+      );
+      return true;
+    }
+
+    final orderId = await functionRepo.createFunctionOrder(
       function: function,
       orderedById: staff.entityId!,
       employeeType: staff.entityType!.name,
       mealType: mealType,
-      posId: posDevice.id,
     );
 
-    // Read the one row, not the whole table: getAllFunctionOrders() loaded every
-    // function order this terminal had ever cached just to find one by id.
+    await functionRepo.recordIssuedPerson(
+      functionId: function.id,
+      employeeType: staff.entityType!.name,
+      personId: staff.entityId!,
+    );
+
+    // Read the one row by id rather than scanning the whole table.
     final orderCode = (await db.getFunctionOrder(orderId))?.orderCode ?? '';
 
     unawaited(sync.syncFunctionOrders());

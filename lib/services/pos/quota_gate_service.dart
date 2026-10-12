@@ -49,9 +49,12 @@ class QuotaDecision {
 ///
 /// * staff with shift: daily = shift.dailyMealQuota,
 ///   pool = daily x workingDaysPerMonth for the calendar month.
-/// * contractor / visitor: daily x stay days.
-/// * dependent: inherited daily x active-visit days (staff parent: shift
-///   daily; contractor parent: contractor dailyQuota).
+/// * contractor with shift: same shift-derived rule as staff; without a shift:
+///   manual dailyQuota / manualMonthlyQuota for the calendar month.
+/// * visitor: daily x stay days.
+/// * dependent: inherited daily x active-visit days (staff or contractor parent
+///   with a shift: shift daily; contractor parent without a shift: the
+///   contractor's manual dailyQuota).
 ///
 /// Anything over the pool is an overcharge. When quota data is missing or
 /// stale the order is ALLOWED and reconciles server-side after sync.
@@ -261,46 +264,89 @@ class QuotaGateService {
     required DateTime now,
     required int quantity,
   }) async {
-    final label = isContractor ? 'Contractor staff' : 'Visitor';
-    final typeName =
-        isContractor ? EmployeeType.contractor.name : EmployeeType.visitor.name;
-    int? daily;
-    DateTime? start;
-    DateTime? end;
-    bool fresh;
-
     if (isContractor) {
-      final row = await _db.getContractorStaff(personId);
-      if (row == null) {
-        return const QuotaDecision.allowLegacy(
-          reason: 'Contractor staff not synced yet.',
-        );
-      }
-      fresh = _isFresh(row.syncStatus, row.syncUpdatedAt);
-      daily = row.dailyQuota;
-      start = DateTime.tryParse(row.startDate);
-      end = DateTime.tryParse(row.endDate);
-    } else {
-      final row = await _db.getVisitor(personId);
-      if (row == null) {
-        return const QuotaDecision.allowLegacy(
-          reason: 'Visitor not synced yet.',
-        );
-      }
-      fresh = _isFresh(row.syncStatus, row.syncUpdatedAt);
-      daily = row.dailyQuota;
-      start = row.startDate != null ? DateTime.tryParse(row.startDate!) : null;
-      end = row.endTime != null ? DateTime.tryParse(row.endTime!) : null;
+      return _checkContractor(personId, now, quantity);
+    }
+    return _checkVisitor(personId, now, quantity);
+  }
+
+  /// Contractors are shift-derived like staff: shift daily x working days for
+  /// the calendar month, falling back to the manual daily/monthly pool when no
+  /// shift is assigned.
+  Future<QuotaDecision> _checkContractor(
+    int personId,
+    DateTime now,
+    int quantity,
+  ) async {
+    final row = await _db.getContractorStaff(personId);
+    if (row == null) {
+      return const QuotaDecision.allowLegacy(
+        reason: 'Contractor staff not synced yet.',
+      );
+    }
+    if (!_isFresh(row.syncStatus, row.syncUpdatedAt)) {
+      return const QuotaDecision.allowLegacy(
+        reason: 'Contractor staff data is stale.',
+      );
     }
 
-    if (!fresh) {
-      return const QuotaDecision.allowLegacy(reason: 'Person data is stale.');
+    if (row.shiftId != null) {
+      final shift = await _db.getShift(row.shiftId!);
+      if (shift == null) {
+        return const QuotaDecision.allowLegacy(reason: 'Shift not synced yet.');
+      }
+      if (!_isFresh(shift.syncStatus, shift.syncUpdatedAt)) {
+        return const QuotaDecision.allowLegacy(reason: 'Shift data is stale.');
+      }
+      return _evaluate(
+        staffId: personId,
+        daily: shift.dailyMealQuota,
+        periodTotal: shift.dailyMealQuota * shift.workingDaysPerMonth,
+        employeeType: EmployeeType.contractor.name,
+        now: now,
+        quantity: quantity,
+        periodLabel: 'monthly',
+      );
     }
+
+    return _evaluate(
+      staffId: personId,
+      daily: row.dailyQuota ?? 0,
+      periodTotal: row.manualMonthlyQuota ?? row.dailyQuota ?? 0,
+      employeeType: EmployeeType.contractor.name,
+      now: now,
+      quantity: quantity,
+      periodLabel: 'monthly',
+    );
+  }
+
+  /// Visitors keep the stay-window pool: daily x stay days.
+  Future<QuotaDecision> _checkVisitor(
+    int personId,
+    DateTime now,
+    int quantity,
+  ) async {
+    const label = 'Visitor';
+
+    final row = await _db.getVisitor(personId);
+    if (row == null) {
+      return const QuotaDecision.allowLegacy(reason: 'Visitor not synced yet.');
+    }
+    if (!_isFresh(row.syncStatus, row.syncUpdatedAt)) {
+      return const QuotaDecision.allowLegacy(reason: 'Visitor data is stale.');
+    }
+
+    final daily = row.dailyQuota;
     if (daily == null || daily <= 0) {
       return const QuotaDecision.allowLegacy(
         reason: 'No daily quota configured.',
       );
     }
+
+    final start = row.startDate != null
+        ? DateTime.tryParse(row.startDate!)
+        : null;
+    final end = row.endTime != null ? DateTime.tryParse(row.endTime!) : null;
 
     final today = DateTime(now.year, now.month, now.day);
     if (start != null &&
@@ -313,8 +359,7 @@ class QuotaGateService {
         periodTotal: 0,
       );
     }
-    if (end != null &&
-        today.isAfter(DateTime(end.year, end.month, end.day))) {
+    if (end != null && today.isAfter(DateTime(end.year, end.month, end.day))) {
       return QuotaDecision.block(
         reason: '$label stay has ended.',
         dailyUsed: 0,
@@ -337,14 +382,13 @@ class QuotaGateService {
 
     final dailyUsed = await _db.countOrdersByPerson(
       personId: personId,
-      employeeType: typeName,
+      employeeType: EmployeeType.visitor.name,
       dayPrefix: _dayPrefix(now),
     );
     final periodUsed = await _db.countOrdersByPerson(
       personId: personId,
-      employeeType: typeName,
-      windowStartIso:
-          '${_dayPrefix(windowStart)}T00:00:00.000',
+      employeeType: EmployeeType.visitor.name,
+      windowStartIso: '${_dayPrefix(windowStart)}T00:00:00.000',
       windowEndIso: '${_dayPrefix(windowEnd)}T23:59:59.999',
     );
 
@@ -479,14 +523,20 @@ class QuotaGateService {
     );
   }
 
-  /// Inherited daily: staff parent -> shift daily; contractor parent ->
-  /// contractor dailyQuota. Null when the parent row/quota is missing.
+  /// Inherited daily: staff or contractor parent with a shift -> shift daily;
+  /// contractor parent without a shift -> the contractor's manual dailyQuota.
+  /// Null when the parent row/quota is missing.
   Future<int?> _resolveDependentDaily(Dependent dependent) async {
     if (dependent.contractorStaffId != null) {
       final parent = await _db.getContractorStaff(
         dependent.contractorStaffId!,
       );
-      return parent?.dailyQuota;
+      if (parent == null) return null;
+      if (parent.shiftId != null) {
+        final shift = await _db.getShift(parent.shiftId!);
+        return shift?.dailyMealQuota;
+      }
+      return parent.dailyQuota;
     }
     if (dependent.staffId == null) return null;
     final parent = await _db.getStaff(dependent.staffId!);

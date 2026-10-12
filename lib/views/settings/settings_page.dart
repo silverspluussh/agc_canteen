@@ -14,6 +14,7 @@ import '../../core/di/securestorage.dart';
 import '../../main.dart';
 import '../../services/database/activity_log_service.dart';
 import '../../services/database/app_database.dart';
+import '../../services/export/vouchers_backup_service.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -25,6 +26,7 @@ class SettingsPage extends ConsumerStatefulWidget {
 class _SettingsPageState extends ConsumerState<SettingsPage> {
   String? _adminEmail;
   String _appVersion = '';
+  bool _backingUp = false;
 
   @override
   void initState() {
@@ -42,6 +44,28 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         _adminEmail = email;
         _appVersion = 'v${info.version} (${info.buildNumber})';
       });
+    }
+  }
+
+  /// Saves every locally-stored voucher (regular + event) to a JSON file in the
+  /// device's Downloads folder — a durable snapshot to reconcile from when sync
+  /// has been failing for a long time.
+  Future<void> _downloadVouchersBackup() async {
+    if (_backingUp) return;
+    setState(() => _backingUp = true);
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Preparing vouchers backup…')),
+    );
+    try {
+      final path = await getIt<VouchersBackupService>().downloadAll();
+      if (!mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text('Saved to $path')));
+    } catch (e) {
+      if (!mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text('Backup failed: $e')));
+    } finally {
+      if (mounted) setState(() => _backingUp = false);
     }
   }
 
@@ -543,6 +567,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             subtitle: l10n.pushPullSubtitle,
             onTap: () => Navigator.of(context).pushNamed('/sync'),
           ),
+          // _SettingsTile(
+          //   icon: Icons.download_rounded,
+          //   title: "Download vouchers backup",
+          //   subtitle: "Save all vouchers (JSON) to the device",
+          //   onTap: _downloadVouchersBackup,
+          // ),
           _SettingsTile(
             icon: Icons.group_outlined,
             title: "Personnel Management", // "Staff Management"
@@ -611,6 +641,37 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             activeThumbColor: Colors.green,
             inactiveThumbColor: Colors.grey,
           ),
+          if (ref.watch(authSettingsProvider).enableFinger)
+            ListTile(
+              leading: CircleAvatar(
+                backgroundColor: colorScheme.primaryContainer,
+                child: Icon(Icons.tune, color: colorScheme.primary, size: 15),
+              ),
+              title: const Text('Fingerprint Match Threshold'),
+              subtitle: const Text(
+                'Minimum match score (higher = stricter). Default 80.',
+              ),
+              trailing: DropdownButton<int>(
+                value: _normalizedThreshold(
+                  ref.watch(authSettingsProvider).fingerMatchThreshold,
+                ),
+                onChanged: (v) {
+                  if (v != null) {
+                    ref
+                        .read(authSettingsProvider.notifier)
+                        .setFingerMatchThreshold(v);
+                  }
+                },
+                items: const [
+                  DropdownMenuItem(value: 70, child: Text('70')),
+                  DropdownMenuItem(value: 75, child: Text('75')),
+                  DropdownMenuItem(value: 80, child: Text('80')),
+                  DropdownMenuItem(value: 85, child: Text('85')),
+                  DropdownMenuItem(value: 90, child: Text('90')),
+                  DropdownMenuItem(value: 95, child: Text('95')),
+                ],
+              ),
+            ),
           SwitchListTile(
             secondary: CircleAvatar(
               backgroundColor: colorScheme.primaryContainer,
@@ -800,3 +861,12 @@ class Lang {
   final String label;
   final String code;
 }
+
+/// Allowed fingerprint match thresholds. Kept small and sane so the operator
+/// cannot set a value that would lock everyone out or accept anyone.
+const List<int> _fingerThresholdOptions = [70, 75, 80, 85, 90, 95];
+
+/// A safe dropdown value: falls back to the default when the stored value is
+/// outside the allowed set (e.g. set by an older/newer build).
+int _normalizedThreshold(int value) =>
+    _fingerThresholdOptions.contains(value) ? value : 80;
