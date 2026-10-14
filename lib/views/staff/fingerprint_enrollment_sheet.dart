@@ -67,25 +67,9 @@ class _FingerprintEnrollmentSheetState
     try {
       final authService = ref.read(fingerprintAuthProvider);
 
-      final alreadyExists = await authService.hasFingerType(
-        widget.entityId,
-        _selectedFinger!,
-        entityType: widget.entityType,
-      );
-      if (alreadyExists) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                '${_fingerLabel(_selectedFinger!)} is already enrolled. Remove the existing one first.',
-              ),
-              backgroundColor: Colors.orange,
-            ),
-          );
-        }
-        return;
-      }
-
+      // Unlimited enrollment: the operator enforces the 10-finger discipline.
+      // Re-enrolling an already-captured finger is allowed and creates an
+      // additional template row.
       setState(() => _isScanning = true);
 
       final isAvailable = await authService.isAvailable;

@@ -866,7 +866,16 @@ class AppDatabase extends _$AppDatabase {
 
   Future<int> deleteStaffNotIn(Set<int> keepIds) async {
     if (keepIds.isEmpty) {
-      return (delete(staff)..where((t) => t.syncStatus.equals(2))).go();
+      // Cascade per record (kitchens, dependents, cards, bio-data) rather
+      // than bulk-deleting: orphaned fingerprint rows would otherwise stay
+      // matchable after a full-purge sync.
+      final toDelete = await (select(
+        staff,
+      )..where((t) => t.syncStatus.equals(2))).get();
+      for (final record in toDelete) {
+        await deleteStaff(record.id);
+      }
+      return toDelete.length;
     }
     final toDelete = await (select(staff)
           ..where((t) => t.syncStatus.equals(2) & t.id.isNotIn(keepIds)))
@@ -1126,7 +1135,14 @@ class AppDatabase extends _$AppDatabase {
 
   Future<int> deleteDependentsNotIn(Set<int> keepIds) async {
     if (keepIds.isEmpty) {
-      return (delete(dependents)..where((t) => t.syncStatus.equals(2))).go();
+      // Cascade per record (kitchens, visits, bio-data) — see deleteStaffNotIn.
+      final toDelete = await (select(
+        dependents,
+      )..where((t) => t.syncStatus.equals(2))).get();
+      for (final record in toDelete) {
+        await deleteDependent(record.id);
+      }
+      return toDelete.length;
     }
     final toDelete = await (select(dependents)
           ..where((t) => t.syncStatus.equals(2) & t.id.isNotIn(keepIds)))
@@ -1287,9 +1303,14 @@ class AppDatabase extends _$AppDatabase {
 
   Future<int> deleteContractorStaffNotIn(Set<int> keepIds) async {
     if (keepIds.isEmpty) {
-      return (delete(contractorStaffTable)
-            ..where((t) => t.syncStatus.equals(2)))
-          .go();
+      // Cascade per record (kitchens, bio-data) — see deleteStaffNotIn.
+      final toDelete = await (select(
+        contractorStaffTable,
+      )..where((t) => t.syncStatus.equals(2))).get();
+      for (final record in toDelete) {
+        await deleteContractorStaff(record.id);
+      }
+      return toDelete.length;
     }
     final toDelete = await (select(contractorStaffTable)
           ..where((t) => t.syncStatus.equals(2) & t.id.isNotIn(keepIds)))
@@ -1340,7 +1361,14 @@ class AppDatabase extends _$AppDatabase {
 
   Future<int> deleteVisitorsNotIn(Set<int> keepIds) async {
     if (keepIds.isEmpty) {
-      return (delete(visitors)..where((t) => t.syncStatus.equals(2))).go();
+      // Cascade per record (kitchens, bio-data) — see deleteStaffNotIn.
+      final toDelete = await (select(
+        visitors,
+      )..where((t) => t.syncStatus.equals(2))).get();
+      for (final record in toDelete) {
+        await deleteVisitor(record.id);
+      }
+      return toDelete.length;
     }
     final toDelete = await (select(visitors)
           ..where((t) => t.syncStatus.equals(2) & t.id.isNotIn(keepIds)))

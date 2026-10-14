@@ -108,4 +108,81 @@ void main() {
     expect(await db.getContractorStaff(7), isNotNull);
     expect(await db.getAllContractorStaff(), hasLength(1));
   });
+
+  test('inactive contractor staff are skipped and purged', () async {
+    await db.insertContractorStaff(
+      ContractorStaffTableCompanion.insert(
+        id: const Value(888),
+        name: 'Deactivated Staff',
+        startDate: '2024-01-01',
+        endDate: '2024-12-31',
+        syncStatus: const Value(2),
+      ),
+    );
+
+    stubPagedSync({
+      0: [
+        {
+          'id': 11,
+          'name': 'Active Staff',
+          'status': 'active',
+          'startDate': '2024-01-01',
+          'endDate': '2026-12-31',
+        },
+        {
+          'id': 12,
+          'name': 'Inactive Staff',
+          'status': 'inactive',
+          'startDate': '2024-01-01',
+          'endDate': '2026-12-31',
+        },
+        {
+          'id': 13,
+          'name': 'Expired Window',
+          'status': null,
+          'startDate': '2020-01-01',
+          'endDate': '2020-12-31',
+        },
+      ],
+    });
+
+    final service = RemoteToLocalSyncService(networkAPI: network, db: db);
+    await service.syncContractorStaffOnly();
+
+    expect(await db.getContractorStaff(11), isNotNull);
+    expect(await db.getContractorStaff(12), isNull);
+    expect(await db.getContractorStaff(13), isNull);
+    expect(await db.getContractorStaff(888), isNull);
+  });
+
+  test('empty sync purges locals and cascades their bio-data', () async {
+    await db.insertContractorStaff(
+      ContractorStaffTableCompanion.insert(
+        id: const Value(501),
+        name: 'All Inactive',
+        startDate: '2024-01-01',
+        endDate: '2024-12-31',
+        syncStatus: const Value(2),
+      ),
+    );
+    final now = DateTime.now().toIso8601String();
+    await db.insertBioData(
+      BioDataEntriesCompanion.insert(
+        id: const Value(9001),
+        finger: 'thumb',
+        dataBase64: 'template-9001',
+        createdAt: now,
+        updatedAt: now,
+        syncStatus: const Value(2),
+      ).copyWith(contractorStaffId: const Value(501)),
+    );
+
+    stubPagedSync({0: const <Map<String, dynamic>>[]});
+
+    final service = RemoteToLocalSyncService(networkAPI: network, db: db);
+    await service.syncContractorStaffOnly();
+
+    expect(await db.getContractorStaff(501), isNull);
+    expect(await db.getBioData(9001), isNull);
+  });
 }

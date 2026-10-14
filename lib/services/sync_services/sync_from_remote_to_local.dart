@@ -359,7 +359,7 @@ class RemoteToLocalSyncService {
         staffList = responseData['staffs'] as List<dynamic>;
       }
 
-      if (staffList == null || staffList.isEmpty) {
+      if (staffList == null) {
         _logger.w('RemoteToLocalSyncService: no remote staff data available');
         return false;
       }
@@ -369,15 +369,14 @@ class RemoteToLocalSyncService {
       );
 
       await _db.transaction(() async {
-        if (staffList?.isEmpty ?? true) {
-          _logger.w(
-            'RemoteToLocalSyncService: staff list is empty, skipping staff sync',
-          );
-          return;
-        }
         final remoteIds = <int>{};
         for (final item in staffList!) {
           if (item is Map<String, dynamic>) {
+            // Deactivated staff are neither stored nor kept: excluding them
+            // from remoteIds lets the purge below remove stale locals. An
+            // empty-but-successful response therefore purges all locals;
+            // only a failed fetch (exception above) keeps them.
+            if (!_isActivePerson(item)) continue;
             await _upsertStaffData(item);
             final id = _safeParseInt(item['id']);
             if (id != null && id != 0) remoteIds.add(id);
@@ -919,7 +918,7 @@ class RemoteToLocalSyncService {
         list = responseData['visitors'] as List<dynamic>;
       }
 
-      if (list == null || list.isEmpty) {
+      if (list == null) {
         _logger.w('RemoteToLocalSyncService: no remote visitors available');
         return false;
       }
@@ -928,6 +927,9 @@ class RemoteToLocalSyncService {
         final remoteIds = <int>{};
         for (final item in list!) {
           if (item is Map<String, dynamic>) {
+            // Inactive visitors are excluded from remoteIds so the purge
+            // below removes stale locals. Empty-but-successful purges all.
+            if (!_isActivePerson(item)) continue;
             await _upsertVisitorData(item);
             final id = _safeParseInt(item['id']);
             if (id != null && id != 0) remoteIds.add(id);
@@ -1049,10 +1051,12 @@ class RemoteToLocalSyncService {
           : null;
 
       final remoteIds = <int>{};
+      final activeIds = <int>{};
       var offset = 0;
       var received = 0;
       var upserted = 0;
       var failed = 0;
+      var skipped = 0;
       var reachedEnd = false;
 
       while (true) {
@@ -1094,6 +1098,13 @@ class RemoteToLocalSyncService {
             if (id != null && id != 0 && remoteIds.add(id)) {
               newThisPage++;
             }
+            // Inactive rows are never stored and are excluded from the purge
+            // keep-set (activeIds) so stale locals are removed below.
+            if (!_isActivePerson(item)) {
+              skipped++;
+              continue;
+            }
+            if (id != null && id != 0) activeIds.add(id);
             if (await _upsertContractorStaffData(item)) {
               upserted++;
             } else {
@@ -1115,13 +1126,13 @@ class RemoteToLocalSyncService {
 
       var deleted = 0;
       if (reachedEnd) {
-        deleted = await _db.deleteContractorStaffNotIn(remoteIds);
+        deleted = await _db.deleteContractorStaffNotIn(activeIds);
       }
 
       _logger.i(
         'RemoteToLocalSyncService: contractor staff sync completed '
         '(received=$received, upserted=$upserted, failed=$failed, '
-        'removed=$deleted, complete=$reachedEnd)',
+        'skipped=$skipped, removed=$deleted, complete=$reachedEnd)',
       );
       return true;
     } catch (e, stack) {
@@ -1283,7 +1294,7 @@ class RemoteToLocalSyncService {
         list = responseData['data'] as List<dynamic>;
       }
 
-      if (list == null || list.isEmpty) {
+      if (list == null) {
         _logger.w('RemoteToLocalSyncService: no remote dependents available');
         return false;
       }
@@ -1292,6 +1303,9 @@ class RemoteToLocalSyncService {
         final remoteIds = <int>{};
         for (final item in list!) {
           if (item is Map<String, dynamic>) {
+            // Inactive dependents are excluded from remoteIds so the purge
+            // below removes stale locals. Empty-but-successful purges all.
+            if (!_isActivePerson(item)) continue;
             await _upsertDependentData(item);
             final id = _safeParseInt(item['id']);
             if (id != null && id != 0) remoteIds.add(id);
@@ -1656,6 +1670,27 @@ class RemoteToLocalSyncService {
     if (value is double) return value.toInt();
     if (value is String) return int.tryParse(value);
     return null;
+  }
+
+  /// Whether a synced person row is active and may be kept on the POS.
+  ///
+  /// The server serializes `status` as the strings 'active'/'inactive' for
+  /// staff, contractor staff, visitors and dependents alike — never a boolean
+  /// (`is_active` lives only on kitchen pivots / bio-data rows) and never
+  /// `empStatus` (employment classification, unrelated). Contractor staff and
+  /// visitors may carry a null status, in which case the stay window decides:
+  /// an expired `endDate` means inactive. A wholly missing status key means an
+  /// old server build — keep the row rather than purging on uncertainty, so a
+  /// POS upgraded ahead of the backend never wipes its directory.
+  bool _isActivePerson(Map<String, dynamic> map) {
+    if (!map.containsKey('status')) return true;
+    final status = map['status'] as String?;
+    if (status != null) return status.trim().toLowerCase() == 'active';
+    final end = map['endDate'] as String?;
+    if (end == null || end.isEmpty) return true;
+    final endDay = _parseDate(end);
+    if (endDay == null) return true;
+    return !_dateOnly(endDay).isBefore(_dateOnly(DateTime.now()));
   }
 
   /// The manual (no-shift) quota period covering today, if the server has one.
